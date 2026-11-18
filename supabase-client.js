@@ -144,13 +144,13 @@ async function loadNotificationPreview(userId){
  const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
  if(!root.isConnected)return;root.replaceChildren();
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
- if(!data?.length){root.textContent='Todavía no tienes notificaciones.';return;}
- const ids=[...new Set(data.map(n=>n.actor_id))],postIds=[...new Set(data.map(n=>n.post_id).filter(Boolean))];
+ if(!data?.length){root.textContent='Todavía no tienes notificaciones de la comunidad.';}
+ const ids=[...new Set((data||[]).map(n=>n.actor_id))],postIds=[...new Set((data||[]).map(n=>n.post_id).filter(Boolean))];
  const [{data:profiles},{data:posts}]=await Promise.all([sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true),postIds.length?sb.from('member_posts').select('id,image_path').in('id',postIds):Promise.resolve({data:[]})]);
  if(!root.isConnected)return;
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
  const photos=new Set((posts||[]).filter(p=>p.image_path).map(p=>p.id));
- for(const n of data){
+ for(const n of (data||[])){
   const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');if(n.kind==='follow')item.dataset.followActor=n.actor_id;
   const message=document.createElement('p');const photo=photos.has(n.post_id);
   message.textContent=(names.get(n.actor_id)||'Un miembro')+(n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
@@ -158,7 +158,24 @@ async function loadNotificationPreview(userId){
   if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
   root.append(item);
  }
- await appendFollowBackActions(root,data,userId);
+ await appendFollowBackActions(root,data||[],userId);
+ const {data:reports,error:reportsError}=await sb.from('member_report_notifications').select('id,status,created_at,is_read').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(5);
+ if(!root.isConnected)return;
+ if(!reportsError&&reports?.length){
+  const heading=document.createElement('strong');heading.textContent='🛡 Avisos de denuncias';root.append(heading);
+  for(const report of reports){
+   const item=document.createElement('div');item.className='notification-preview-item'+(report.is_read?'':' unread');
+   const message=document.createElement('p');message.textContent='Tu denuncia fue '+(report.status==='reviewed'?'revisada.':'descartada.');
+   const date=document.createElement('small');date.textContent=new Date(report.created_at).toLocaleString('es-ES');item.append(message,date);
+   if(!report.is_read){
+    const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leído';
+    mark.onclick=async()=>{mark.disabled=true;const {error}=await sb.from('member_report_notifications').update({is_read:true}).eq('id',report.id).eq('recipient_id',userId);if(error){mark.disabled=false;return;}refreshNotificationBadge(userId);loadNotificationPreview(userId);if(document.getElementById('account-report-history'))loadAccountReportHistory(userId);refreshNotificationBadge(userId);};
+    item.append(mark);
+   }
+   root.append(item);
+  }
+  const link=document.createElement('a');link.href='#/cuenta';link.textContent='Ver historial de denuncias';root.append(link);
+ }
 }
 let notificationRealtimeChannel=null;
 let notificationRealtimeUserId=null;
@@ -178,6 +195,7 @@ function syncNotificationRealtime(userId){
    if(document.getElementById('notification-popover')?.hidden===false)loadNotificationPreview(userId);
    if(document.getElementById('member-notifications'))loadMemberNotifications();
   })
+  .on('postgres_changes',{event:'*',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+userId},()=>{refreshNotificationBadge(userId);if(document.getElementById('notification-popover')?.hidden===false)loadNotificationPreview(userId);if(document.getElementById('account-report-history'))loadAccountReportHistory(userId);})
   .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('No se pudo conectar el canal de notificaciones en tiempo real.');});
 }
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
@@ -877,9 +895,11 @@ async function refreshNotificationBadge(expectedUserId){
  if(!badge||!bell)return;
  const {count,error}=await sb.from('member_notifications').select('id',{count:'exact',head:true}).eq('is_read',false);
  if(!badge.isConnected||!bell.isConnected)return;
- if(error){badge.hidden=true;bell.title='Notificaciones';return;}
+ if(error){console.warn('No se pudieron cargar las notificaciones:',error.message);return;}
  const {count:messageCount}=await sb.from('member_direct_messages').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false);
- const total=(count||0)+(messageCount||0);
+ const {count:reportCount,error:reportError}=await sb.from('member_report_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false);
+ if(!badge.isConnected||!bell.isConnected)return;
+ const total=(count||0)+(messageCount||0)+(reportError?0:(reportCount||0));
  badge.hidden=total===0;
  badge.textContent=total>99?'99+':String(total);
  bell.setAttribute('aria-label',total?'Notificaciones: '+total+' sin leer':'Notificaciones: ninguna sin leer');
