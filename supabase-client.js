@@ -42,3 +42,24 @@ async function submitAuth(event) {
  if(!signup) setTimeout(()=>{location.hash='#/';},500);
 }
 async function logout(){await sb.auth.signOut();location.hash='#/auth';}
+
+const RECOVERY_REDIRECT='https://ismaeldavidgutierrezperez53-creator.github.io/ShadowsBytegamingofial/';
+async function requestPasswordReset(event){
+ event.preventDefault();
+ const email=event.currentTarget.elements.email.value.trim();
+ const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:RECOVERY_REDIRECT});
+ const target=document.getElementById('recovery-message');
+ if(target)target.textContent=error?'No se pudo enviar el enlace: '+error.message:'Si la cuenta existe, recibirás un correo con un enlace para cambiar la contraseña. Revisa también spam.';
+}
+async function saveNewPassword(event){
+ event.preventDefault();
+ const password=event.currentTarget.elements.password.value;
+ const target=document.getElementById('reset-message');
+ const {error}=await sb.auth.updateUser({password});
+ if(target)target.textContent=error?'No se pudo actualizar: '+error.message:'Contraseña actualizada. Ya puedes entrar al panel de administración.';
+ if(!error) setTimeout(()=>{location.hash='#/admin';},1000);
+}
+// Supabase recibe el enlace de recuperación antes de que el router muestre el formulario.
+sb.auth.onAuthStateChange((event)=>{
+ if(event==='PASSWORD_RECOVERY')setTimeout(()=>{location.hash='#/reset-password';},0);
+});
