@@ -106,7 +106,7 @@ async function refreshAccountActions() {
   return;
  }
  const admin=user.app_metadata?.role==='admin';
- actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-mark-all">Marcar todas como leídas</button><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
+ actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/mensajes" class="messages-header-link">💬 Mensajes</a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-mark-all">Marcar todas como leídas</button><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
  document.getElementById('account-logout').addEventListener('click',logout);
  setupNotificationPopover(user.id);
  refreshNotificationBadge(user.id);
@@ -299,7 +299,7 @@ async function loadMembers(){
    const heading=document.createElement('h2');heading.textContent=name;
    const bio=document.createElement('p');bio.textContent=member.bio||'Miembro de Shadows Byte Gaming Official';
    const link=document.createElement('a');link.className='gradient-btn mini member-view-link';link.href='#/perfil?id='+encodeURIComponent(member.id);link.textContent='Ver perfil';
-   card.append(avatar,heading,bio,link);root.append(card);
+   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';card.append(avatar,heading,bio,link,messageLink);root.append(card);
   });
  }
  document.getElementById('members-search')?.addEventListener('input',draw);draw();
@@ -699,4 +699,63 @@ async function refreshNotificationBadge(expectedUserId){
  badge.textContent=total>99?'99+':String(total);
  bell.setAttribute('aria-label',total?'Notificaciones: '+total+' sin leer':'Notificaciones: ninguna sin leer');
  bell.title=total?total+' notificaciones sin leer':'Notificaciones';
+}
+
+async function loadPrivateMessages(){
+ const root=document.getElementById('private-messages');if(!root)return;
+ const {data:{user},error:authError}=await sb.auth.getUser();
+ if(!root.isConnected)return;root.replaceChildren();
+ if(authError||!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para enviar mensajes';root.append(link);return;}
+ const me=user.id;
+ const params=new URLSearchParams((location.hash.split('?')[1]||''));
+ const requested=params.get('id');
+ const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
+ const {data:messages,error}=await sb.from('member_direct_messages').select('id,sender_id,recipient_id,body,created_at').order('created_at',{ascending:false}).limit(300);
+ if(!root.isConnected)return;
+ if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
+ const items=messages||[];
+ const ids=[...new Set(items.flatMap(m=>[m.sender_id,m.recipient_id]).filter(id=>id!==me))];
+ if(validId(requested)&&requested!==me&&!ids.includes(requested))ids.push(requested);
+ const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username,is_public').in('id',ids):{data:[]};
+ if(!root.isConnected)return;
+ const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+ const publicIds=new Set((profiles||[]).filter(p=>p.is_public).map(p=>p.id));
+ const partners=[...new Set(items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id))];
+ if(validId(requested)&&requested!==me&&!partners.includes(requested))partners.unshift(requested);
+ const wrapper=document.createElement('div');wrapper.className='messages-layout';
+ const sidebar=document.createElement('aside');sidebar.className='messages-sidebar';
+ const title=document.createElement('h2');title.textContent='Conversaciones';sidebar.append(title);
+ if(!partners.length){const p=document.createElement('p');p.textContent='Aún no tienes conversaciones. Visita Miembros para iniciar una.';sidebar.append(p);}
+ const active=validId(requested)&&requested!==me?requested:(partners[0]||null);
+ for(const id of partners){
+  const link=document.createElement('a');link.href='#/mensajes?id='+encodeURIComponent(id);
+  link.className='messages-partner'+(id===active?' selected':'');
+  link.textContent=names.get(id)||'Miembro';sidebar.append(link);
+ }
+ const panel=document.createElement('section');panel.className='messages-panel';
+ if(!active){panel.textContent='Selecciona un miembro desde su perfil para comenzar.';}
+ else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
+ else {
+  const heading=document.createElement('h2');heading.textContent=names.get(active)||'Miembro';
+  const history=document.createElement('div');history.className='messages-history';
+  const conversation=items.filter(m=>(m.sender_id===me&&m.recipient_id===active)||(m.recipient_id===me&&m.sender_id===active)).reverse();
+  if(!conversation.length){const hint=document.createElement('p');hint.textContent='Todavía no hay mensajes en esta conversación.';history.append(hint);}
+  for(const m of conversation){
+   const bubble=document.createElement('div');bubble.className='message-bubble'+(m.sender_id===me?' mine':'');
+   const text=document.createElement('p');text.textContent=m.body;
+   const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
+   bubble.append(text,date);history.append(bubble);
+  }
+  panel.append(heading,history);
+  if(publicIds.has(active)){
+   const form=document.createElement('form');form.className='social-form messages-compose';
+   const input=document.createElement('textarea');input.required=true;input.maxLength=2000;input.placeholder='Escribe tu mensaje privado…';input.setAttribute('aria-label','Mensaje privado');
+   const button=document.createElement('button');button.className='gradient-btn mini';button.type='submit';button.textContent='Enviar mensaje';
+   const status=document.createElement('p');status.setAttribute('role','status');
+   form.append(input,button,status);
+   form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim();if(!body)return;button.disabled=true;const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body});if(sendError){status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}else await loadPrivateMessages();};
+   panel.append(form);
+  }else{const p=document.createElement('p');p.textContent='Este miembro ya no tiene un perfil público; no puedes enviarle nuevos mensajes.';panel.append(p);}
+ }
+ wrapper.append(sidebar,panel);root.append(wrapper);
 }
