@@ -276,3 +276,5 @@ body.member-lightbox-open{overflow:hidden}
 
 .message-unread-count{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#e53b83;color:white;font:700 11px Arial,sans-serif;vertical-align:middle}
 .message-unread-count[hidden]{display:none!important}
+
+.member-typing-indicator{min-height:1.5em;margin:6px 0;color:#a9a0ff;font-size:.88rem;font-style:italic}
