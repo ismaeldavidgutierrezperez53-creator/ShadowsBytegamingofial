@@ -38,10 +38,39 @@ function adminField(name,value,model){
  const full=['content','description','excerpt','cover_url','image_url','destination_url'].includes(name);
  return '<div class="admin-field'+(full?' admin-field-wide':'')+'"><label for="'+id+'">'+safe(label)+'</label>'+control+'</div>';
 }
+function adminSetupImageUpload(){
+ const input=document.getElementById('admin-image-file'),url=document.getElementById('admin-image_url')||document.getElementById('admin-cover_url');
+ const preview=document.getElementById('admin-image-preview'),status=document.getElementById('admin-upload-status');
+ if(!input||!url)return;
+ const show=()=>{if(preview){const value=url.value.trim();if(/^https:\/\//i.test(value)){preview.src=value;preview.hidden=false;}else{preview.hidden=true;preview.removeAttribute('src')}}};
+ url.addEventListener('input',show);show();
+ input.addEventListener('change',async()=>{
+  const file=input.files?.[0];if(!file)return;
+  const valid=['image/jpeg','image/png','image/webp','image/gif'];
+  if(!valid.includes(file.type)||file.size>5*1024*1024){status.textContent='Selecciona una imagen JPG, PNG, WebP o GIF de hasta 5 MB.';input.value='';return}
+  const button=document.getElementById('admin-save');
+  input.disabled=true;if(button)button.disabled=true;status.textContent='Subiendo imagen…';
+  try{
+   const {data:{user},error:authError}=await sb.auth.getUser();
+   if(authError||user?.app_metadata?.role!=='admin')throw Error('Debes iniciar sesión como administrador.');
+   const extension={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[file.type];
+   const category=adminModels[adminTable].catalogCategory||adminTable;
+   const path=category+'/'+crypto.randomUUID()+'.'+extension;
+   const {error}=await sb.storage.from('editorial-images').upload(path,file,{contentType:file.type,upsert:false});
+   if(error)throw error;
+   const {data}=sb.storage.from('editorial-images').getPublicUrl(path);
+   url.value=data.publicUrl;url.dispatchEvent(new Event('input',{bubbles:true}));
+   status.textContent='Imagen subida correctamente. Guarda el contenido para publicarla.';
+  }catch(error){status.textContent='No se pudo subir la imagen: '+error.message}
+  finally{input.disabled=false;if(button)button.disabled=false;input.value=''}
+ });
+}
+
 function adminForm(item={}){
  const root=document.getElementById('admin-form-root');if(!root)return;
  const model=adminModels[adminTable],isEdit=Boolean(item.id);
- root.innerHTML='<section class="admin-panel admin-editor-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">EDITOR DE CONTENIDO</span><h2>'+(isEdit?'Editar':'Crear')+' '+model.label.toLowerCase()+'</h2><p>Completa los campos y guarda tus cambios en Supabase.</p></div><button type="button" class="admin-close" id="admin-close" aria-label="Cerrar editor">✕</button></div><form id="admin-editor"><div class="admin-fields">'+Object.keys(model.fields).map(k=>adminField(k,item[k]??(k==='status'?'draft':''),model)).join('')+'</div><div class="admin-form-actions"><button type="button" class="admin-secondary" id="admin-cancel">Cancelar</button><button type="submit" class="gradient-btn" id="admin-save">Guardar contenido</button></div></form></section>';
+ root.innerHTML='<section class="admin-panel admin-editor-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">EDITOR DE CONTENIDO</span><h2>'+(isEdit?'Editar':'Crear')+' '+model.label.toLowerCase()+'</h2><p>Completa los campos y guarda tus cambios en Supabase.</p></div><button type="button" class="admin-close" id="admin-close" aria-label="Cerrar editor">✕</button></div><form id="admin-editor"><div class="admin-fields">'+Object.keys(model.fields).map(k=>adminField(k,item[k]??(k==='status'?'draft':''),model)).join('')+'</div>'+((model.fields.image_url||model.fields.cover_url)?'<div class="admin-field admin-field-wide"><label for="admin-image-file">Subir imagen desde tu dispositivo (máximo 5 MB)</label><input id="admin-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><p id="admin-upload-status" role="status" aria-live="polite"></p><img id="admin-image-preview" alt="Vista previa de la imagen" hidden style="max-width:240px;max-height:180px;object-fit:contain;border-radius:12px;margin-top:10px"></div>':'')+'<div class="admin-form-actions"><button type="button" class="admin-secondary" id="admin-cancel">Cancelar</button><button type="submit" class="gradient-btn" id="admin-save">Guardar contenido</button></div></form></section>';
+ adminSetupImageUpload();
  const close=()=>root.replaceChildren();
  document.getElementById('admin-close').onclick=close;
  document.getElementById('admin-cancel').onclick=close;
