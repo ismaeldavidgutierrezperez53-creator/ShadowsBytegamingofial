@@ -243,3 +243,8 @@ body.member-lightbox-open{overflow:hidden}
 .notification-preview-item small{display:block;opacity:.8}
 .notification-preview-item button{margin-top:7px;border:1px solid #9374b8;border-radius:6px;background:transparent;color:#f5e9ff;padding:5px 8px;cursor:pointer}
 .notification-popover>a{color:#d6b0ff;text-decoration:underline;text-align:center;font-weight:600}
+
+
+#notification-mark-all{align-self:flex-start;margin-right:28px;border:1px solid #9374b8;border-radius:7px;background:#3b2853;color:#f6efff;padding:7px 10px;cursor:pointer;font-size:12px}
+#notification-mark-all:disabled{opacity:.65;cursor:wait}
+#member-notifications>.gradient-btn{margin-bottom:14px}
