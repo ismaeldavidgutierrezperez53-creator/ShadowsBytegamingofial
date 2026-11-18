@@ -166,7 +166,7 @@ function setupNotificationPopover(userId){
 }
 async function loadNotificationPreview(userId){
  const root=document.getElementById('notification-preview');if(!root||!userId)return;
- const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
+ const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
  if(!root.isConnected)return;root.replaceChildren();
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
  if(!data?.length){root.textContent='Todavía no tienes notificaciones de la comunidad.';}
@@ -174,13 +174,15 @@ async function loadNotificationPreview(userId){
  const [{data:profiles},{data:posts}]=await Promise.all([sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true),postIds.length?sb.from('member_posts').select('id,image_path').in('id',postIds):Promise.resolve({data:[]})]);
  if(!root.isConnected)return;
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
+ const giftNames=await shopGiftNotificationNames(data||[]);
  const photos=new Set((posts||[]).filter(p=>p.image_path).map(p=>p.id));
  for(const n of (data||[])){
   const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');if(n.kind==='follow')item.dataset.followActor=n.actor_id;
   const message=document.createElement('p');const photo=photos.has(n.post_id);
-  message.textContent=(names.get(n.actor_id)||'Un miembro')+(n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
+  message.textContent=(names.get(n.actor_id)||'Un miembro')+(n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');item.append(message,date);
   if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
+  if(n.kind==='gift'){const go=document.createElement('a');go.href='#/tienda';go.textContent='🎁 Ir a la tienda y equipar';go.className='notification-jump';item.append(go)}
   root.append(item);
  }
  await appendFollowBackActions(root,data||[],userId);
@@ -896,7 +898,7 @@ async function appendFollowBackActions(root,notifications,userId){
   node.append(btn);
  }
 }
-function notificationDestination(n){return n.post_id?'#/cuenta?post='+encodeURIComponent(n.post_id):(n.actor_id?'#/perfil?id='+encodeURIComponent(n.actor_id):'#/notificaciones');}
+function notificationDestination(n){return n.kind==='gift'?'#/tienda':n.post_id?'#/cuenta?post='+encodeURIComponent(n.post_id):(n.actor_id?'#/perfil?id='+encodeURIComponent(n.actor_id):'#/notificaciones');}
 function focusNotificationPost(root,id){if(!id||!root?.isConnected)return;const el=[...root.querySelectorAll('[data-post-id]')].find(x=>x.dataset.postId===id);if(el){el.classList.add('notification-target-post');el.scrollIntoView({behavior:'smooth',block:'center'});}}
 async function loadMemberNotifications(){
  const root=document.getElementById('member-notifications');if(!root)return;
@@ -904,7 +906,7 @@ async function loadMemberNotifications(){
  if(!root.isConnected)return;
  root.replaceChildren();
  if(!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para ver tus notificaciones';root.append(link);return;}
- const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,created_at,is_read').order('created_at',{ascending:false}).limit(50);
+ const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,created_at,is_read').order('created_at',{ascending:false}).limit(50);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
  if(!(data||[]).length){root.textContent='Todavía no tienes notificaciones.';return;}
@@ -915,13 +917,14 @@ async function loadMemberNotifications(){
  const ids=[...new Set(data.map(n=>n.actor_id))];
  const {data:profiles}=await sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
+ const giftNames=await shopGiftNotificationNames(data||[]);
  for(const n of data){
   const row=document.createElement('article');row.className='notification-item'+(n.is_read?'':' unread');if(n.kind==='follow')row.dataset.followActor=n.actor_id;
   const actor=document.createElement('span');actor.textContent=names.get(n.actor_id)||'Un miembro';
-  const action=document.createElement('span');const photo=photoPostIds.has(n.post_id);action.textContent=n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.');
+  const action=document.createElement('span');const photo=photoPostIds.has(n.post_id);action.textContent=n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.');
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
   row.append(actor,action,date);
-  const jump=document.createElement('a');jump.href=notificationDestination(n);jump.textContent=n.post_id?'Ver publicación':'Ver perfil';jump.className='notification-jump';row.append(jump);
+  const jump=document.createElement('a');jump.href=notificationDestination(n);jump.textContent=n.kind==='gift'?'🎁 Ir a la tienda y equipar':n.post_id?'Ver publicación':'Ver perfil';jump.className='notification-jump';row.append(jump);
   if(!n.is_read){const button=document.createElement('button');button.className='social-delete';button.textContent='Marcar como leída';button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id);if(error){button.textContent='Error al marcar';button.disabled=false;}else{row.classList.remove('unread');button.remove();refreshNotificationBadge(user.id);}};row.append(button);}
   root.append(row);
  }
@@ -1362,4 +1365,14 @@ function openPrivateChatLightbox(src){
  const onKey=e=>{if(e.key==='Escape'){e.preventDefault();dismiss();}else if(e.key==='Tab'){e.preventDefault();close.focus();}};
  close.onclick=dismiss;overlay.onclick=e=>{if(e.target===overlay)dismiss();};
  overlay.append(image,close);document.body.append(overlay);document.addEventListener('keydown',onKey);close.focus();
+}
+
+async function shopGiftNotificationNames(notifications){
+ const ids=[...new Set(notifications.filter(n=>n.kind==='gift'&&n.gift_id).map(n=>n.gift_id))];
+ if(!ids.length)return new Map();
+ const {data:gifts,error}=await sb.from('member_shop_gifts').select('id,item_id').in('id',ids);
+ if(error||!gifts?.length)return new Map();
+ const {data:items}=await sb.from('reward_shop_items').select('id,name').in('id',[...new Set(gifts.map(g=>g.item_id))]);
+ const names=new Map((items||[]).map(i=>[i.id,i.name]));
+ return new Map(gifts.map(g=>[g.id,names.get(g.item_id)||'recompensa exclusiva']));
 }
