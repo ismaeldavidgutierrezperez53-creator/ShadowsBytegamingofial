@@ -795,13 +795,16 @@ async function loadPrivateMessages(){
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
    bubble.append(text,date);history.append(bubble);
   }
-  panel.append(heading,history);
+  const typingIndicator=document.createElement('p');typingIndicator.className='member-typing-indicator';typingIndicator.id='member-typing-indicator';typingIndicator.setAttribute('role','status');typingIndicator.setAttribute('aria-live','polite');
+  panel.append(heading,history,typingIndicator);
+  subscribePrivateTyping(me,active,typingIndicator);
   if(publicIds.has(active)){
    const form=document.createElement('form');form.className='social-form messages-compose';
    const input=document.createElement('textarea');input.required=true;input.maxLength=2000;input.placeholder='Escribe tu mensaje privado…';input.setAttribute('aria-label','Mensaje privado');
    const button=document.createElement('button');button.className='gradient-btn mini';button.type='submit';button.textContent='Enviar mensaje';
    const status=document.createElement('p');status.setAttribute('role','status');
    form.append(input,button,status);
+   input.addEventListener('input',()=>sendPrivateTyping(me,active));
    form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim();if(!body)return;button.disabled=true;const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body});if(sendError){status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}else await loadPrivateMessages();};
    panel.append(form);
   }else{const p=document.createElement('p');p.textContent='Este miembro ya no tiene un perfil público; no puedes enviarle nuevos mensajes.';panel.append(p);}
@@ -860,4 +863,44 @@ async function refreshLivePrivateConversation(){
   const newHistory=current?.querySelector('.messages-history');
   if(newHistory)newHistory.scrollTop=nearBottom?newHistory.scrollHeight:previousScroll;
  }finally{privateConversationRefreshPending=false;}
+}
+
+let privateTypingChannel=null;
+let privateTypingPair='';
+let privateTypingLastSent=0;
+let privateTypingTimeout=null;
+function subscribePrivateTyping(me,partner,element){
+ const pair=me+':'+partner;
+ if(privateTypingPair===pair&&privateTypingChannel){
+  privateTypingChannel._typingElement=element;
+  return;
+ }
+ if(privateTypingChannel)sb.removeChannel(privateTypingChannel);
+ if(privateTypingTimeout)clearTimeout(privateTypingTimeout);
+ privateTypingPair=pair;
+ const channel=sb.channel('typing-view-'+me+'-'+partner);
+ privateTypingChannel=channel;
+ channel._typingElement=element;
+ const display=updated=>{
+  const current=channel._typingElement;
+  if(!current?.isConnected)return;
+  const recent=Date.now()-new Date(updated).getTime()<5500;
+  current.textContent=recent?'✍️ Escribiendo…':'';
+  if(privateTypingTimeout)clearTimeout(privateTypingTimeout);
+  if(recent)privateTypingTimeout=setTimeout(()=>{if(channel._typingElement?.isConnected)channel._typingElement.textContent='';},5500);
+ };
+ channel.on('postgres_changes',{event:'*',schema:'public',table:'member_typing_status',filter:'recipient_id=eq.'+me},payload=>{
+  if(payload.new?.sender_id===partner)display(payload.new.updated_at);
+ }).subscribe(async status=>{
+  if(status!=='SUBSCRIBED'||privateTypingChannel!==channel)return;
+  const {data}=await sb.from('member_typing_status').select('updated_at').eq('sender_id',partner).eq('recipient_id',me).maybeSingle();
+  if(data)display(data.updated_at);
+ });
+}
+async function sendPrivateTyping(me,partner){
+ if(!me||!partner||Date.now()-privateTypingLastSent<2300)return;
+ privateTypingLastSent=Date.now();
+ const updated_at=new Date().toISOString();
+ const {error}=await sb.from('member_typing_status').upsert({sender_id:me,recipient_id:partner,updated_at},{onConflict:'sender_id,recipient_id'});
+ if(error)console.warn('Estado de escritura no disponible:',error.message);
 }
