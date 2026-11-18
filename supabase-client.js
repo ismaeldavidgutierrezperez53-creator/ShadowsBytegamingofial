@@ -82,7 +82,7 @@ async function refreshAccountActions() {
  if(error)console.warn('No se pudo comprobar la sesión:',error.message);
  const user=session?.user;
  const hero=document.getElementById('hero-account-actions');
- if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/miembros">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
+ if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/cuenta">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
  const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
  if(!user){
   actions.innerHTML=search+'<a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a>';
@@ -94,3 +94,37 @@ async function refreshAccountActions() {
 }
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
 refreshAccountActions();
+
+async function loadAccountProfile(){
+ const root=document.getElementById('account-profile');if(!root)return;
+ const {data:{user},error}=await sb.auth.getUser();
+ if(!root.isConnected)return;
+ if(error||!user){root.innerHTML='<p>Inicia sesión para ver tu perfil.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión</a>';return;}
+ const meta=user.user_metadata||{};
+ const avatar=typeof meta.avatar_url==='string'&&/^https:\/\//i.test(meta.avatar_url)?meta.avatar_url:'';
+ const name=meta.display_name||meta.full_name||'Mi perfil';
+ root.innerHTML='<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem"><div id="profile-avatar" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);display:grid;place-items:center;font-size:2rem;overflow:hidden;flex-shrink:0"></div><div><h2 id="profile-heading"></h2><p id="profile-email" style="overflow-wrap:anywhere"></p></div></div><form id="profile-form"><label for="profile-name">Nombre de usuario</label><input id="profile-name" name="display_name" maxlength="60" required autocomplete="nickname"><label for="profile-avatar-url">URL de avatar (opcional, HTTPS)</label><input id="profile-avatar-url" name="avatar_url" type="url" placeholder="https://ejemplo.com/avatar.jpg"><label>Correo electrónico</label><input id="profile-email-readonly" type="email" disabled><p class="description">Para cambiar tu contraseña utiliza la opción de recuperación de contraseña.</p><button class="gradient-btn" type="submit">Guardar perfil</button><p id="profile-message" role="status" aria-live="polite"></p></form><p style="margin-top:1.5rem"><a href="#/forgot-password">Cambiar contraseña</a></p>'+(user.app_metadata?.role==='admin'?'<p><a class="gradient-btn mini" href="#/admin">Abrir panel de administración</a></p>':'');
+ const heading=document.getElementById('profile-heading'),email=document.getElementById('profile-email');
+ heading.textContent=name;email.textContent=user.email||'';
+ const form=document.getElementById('profile-form');
+ form.elements.display_name.value=meta.display_name||meta.full_name||'';
+ form.elements.avatar_url.value=avatar;
+ document.getElementById('profile-email-readonly').value=user.email||'';
+ const avatarNode=document.getElementById('profile-avatar');
+ function paintAvatar(url,label){avatarNode.replaceChildren();if(url){const img=document.createElement('img');img.src=url;img.alt='Avatar';img.referrerPolicy='no-referrer';img.style.cssText='width:100%;height:100%;object-fit:cover';img.onerror=()=>{avatarNode.textContent=(label||'?').charAt(0).toUpperCase()};avatarNode.append(img)}else avatarNode.textContent=(label||'?').charAt(0).toUpperCase();}
+ paintAvatar(avatar,name);
+ form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const display_name=form.elements.display_name.value.trim(),avatar_url=form.elements.avatar_url.value.trim();
+  const status=document.getElementById('profile-message');
+  if(!display_name){status.textContent='Introduce un nombre de usuario.';return;}
+  if(avatar_url&&!/^https:\/\/[^\s]+$/i.test(avatar_url)){status.textContent='El avatar debe usar una URL HTTPS válida.';return;}
+  const button=form.querySelector('button[type="submit"]');button.disabled=true;status.textContent='Guardando…';
+  try{
+   const {error}=await sb.auth.updateUser({data:{display_name,avatar_url}});
+   if(error){status.textContent='No se pudo guardar: '+error.message;return;}
+   heading.textContent=display_name;paintAvatar(avatar_url,display_name);status.textContent='Perfil actualizado correctamente.';
+  }catch(err){status.textContent='No se pudo guardar: '+err.message}
+  finally{button.disabled=false;}
+ });
+}
