@@ -789,6 +789,11 @@ async function loadPrivateMessages(){
   const history=document.createElement('div');history.className='messages-history';
   const conversation=items.filter(m=>(m.sender_id===me&&m.recipient_id===active)||(m.recipient_id===me&&m.sender_id===active)).reverse();
   if(!conversation.length){const hint=document.createElement('p');hint.textContent='Todavía no hay mensajes en esta conversación.';history.append(hint);}
+  const reactionIds=conversation.filter(m=>!m.deleted_at).map(m=>m.id);
+  const {data:reactions,error:reactionError}=reactionIds.length?await sb.from('member_message_reactions').select('message_id,user_id,emoji').in('message_id',reactionIds):{data:[],error:null};
+  if(reactionError)console.warn('No se pudieron cargar las reacciones:',reactionError.message);
+  const reactionsByMessage=new Map();
+  for(const reaction of reactions||[]){if(!reactionsByMessage.has(reaction.message_id))reactionsByMessage.set(reaction.message_id,[]);reactionsByMessage.get(reaction.message_id).push(reaction);}
   const conversationById=new Map(conversation.map(message=>[message.id,message]));
   let selectReply=null;
   for(const m of conversation){
@@ -836,6 +841,27 @@ async function loadPrivateMessages(){
      await loadPrivateMessages();
     };
     bubble.append(remove);
+   }
+   if(!m.deleted_at){
+    const reactionBar=document.createElement('div');reactionBar.className='private-chat-reactions';reactionBar.setAttribute('aria-label','Reacciones al mensaje');
+    const current=reactionsByMessage.get(m.id)||[];
+    for(const emoji of ['❤️','😂','👍','🔥']){
+     const count=current.filter(r=>r.emoji===emoji).length;
+     const mine=current.some(r=>r.user_id===me&&r.emoji===emoji);
+     const reactionButton=document.createElement('button');reactionButton.type='button';reactionButton.className='private-chat-reaction'+(mine?' selected':'');
+     reactionButton.textContent=emoji+(count?' '+count:'');reactionButton.title=mine?'Quitar reacción':'Reaccionar con '+emoji;
+     reactionButton.setAttribute('aria-pressed',String(mine));reactionButton.setAttribute('aria-label',emoji+(count?' '+count+' reacciones':'')+(mine?', tu reacción':''));
+     reactionButton.onclick=async()=>{
+      reactionBar.querySelectorAll('button').forEach(b=>b.disabled=true);
+      let result;
+      if(mine)result=await sb.from('member_message_reactions').delete().eq('message_id',m.id).eq('user_id',me);
+      else result=await sb.from('member_message_reactions').upsert({message_id:m.id,user_id:me,emoji},{onConflict:'message_id,user_id'});
+      if(result.error){alert('No se pudo guardar la reacción: '+result.error.message);reactionBar.querySelectorAll('button').forEach(b=>b.disabled=false);return;}
+      await loadPrivateMessages();
+     };
+     reactionBar.append(reactionButton);
+    }
+    bubble.append(reactionBar);
    }
    if(!m.deleted_at){const replyButton=document.createElement('button');replyButton.type='button';replyButton.className='private-chat-reply-button';replyButton.textContent='↩ Responder';replyButton.onclick=()=>{if(selectReply)selectReply(m);};bubble.append(replyButton);}
    bubble.dataset.messageId=m.id;history.append(bubble);
@@ -944,6 +970,9 @@ function syncPrivateMessageRealtime(userId){
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_direct_messages',filter:'sender_id=eq.'+userId},()=>{
    refreshLivePrivateConversation();
+  })
+  .on('postgres_changes',{event:'*',schema:'public',table:'member_message_reactions'},()=>{
+   if(document.getElementById('private-messages'))refreshLivePrivateConversation();
   }).subscribe();
 }
 async function refreshPrivateMessageBadge(userId){
