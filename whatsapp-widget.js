@@ -9,13 +9,15 @@ const css=document.createElement('style');css.textContent=`
 @media(prefers-reduced-motion:reduce){#site-whatsapp-button{transition:none}}
 `;document.head.append(css);
 const whatsappButton=document.createElement('a');whatsappButton.id='site-whatsapp-button';whatsappButton.hidden=true;whatsappButton.target='_blank';whatsappButton.rel='noopener noreferrer';whatsappButton.setAttribute('aria-label','Contactar por WhatsApp');whatsappButton.title='Escríbenos por WhatsApp';whatsappButton.innerHTML=WHATSAPP_ICON;document.body.append(whatsappButton);
+// Abrir mediante enlace oficial de WhatsApp con texto predefinido.
+whatsappButton.addEventListener('click',event=>{if(!whatsappButton.href||whatsappButton.hidden)return;event.preventDefault();window.open(whatsappButton.href,'_blank','noopener,noreferrer');});
 async function refreshWhatsAppButton(){
  try{
   const {data,error}=await sb.from('site_social_links').select('url').eq('platform','WhatsApp').maybeSingle();
   if(error)throw error;
   const match=data?.url?.match(/^https:\/\/wa\.me\/([1-9]\d{7,14})$/);
   whatsappButton.hidden=!match;
-  if(match)whatsappButton.href='https://wa.me/'+match[1]+'?text='+encodeURIComponent('Hola, vengo de Shadows Byte Gaming Official');
+  if(match)whatsappButton.href='https://api.whatsapp.com/send?phone='+match[1]+'&text='+encodeURIComponent('Hola, vengo de Shadows Byte Gaming Official');
   else whatsappButton.removeAttribute('href');
  }catch(error){whatsappButton.hidden=true;console.warn('WhatsApp no disponible:',error.message)}
 }
