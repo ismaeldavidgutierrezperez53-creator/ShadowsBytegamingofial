@@ -328,3 +328,5 @@ body.member-lightbox-open{overflow:hidden}
 #account-report-update:not(:empty){color:#ffe2a2;font-weight:700}
 
 .member-block-controls{margin:8px 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.member-block-controls p{margin:0;font-size:.88rem}.member-block-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(150,150,180,.2)}.account-blocked-members{margin-top:20px}
+
+.member-report-form{display:flex;flex-direction:column;gap:10px;margin:12px 0;padding:15px;border:1px solid rgba(165,145,200,.35);border-radius:12px}.member-report-form label{display:flex;flex-direction:column;gap:6px}.member-report-form select,.member-report-form textarea{width:100%;padding:9px;border-radius:8px;background:rgba(120,120,160,.12);color:inherit;border:1px solid rgba(160,160,190,.45)}.member-report-button{margin:8px 0}
