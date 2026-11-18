@@ -300,3 +300,14 @@ body.member-lightbox-open{overflow:hidden}
 .private-chat-pinned-panel{display:flex;flex-direction:column;gap:7px;padding:10px 12px;margin:8px 0;border:1px solid rgba(160,145,240,.4);border-radius:10px;background:rgba(120,105,190,.09)}.private-chat-pinned-panel small{opacity:.75}.private-chat-pinned-link{text-align:left;border:0;border-left:3px solid #a99aff;background:rgba(130,120,190,.13);color:inherit;padding:7px 10px;border-radius:5px;cursor:pointer;overflow-wrap:anywhere}.private-chat-pin-button{display:block;margin:6px 0;padding:5px 8px;background:transparent;border:1px solid currentColor;border-radius:7px;color:inherit;font-size:.75rem;cursor:pointer}.private-chat-pin-button.is-pinned{border-color:#a99aff;font-weight:700}
 
 .private-chat-partner-row{display:flex;align-items:center;gap:6px;margin:5px 0;flex-wrap:wrap}.private-chat-partner-row .messages-partner{flex:1 1 110px;min-width:0;overflow-wrap:anywhere}.private-chat-archive-action,.private-chat-archive-toggle{border:1px solid rgba(155,145,205,.45);border-radius:8px;background:rgba(130,120,180,.12);color:inherit;cursor:pointer;padding:7px 9px;font-size:.78rem}.private-chat-archive-toggle{display:block;width:100%;margin-top:14px;text-align:left;font-weight:600}.private-chat-archive-list{margin-top:7px}.private-chat-archive-list[hidden]{display:none!important}.private-chat-archive-action:disabled{opacity:.55}
+
+/* Administration extended dashboard */
+#admin-overview{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:16px}
+#admin-members-search,#admin-moderation-type{background:#0a0913;color:#f7f3fc;border:1px solid #443753;border-radius:10px;padding:11px;max-width:100%;font:inherit}
+.admin-management-row{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #ffffff20;padding:15px 2px}
+.admin-management-row>div{min-width:0;flex:1}
+.admin-management-row strong{display:block;color:#fff;font-size:17px;overflow-wrap:anywhere}
+.admin-management-row small{display:block;color:#a9a1b8;margin-top:4px;overflow-wrap:anywhere}
+.admin-management-row p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.admin-management-row button,.admin-management-row a{flex-shrink:0}
+@media(max-width:600px){.admin-management-row{align-items:flex-start;flex-direction:column}.admin-panel-heading{flex-wrap:wrap}}
