@@ -134,3 +134,29 @@ async function renderRewardChests(){
   card.append(button,status);host.append(card);
  }
 }
+
+async function renderRewardInventory(){
+ const host=document.getElementById('reward-inventory');if(!host)return;
+ const {data:{user},error:authError}=await sb.auth.getUser();if(!host.isConnected)return;
+ if(authError||!user){host.textContent='Inicia sesión para consultar tu inventario.';return}
+ host.textContent='Cargando inventario…';
+ const [chests,missions,daily,medals]=await Promise.all([
+  sb.from('member_reward_chests').select('chest_key,week_start,xp,claimed_at').eq('user_id',user.id).order('claimed_at',{ascending:false}).limit(100),
+  sb.from('member_mission_claims').select('mission_key,period_start,xp,claimed_at').eq('user_id',user.id).order('claimed_at',{ascending:false}).limit(100),
+  sb.from('member_daily_rewards').select('claimed_on,xp,bonus_xp').eq('user_id',user.id).order('claimed_on',{ascending:false}).limit(100),
+  sb.rpc('community_streak_medals',{target_member:user.id})
+ ]);
+ if(!host.isConnected)return;
+ host.replaceChildren();
+ const errors=[chests,missions,daily,medals].filter(r=>r.error);
+ if(errors.length){const warning=document.createElement('p');warning.setAttribute('role','alert');warning.textContent='No se pudieron cargar todos los premios. Actualiza la página para volver a intentarlo.';host.append(warning)}
+ const makeSection=(title,items,empty)=>{const section=document.createElement('section');section.className='profile-panel';section.style.cssText='padding:16px;margin:12px 0;border:1px solid #ffffff33;border-radius:14px';const h=document.createElement('h3');h.textContent=title;section.append(h);if(!items.length){const p=document.createElement('p');p.textContent=empty;section.append(p)}else{const list=document.createElement('ul');list.style.cssText='padding-left:22px';for(const item of items){const li=document.createElement('li');li.style.cssText='padding:5px 0';li.textContent=item;list.append(li)}section.append(list)}host.append(section)};
+ const earned=STREAK_MEDALS.filter(m=>Number(medals.data||0)>=m.days).map(m=>m.icon+' '+m.title+' · '+m.days+' días');
+ makeSection('🏅 Medallas conseguidas',earned,'Todavía no has desbloqueado medallas.');
+ const chestNames={bronze:'🎁 Cofre de bronce',gold:'👑 Cofre dorado'};
+ makeSection('📦 Cofres abiertos'+((chests.data||[]).length===100?' · últimos 100':''),(chests.data||[]).map(c=>(chestNames[c.chest_key]||'Cofre')+' · +'+c.xp+' XP · Semana del '+c.week_start),'Todavía no has abierto cofres.');
+ const missionNames={daily_post:'📝 Publicación diaria',daily_comments:'💬 Comentarios diarios',weekly_votes:'📊 Votos semanales',weekly_favorites:'❤️ Favoritos semanales'};
+ makeSection('🎯 Misiones reclamadas'+((missions.data||[]).length===100?' · últimas 100':''),(missions.data||[]).map(m=>(missionNames[m.mission_key]||'Misión')+' · +'+m.xp+' XP · '+m.period_start),'Todavía no has reclamado misiones.');
+ const dailyList=(daily.data||[]).map(d=>'🎁 '+d.claimed_on+' · +'+(Number(d.xp)+Number(d.bonus_xp||0))+' XP'+(d.bonus_xp?' (incluye bonus de racha)':''));
+ makeSection('📅 Recompensas diarias'+(dailyList.length===100?' · últimas 100':''),dailyList,'Todavía no has reclamado recompensas diarias.');
+}
