@@ -793,7 +793,9 @@ async function loadPrivateMessages(){
    const bubble=document.createElement('div');bubble.className='message-bubble'+(m.sender_id===me?' mine':'');
    const text=document.createElement('p');text.textContent=m.body;
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
-   bubble.append(text,date);history.append(bubble);
+   bubble.append(text,date);
+   if(m.sender_id===me){const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);}
+   history.append(bubble);
   }
   const typingIndicator=document.createElement('p');typingIndicator.className='member-typing-indicator';typingIndicator.id='member-typing-indicator';typingIndicator.setAttribute('role','status');typingIndicator.setAttribute('aria-live','polite');
   panel.append(heading,history,typingIndicator);
@@ -830,6 +832,9 @@ function syncPrivateMessageRealtime(userId){
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
+  })
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_direct_messages',filter:'sender_id=eq.'+userId},()=>{
+   refreshLivePrivateConversation();
   }).subscribe();
 }
 async function refreshPrivateMessageBadge(userId){
