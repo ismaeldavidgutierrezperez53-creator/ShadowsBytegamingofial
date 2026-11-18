@@ -755,7 +755,7 @@ async function loadPrivateMessages(){
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
- const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read').order('created_at',{ascending:false}).limit(300);
+ const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path').order('created_at',{ascending:false}).limit(300);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
@@ -793,7 +793,9 @@ async function loadPrivateMessages(){
    const bubble=document.createElement('div');bubble.className='message-bubble'+(m.sender_id===me?' mine':'');
    const text=document.createElement('p');text.textContent=m.body;
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
-   bubble.append(text,date);
+   bubble.append(text);
+   if(m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.onclick=()=>window.open(data.signedUrl,'_blank','noopener,noreferrer');}});}
+   bubble.append(date);
    if(m.sender_id===me){const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);}
    history.append(bubble);
   }
@@ -805,9 +807,29 @@ async function loadPrivateMessages(){
    const input=document.createElement('textarea');input.required=true;input.maxLength=2000;input.placeholder='Escribe tu mensaje privado…';input.setAttribute('aria-label','Mensaje privado');
    const button=document.createElement('button');button.className='gradient-btn mini';button.type='submit';button.textContent='Enviar mensaje';
    const status=document.createElement('p');status.setAttribute('role','status');
-   form.append(input,button,status);
+   const imageInput=document.createElement('input');imageInput.type='file';imageInput.accept='image/jpeg,image/png,image/webp,image/gif';imageInput.className='private-chat-image-input';imageInput.setAttribute('aria-label','Seleccionar imagen para enviar');
+   const imageLabel=document.createElement('label');imageLabel.className='private-chat-image-label';imageLabel.textContent='📷 Añadir imagen';imageLabel.append(imageInput);
+   const imagePreview=document.createElement('p');imagePreview.className='private-chat-image-preview';
+   imageInput.onchange=()=>{const file=imageInput.files?.[0];imagePreview.textContent=file?file.name+' ('+(file.size/1048576).toFixed(1)+' MB)':'';};
+   form.append(input,imageLabel,imagePreview,button,status);
    input.addEventListener('input',()=>sendPrivateTyping(me,active));
-   form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim();if(!body)return;button.disabled=true;const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body});if(sendError){status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}else await loadPrivateMessages();};
+   form.onsubmit=async e=>{
+    e.preventDefault();
+    const body=input.value.trim();const file=imageInput.files?.[0];
+    if(!body&&!file){status.textContent='Escribe un mensaje o selecciona una imagen.';return;}
+    const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
+    if(file&&(!allowed[file.type]||file.size>5242880)){status.textContent='Selecciona JPG, PNG, WebP o GIF de hasta 5 MB.';return;}
+    button.disabled=true;status.textContent=file?'Subiendo imagen…':'Enviando…';
+    let image_path=null;
+    if(file){
+     image_path=me+'/'+active+'/'+crypto.randomUUID()+'.'+allowed[file.type];
+     const {error:uploadError}=await sb.storage.from('private-chat-images').upload(image_path,file,{contentType:file.type,upsert:false});
+     if(uploadError){status.textContent='No se pudo subir la imagen: '+uploadError.message;button.disabled=false;return;}
+    }
+    const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path});
+    if(sendError){status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}
+    else await loadPrivateMessages();
+   };
    panel.append(form);
   }else{const p=document.createElement('p');p.textContent='Este miembro ya no tiene un perfil público; no puedes enviarle nuevos mensajes.';panel.append(p);}
  }
