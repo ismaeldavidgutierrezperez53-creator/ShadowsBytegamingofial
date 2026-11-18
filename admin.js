@@ -1,12 +1,19 @@
 // Panel de administración de Shadows Byte Gaming Official V2.
 // La autorización definitiva de escritura se aplica con RLS en Supabase.
 const adminModels = {
+ 'anime':{label:'Anime',icon:'🎌',catalogCategory:'anime',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
+ 'manga':{label:'Manga',icon:'📖',catalogCategory:'manga',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
+ 'manhwa':{label:'Manhwa',icon:'📚',catalogCategory:'manhwa',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
+ 'gaming':{label:'Gaming',icon:'🎮',catalogCategory:'gaming',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
+ 'waifu-husbando':{label:'Waifu / Husbando',icon:'💜',catalogCategory:'waifu-husbando',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
+ 'pokedex':{label:'Pokédex en Español',icon:'⚡',catalogCategory:'pokedex',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
+ 'one-piece':{label:'Especial One Piece',icon:'🏴‍☠️',catalogCategory:'one-piece',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
  news:{label:'Noticias',icon:'📰',fields:{title:'Título',slug:'Slug',excerpt:'Resumen',content:'Contenido',cover_url:'URL de portada',status:'Estado',published_at:'Fecha de publicación'},options:{status:['draft','published']}},
  billboard:{label:'Cartelera',icon:'🎬',fields:{title:'Título',description:'Descripción',category:'Categoría',image_url:'URL de imagen',destination_url:'URL de destino',starts_at:'Inicio',ends_at:'Fin',status:'Estado',sort_order:'Orden'},options:{category:['gaming','anime','event','stream','other'],status:['draft','published']}},
  events:{label:'Eventos',icon:'📅',fields:{title:'Título',description:'Descripción',image_url:'URL de imagen',location:'Ubicación',starts_at:'Inicio',ends_at:'Fin',status:'Estado'},options:{status:['draft','published','cancelled']}}
 };
 const adminDateFields=new Set(['starts_at','ends_at','published_at']);
-const adminLargeFields=new Set(['content','description','excerpt']);
+const adminLargeFields=new Set(['content','description','excerpt','extra_info']);
 let adminTable='news', adminItems=[];
 let adminRequestId=0;
 function adminMessage(message,type='info'){
@@ -58,7 +65,9 @@ function adminForm(item={}){
   }
   button.disabled=true;button.textContent='Guardando…';
   try{
-   const query=isEdit?sb.from(adminTable).update(data).eq('id',item.id).select():sb.from(adminTable).insert(data).select();
+   if(model.catalogCategory)data.category=model.catalogCategory;
+   const targetTable=model.catalogCategory?'site_catalog':adminTable;
+   const query=isEdit?sb.from(targetTable).update(data).eq('id',item.id).select():sb.from(targetTable).insert(data).select();
    const {data:rows,error}=await query;
    if(error){adminMessage('No se pudo guardar: '+error.message,'error');return;}
    if(!rows?.length){adminMessage('No se confirmó el guardado. Revisa los permisos.','error');return;}
@@ -89,7 +98,10 @@ async function adminLoad(){
  const table=adminTable,requestId=++adminRequestId;
  root.innerHTML='<div class="admin-empty">Cargando contenido…</div>';
  try{
-  const {data,error}=await sb.from(table).select('*').order('created_at',{ascending:false}).limit(100);
+  const model=adminModels[table];
+  let query=sb.from(model.catalogCategory?'site_catalog':table).select('*');
+  if(model.catalogCategory)query=query.eq('category',model.catalogCategory);
+  const {data,error}=await query.order('created_at',{ascending:false}).limit(100);
   if(requestId!==adminRequestId)return;
   if(error){root.innerHTML='<div class="admin-empty">Error al cargar: '+escapeHTML(error.message)+'</div>';return;}
   adminItems=data||[];adminRenderStats();
@@ -111,7 +123,7 @@ function adminRenderList(){
   if(!confirm('¿Eliminar definitivamente «'+item.title+'»?'))return;
   button.disabled=true;
   try{
-   const {data:deleted,error}=await sb.from(adminTable).delete().eq('id',item.id).select();
+   const {data:deleted,error}=await sb.from(adminModels[adminTable].catalogCategory?'site_catalog':adminTable).delete().eq('id',item.id).select();
    if(error||!deleted?.length){adminMessage('No se pudo eliminar: '+(error?.message||'Operación no confirmada'),'error');return;}
    adminMessage('Elemento eliminado.','success');await adminLoad();
   }catch(error){adminMessage('No se pudo eliminar: '+error.message,'error');}
@@ -121,7 +133,7 @@ function adminRenderList(){
 
 async function adminLoadOverview(){
  const root=document.getElementById('admin-overview');if(!root)return;
- const targets=[['profiles','Miembros registrados en perfiles'],['member_posts','Publicaciones de comunidad'],['member_comments','Comentarios'],['news','Noticias'],['billboard','Cartelera'],['events','Eventos']];
+ const targets=[['profiles','Miembros registrados en perfiles'],['member_posts','Publicaciones de comunidad'],['member_comments','Comentarios'],['news','Noticias'],['billboard','Cartelera'],['events','Eventos'],['site_catalog','Catálogo editorial']];
  const results=await Promise.all(targets.map(async ([table,label])=>{const {count,error}=await sb.from(table).select('*',{count:'exact',head:true});return {label,count,error};}));
  if(!root.isConnected)return;
  root.replaceChildren();
@@ -300,7 +312,7 @@ async function initAdmin(){
  const {data:{user},error}=await sb.auth.getUser();
  if(error||!user){root.innerHTML='<p>Debes iniciar sesión.</p><a href="#/auth">Entrar</a>';return;}
  if(user.app_metadata?.role!=='admin'){root.textContent='No tienes permisos de administrador. Cierra sesión y vuelve a entrar si acabas de recibir el rol.';return;}
- root.innerHTML='<div class="admin-dashboard"><div class="admin-quicklinks"><a href="#/cuenta">👤 Mi perfil</a><a href="#/miembros">👥 Comunidad</a><a href="#/noticias">📰 Ver noticias</a><a href="#/cartelera">🎬 Ver cartelera</a><a href="#/eventos">📅 Ver eventos</a></div><div class="admin-welcome"><div><span class="admin-kicker">SHADOWS BYTE · CONTROL CENTER</span><h2>Tu centro de mando</h2><p>Gestiona noticias, cartelera y eventos desde un único lugar.</p></div><span class="admin-admin-badge">● Administrador</span></div><p class="admin-session">Sesión iniciada: '+escapeHTML(user.email)+'</p><div class="admin-stats" id="admin-stats"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE CONTENIDOS</span><h2>Publicaciones</h2></div><button class="gradient-btn mini" id="admin-new" type="button">+ Crear noticias</button></div><div class="admin-tabs" role="tablist" aria-label="Secciones de administración" id="admin-tabs"></div><div id="admin-message" role="status" aria-live="polite"></div></section><div id="admin-form-root"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">BIBLIOTECA</span><h2 id="admin-list-title">Noticias</h2></div><input type="search" id="admin-search" placeholder="Buscar por título…" aria-label="Buscar contenido por título"></div><div id="admin-list"></div></section></div>';
+ root.innerHTML='<div class="admin-dashboard"><div class="admin-quicklinks"><a href="#/cuenta">👤 Mi perfil</a><a href="#/miembros">👥 Comunidad</a><a href="#/noticias">📰 Ver noticias</a><a href="#/cartelera">🎬 Ver cartelera</a><a href="#/eventos">📅 Ver eventos</a></div><div class="admin-welcome"><div><span class="admin-kicker">SHADOWS BYTE · CONTROL CENTER</span><h2>Tu centro de mando</h2><p>Gestiona noticias, cartelera, eventos y todas las secciones temáticas desde un único lugar.</p></div><span class="admin-admin-badge">● Administrador</span></div><p class="admin-session">Sesión iniciada: '+escapeHTML(user.email)+'</p><div class="admin-stats" id="admin-stats"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE CONTENIDOS</span><h2>Publicaciones</h2></div><button class="gradient-btn mini" id="admin-new" type="button">+ Crear noticias</button></div><div class="admin-tabs" role="tablist" aria-label="Secciones de administración" id="admin-tabs"></div><div id="admin-message" role="status" aria-live="polite"></div></section><div id="admin-form-root"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">BIBLIOTECA</span><h2 id="admin-list-title">Noticias</h2></div><input type="search" id="admin-search" placeholder="Buscar por título…" aria-label="Buscar contenido por título"></div><div id="admin-list"></div></section></div>';
  const tabs=document.getElementById('admin-tabs');
  for(const [table,model] of Object.entries(adminModels)){
   const button=document.createElement('button');button.type='button';button.dataset.table=table;button.setAttribute('role','tab');button.textContent=model.icon+' '+model.label;
