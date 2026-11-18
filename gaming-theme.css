@@ -35,3 +35,26 @@ button:focus-visible,.gradient-btn:focus-visible,a.gradient-btn:focus-visible{ou
 .topbar,main,footer{position:relative;z-index:2}
 .topbar{position:sticky}
 @media(prefers-reduced-motion:reduce){.sb-particles{display:none}}
+
+/* Mobile layout: prevent the account controls from crushing the brand. */
+@media(max-width:700px){
+  html,body{width:100%;max-width:100%;overflow-x:clip}
+  .topbar{display:flex;gap:8px;padding:0 10px;min-width:0}
+  .topbar>.brand{flex:1 1 auto;min-width:0;gap:7px;overflow:hidden}
+  .topbar>.brand img{width:42px!important;height:42px!important}
+  .topbar>.brand b{min-width:0;font-size:clamp(8px,2.5vw,11px);letter-spacing:0;overflow:hidden;text-overflow:ellipsis}
+  .topbar>.brand small{font-size:clamp(6px,1.6vw,8px);letter-spacing:1px}
+  .topbar .menu-toggle{flex:0 0 34px;padding:5px}
+  .topbar .top-actions{flex:0 1 auto;min-width:0;gap:6px}
+  .topbar .top-actions>a{font-size:0;white-space:nowrap}
+  .topbar .top-actions>a.notification-bell{font-size:21px}
+  .topbar .top-actions>a[href*="mensajes"]{font-size:0}
+  .topbar .top-actions>a[href*="mensajes"]::first-letter{font-size:21px}
+  .topbar.open nav{max-height:calc(100dvh - 64px);overflow-y:auto;z-index:50;box-shadow:0 15px 25px #0009}
+  footer{grid-template-columns:minmax(0,1fr);gap:18px;padding:28px 18px}
+  footer .brand{max-width:100%;white-space:normal}
+  footer p,footer .follow{overflow-wrap:anywhere;line-height:1.5}
+  footer .footer-links{gap:12px 18px}
+  footer .footer-links a{font-size:16px}
+  footer .follow{grid-column:1;margin-top:4px}
+}
