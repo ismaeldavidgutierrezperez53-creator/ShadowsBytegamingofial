@@ -13,3 +13,10 @@ body .hero::before{content:"";position:absolute;inset:-12%;z-index:0;pointer-eve
 body .hero-content{position:relative;z-index:1}
 @keyframes sb-neon-pulse{0%{opacity:.42;transform:translate3d(-1%,0,0) scale(1)}50%{opacity:.76}100%{opacity:.95;transform:translate3d(1%,1%,0) scale(1.035)}}
 @media(prefers-reduced-motion:reduce){body .hero::before{animation:none!important;opacity:.5;transform:none}}
+
+/* Accessible purple glow on button press, hover and keyboard focus */
+button,.gradient-btn,a.gradient-btn{transition:box-shadow .2s ease,filter .2s ease,transform .2s ease}
+button:active,.gradient-btn:active,a.gradient-btn:active{box-shadow:0 0 0 2px rgba(218,130,255,.65),0 0 22px rgba(176,43,255,.7)!important;filter:brightness(1.16);transform:scale(.98)}
+button:focus-visible,.gradient-btn:focus-visible,a.gradient-btn:focus-visible{outline:2px solid #e7a3ff;outline-offset:3px;box-shadow:0 0 18px rgba(174,47,255,.55)}
+@media(hover:hover){button:hover,.gradient-btn:hover,a.gradient-btn:hover{box-shadow:0 0 17px rgba(164,46,255,.38)}}
+@media(prefers-reduced-motion:reduce){button,.gradient-btn,a.gradient-btn{transition:none!important}}
