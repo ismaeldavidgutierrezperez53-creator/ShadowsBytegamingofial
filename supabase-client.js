@@ -331,7 +331,12 @@ async function loadPublicMemberProfile(){
  content.append(avatar,title,badge,bioTitle,bio);
  const social=document.createElement('section');social.className='member-social';social.id='member-social';
  const gallery=document.createElement('section');gallery.className='member-gallery-panel';gallery.id='member-gallery';
- content.append(gallery,social,back);root.append(cover,content);
+ const messageLink=document.createElement('a');
+ messageLink.className='gradient-btn mini member-private-message-link';
+ messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);
+ messageLink.textContent='💬 Enviar mensaje privado';
+ messageLink.setAttribute('aria-label','Enviar mensaje privado a '+name);
+ content.append(messageLink,gallery,social,back);root.append(cover,content);
  loadMemberGallery(member.id,gallery);
  await loadMemberSocial(member.id,social);
 }
