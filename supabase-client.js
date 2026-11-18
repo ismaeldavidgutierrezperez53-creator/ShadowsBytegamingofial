@@ -14,6 +14,11 @@ function newsCards(items) {
 function billboardCards(items) {
  return items.length ? '<div class="content-grid">'+items.map(b=>'<article class="auth-card"><h3>'+escapeHTML(b.title)+'</h3><p>'+escapeHTML(b.description||'')+'</p></article>').join('')+'</div>' : '<div class="empty">No hay elementos en la cartelera todavía</div>';
 }
+
+function eventCards(items){
+ return items.length?'<div class="content-grid">'+items.map(e=>'<article class="auth-card"><h3>'+escapeHTML(e.title)+'</h3><p>'+escapeHTML(e.description||'')+'</p>'+(e.starts_at?'<p>📅 '+escapeHTML(new Date(e.starts_at).toLocaleString('es-ES'))+'</p>':'')+(e.location?'<p>📍 '+escapeHTML(e.location)+'</p>':'')+'</article>').join('')+'</div>':'<div class="empty">Aún no hay eventos publicados</div>';
+}
+
 async function loadDynamicContent(path) {
  if(path==='/' || path==='/noticias') {
   const news=await getPublished('news','published_at');
@@ -24,6 +29,11 @@ async function loadDynamicContent(path) {
   const billboard=await getPublished('billboard','sort_order');
   const target=document.getElementById('live-billboard');
   if(target)target.innerHTML=billboardCards(billboard);
+ }
+ if(path==='/eventos') {
+  const events=await getPublished('events','starts_at');
+  const target=document.getElementById('live-events');
+  if(target)target.innerHTML=eventCards(events);
  }
  if(path==='/admin') {
   await initAdmin();
