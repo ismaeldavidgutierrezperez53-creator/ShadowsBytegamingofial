@@ -755,7 +755,7 @@ async function loadPrivateMessages(){
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
- const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,audio_path,deleted_at,reply_to_id').order('created_at',{ascending:false}).limit(300);
+ const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,audio_path,deleted_at,reply_to_id,edited_at').order('created_at',{ascending:false}).limit(300);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
@@ -800,8 +800,28 @@ async function loadPrivateMessages(){
    if(!m.deleted_at&&m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen del chat');photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};}});}
    if(!m.deleted_at&&m.audio_path){const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.className='private-chat-audio';audio.setAttribute('aria-label','Mensaje de voz');bubble.append(audio);sb.storage.from('private-chat-audio').createSignedUrl(m.audio_path,3600).then(({data})=>{if(data?.signedUrl&&audio.isConnected)audio.src=data.signedUrl;});}
    bubble.append(date);
+   if(m.edited_at&&!m.deleted_at){const edited=document.createElement('small');edited.className='private-chat-edited';edited.textContent=' · Editado';edited.title='Editado el '+new Date(m.edited_at).toLocaleString('es-ES');bubble.append(edited);}
    if(m.sender_id===me&&!m.deleted_at){
     const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);
+    if(m.body?.trim()){
+     const edit=document.createElement('button');edit.type='button';edit.className='private-chat-edit';edit.textContent='✏️ Editar';
+     edit.onclick=()=>{
+      if(bubble.querySelector('.private-chat-edit-form'))return;
+      const editor=document.createElement('form');editor.className='private-chat-edit-form';
+      const field=document.createElement('textarea');field.value=m.body;field.maxLength=2000;field.required=true;field.setAttribute('aria-label','Editar mensaje');
+      const save=document.createElement('button');save.type='submit';save.textContent='Guardar cambios';
+      const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancelar';cancel.onclick=()=>{editor.remove();edit.hidden=false;};
+      const feedback=document.createElement('small');feedback.setAttribute('role','status');
+      editor.append(field,save,cancel,feedback);bubble.insertBefore(editor,text.nextSibling);edit.hidden=true;field.focus();
+      editor.onsubmit=async event=>{
+       event.preventDefault();const value=field.value.trim();if(!value){feedback.textContent='Escribe un mensaje.';return;}
+       if(value===m.body){cancel.click();return;}
+       save.disabled=true;const {data,error:editError}=await sb.from('member_direct_messages').update({body:value}).eq('id',m.id).eq('sender_id',me).is('deleted_at',null).select('id,edited_at');
+       if(editError||!data?.length){feedback.textContent='No se pudo editar: '+(editError?.message||'Mensaje no disponible');save.disabled=false;return;}
+       await loadPrivateMessages();
+      };
+     };bubble.append(edit);
+    }
     const remove=document.createElement('button');remove.type='button';remove.className='private-chat-delete';remove.textContent='🗑️ Eliminar';remove.setAttribute('aria-label','Eliminar este mensaje');
     remove.onclick=async()=>{
      if(!confirm('¿Eliminar este mensaje para todos? Esta acción no se puede deshacer.'))return;
