@@ -759,8 +759,6 @@ async function loadPrivateMessages(){
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
- const unreadIds=items.filter(m=>m.recipient_id===me&&!m.is_read).map(m=>m.id);
- if(unreadIds.length){await sb.from('member_direct_messages').update({is_read:true}).eq('recipient_id',me).in('id',unreadIds);refreshPrivateMessageBadge(me);refreshNotificationBadge(me);}
  const ids=[...new Set(items.flatMap(m=>[m.sender_id,m.recipient_id]).filter(id=>id!==me))];
  if(validId(requested)&&requested!==me&&!ids.includes(requested))ids.push(requested);
  const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username,is_public').in('id',ids):{data:[]};
@@ -774,6 +772,9 @@ async function loadPrivateMessages(){
  const title=document.createElement('h2');title.textContent='Conversaciones';sidebar.append(title);
  if(!partners.length){const p=document.createElement('p');p.textContent='Aún no tienes conversaciones. Visita Miembros para iniciar una.';sidebar.append(p);}
  const active=validId(requested)&&requested!==me?requested:(partners[0]||null);
+ const unreadIds=items.filter(m=>m.sender_id===active&&m.recipient_id===me&&!m.is_read).map(m=>m.id);
+ if(unreadIds.length){const {error:readError}=await sb.from('member_direct_messages').update({is_read:true}).eq('recipient_id',me).in('id',unreadIds);if(!readError){for(const m of items)if(unreadIds.includes(m.id))m.is_read=true;refreshPrivateMessageBadge(me);refreshNotificationBadge(me);}}
+
  for(const id of partners){
   const link=document.createElement('a');link.href='#/mensajes?id='+encodeURIComponent(id);
   link.className='messages-partner'+(id===active?' selected':'');
