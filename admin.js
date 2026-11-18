@@ -12,7 +12,7 @@ function adminField(name,value,model){
  const val=value==null?'':String(value);
  const input=options?'<select id="'+id+'" name="'+name+'">'+options.map(x=>'<option value="'+x+'" '+(x===val?'selected':'')+'>'+x+'</option>').join('')+'</select>':
  (name==='content'||name==='description'||name==='excerpt'?'<textarea id="'+id+'" name="'+name+'" rows="4">'+escapeHTML(val)+'</textarea>':
- '<input id="'+id+'" name="'+name+'" '+(name==='title'||name==='starts_at'&&adminTable==='events'?'required':'')+' value="'+escapeHTML(val)+'" />');
+ '<input id="'+id+'" name="'+name+'" '+(name==='title'?'required':'')+' value="'+escapeHTML(val)+'" />');
  return '<label for="'+id+'">'+label+'</label>'+input;
 }
 function adminForm(item={}){
@@ -29,7 +29,7 @@ function adminForm(item={}){
    if(!data.slug.trim()){adminMessage('El slug es obligatorio.');return;}
    if(data.status==='published'&&!data.published_at)data.published_at=new Date().toISOString();
   }
-  if(adminTable==='events'&&!data.starts_at){adminMessage('La fecha de inicio es obligatoria.');return;}
+  if(adminTable==='events'&&data.status==='published'&&!data.starts_at){adminMessage('Indica una fecha de inicio antes de publicar el evento.');return;}
   const query=item.id?sb.from(adminTable).update(data).eq('id',item.id).select():sb.from(adminTable).insert(data).select();
   const {data:rows,error}=await query;
   if(error){adminMessage('No se pudo guardar: '+error.message);return;}
