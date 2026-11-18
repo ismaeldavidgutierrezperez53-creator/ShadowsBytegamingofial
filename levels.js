@@ -166,7 +166,7 @@ async function renderRewardShop(){
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
  if(!user){host.textContent='Inicia sesión para comprar recompensas.';return}
  const [catalog,owned,equipped,balance]=await Promise.all([
-  sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order').eq('active',true).order('sort_order'),
+  sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order,image_url').eq('active',true).order('sort_order'),
   sb.from('member_shop_purchases').select('item_id,price_paid').eq('user_id',user.id),
   sb.from('member_shop_equipped').select('category,item_id').eq('user_id',user.id),
   sb.rpc('reward_shop_balance')
@@ -182,7 +182,7 @@ async function renderRewardShop(){
   for(const item of (catalog.data||[]).filter(x=>x.category===category)){
    const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:14px;margin:10px 0;border:1px solid #ffffff33;border-radius:12px';
    const name=document.createElement('h4');name.textContent=item.name+' · '+item.price+' puntos';card.append(name);
-   const description=document.createElement('p');description.textContent=item.description;card.append(description);
+   const description=document.createElement('p');description.textContent=item.description;card.append(description);if(item.image_url&&/^https:\/\//.test(item.image_url)){const img=document.createElement('img');img.src=item.image_url;img.alt='Imagen de '+item.name;img.loading='lazy';img.style.cssText='width:100px;height:100px;object-fit:cover;border-radius:12px;display:block;margin:8px 0';card.append(img)}
    const bought=ownedIds.has(item.id),isEquipped=active.get(category)===item.id;
    const button=document.createElement('button');button.className='gradient-btn mini';button.textContent=bought?(isEquipped?'✓ Equipado':'Equipar'):'Comprar · '+item.price+' puntos';button.disabled=isEquipped||(!bought&&Number(balance.data||0)<item.price);
    const status=document.createElement('p');status.setAttribute('role','status');
