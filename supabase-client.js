@@ -236,6 +236,47 @@ async function loadPublicMemberProfile(){
  await loadMemberSocial(member.id,social);
 }
 
+function openMemberGalleryLightbox(posts,startIndex){
+ const images=posts.filter(post=>post.image_path);
+ if(!images.length)return;
+ document.querySelector('.member-lightbox')?.remove();
+ const previousFocus=document.activeElement;
+ const overlay=document.createElement('div');overlay.className='member-lightbox';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Visor de imágenes');
+ const panel=document.createElement('div');panel.className='member-lightbox-panel';
+ const close=document.createElement('button');close.type='button';close.className='member-lightbox-close';close.textContent='✕';close.setAttribute('aria-label','Cerrar visor');
+ const image=document.createElement('img');image.className='member-lightbox-image';image.alt='Imagen ampliada';
+ const caption=document.createElement('p');caption.className='member-lightbox-caption';
+ const counter=document.createElement('span');counter.className='member-lightbox-counter';
+ const previous=document.createElement('button');previous.type='button';previous.className='member-lightbox-prev';previous.textContent='‹';previous.setAttribute('aria-label','Imagen anterior');
+ const next=document.createElement('button');next.type='button';next.className='member-lightbox-next';next.textContent='›';next.setAttribute('aria-label','Imagen siguiente');
+ let index=Math.max(0,Math.min(startIndex,images.length-1));
+ const show=()=>{
+  const post=images[index];
+  image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
+  image.alt=post.content?.trim().slice(0,110)||'Imagen ampliada de la comunidad';
+  caption.textContent=post.content?.trim()||'Fotografía de la comunidad';
+  counter.textContent=(index+1)+' / '+images.length;
+  previous.disabled=next.disabled=images.length<2;
+ };
+ const onKey=event=>{
+  if(event.key==='Escape'){event.preventDefault();dismiss();}
+  else if(event.key==='ArrowLeft'){event.preventDefault();change(-1);}
+  else if(event.key==='ArrowRight'){event.preventDefault();change(1);}
+  else if(event.key==='Tab'){
+   const controls=[close,previous,next].filter(button=>!button.disabled);
+   const current=controls.indexOf(document.activeElement);
+   if(event.shiftKey&&current<=0){event.preventDefault();controls[controls.length-1].focus();}
+   else if(!event.shiftKey&&current===controls.length-1){event.preventDefault();controls[0].focus();}
+  }
+ };
+ const dismiss=()=>{document.removeEventListener('keydown',onKey);overlay.remove();document.body.classList.remove('member-lightbox-open');if(previousFocus?.isConnected)previousFocus.focus();};
+ const change=delta=>{index=(index+delta+images.length)%images.length;show();};
+ close.onclick=dismiss;previous.onclick=()=>change(-1);next.onclick=()=>change(1);
+ overlay.addEventListener('click',event=>{if(event.target===overlay)dismiss();});
+ panel.append(close,image,previous,next,caption,counter);overlay.append(panel);document.body.append(overlay);
+ document.body.classList.add('member-lightbox-open');document.addEventListener('keydown',onKey);show();close.focus();
+}
+
 async function loadMemberGallery(memberId,root){
  if(!root||!root.isConnected)return;
  root.replaceChildren();
@@ -250,7 +291,7 @@ async function loadMemberGallery(memberId,root){
  for(const post of posts){
   if(!post.image_path)continue;
   const url=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
-  const link=document.createElement('a');link.className='member-gallery-item';link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.title='Ver imagen completa';
+  const link=document.createElement('a');link.className='member-gallery-item';link.href=url;link.title='Ampliar imagen en la galería';link.addEventListener('click',event=>{event.preventDefault();openMemberGalleryLightbox(posts.filter(p=>p.image_path),posts.filter(p=>p.image_path).findIndex(p=>p.id===post.id));});
   const image=document.createElement('img');image.src=url;image.alt=post.content?.trim().slice(0,110)||'Imagen de la comunidad';image.loading='lazy';
   const label=document.createElement('span');label.className='member-gallery-item-label';label.textContent=new Date(post.created_at).toLocaleDateString('es-ES');
   link.append(image,label);grid.append(link);
