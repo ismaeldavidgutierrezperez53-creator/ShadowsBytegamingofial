@@ -3,6 +3,10 @@ $('#menuToggle').onclick=()=>$('.topbar').classList.toggle('open');
 const empty=t=>`<div class="empty">${t}</div>`;
 const pages={
   '/':()=>`<section class="hero"><div class="hero-content"><div class="eyebrow">✧ OTAKU · ANIME · MANGA · GAMING</div><h1><strong>SHADOWS BYTE</strong><br>GAMING OFFICIAL</h1><p>Un punto de encuentro para amantes del anime, el manga, los videojuegos y la cultura japonesa. Comparte, descubre y sube de rango.</p><div class="hero-buttons" id="hero-account-actions"><a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a></div></div></section><section class="section"><h2 class="section-title">Últimas noticias <a href="#/noticias">Ver todo →</a></h2><div id="live-news">Cargando noticias…</div></section><section class="section"><h2 class="section-title">Animes destacados <a href="#/anime">Ver todo →</a></h2>${empty('El catálogo de anime está en preparación')}</section><section class="section"><h2 class="section-title">Videojuegos destacados <a href="#/gaming">Ver todo →</a></h2>${empty('El catálogo de juegos está en preparación')}</section><section class="section"><h2 class="section-title">Miembros recientes <a href="#/miembros">Ver todo →</a></h2>${empty('Sé el primer miembro de la comunidad')}</section><section class="social"><h2>Conecta con nosotros</h2><p>Discord, Instagram, TikTok y YouTube.</p><div class="social-links"><span>Discord</span><span>Instagram</span><span>TikTok</span><span>YouTube</span></div></section>`,
+
+  '/waifu-husbando':()=>`<section class="page fan-page"><div class="page-hero"><div class="eyebrow">ZONA OTAKU</div><h1>💜 Waifu / Husbando</h1><p class="description">Descubre personajes favoritos del anime. Busca por nombre o filtra por categoría.</p></div><div class="fan-controls"><input id="fan-search" aria-label="Buscar personaje" placeholder="Buscar personaje o anime…"><select id="fan-type" aria-label="Categoría"><option value="todos">Todos</option><option value="waifu">Waifu</option><option value="husbando">Husbando</option></select></div><div id="fan-results" class="fan-grid"></div></section>`,
+  '/pokedex':()=>`<section class="page fan-page"><div class="page-hero"><div class="eyebrow">MUNDO POKÉMON</div><h1>⚡ Pokédex en Español</h1><p class="description">Consulta Pokémon por nombre en español o por número de la Pokédex Nacional. Datos e imágenes de PokéAPI.</p></div><form id="pokedex-form" class="fan-controls"><input id="pokemon-search" aria-label="Nombre o número de Pokémon" placeholder="Ej.: Pikachu, Charizard o 25" required><button class="gradient-btn" type="submit">Buscar Pokémon</button></form><div id="pokedex-result" aria-live="polite"></div><div class="fan-quick"><button data-pokemon="1">Bulbasaur</button><button data-pokemon="4">Charmander</button><button data-pokemon="7">Squirtle</button><button data-pokemon="25">Pikachu</button><button data-pokemon="133">Eevee</button></div></section>`,
+  '/one-piece':()=>`<section class="page fan-page"><div class="page-hero"><div class="eyebrow">ESPECIAL ANIME</div><h1>🏴‍☠️ One Piece</h1><p class="description">¡Rumbo al Grand Line! Descubre la tripulación de Sombrero de Paja, sus personajes y las grandes sagas de la aventura.</p></div><h2>Tripulación de Sombrero de Paja</h2><div id="straw-hats" class="fan-grid"></div><h2>Sagas principales</h2><div id="onepiece-arcs" class="fan-grid"></div><p class="fan-note">Contenido introductorio sin spoilers importantes de la trama reciente.</p></section>`,
   '/anime':()=>catalog('ZONA OTAKU','Anime & Manga',['Anime','Manga','Manhwa','Todos','En emisión','Finalizados','Próximos estrenos'],'Buscar título','El catálogo está en preparación'),
   '/gaming':()=>catalog('ZONA GAMING','Videojuegos',['Populares','Próximos lanzamientos'],'Buscar juegos','El catálogo de juegos está en preparación')+`<section class="section"><h2>Publicaciones gamer</h2>${empty('Aún no hay publicaciones gamer')}</section><section class="section"><h2>Noticias gaming</h2>${empty('Sin noticias gaming aún')}</section>`,
   '/comunidad':()=>`<section class="page"><div class="page-hero"><div class="eyebrow">COMUNIDAD</div><h1>El muro de la comunidad</h1><p class="description">Descubre las publicaciones de los miembros y participa.</p><p><a class="outline-btn" href="#/miembros">Explorar miembros</a> <a class="outline-btn" href="#/notificaciones">🔔 Mis notificaciones</a></p></div><div id="community-feed" class="community-feed">Cargando publicaciones…</div></section>`,
@@ -22,5 +26,65 @@ const pages={
 };
 function catalog(tag,title,filters,placeholder,message){return `<section class="page"><div class="page-hero"><div class="eyebrow">${tag}</div><h1>${title}</h1></div><div class="pills">${filters.map(x=>`<button>${x}</button>`).join('')}</div><div class="filters"><label>Ordenar por título &nbsp;<input type="checkbox" checked> A → Z</label><label>⌕ <input placeholder="${placeholder}"></label></div>${empty(message)}</section>`}
 function simple(tag,title,desc,message){return `<section class="page"><div class="page-hero"><div class="eyebrow">${tag}</div><h1>${title}</h1><p class="description">${desc}</p></div>${empty(message)}</section>`}
-function render(){let raw=location.hash.slice(1)||'/';let path=raw.split('?')[0];app.innerHTML=(pages[path]||pages['/'])();if(raw.includes('mode=signup'))$('#authTitle')&&( $('#authTitle').textContent='Crear cuenta');if(path==='/cuenta')loadAccountProfile();if(path==='/miembros')loadMembers();if(path==='/mensajes')loadPrivateMessages();if(path==='/comunidad')loadCommunityFeed();if(path==='/notificaciones')loadMemberNotifications();if(path==='/perfil')loadPublicMemberProfile();if(path==='/auth')document.getElementById('auth-form')?.addEventListener('submit',submitAuth);if(path==='/auth')document.getElementById('resend-confirmation')?.addEventListener('click',resendConfirmationEmail);if(path==='/forgot-password')document.getElementById('forgot-form')?.addEventListener('submit',requestPasswordReset);if(path==='/reset-password')document.getElementById('reset-form')?.addEventListener('submit',saveNewPassword);loadDynamicContent(path);refreshAccountActions();window.scrollTo(0,0);$('.topbar').classList.remove('open')}
+
+const fanCharacters=[
+ {name:'Rem',anime:'Re:Zero',type:'waifu',symbol:'💙'},
+ {name:'Asuna Yuuki',anime:'Sword Art Online',type:'waifu',symbol:'⚔️'},
+ {name:'Mikasa Ackerman',anime:'Attack on Titan',type:'waifu',symbol:'🧣'},
+ {name:'Hinata Hyuga',anime:'Naruto',type:'waifu',symbol:'🌸'},
+ {name:'Gojo Satoru',anime:'Jujutsu Kaisen',type:'husbando',symbol:'✨'},
+ {name:'Levi Ackerman',anime:'Attack on Titan',type:'husbando',symbol:'🗡️'},
+ {name:'Roronoa Zoro',anime:'One Piece',type:'husbando',symbol:'⚔️'},
+ {name:'Kakashi Hatake',anime:'Naruto',type:'husbando',symbol:'🥷'}
+];
+const strawHats=[['Monkey D. Luffy','Capitán','👒'],['Roronoa Zoro','Espadachín','⚔️'],['Nami','Navegante','🧭'],['Usopp','Francotirador','🎯'],['Sanji','Cocinero','🍳'],['Tony Tony Chopper','Médico','🩺'],['Nico Robin','Arqueóloga','📚'],['Franky','Carpintero','🔧'],['Brook','Músico','🎻'],['Jinbe','Timonel','🌊']];
+const onePieceSagas=['East Blue','Arabasta','Skypiea','Water 7 / Enies Lobby','Thriller Bark','Guerra de Marineford','Isla Gyojin','Dressrosa','Whole Cake Island','País de Wano','Saga Final'];
+function renderFanCharacters(){
+ const host=document.getElementById('fan-results');if(!host)return;
+ const q=(document.getElementById('fan-search').value||'').toLocaleLowerCase('es').trim();
+ const type=document.getElementById('fan-type').value;
+ const matches=fanCharacters.filter(x=>(type==='todos'||x.type===type)&& (x.name+' '+x.anime).toLocaleLowerCase('es').includes(q));
+ host.innerHTML=matches.map(x=>`<article class="fan-card"><div class="fan-symbol">${x.symbol}</div><span class="fan-tag">${x.type}</span><h3>${x.name}</h3><p>${x.anime}</p></article>`).join('')||'<p>No se encontraron personajes.</p>';
+}
+const pokemonEs={'bulbasaur':1,'ivysaur':2,'venusaur':3,'charmander':4,'charmeleon':5,'charizard':6,'squirtle':7,'wartortle':8,'blastoise':9,'pikachu':25,'raichu':26,'eevee':133,'eevee':133,'mewtwo':150,'mew':151,'lucario':448,'greninja':658};
+const typeEs={normal:'Normal',fire:'Fuego',water:'Agua',electric:'Eléctrico',grass:'Planta',ice:'Hielo',fighting:'Lucha',poison:'Veneno',ground:'Tierra',flying:'Volador',psychic:'Psíquico',bug:'Bicho',rock:'Roca',ghost:'Fantasma',dragon:'Dragón',dark:'Siniestro',steel:'Acero',fairy:'Hada'};
+const statEs={hp:'PS',attack:'Ataque',defense:'Defensa','special-attack':'Ataque especial','special-defense':'Defensa especial',speed:'Velocidad'};
+async function searchPokemon(term){
+ const host=document.getElementById('pokedex-result');if(!host)return;
+ const query=String(term).trim().toLocaleLowerCase('es');if(!/^[a-z0-9 -]{1,60}$/.test(query)){host.textContent='Introduce un nombre o número válido.';return}
+ host.textContent='Buscando Pokémon…';
+ try{
+  const id=pokemonEs[query]||query.replace(/ +/g,'-');
+  const res=await fetch('https://pokeapi.co/api/v2/pokemon/'+encodeURIComponent(id));
+  if(!res.ok)throw new Error('No encontrado');
+  const p=await res.json();
+  const speciesRes=await fetch(p.species.url);
+  const species=speciesRes.ok?await speciesRes.json():null;
+  const name=species?.names?.find(n=>n.language.name==='es')?.name||p.name;
+  const description=species?.flavor_text_entries?.find(x=>x.language.name==='es')?.flavor_text.replace(/[\\n\\f\\r]/g,' ')||'';
+  const image=p.sprites.other?.['official-artwork']?.front_default||p.sprites.front_default;
+  host.replaceChildren();
+  const card=document.createElement('article');card.className='pokemon-card';
+  const picture=document.createElement('img');picture.src=image;picture.alt='Imagen de '+name;picture.loading='lazy';card.append(picture);
+  const info=document.createElement('div');const title=document.createElement('h2');title.textContent='#'+String(p.id).padStart(4,'0')+' · '+name;info.append(title);
+  const types=document.createElement('p');types.textContent='Tipo: '+p.types.map(t=>typeEs[t.type.name]||t.type.name).join(' / ');info.append(types);
+  if(description){const d=document.createElement('p');d.textContent=description;info.append(d)}
+  const stats=document.createElement('div');stats.className='pokemon-stats';p.stats.forEach(s=>{const line=document.createElement('div');line.textContent=(statEs[s.stat.name]||s.stat.name)+': '+s.base_stat;stats.append(line)});info.append(stats);card.append(info);host.append(card);
+ }catch(e){host.textContent='No se encontró ese Pokémon o no se pudo conectar con PokéAPI. Prueba con otro nombre o número.'}
+}
+function setupFanPage(path){
+ if(path==='/waifu-husbando'){
+  document.getElementById('fan-search')?.addEventListener('input',renderFanCharacters);
+  document.getElementById('fan-type')?.addEventListener('change',renderFanCharacters);renderFanCharacters();
+ }
+ if(path==='/pokedex'){
+  document.getElementById('pokedex-form')?.addEventListener('submit',e=>{e.preventDefault();searchPokemon(document.getElementById('pokemon-search').value)});
+  document.querySelectorAll('[data-pokemon]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('pokemon-search').value=b.textContent;searchPokemon(b.dataset.pokemon)}));
+ }
+ if(path==='/one-piece'){
+  document.getElementById('straw-hats').innerHTML=strawHats.map(x=>`<article class="fan-card"><div class="fan-symbol">${x[2]}</div><h3>${x[0]}</h3><p>${x[1]}</p></article>`).join('');
+  document.getElementById('onepiece-arcs').innerHTML=onePieceSagas.map((x,i)=>`<article class="fan-card"><span class="fan-tag">Saga ${i+1}</span><h3>${x}</h3></article>`).join('');
+ }
+}
+function render(){let raw=location.hash.slice(1)||'/';let path=raw.split('?')[0];app.innerHTML=(pages[path]||pages['/'])();if(raw.includes('mode=signup'))$('#authTitle')&&( $('#authTitle').textContent='Crear cuenta');if(path==='/cuenta')loadAccountProfile();if(path==='/miembros')loadMembers();if(path==='/mensajes')loadPrivateMessages();if(path==='/comunidad')loadCommunityFeed();if(path==='/notificaciones')loadMemberNotifications();if(path==='/perfil')loadPublicMemberProfile();if(path==='/auth')document.getElementById('auth-form')?.addEventListener('submit',submitAuth);if(path==='/auth')document.getElementById('resend-confirmation')?.addEventListener('click',resendConfirmationEmail);if(path==='/forgot-password')document.getElementById('forgot-form')?.addEventListener('submit',requestPasswordReset);if(path==='/reset-password')document.getElementById('reset-form')?.addEventListener('submit',saveNewPassword);loadDynamicContent(path);setupFanPage(path);refreshAccountActions();window.scrollTo(0,0);$('.topbar').classList.remove('open')}
 window.addEventListener('hashchange',render);render();
