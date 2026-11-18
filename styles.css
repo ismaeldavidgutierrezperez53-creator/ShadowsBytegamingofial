@@ -85,3 +85,11 @@
 .profile-privacy{font-size:14px;color:#a99fba}
 .admin-quicklinks{display:flex;flex-wrap:wrap;gap:10px}.admin-quicklinks a{padding:11px 15px;background:#1a1428;border:1px solid #423152;border-radius:10px;text-decoration:none;color:#e9ddf7;font-weight:700}.admin-quicklinks a:hover{border-color:#a04aff}
 @media(max-width:600px){.members-toolbar{align-items:stretch;flex-direction:column}.members-toolbar input{max-width:80vw}.admin-quicklinks a{flex:1;text-align:center}}
+
+/* Individual public community profile */
+.member-view-link{display:inline-flex;margin-top:20px;text-decoration:none;justify-content:center}
+.public-member-shell{max-width:860px;margin:22px auto;background:#110d1d;border:1px solid #403152;border-radius:22px;overflow:hidden;min-height:250px}
+.public-member-cover{height:170px;padding:25px;background:radial-gradient(circle at 80% 20%,#0baef066,transparent 40%),linear-gradient(120deg,#3a1457,#121a37);font:700 12px Orbitron,sans-serif;letter-spacing:2px}
+.public-member-body{padding:0 36px 38px}.public-member-avatar{position:relative;margin-top:-53px;width:112px;height:112px;border:5px solid #110d1d;border-radius:24px;background:linear-gradient(135deg,#a448e8,#0baef0);display:grid;place-items:center;font:700 44px Orbitron,sans-serif;overflow:hidden}
+.public-member-avatar img{width:100%;height:100%;object-fit:cover}.public-member-body h1{margin:16px 0 10px;overflow-wrap:anywhere}.public-member-body h2{margin:34px 0 10px}.public-member-bio{color:#c8bdd8;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:30px}
+@media(max-width:600px){.public-member-body{padding:0 20px 28px}}
