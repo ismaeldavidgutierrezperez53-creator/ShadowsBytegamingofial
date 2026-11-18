@@ -127,6 +127,9 @@ async function loadAccountProfile(){
  communityPanel.innerHTML='<h3>✦ Mi comunidad</h3><p>Publica novedades, responde comentarios y participa con otros miembros.</p><p class="account-community-links"><a class="outline-btn mini" href="#/comunidad">Ver muro de la comunidad</a> <a class="outline-btn mini" href="#/notificaciones">🔔 Mis notificaciones</a></p><div id="account-community-social" class="account-community-social">Cargando publicaciones…</div>';
  root.querySelector('.profile-body')?.append(communityPanel);
  loadMemberSocial(user.id,communityPanel.querySelector('#account-community-social'));
+ const ownGallery=document.createElement('section');ownGallery.className='profile-panel member-gallery-panel';ownGallery.id='account-gallery';
+ communityPanel.before(ownGallery);
+ loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Public member directory is opt-in; keep authentication email private.
  const {data:profile}=await sb.from('profiles').select('bio,is_public').eq('id',user.id).maybeSingle();
@@ -227,8 +230,32 @@ async function loadPublicMemberProfile(){
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
  content.append(avatar,title,badge,bioTitle,bio);
  const social=document.createElement('section');social.className='member-social';social.id='member-social';
- content.append(social,back);root.append(cover,content);
+ const gallery=document.createElement('section');gallery.className='member-gallery-panel';gallery.id='member-gallery';
+ content.append(gallery,social,back);root.append(cover,content);
+ loadMemberGallery(member.id,gallery);
  await loadMemberSocial(member.id,social);
+}
+
+async function loadMemberGallery(memberId,root){
+ if(!root||!root.isConnected)return;
+ root.replaceChildren();
+ const heading=document.createElement('h2');heading.className='member-gallery-title';heading.textContent='🖼️ Galería de imágenes';
+ const description=document.createElement('p');description.className='member-gallery-description';description.textContent='Fotos compartidas en las publicaciones de este miembro.';
+ root.append(heading,description);
+ const {data:posts,error}=await sb.from('member_posts').select('id,image_path,content,created_at').eq('author_id',memberId).not('image_path','is',null).order('created_at',{ascending:false}).limit(60);
+ if(!root.isConnected)return;
+ if(error){const msg=document.createElement('p');msg.className='member-gallery-empty';msg.textContent='No se pudo cargar la galería.';root.append(msg);return;}
+ if(!posts?.length){const empty=document.createElement('p');empty.className='member-gallery-empty';empty.textContent='Todavía no hay imágenes publicadas.';root.append(empty);return;}
+ const grid=document.createElement('div');grid.className='member-gallery-grid';
+ for(const post of posts){
+  if(!post.image_path)continue;
+  const url=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
+  const link=document.createElement('a');link.className='member-gallery-item';link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.title='Ver imagen completa';
+  const image=document.createElement('img');image.src=url;image.alt=post.content?.trim().slice(0,110)||'Imagen de la comunidad';image.loading='lazy';
+  const label=document.createElement('span');label.className='member-gallery-item-label';label.textContent=new Date(post.created_at).toLocaleDateString('es-ES');
+  link.append(image,label);grid.append(link);
+ }
+ root.append(grid);
 }
 
 async function loadMemberSocial(memberId,root){
@@ -252,7 +279,7 @@ async function loadMemberSocial(memberId,root){
    followButton.disabled=true;
    const result=following?await sb.from('member_follows').delete().eq('following_id',memberId).eq('follower_id',me):await sb.from('member_follows').insert({follower_id:me,following_id:memberId});
    if(result.error){feedback.textContent='No se pudo actualizar: '+result.error.message;followButton.disabled=false;}
-   else await loadMemberSocial(memberId,root);
+   else {await loadMemberSocial(memberId,root);const gallery=document.getElementById('account-gallery');if(gallery&&me===memberId)loadMemberGallery(memberId,gallery);}
   };root.append(followButton);
  }else if(!me){const hint=document.createElement('p');hint.textContent='Inicia sesión para seguir, publicar y comentar.';root.append(hint);}
  root.append(feedback);
@@ -293,7 +320,7 @@ async function loadMemberSocial(memberId,root){
   if(post.image_path){const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);}
   const likeBox=document.createElement('div');likeBox.className='post-like-box';article.append(likeBox);
   renderPostLikes(post.id,likeBox,me);
-  if(me===post.author_id){const remove=document.createElement('button');remove.className='social-delete';remove.textContent='Eliminar publicación';remove.onclick=async()=>{if(!confirm('¿Eliminar esta publicación y sus comentarios?'))return;const {error}=await sb.from('member_posts').delete().eq('id',post.id);if(error)feedback.textContent=error.message;else{if(post.image_path)await sb.storage.from('community-images').remove([post.image_path]);await loadMemberSocial(memberId,root);}};article.append(remove);}
+  if(me===post.author_id){const remove=document.createElement('button');remove.className='social-delete';remove.textContent='Eliminar publicación';remove.onclick=async()=>{if(!confirm('¿Eliminar esta publicación y sus comentarios?'))return;const {error}=await sb.from('member_posts').delete().eq('id',post.id);if(error)feedback.textContent=error.message;else{if(post.image_path)await sb.storage.from('community-images').remove([post.image_path]);await loadMemberSocial(memberId,root);const gallery=document.getElementById(me===memberId&&location.hash.split('?')[0]==='#/cuenta'?'account-gallery':'member-gallery');if(gallery)loadMemberGallery(memberId,gallery);}};article.append(remove);}
   const commentTitle=document.createElement('h3');commentTitle.textContent='Comentarios';article.append(commentTitle);
   const list=document.createElement('div');list.className='social-comments';article.append(list);
   const {data:comments,error:commentError}=await sb.from('member_comments').select('id,author_id,content,created_at').eq('post_id',post.id).order('created_at',{ascending:true}).limit(100);
