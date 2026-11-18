@@ -416,7 +416,31 @@ async function loadPublicMemberProfile(){
  messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);
  messageLink.textContent='💬 Enviar mensaje privado';
  messageLink.setAttribute('aria-label','Enviar mensaje privado a '+name);
- content.append(messageLink,gallery,social,back);root.append(cover,content);
+ const reportButton=document.createElement('button');reportButton.type='button';reportButton.className='outline-btn mini member-report-button';reportButton.textContent='🚩 Denunciar perfil';
+ reportButton.onclick=async()=>{
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){location.hash='#/auth';return;}
+  if(user.id===member.id){alert('No puedes denunciar tu propio perfil.');return;}
+  if(content.querySelector('.member-report-form')){content.querySelector('.member-report-form').remove();return;}
+  const form=document.createElement('form');form.className='member-report-form social-form';
+  const label=document.createElement('label');label.textContent='Motivo de la denuncia';
+  const reason=document.createElement('select');reason.required=true;
+  for(const [value,text] of [['spam','Spam'],['harassment','Acoso'],['hate','Discurso de odio'],['inappropriate','Contenido inapropiado'],['other','Otro motivo']]){const option=document.createElement('option');option.value=value;option.textContent=text;reason.append(option);}
+  label.append(reason);
+  const detailLabel=document.createElement('label');detailLabel.textContent='Detalles (opcional)';
+  const details=document.createElement('textarea');details.maxLength=1000;details.rows=3;details.placeholder='Describe el problema sin incluir datos sensibles';detailLabel.append(details);
+  const submit=document.createElement('button');submit.type='submit';submit.className='gradient-btn mini';submit.textContent='Enviar denuncia';
+  const status=document.createElement('p');status.setAttribute('role','status');
+  form.append(label,detailLabel,submit,status);
+  form.onsubmit=async event=>{
+   event.preventDefault();submit.disabled=true;status.textContent='Enviando…';
+   const {error}=await sb.from('member_reports').insert({reporter_id:user.id,reported_member_id:member.id,reason:reason.value,details:details.value.trim(),status:'pending'});
+   if(error){status.textContent=error.code==='23505'?'Ya has denunciado este perfil.':'No se pudo enviar: '+error.message;submit.disabled=false;return;}
+   form.replaceChildren(document.createTextNode('✅ Denuncia enviada al equipo de administración.'));
+  };
+  reportButton.after(form);
+ };
+ content.append(messageLink,reportButton,gallery,social,back);root.append(cover,content);
  loadMemberGallery(member.id,gallery);
  await loadMemberSocial(member.id,social);
 }
