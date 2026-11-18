@@ -12,10 +12,16 @@ async function renderMyLevels(){
  const host=document.getElementById('my-levels');if(!host)return;
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
  if(!user){host.innerHTML='<p>Inicia sesión para consultar tus logros.</p><a class="gradient-btn" href="#/auth">Entrar</a>';return}
- const result=await memberXP(user.id);if(!host.isConnected)return;
+ const {data:serverXP,error:xpError}=await sb.rpc('community_member_xp',{target_member:user.id});if(!host.isConnected)return;
+ const result={xp:Number(serverXP)||0,errors:xpError?[xpError]:[]};
  const xp=result.xp,level=levelFromXP(xp),badges=[['🌱 Primer paso',xp>=5],['⭐ Participante',xp>=50],['🔥 Miembro activo',xp>=150],['🏆 Leyenda',xp>=500]];
  host.innerHTML='<h2>🏆 Nivel '+level+'</h2><p>'+xp+' puntos de experiencia (XP)</p><div style="height:12px;border-radius:8px;background:#ffffff22;overflow:hidden"><div style="height:100%;width:'+Math.min(100,Math.round((xp-100*(level-1)**2)/(100*(level**2-(level-1)**2))*100))+'%;background:linear-gradient(90deg,#8b5cf6,#ec4899)"></div></div><p>Próximo nivel: '+(100*level**2)+' XP</p><h3>Insignias</h3><div id="level-badges" style="display:flex;flex-wrap:wrap;gap:10px"></div><h3>Cómo ganar puntos</h3><p>Publicación +20 · Comentario +10 · Me gusta +2 · Favorito +5 · Voto +15</p>';
  host.append(createRewardPanel(level));
+ const daily=document.createElement('section');daily.className='profile-panel';daily.style.cssText='margin-top:16px;padding:16px';daily.innerHTML='<h3>🎁 Recompensa diaria</h3><p>Consigue +10 XP una vez al día (UTC).</p>';
+ const claim=document.createElement('button');claim.className='gradient-btn mini';claim.textContent='Reclamar +10 XP';const status=document.createElement('p');status.setAttribute('role','status');
+ claim.onclick=async()=>{claim.disabled=true;status.textContent='Comprobando recompensa…';const {data,error}=await sb.rpc('claim_daily_reward');if(error){status.textContent='No se pudo reclamar: '+error.message;claim.disabled=false;return}const outcome=data?.[0];if(outcome?.claimed){status.textContent='🎉 ¡Has recibido 10 XP!';await renderMyLevels()}else status.textContent='Ya has reclamado la recompensa de hoy. Vuelve mañana (UTC).'};
+ daily.append(claim,status);host.append(daily);
+ const today=new Date().toISOString().slice(0,10);const {data:existing}=await sb.from('member_daily_rewards').select('claimed_on').eq('user_id',user.id).eq('claimed_on',today).limit(1);if(existing?.length){claim.disabled=true;status.textContent='✓ Recompensa de hoy reclamada';}
  const badgesHost=host.querySelector('#level-badges');for(const [name,unlocked] of badges){const span=document.createElement('span');span.textContent=name+(unlocked?' · conseguido':' · bloqueado');span.style.cssText='padding:9px;border:1px solid #ffffff33;border-radius:12px;opacity:'+(unlocked?'1':'.45');badgesHost.append(span)}
  if(result.errors.length){const p=document.createElement('p');p.textContent='Algunas actividades no pudieron contabilizarse. Inténtalo más tarde.';host.append(p)}
 }
