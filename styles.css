@@ -183,7 +183,7 @@ body.member-lightbox-open{overflow:hidden}
 /* Controles de eliminación para la galería del propietario */
 .member-gallery-tile{position:relative;min-width:0}
 .member-gallery-tile .member-gallery-item{width:100%}
-.member-gallery-delete{position:absolute;right:8px;top:8px;z-index:2;padding:7px 10px;border:1px solid #e6a0b6;border-radius:9px;background:#4d1529e8;color:#fff;font:700 12px inherit;cursor:pointer;box-shadow:0 2px 12px #0008}
+.member-gallery-delete{position:absolute;right:8px;top:8px;z-index:2;padding:7px 10px;border:1px solid #e6a0b6;border-radius:9px;background:#4d1529e8;color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;box-shadow:0 2px 12px #0008}
 .member-gallery-delete:hover{background:#892a47}
 .member-gallery-delete:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .member-gallery-delete:disabled{opacity:.65;cursor:wait}
