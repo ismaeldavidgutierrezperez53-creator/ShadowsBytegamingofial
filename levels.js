@@ -196,3 +196,42 @@ async function renderRewardShop(){
  }
  const history=document.createElement('section');history.className='profile-panel';history.style.cssText='padding:16px;margin:20px 0';const historyTitle=document.createElement('h3');historyTitle.textContent='📜 Historial de regalos';history.append(historyTitle);const names=new Map((members.data||[]).map(m=>[m.id,m.display_name||m.username||'Miembro']));const itemNames=new Map((catalog.data||[]).map(i=>[i.id,i.name]));if(!(gifts.data||[]).length){const p=document.createElement('p');p.textContent='Todavía no hay regalos enviados o recibidos.';history.append(p)}for(const entry of gifts.data||[]){const p=document.createElement('p');const sent=entry.sender_id===user.id;p.textContent=(sent?'📤 Enviado a '+(names.get(entry.recipient_id)||'Miembro'):'📥 Recibido')+' · '+(itemNames.get(entry.item_id)||entry.item_id)+' · '+new Date(entry.created_at).toLocaleDateString('es-ES')+(sent?' · '+entry.price_paid+' puntos':'');history.append(p)}host.append(history);
 }
+
+async function renderGiftMailbox(){
+ const root=document.getElementById('gift-mailbox');if(!root)return;
+ const {data:{user},error:authError}=await sb.auth.getUser();if(!root.isConnected)return;
+ if(authError||!user){root.innerHTML='<p>Inicia sesión para ver tus regalos.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión</a>';return}
+ const [gifts,owned,equipped]=await Promise.all([
+  sb.from('member_shop_gifts').select('id,sender_id,item_id,created_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_shop_purchases').select('item_id').eq('user_id',user.id),
+  sb.from('member_shop_equipped').select('category,item_id').eq('user_id',user.id)
+ ]);
+ if(!root.isConnected)return;root.replaceChildren();
+ if([gifts,owned,equipped].some(x=>x.error)){root.textContent='No se pudo cargar el buzón de regalos. Inténtalo de nuevo.';return}
+ const rows=gifts.data||[];
+ if(!rows.length){const empty=document.createElement('p');empty.textContent='Todavía no has recibido regalos. Cuando alguien te envíe uno, aparecerá aquí.';root.append(empty);return}
+ const [items,senders]=await Promise.all([
+  sb.from('reward_shop_items').select('id,name,category,description,image_url').in('id',[...new Set(rows.map(g=>g.item_id))]),
+  sb.from('profiles').select('id,display_name,username').in('id',[...new Set(rows.map(g=>g.sender_id))]).eq('is_public',true)
+ ]);
+ const catalog=new Map((items.data||[]).map(x=>[x.id,x]));
+ const names=new Map((senders.data||[]).map(x=>[x.id,x.display_name||x.username||'Miembro']));
+ const ownedIds=new Set((owned.data||[]).map(x=>x.item_id));
+ const equippedMap=new Map((equipped.data||[]).map(x=>[x.category,x.item_id]));
+ const count=document.createElement('p');count.textContent='🎁 '+rows.length+' regalo(s) recibido(s)'+(rows.length===100?' · últimos 100':'');root.append(count);
+ for(const gift of rows){
+  const item=catalog.get(gift.item_id);const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:16px;margin:12px 0;border:1px solid #ffffff33;border-radius:14px';
+  const title=document.createElement('h3');title.textContent='🎁 '+(item?.name||'Recompensa recibida');card.append(title);
+  const info=document.createElement('p');info.textContent='Enviado por '+(names.get(gift.sender_id)||'Un miembro')+' · '+new Date(gift.created_at).toLocaleString('es-ES');card.append(info);
+  if(item?.description){const desc=document.createElement('p');desc.textContent=item.description;card.append(desc)}
+  if(item?.image_url&&/^https:\/\//i.test(item.image_url)){const img=document.createElement('img');img.src=item.image_url;img.alt='Imagen de '+item.name;img.loading='lazy';img.style.cssText='width:110px;height:110px;object-fit:cover;border-radius:12px;display:block;margin:10px 0';card.append(img)}
+  const status=document.createElement('p');status.setAttribute('role','status');
+  if(item&&ownedIds.has(item.id)){
+   const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';
+   const active=equippedMap.get(item.category)===item.id;button.textContent=active?'✓ Equipado':'✨ Equipar regalo';button.disabled=active;
+   button.onclick=async()=>{button.disabled=true;status.textContent='Equipando…';const {data:ok,error}=await sb.rpc('equip_reward_shop_item',{requested_item:item.id});if(error||!ok){status.textContent=error?.message||'No se pudo equipar el regalo';button.disabled=false;return}await renderGiftMailbox()};
+   card.append(button);
+  }else{status.textContent='Este artículo no está disponible para equipar.'}
+  card.append(status);root.append(card);
+ }
+}
