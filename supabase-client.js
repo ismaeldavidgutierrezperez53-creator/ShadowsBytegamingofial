@@ -9,7 +9,10 @@ async function getPublished(table, order='created_at') {
  return data || [];
 }
 function newsCards(items) {
- return items.length ? '<div class="content-grid">'+items.map(n=>'<article class="auth-card"><h3>'+escapeHTML(n.title)+'</h3><p>'+escapeHTML(n.excerpt||'')+'</p><p>'+escapeHTML(n.content||'')+'</p></article>').join('')+'</div>' : '<div class="empty">Aún no hay noticias publicadas</div>';
+ return items.length ? '<div class="content-grid">'+items.map(n=>{
+  const cover=typeof n.cover_url==='string' && /^https:\/\//i.test(n.cover_url.trim()) ? n.cover_url.trim() : '';
+  return '<article class="auth-card news-card"><h3>'+escapeHTML(n.title)+'</h3><p>'+escapeHTML(n.excerpt||'')+'</p><p>'+escapeHTML(n.content||'')+'</p>'+(cover?'<img class="news-cover" src="'+escapeHTML(cover)+'" alt="Imagen de '+escapeHTML(n.title)+'" loading="lazy" decoding="async" onerror="this.hidden=true">':'')+'</article>';
+ }).join('')+'</div>' : '<div class="empty">Aún no hay noticias publicadas</div>';
 }
 function billboardCards(items) {
  return items.length ? '<div class="content-grid">'+items.map(b=>'<article class="auth-card"><h3>'+escapeHTML(b.title)+'</h3><p>'+escapeHTML(b.description||'')+'</p></article>').join('')+'</div>' : '<div class="empty">No hay elementos en la cartelera todavía</div>';
