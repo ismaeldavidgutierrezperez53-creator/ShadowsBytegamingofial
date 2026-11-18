@@ -178,3 +178,12 @@ body.member-lightbox-open{overflow:hidden}
 .member-lightbox-counter{grid-column:1/-1;grid-row:3;text-align:center;font-size:14px;color:#b7a7ce}
 @media(max-width:600px){.member-lightbox{padding:8px}.member-lightbox-panel{grid-template-columns:36px minmax(0,1fr) 36px;gap:4px;padding:52px 6px 12px;max-height:calc(100dvh - 16px)}.member-lightbox-image{max-height:calc(100dvh - 185px)}.member-lightbox-prev,.member-lightbox-next{width:34px;height:52px;font-size:27px}.member-lightbox-caption{font-size:15px}}
 @media(prefers-reduced-motion:reduce){.member-lightbox button{transition:none}}
+
+
+/* Controles de eliminación para la galería del propietario */
+.member-gallery-tile{position:relative;min-width:0}
+.member-gallery-tile .member-gallery-item{width:100%}
+.member-gallery-delete{position:absolute;right:8px;top:8px;z-index:2;padding:7px 10px;border:1px solid #e6a0b6;border-radius:9px;background:#4d1529e8;color:#fff;font:700 12px inherit;cursor:pointer;box-shadow:0 2px 12px #0008}
+.member-gallery-delete:hover{background:#892a47}
+.member-gallery-delete:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.member-gallery-delete:disabled{opacity:.65;cursor:wait}
