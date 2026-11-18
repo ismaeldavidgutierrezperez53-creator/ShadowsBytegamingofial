@@ -191,6 +191,43 @@ async function adminLoadModeration(){
  };
  if(filter)filter.onchange=render;render();
 }
+async function adminLoadReports(){
+ const root=document.getElementById('admin-reports-list');if(!root)return;
+ root.textContent='Cargando reportes…';
+ const {data,error}=await sb.from('member_reports').select('id,reporter_id,post_id,comment_id,reason,details,status,created_at').order('created_at',{ascending:false}).limit(100);
+ if(!root.isConnected)return;
+ if(error){root.textContent='No se pudieron cargar los reportes: '+error.message;return;}
+ const filter=document.getElementById('admin-reports-filter');
+ const render=()=>{
+  root.replaceChildren();
+  const rows=(data||[]).filter(r=>filter.value==='all'||r.status===filter.value);
+  if(!rows.length){root.textContent='No hay reportes en este estado.';return;}
+  for(const report of rows){
+   const row=document.createElement('article');row.className='admin-management-row';
+   const info=document.createElement('div');const title=document.createElement('strong');
+   title.textContent=(report.post_id?'Publicación':'Comentario')+' · '+report.reason+' · '+report.status;
+   const desc=document.createElement('p');desc.textContent=report.details||'Sin descripción adicional';
+   const meta=document.createElement('small');meta.textContent='Enviado: '+new Date(report.created_at).toLocaleString('es-ES')+' · ID: '+(report.post_id||report.comment_id);
+   info.append(title,desc,meta);row.append(info);
+   if(report.status==='pending'){
+    const actions=document.createElement('div');actions.className='admin-report-actions';
+    for(const [status,label] of [['reviewed','Marcar revisado'],['dismissed','Descartar']]){
+     const btn=document.createElement('button');btn.type='button';btn.className='admin-secondary';btn.textContent=label;
+     btn.onclick=async()=>{
+      btn.disabled=true;
+      const {data:{user}}=await sb.auth.getUser();
+      const {data:updated,error}=await sb.from('member_reports').update({status,reviewed_by:user?.id,reviewed_at:new Date().toISOString()}).eq('id',report.id).eq('status','pending').select('id');
+      if(error||!updated?.length){adminMessage('No se pudo actualizar el reporte: '+(error?.message||'No disponible'),'error');btn.disabled=false;return;}
+      report.status=status;adminMessage('Reporte actualizado.','success');render();
+     };actions.append(btn);
+    }
+    row.append(actions);
+   }
+   root.append(row);
+  }
+ };
+ filter.onchange=render;render();
+}
 function adminInitExtended(){
  const dashboard=document.querySelector('#admin-root .admin-dashboard');if(!dashboard)return;
  const overview=document.createElement('section');overview.className='admin-panel';
@@ -198,9 +235,10 @@ function adminInitExtended(){
  const welcome=dashboard.querySelector('.admin-welcome');welcome?.after(overview);
  const members=document.createElement('section');members.className='admin-panel';members.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE MIEMBROS</span><h2>Miembros</h2><p>Consulta los perfiles y busca usuarios. Los permisos de acceso no se modifican aquí.</p></div><input id="admin-members-search" type="search" placeholder="Buscar miembro…" aria-label="Buscar miembro"></div><div id="admin-members-list"></div>';
  const moderation=document.createElement('section');moderation.className='admin-panel';moderation.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">MODERACIÓN</span><h2>Publicaciones y comentarios</h2><p>Revisa la actividad reciente y elimina contenido inapropiado.</p></div><select id="admin-moderation-type" aria-label="Tipo de contenido"><option value="all">Todo</option><option value="posts">Publicaciones</option><option value="comments">Comentarios</option></select></div><div id="admin-moderation-list"></div>';
- dashboard.append(members,moderation);
- document.getElementById('admin-refresh').onclick=()=>{adminLoadOverview();adminLoadMembers();adminLoadModeration();};
- adminLoadOverview();adminLoadMembers();adminLoadModeration();
+ const reports=document.createElement('section');reports.className='admin-panel';reports.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">REPORTES DE LA COMUNIDAD</span><h2>Denuncias recibidas</h2><p>Revisa los reportes de publicaciones y comentarios. Marcar un reporte como revisado no elimina el contenido.</p></div><select id="admin-reports-filter" aria-label="Filtrar reportes"><option value="pending">Pendientes</option><option value="all">Todos</option><option value="reviewed">Revisados</option><option value="dismissed">Descartados</option></select></div><div id="admin-reports-list"></div>';
+ dashboard.append(members,moderation,reports);
+ document.getElementById('admin-refresh').onclick=()=>{adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();};
+ adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();
 }
 
 async function initAdmin(){
