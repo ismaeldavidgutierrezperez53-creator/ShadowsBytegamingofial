@@ -160,3 +160,35 @@ async function renderRewardInventory(){
  const dailyList=(daily.data||[]).map(d=>'🎁 '+d.claimed_on+' · +'+(Number(d.xp)+Number(d.bonus_xp||0))+' XP'+(d.bonus_xp?' (incluye bonus de racha)':''));
  makeSection('📅 Recompensas diarias'+(dailyList.length===100?' · últimas 100':''),dailyList,'Todavía no has reclamado recompensas diarias.');
 }
+
+async function renderRewardShop(){
+ const host=document.getElementById('reward-shop');if(!host)return;
+ const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
+ if(!user){host.textContent='Inicia sesión para comprar recompensas.';return}
+ const [catalog,owned,equipped,balance]=await Promise.all([
+  sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order').eq('active',true).order('sort_order'),
+  sb.from('member_shop_purchases').select('item_id,price_paid').eq('user_id',user.id),
+  sb.from('member_shop_equipped').select('category,item_id').eq('user_id',user.id),
+  sb.rpc('reward_shop_balance')
+ ]);
+ if(!host.isConnected)return;host.replaceChildren();
+ if([catalog,owned,equipped,balance].some(r=>r.error)){host.textContent='No se pudo cargar la tienda. Inténtalo de nuevo.';return}
+ const points=document.createElement('h3');points.textContent='🪙 Saldo disponible: '+Number(balance.data||0)+' puntos';host.append(points);
+ const note=document.createElement('p');note.textContent='Los puntos disponibles se obtienen de tu XP ganado menos las compras. Comprar no reduce tu nivel ni tu XP acumulado. Cada artículo se compra una sola vez.';host.append(note);
+ const ownedIds=new Set((owned.data||[]).map(p=>p.item_id));const active=new Map((equipped.data||[]).map(e=>[e.category,e.item_id]));
+ const categories={frame:'🖼️ Marcos para avatares',badge:'🏷️ Insignias',color:'🌈 Colores de nombre',title:'👑 Títulos especiales'};
+ for(const [category,label] of Object.entries(categories)){
+  const group=document.createElement('section');group.style.margin='20px 0';const heading=document.createElement('h3');heading.textContent=label;group.append(heading);
+  for(const item of (catalog.data||[]).filter(x=>x.category===category)){
+   const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:14px;margin:10px 0;border:1px solid #ffffff33;border-radius:12px';
+   const name=document.createElement('h4');name.textContent=item.name+' · '+item.price+' puntos';card.append(name);
+   const description=document.createElement('p');description.textContent=item.description;card.append(description);
+   const bought=ownedIds.has(item.id),isEquipped=active.get(category)===item.id;
+   const button=document.createElement('button');button.className='gradient-btn mini';button.textContent=bought?(isEquipped?'✓ Equipado':'Equipar'):'Comprar · '+item.price+' puntos';button.disabled=isEquipped||(!bought&&Number(balance.data||0)<item.price);
+   const status=document.createElement('p');status.setAttribute('role','status');
+   button.onclick=async()=>{button.disabled=true;const {data:ok,error}=bought?await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):await sb.rpc('buy_reward_shop_item',{requested_item:item.id});if(error){status.textContent=error.message;button.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}};
+   card.append(button,status);group.append(card);
+  }
+  host.append(group);
+ }
+}
