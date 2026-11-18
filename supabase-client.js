@@ -799,6 +799,9 @@ async function loadPrivateMessages(){
   if(reactionError)console.warn('No se pudieron cargar las reacciones:',reactionError.message);
   const reactionsByMessage=new Map();
   for(const reaction of reactions||[]){if(!reactionsByMessage.has(reaction.message_id))reactionsByMessage.set(reaction.message_id,[]);reactionsByMessage.get(reaction.message_id).push(reaction);}
+  const {data:pins,error:pinsError}=reactionIds.length?await sb.from('member_message_pins').select('message_id,pinned_at').eq('user_id',me).in('message_id',reactionIds):{data:[],error:null};
+  if(pinsError)console.warn('No se pudieron cargar los mensajes fijados:',pinsError.message);
+  const pinnedIds=new Set((pins||[]).map(pin=>pin.message_id));
   const conversationById=new Map(conversation.map(message=>[message.id,message]));
   let selectReply=null;
   for(const m of conversation){
@@ -868,6 +871,17 @@ async function loadPrivateMessages(){
     }
     bubble.append(reactionBar);
    }
+   if(!m.deleted_at){
+    const pinned=pinnedIds.has(m.id);
+    const pinButton=document.createElement('button');pinButton.type='button';pinButton.className='private-chat-pin-button'+(pinned?' is-pinned':'');pinButton.textContent=pinned?'📌 Desfijar':'📌 Fijar';pinButton.setAttribute('aria-pressed',String(pinned));
+    pinButton.onclick=async()=>{
+     pinButton.disabled=true;
+     const result=pinned?await sb.from('member_message_pins').delete().eq('message_id',m.id).eq('user_id',me):await sb.from('member_message_pins').insert({message_id:m.id,user_id:me});
+     if(result.error){alert('No se pudo cambiar el mensaje fijado: '+result.error.message);pinButton.disabled=false;return;}
+     await loadPrivateMessages();
+    };
+    bubble.append(pinButton);
+   }
    if(!m.deleted_at){const replyButton=document.createElement('button');replyButton.type='button';replyButton.className='private-chat-reply-button';replyButton.textContent='↩ Responder';replyButton.onclick=()=>{if(selectReply)selectReply(m);};bubble.append(replyButton);}
    bubble.dataset.messageId=m.id;history.append(bubble);
   }
@@ -888,7 +902,18 @@ async function loadPrivateMessages(){
   };
   searchInput.oninput=filterMessages;
   searchClear.onclick=()=>{searchInput.value='';filterMessages();searchInput.focus();};
-  panel.append(heading,searchWrap,history,typingIndicator);
+  const pinnedPanel=document.createElement('section');pinnedPanel.className='private-chat-pinned-panel';
+  const pinnedHeading=document.createElement('strong');pinnedHeading.textContent='📌 Mensajes fijados';
+  pinnedPanel.append(pinnedHeading);
+  const pinnedMessages=conversation.filter(m=>!m.deleted_at&&pinnedIds.has(m.id));
+  if(!pinnedMessages.length){const empty=document.createElement('small');empty.textContent='Todavía no has fijado ningún mensaje.';pinnedPanel.append(empty);}
+  for(const pinnedMessage of pinnedMessages){
+   const jumpButton=document.createElement('button');jumpButton.type='button';jumpButton.className='private-chat-pinned-link';
+   jumpButton.textContent=(pinnedMessage.sender_id===me?'Tú: ':'Miembro: ')+(pinnedMessage.body?.trim()|| (pinnedMessage.image_path?'📷 Imagen':pinnedMessage.audio_path?'🎤 Audio':'Mensaje'));
+   jumpButton.onclick=()=>{searchInput.value='';filterMessages();const target=history.querySelector('[data-message-id="'+pinnedMessage.id+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('private-chat-highlight');setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);}};
+   pinnedPanel.append(jumpButton);
+  }
+  panel.append(heading,pinnedPanel,searchWrap,history,typingIndicator);
   subscribePrivateTyping(me,active,typingIndicator);
   if(publicIds.has(active)){
    const form=document.createElement('form');form.className='social-form messages-compose';
