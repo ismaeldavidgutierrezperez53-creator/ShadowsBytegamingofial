@@ -526,11 +526,16 @@ async function loadMemberSocial(memberId,root){
   };
   root.append(form);
  }
+ const targetPostId=new URLSearchParams((location.hash.split('?')[1]||'')).get('post');
+ if(targetPostId&&location.hash.split('?')[0]==='#/cuenta'&&me===memberId&&!((posts||[]).some(p=>p.id===targetPostId))){
+  const {data:targetPost}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at').eq('id',targetPostId).eq('author_id',memberId).maybeSingle();
+  if(targetPost)posts.unshift(targetPost);
+ }
  const title=document.createElement('h2');title.textContent='Publicaciones';root.append(title);
  if(postError){const err=document.createElement('p');err.textContent='No se pudieron cargar las publicaciones.';root.append(err);return;}
  if(!(posts||[]).length){const empty=document.createElement('p');empty.textContent='Todavía no hay publicaciones.';root.append(empty);}
  for(const post of posts||[]){
-  const article=document.createElement('article');article.className='social-post';
+  const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;
   const body=document.createElement('p');body.className='social-post-body';body.textContent=post.content;
   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
   article.append(body,date);
@@ -554,6 +559,7 @@ async function loadMemberSocial(memberId,root){
   if(me){const form=document.createElement('form');form.className='social-form social-comment-form';const input=document.createElement('textarea');input.maxLength=500;input.required=true;input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');const submit=document.createElement('button');submit.className='outline-btn';submit.textContent='Comentar';form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();const content=input.value.trim();if(!content)return;submit.disabled=true;const {error}=await sb.from('member_comments').insert({post_id:post.id,author_id:me,content});if(error){feedback.textContent='No se pudo comentar: '+error.message;submit.disabled=false;}else await loadMemberSocial(memberId,root);};article.append(form);}
   root.append(article);
  }
+ if(targetPostId&&location.hash.split('?')[0]==='#/cuenta')focusNotificationPost(root,targetPostId);
 }
 
 async function renderPostLikes(postId,root,me){
@@ -592,6 +598,8 @@ async function loadCommunityFeed(){
  }
  if(!root.children.length)root.textContent='Todavía no hay publicaciones públicas.';
 }
+function notificationDestination(n){return n.post_id?'#/cuenta?post='+encodeURIComponent(n.post_id):(n.actor_id?'#/perfil?id='+encodeURIComponent(n.actor_id):'#/notificaciones');}
+function focusNotificationPost(root,id){if(!id||!root?.isConnected)return;const el=[...root.querySelectorAll('[data-post-id]')].find(x=>x.dataset.postId===id);if(el){el.classList.add('notification-target-post');el.scrollIntoView({behavior:'smooth',block:'center'});}}
 async function loadMemberNotifications(){
  const root=document.getElementById('member-notifications');if(!root)return;
  const {data:{user}}=await sb.auth.getUser();
@@ -615,6 +623,7 @@ async function loadMemberNotifications(){
   const action=document.createElement('span');const photo=photoPostIds.has(n.post_id);action.textContent=n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.');
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
   row.append(actor,action,date);
+  const jump=document.createElement('a');jump.href=notificationDestination(n);jump.textContent=n.post_id?'Ver publicación':'Ver perfil';jump.className='notification-jump';row.append(jump);
   if(!n.is_read){const button=document.createElement('button');button.className='social-delete';button.textContent='Marcar como leída';button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id);if(error){button.textContent='Error al marcar';button.disabled=false;}else{row.classList.remove('unread');button.remove();refreshNotificationBadge(user.id);}};row.append(button);}
   root.append(row);
  }
