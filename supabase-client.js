@@ -51,6 +51,22 @@ async function submitAuth(event) {
  message.textContent=signup?'Registro recibido. Revisa tu correo si se requiere confirmación.':'Sesión iniciada correctamente.';
  if(!signup) { await refreshAccountActions(); location.hash = result.data.user?.app_metadata?.role === 'admin' ? '#/admin' : '#/'; }
 }
+async function resendConfirmationEmail(){
+ const email=document.getElementById('email')?.value.trim();
+ const target=document.getElementById('resend-message');
+ const button=document.getElementById('resend-confirmation');
+ if(!target||!button)return;
+ if(!email||!document.getElementById('email').checkValidity()){
+  target.textContent='Introduce primero una dirección de correo válida.';
+  document.getElementById('email')?.focus();return;
+ }
+ button.disabled=true;target.textContent='Solicitando nuevo correo…';
+ try{
+  const {error}=await sb.auth.resend({type:'signup',email,options:{emailRedirectTo:RECOVERY_REDIRECT}});
+  target.textContent=error?'No se pudo reenviar: '+error.message:'Si la cuenta está pendiente de confirmación, recibirás un nuevo correo. Revisa también spam.';
+ }catch(error){target.textContent='No se pudo reenviar: '+error.message;}
+ finally{button.disabled=false;}
+}
 async function logout(){await sb.auth.signOut();await refreshAccountActions();location.hash='#/auth';}
 
 const RECOVERY_REDIRECT='https://ismaeldavidgutierrezperez53-creator.github.io/ShadowsBytegamingofial/';
