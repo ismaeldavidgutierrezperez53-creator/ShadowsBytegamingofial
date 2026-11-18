@@ -1,7 +1,7 @@
 // Shadows Byte Gaming Official V2 — public browser client
 const SUPABASE_URL = 'https://nutoxlbdotcllwlshhhr.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2Jdko8NdnlP8p_5YaArHaA_DzFN6iVE';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 async function getPublished(table, order='created_at') {
  const {data,error} = await sb.from(table).select('*').order(order,{ascending:false}).limit(30);
@@ -49,9 +49,9 @@ async function submitAuth(event) {
  const message=document.getElementById('auth-message');
  if(result.error){message.textContent=result.error.message;return;}
  message.textContent=signup?'Registro recibido. Revisa tu correo si se requiere confirmación.':'Sesión iniciada correctamente.';
- if(!signup) setTimeout(()=>{location.hash='#/';},500);
+ if(!signup) { await refreshAccountActions(); location.hash = result.data.user?.app_metadata?.role === 'admin' ? '#/admin' : '#/'; }
 }
-async function logout(){await sb.auth.signOut();location.hash='#/auth';}
+async function logout(){await sb.auth.signOut();await refreshAccountActions();location.hash='#/auth';}
 
 const RECOVERY_REDIRECT='https://ismaeldavidgutierrezperez53-creator.github.io/ShadowsBytegamingofial/';
 async function requestPasswordReset(event){
@@ -73,3 +73,22 @@ async function saveNewPassword(event){
 sb.auth.onAuthStateChange((event)=>{
  if(event==='PASSWORD_RECOVERY')setTimeout(()=>{location.hash='#/reset-password';},0);
 });
+
+// Keep the account controls synchronized with the persisted Supabase session.
+async function refreshAccountActions() {
+ const actions=document.getElementById('account-actions');
+ if(!actions)return;
+ const {data:{session},error}=await sb.auth.getSession();
+ if(error)console.warn('No se pudo comprobar la sesión:',error.message);
+ const user=session?.user;
+ const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
+ if(!user){
+  actions.innerHTML=search+'<a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a>';
+  return;
+ }
+ const admin=user.app_metadata?.role==='admin';
+ actions.innerHTML=search+'<a href="#/miembros">Mi cuenta</a>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
+ document.getElementById('account-logout').addEventListener('click',logout);
+}
+sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
+refreshAccountActions();
