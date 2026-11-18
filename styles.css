@@ -254,3 +254,11 @@ body.member-lightbox-open{overflow:hidden}
 
 .notification-follow-back{display:inline-block;margin:6px 8px 4px 0;padding:6px 10px;border-radius:7px;border:1px solid #a77ed3;background:#352449;color:#f6efff;font:inherit;font-size:12px;cursor:pointer}
 .notification-follow-back:disabled{opacity:.6;cursor:wait}
+
+.account-follows-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:18px}
+.account-follows-list{min-width:0}
+.account-follows-list h4{margin:12px 0}
+.account-follow-member{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid #ffffff24}
+.account-follow-member img{width:38px;height:38px;border-radius:50%;object-fit:cover}
+.account-follow-member span{flex:1;min-width:90px;overflow-wrap:anywhere}
+.account-follow-member small{opacity:.75}
