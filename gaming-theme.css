@@ -7,3 +7,9 @@ body{background-image:linear-gradient(rgba(6,3,13,.38),rgba(6,3,13,.62)),url("./
 body .hero{background-image:linear-gradient(90deg,rgba(7,3,16,.65),rgba(7,3,16,.4)),url("./gaming-background.svg")!important;background-color:#090413!important;background-position:center center!important;background-size:cover!important;background-repeat:no-repeat!important}
 body .hero::after{opacity:.12!important;pointer-events:none}
 @media(max-width:768px){body .hero{background-position:52% center!important;background-size:auto 100%!important}}
+
+/* Soft animated neon light effects; no obstruction of content */
+body .hero::before{content:"";position:absolute;inset:-12%;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 22% 28%,rgba(170,30,255,.18),transparent 38%),radial-gradient(ellipse at 78% 68%,rgba(138,39,255,.16),transparent 42%);background-size:110% 110%;animation:sb-neon-pulse 9s ease-in-out infinite alternate;will-change:opacity,transform}
+body .hero-content{position:relative;z-index:1}
+@keyframes sb-neon-pulse{0%{opacity:.42;transform:translate3d(-1%,0,0) scale(1)}50%{opacity:.76}100%{opacity:.95;transform:translate3d(1%,1%,0) scale(1.035)}}
+@media(prefers-reduced-motion:reduce){body .hero::before{animation:none!important;opacity:.5;transform:none}}
