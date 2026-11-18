@@ -316,3 +316,8 @@ body.member-lightbox-open{overflow:hidden}
 .social-report:disabled{opacity:.65;cursor:default}
 .admin-report-actions{display:flex;flex-wrap:wrap;gap:8px}
 #admin-reports-filter{background:#0a0913;color:#f7f3fc;border:1px solid #443753;border-radius:10px;padding:11px;font:inherit}
+
+.admin-report-alert-panel{border-color:#654b83}
+#admin-report-alert-count{display:inline-block;border-radius:999px;background:#252034;border:1px solid #5b4b71;color:#e7d9ff;padding:10px 14px;white-space:nowrap}
+#admin-report-alert-count.admin-alert-active{background:#493016;border-color:#a87533;color:#ffe2a2}
+#admin-report-alert-message:not(:empty){color:#ffe2a2;font-weight:700}
