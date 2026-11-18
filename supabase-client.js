@@ -277,6 +277,39 @@ function openMemberGalleryLightbox(posts,startIndex){
  document.body.classList.add('member-lightbox-open');document.addEventListener('keydown',onKey);show();close.focus();
 }
 
+async function renderGalleryComments(postId,root,viewerId,profileId){
+ if(!root.isConnected)return;
+ root.replaceChildren();
+ const status=document.createElement('p');status.className='member-gallery-comment-status';status.setAttribute('role','status');root.append(status);
+ const {data:comments,error}=await sb.from('member_comments').select('id,author_id,content,created_at').eq('post_id',postId).order('created_at',{ascending:true}).limit(100);
+ if(!root.isConnected)return;
+ if(error){status.textContent='No se pudieron cargar los comentarios.';return;}
+ if(!(comments||[]).length)status.textContent='Todavía no hay comentarios.';
+ else status.remove();
+ for(const comment of comments){
+  const item=document.createElement('div');item.className='member-gallery-comment';
+  const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(comment.author_id);author.textContent=comment.author_id===profileId?'Autor del perfil':'Miembro';
+  const body=document.createElement('p');body.textContent=comment.content;
+  item.append(author,body);
+  if(viewerId===comment.author_id){
+   const remove=document.createElement('button');remove.type='button';remove.className='member-gallery-comment-delete';remove.textContent='Eliminar';
+   remove.onclick=async()=>{if(!confirm('¿Eliminar tu comentario?'))return;remove.disabled=true;const {error:deleteError}=await sb.from('member_comments').delete().eq('id',comment.id).eq('author_id',viewerId);if(deleteError){status.textContent='No se pudo eliminar: '+deleteError.message;root.prepend(status);remove.disabled=false;}else await renderGalleryComments(postId,root,viewerId,profileId);};
+   item.append(remove);
+  }
+  root.append(item);
+ }
+ if(viewerId){
+  const form=document.createElement('form');form.className='member-gallery-comment-form';
+  const input=document.createElement('textarea');input.maxLength=500;input.required=true;input.rows=2;input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');
+  const submit=document.createElement('button');submit.type='submit';submit.className='outline-btn';submit.textContent='Comentar';
+  form.append(input,submit);
+  form.onsubmit=async event=>{event.preventDefault();const content=input.value.trim();if(!content)return;submit.disabled=true;const {error:insertError}=await sb.from('member_comments').insert({post_id:postId,author_id:viewerId,content});if(insertError){status.textContent='No se pudo comentar: '+insertError.message;root.prepend(status);submit.disabled=false;}else await renderGalleryComments(postId,root,viewerId,profileId);};
+  root.append(form);
+ }else{
+  const hint=document.createElement('p');hint.className='member-gallery-comment-status';hint.textContent='Inicia sesión para comentar.';root.append(hint);
+ }
+}
+
 async function loadMemberGallery(memberId,root){
  if(!root||!root.isConnected)return;
  root.replaceChildren();
@@ -332,6 +365,12 @@ async function loadMemberGallery(memberId,root){
   const tile=document.createElement('div');tile.className='member-gallery-tile';tile.append(link);
   const likeBox=document.createElement('div');likeBox.className='member-gallery-like';tile.append(likeBox);
   renderPostLikes(post.id,likeBox,galleryUser?.id||null);
+  const commentDetails=document.createElement('details');commentDetails.className='member-gallery-comments';
+  const commentSummary=document.createElement('summary');commentSummary.textContent='💬 Ver comentarios';
+  const commentList=document.createElement('div');commentList.className='member-gallery-comment-list';
+  commentDetails.append(commentSummary,commentList);
+  commentDetails.addEventListener('toggle',()=>{if(commentDetails.open)renderGalleryComments(post.id,commentList,galleryUser?.id||null,memberId);});
+  tile.append(commentDetails);
   if(isOwner){
    const albumSelect=document.createElement('select');albumSelect.className='member-gallery-select';albumSelect.setAttribute('aria-label','Cambiar álbum de fotografía');
    for(const album of albumOptions.slice(1)){const option=document.createElement('option');option.value=album;option.textContent=album;albumSelect.append(option);}
