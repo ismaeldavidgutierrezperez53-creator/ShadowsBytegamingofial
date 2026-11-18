@@ -283,22 +283,39 @@ async function loadMemberGallery(memberId,root){
  const heading=document.createElement('h2');heading.className='member-gallery-title';heading.textContent='🖼️ Galería de imágenes';
  const description=document.createElement('p');description.className='member-gallery-description';description.textContent='Fotos compartidas en las publicaciones de este miembro.';
  root.append(heading,description);
- const {data:posts,error}=await sb.from('member_posts').select('id,image_path,content,created_at').eq('author_id',memberId).not('image_path','is',null).order('created_at',{ascending:false}).limit(60);
+ const {data:posts,error}=await sb.from('member_posts').select('id,image_path,content,created_at,gallery_category').eq('author_id',memberId).not('image_path','is',null).order('created_at',{ascending:false}).limit(60);
  if(!root.isConnected)return;
  if(error){const msg=document.createElement('p');msg.className='member-gallery-empty';msg.textContent='No se pudo cargar la galería.';root.append(msg);return;}
  if(!posts?.length){const empty=document.createElement('p');empty.className='member-gallery-empty';empty.textContent='Todavía no hay imágenes publicadas.';root.append(empty);return;}
  const {data:{user:galleryUser}}=await sb.auth.getUser();
  const isOwner=galleryUser?.id===memberId;
+ const albumOptions=['Todos','Gaming','Anime','Capturas','Otros'];
+ const tabs=document.createElement('div');tabs.className='member-gallery-albums';tabs.setAttribute('aria-label','Filtrar álbum');
+ let activeAlbum='Todos';
  const grid=document.createElement('div');grid.className='member-gallery-grid';
- for(const post of posts){
-  if(!post.image_path)continue;
+ const refresh=()=>{
+  const filtered=posts.filter(p=>p.image_path&&(activeAlbum==='Todos'||(p.gallery_category||'Otros')===activeAlbum));
+  grid.replaceChildren();
+  for(const post of filtered)buildTile(post,filtered);
+  if(!filtered.length){const empty=document.createElement('p');empty.className='member-gallery-empty';empty.textContent='Este álbum todavía no tiene fotografías.';grid.append(empty);}
+  for(const button of tabs.children){const selected=button.dataset.album===activeAlbum;button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));}
+ };
+ for(const album of albumOptions){const button=document.createElement('button');button.type='button';button.className='member-gallery-album';button.dataset.album=album;button.textContent=album+' ('+(album==='Todos'?posts.length:posts.filter(p=>(p.gallery_category||'Otros')===album).length)+')';button.onclick=()=>{activeAlbum=album;refresh();};tabs.append(button);}
+ root.append(tabs);
+ const buildTile=(post,visiblePosts)=>{
+
   const url=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
-  const link=document.createElement('a');link.className='member-gallery-item';link.href=url;link.title='Ampliar imagen en la galería';link.addEventListener('click',event=>{event.preventDefault();openMemberGalleryLightbox(posts.filter(p=>p.image_path),posts.filter(p=>p.image_path).findIndex(p=>p.id===post.id));});
+  const link=document.createElement('a');link.className='member-gallery-item';link.href=url;link.title='Ampliar imagen en la galería';link.addEventListener('click',event=>{event.preventDefault();openMemberGalleryLightbox(visiblePosts,visiblePosts.findIndex(p=>p.id===post.id));});
   const image=document.createElement('img');image.src=url;image.alt=post.content?.trim().slice(0,110)||'Imagen de la comunidad';image.loading='lazy';
   const label=document.createElement('span');label.className='member-gallery-item-label';label.textContent=new Date(post.created_at).toLocaleDateString('es-ES');
   link.append(image,label);
   const tile=document.createElement('div');tile.className='member-gallery-tile';tile.append(link);
   if(isOwner){
+   const albumSelect=document.createElement('select');albumSelect.className='member-gallery-select';albumSelect.setAttribute('aria-label','Cambiar álbum de fotografía');
+   for(const album of albumOptions.slice(1)){const option=document.createElement('option');option.value=album;option.textContent=album;albumSelect.append(option);}
+   albumSelect.value=post.gallery_category||'Otros';
+   albumSelect.onchange=async()=>{albumSelect.disabled=true;const {error}=await sb.from('member_posts').update({gallery_category:albumSelect.value}).eq('id',post.id).eq('author_id',memberId);if(error){alert('No se pudo cambiar el álbum: '+error.message);albumSelect.disabled=false;}else await loadMemberGallery(memberId,root);};
+   tile.append(albumSelect);
    const remove=document.createElement('button');remove.type='button';remove.className='member-gallery-delete';remove.textContent='🗑️ Eliminar';remove.setAttribute('aria-label','Eliminar fotografía y publicación');
    remove.addEventListener('click',async()=>{
     if(!confirm('¿Eliminar esta fotografía? También se eliminará su publicación y los comentarios. Esta acción no se puede deshacer.'))return;
@@ -314,8 +331,8 @@ async function loadMemberGallery(memberId,root){
    tile.append(remove);
   }
   grid.append(tile);
- }
- root.append(grid);
+ };
+ root.append(grid);refresh();
 }
 
 async function loadMemberSocial(memberId,root){
@@ -351,8 +368,10 @@ async function loadMemberSocial(memberId,root){
   const imageInput=document.createElement('input');imageInput.id='new-member-image';imageInput.type='file';imageInput.accept='image/jpeg,image/png,image/webp,image/gif';imageInput.className='social-image-input';
   const preview=document.createElement('img');preview.className='social-image-preview';preview.alt='Vista previa de la imagen';preview.hidden=true;
   let previewUrl=null;imageInput.onchange=()=>{if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=null;const file=imageInput.files?.[0];preview.hidden=!file;if(file){previewUrl=URL.createObjectURL(file);preview.src=previewUrl;}};
+  const albumLabel=document.createElement('label');albumLabel.textContent='Álbum para la imagen';
+  const albumSelect=document.createElement('select');albumSelect.className='social-album-select';for(const album of ['Gaming','Anime','Capturas','Otros']){const option=document.createElement('option');option.value=album;option.textContent=album;albumSelect.append(option);}albumSelect.value='Otros';albumLabel.append(albumSelect);
   const submit=document.createElement('button');submit.className='gradient-btn mini';submit.textContent='Publicar';
-  form.append(label,textarea,imageLabel,imageInput,preview,submit);
+  form.append(label,textarea,imageLabel,imageInput,preview,albumLabel,submit);
   form.onsubmit=async e=>{
    e.preventDefault();const content=textarea.value.trim();const file=imageInput.files?.[0];if(!content&&!file){feedback.textContent='Escribe un mensaje o selecciona una imagen.';return;}
    const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
@@ -363,7 +382,7 @@ async function loadMemberSocial(memberId,root){
     const {error:uploadError}=await sb.storage.from('community-images').upload(image_path,file,{contentType:file.type,upsert:false});
     if(uploadError){feedback.textContent='No se pudo subir la imagen: '+uploadError.message;submit.disabled=false;return;}
    }
-   const {error}=await sb.from('member_posts').insert({author_id:me,content,image_path});
+   const {error}=await sb.from('member_posts').insert({author_id:me,content,image_path,gallery_category:albumSelect.value});
    if(error){if(image_path)await sb.storage.from('community-images').remove([image_path]);feedback.textContent='No se pudo publicar: '+error.message;submit.disabled=false;}
    else {await loadMemberSocial(memberId,root);const gallery=document.getElementById('account-gallery');if(gallery&&me===memberId)loadMemberGallery(memberId,gallery);}
   };
