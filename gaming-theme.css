@@ -68,3 +68,6 @@ body>footer{flex-shrink:0;width:100%;margin-top:auto}
   body{background-size:cover!important;background-position:center top!important;background-repeat:no-repeat!important}
   body>main#app:empty{min-height:calc(100dvh - 64px - 280px)}
 }
+
+/* Never hide page content while waiting for an intersection observer. */
+.sb-reveal-pending{opacity:1!important;transform:none!important}
