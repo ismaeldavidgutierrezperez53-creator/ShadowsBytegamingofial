@@ -196,3 +196,15 @@ body.member-lightbox-open{overflow:hidden}
 .member-gallery-select{display:block;width:100%;margin-top:8px;padding:9px;border-radius:9px;border:1px solid #79559b;background:#1c132c;color:#fff;font:inherit}
 .social-album-select{display:block;width:100%;padding:11px;margin-top:7px;background:#1a1229;color:#fff;border:1px solid #79559b;border-radius:9px;font:inherit}
 .member-gallery-grid>.member-gallery-empty{grid-column:1/-1}
+
+
+/* Portadas personalizadas de álbumes */
+.member-gallery-cover-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 24px}
+.member-gallery-cover-card{min-width:0;display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:5px;padding:9px;border:1px solid #634681;border-radius:16px;background:#21152f;color:#f4eafa;cursor:pointer;font-family:inherit}
+.member-gallery-cover-card img,.member-gallery-cover-placeholder{display:grid;place-items:center;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:11px;background:linear-gradient(135deg,#6b398d,#241338);font-size:40px}
+.member-gallery-cover-card strong{font-size:15px;padding:4px 4px 0}
+.member-gallery-cover-card span:last-child{font-size:12px;opacity:.8;padding:0 4px 5px}
+.member-gallery-cover-card:hover{border-color:#d09bff;transform:translateY(-2px)}
+.member-gallery-set-cover{width:100%;margin-top:7px;padding:8px;border-radius:8px;border:1px solid #8861ae;background:#342047;color:#fff;font:inherit;cursor:pointer}
+.member-gallery-set-cover:disabled{opacity:.65;cursor:default}
+@media(max-width:700px){.member-gallery-cover-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
