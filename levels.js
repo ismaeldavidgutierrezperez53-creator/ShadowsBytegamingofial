@@ -115,3 +115,22 @@ async function renderCommunityMissions(){
   panel.append(claim,status);host.append(panel);
  }
 }
+
+async function renderRewardChests(){
+ const host=document.getElementById('reward-chests');if(!host)return;
+ const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
+ if(!user){host.textContent='Inicia sesión para abrir cofres.';return}
+ const {data,error}=await sb.rpc('community_chest_status');if(!host.isConnected)return;
+ if(error){host.textContent='No se pudieron cargar los cofres.';return}
+ host.replaceChildren();const intro=document.createElement('p');intro.textContent='Reclama misiones completadas durante la semana para desbloquear cofres. Se reinician cada lunes a las 00:00 UTC.';host.append(intro);
+ for(const chest of data||[]){
+  const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:16px;margin:12px 0;border:1px solid #ffffff33;border-radius:14px';
+  const title=document.createElement('h3');title.textContent=(chest.chest_key==='gold'?'👑 Cofre dorado':'🎁 Cofre de bronce')+' · +'+chest.xp_reward+' XP';card.append(title);
+  const p=document.createElement('p');p.textContent=Math.min(chest.missions_completed,chest.required_missions)+' / '+chest.required_missions+' misiones reclamadas esta semana';card.append(p);
+  const progress=document.createElement('progress');progress.max=chest.required_missions;progress.value=Math.min(chest.missions_completed,chest.required_missions);progress.style.width='100%';card.append(progress);
+  const button=document.createElement('button');button.className='gradient-btn mini';button.style.marginTop='10px';button.textContent=chest.claimed?'✓ Cofre abierto':chest.missions_completed>=chest.required_missions?'🎁 Abrir cofre':'🔒 Cofre bloqueado';button.disabled=chest.claimed||chest.missions_completed<chest.required_missions;
+  const status=document.createElement('p');status.setAttribute('role','status');
+  button.onclick=async()=>{button.disabled=true;const {data:opened,error:openError}=await sb.rpc('claim_community_chest',{requested_key:chest.chest_key});if(openError){status.textContent=openError.message;button.disabled=false;return}if(opened){await renderRewardChests();await renderMyLevels();await renderLevelRanking()}else{status.textContent='El cofre ya se abrió o todavía no cumple los requisitos.';await renderRewardChests()}};
+  card.append(button,status);host.append(card);
+ }
+}
