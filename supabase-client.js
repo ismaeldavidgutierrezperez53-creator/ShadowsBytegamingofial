@@ -184,6 +184,15 @@ async function loadAccountFollows(userId,root){
  root.innerHTML='<h3>👥 Seguidores y Siguiendo</h3><p>Consulta las personas que te siguen y las cuentas a las que sigues.</p>';
  const searchLabel=document.createElement('label');searchLabel.htmlFor='account-follow-search';searchLabel.textContent='Buscar seguidores o miembros que sigues';
  const search=document.createElement('input');search.type='search';search.id='account-follow-search';search.placeholder='Buscar por nombre o usuario…';search.autocomplete='off';root.append(searchLabel,search);
+ const filter=document.createElement('div');filter.className='account-follow-filters';filter.setAttribute('role','group');filter.setAttribute('aria-label','Filtrar miembros');
+ let activeFilter='all';const filterButtons=[];
+ for(const [value,label] of [['all','Todos'],['followers','Seguidores'],['following','Siguiendo']]){
+  const button=document.createElement('button');button.type='button';button.className='account-follow-filter';button.textContent=label;button.setAttribute('aria-pressed',String(value==='all'));
+  button.addEventListener('click',()=>{activeFilter=value;updateFilter();});
+  filter.append(button);filterButtons.push({value,button});
+ }
+ root.append(filter);
+ const count=document.createElement('p');count.className='account-follow-results';count.setAttribute('aria-live','polite');root.append(count);
  const content=document.createElement('div');content.className='account-follows-content';content.textContent='Cargando miembros…';root.append(content);
  const [{data:followers,error:followersError},{data:following,error:followingError}]=await Promise.all([
   sb.from('member_follows').select('follower_id').eq('following_id',userId).order('created_at',{ascending:false}).limit(100),
@@ -197,7 +206,7 @@ async function loadAccountFollows(userId,root){
  if(!root.isConnected)return;
  if(profilesError){content.textContent='No se pudieron cargar los perfiles.';return;}
  const names=new Map((profiles||[]).map(p=>[p.id,p]));
- const sections=[{title:'Seguidores',ids:(followers||[]).map(x=>x.follower_id)},{title:'Siguiendo',ids:(following||[]).map(x=>x.following_id)}];
+ const sections=[{key:'followers',title:'Seguidores',ids:(followers||[]).map(x=>x.follower_id)},{key:'following',title:'Siguiendo',ids:(following||[]).map(x=>x.following_id)}];
  const lists=[];
  for(const section of sections){
   const area=document.createElement('section');area.className='account-follows-list';
@@ -214,22 +223,29 @@ async function loadAccountFollows(userId,root){
   content.append(area);lists.push({area,section});
  }
  const normalize=value=>(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
- search.addEventListener('input',()=>{
-  const term=normalize(search.value);
+ function updateFilter(){
+  const term=normalize(search.value);let total=0;
   for(const {area,section} of lists){
+   const showSection=activeFilter==='all'||activeFilter===section.key;
+   area.hidden=!showSection;
    let visible=0;
    for(const row of area.querySelectorAll('.account-follow-member')){
-    const id=row.dataset.memberId;
-    const p=names.get(id);
-    const match=!term||normalize([p?.display_name,p?.username].filter(Boolean).join(' ')).includes(term);
-    row.hidden=!match;if(match)visible++;
+    const p=names.get(row.dataset.memberId);
+    const label=[p?.display_name,p?.username,row.querySelector('span')?.textContent].filter(Boolean).join(' ');
+    const match=!term||normalize(label).includes(term);
+    row.hidden=!match;if(match&&showSection)visible++;
    }
+   total+=visible;
    let empty=area.querySelector('.account-follow-search-empty');
    if(!empty){empty=document.createElement('p');empty.className='account-follow-search-empty';area.append(empty);}
    empty.hidden=!term||visible>0||!section.ids.length;
    empty.textContent='No hay coincidencias.';
   }
- });
+  for(const {value,button} of filterButtons){button.setAttribute('aria-pressed',String(value===activeFilter));}
+  count.textContent=total+' '+(total===1?'miembro encontrado':'miembros encontrados')+(term?' para «'+search.value.trim()+'»':'');
+ }
+ search.addEventListener('input',updateFilter);
+ updateFilter();
 }
 async function loadAccountProfile(){
  const root=document.getElementById('account-profile');if(!root)return;
