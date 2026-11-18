@@ -81,6 +81,8 @@ async function refreshAccountActions() {
  const {data:{session},error}=await sb.auth.getSession();
  if(error)console.warn('No se pudo comprobar la sesión:',error.message);
  const user=session?.user;
+ const hero=document.getElementById('hero-account-actions');
+ if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/miembros">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
  const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
  if(!user){
   actions.innerHTML=search+'<a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a>';
