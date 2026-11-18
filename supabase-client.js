@@ -755,7 +755,7 @@ async function loadPrivateMessages(){
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
- const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,audio_path,deleted_at').order('created_at',{ascending:false}).limit(300);
+ const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,audio_path,deleted_at,reply_to_id').order('created_at',{ascending:false}).limit(300);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
@@ -789,10 +789,13 @@ async function loadPrivateMessages(){
   const history=document.createElement('div');history.className='messages-history';
   const conversation=items.filter(m=>(m.sender_id===me&&m.recipient_id===active)||(m.recipient_id===me&&m.sender_id===active)).reverse();
   if(!conversation.length){const hint=document.createElement('p');hint.textContent='Todavía no hay mensajes en esta conversación.';history.append(hint);}
+  const conversationById=new Map(conversation.map(message=>[message.id,message]));
+  let selectReply=null;
   for(const m of conversation){
    const bubble=document.createElement('div');bubble.className='message-bubble'+(m.sender_id===me?' mine':'');
    const text=document.createElement('p');text.textContent=m.deleted_at?'Mensaje eliminado':m.body;if(m.deleted_at)text.className='private-chat-deleted';
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
+   if(m.reply_to_id){const original=conversationById.get(m.reply_to_id);const quote=document.createElement('div');quote.className='private-chat-reply-quote';quote.textContent=!original?'↪ Mensaje anterior':original.deleted_at?'↪ Mensaje eliminado':'↪ '+(original.sender_id===me?'Tú: ':'Miembro: ')+(original.body?.trim()|| (original.image_path?'📷 Imagen':original.audio_path?'🎤 Audio':'Mensaje'));if(original){quote.title='Ir al mensaje original';quote.tabIndex=0;quote.setAttribute('role','button');const jump=()=>{const target=history.querySelector('[data-message-id="'+original.id+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('private-chat-highlight');setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);}};quote.onclick=jump;quote.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();jump();}};}bubble.append(quote);}
    bubble.append(text);
    if(!m.deleted_at&&m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen del chat');photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};}});}
    if(!m.deleted_at&&m.audio_path){const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.className='private-chat-audio';audio.setAttribute('aria-label','Mensaje de voz');bubble.append(audio);sb.storage.from('private-chat-audio').createSignedUrl(m.audio_path,3600).then(({data})=>{if(data?.signedUrl&&audio.isConnected)audio.src=data.signedUrl;});}
@@ -814,7 +817,8 @@ async function loadPrivateMessages(){
     };
     bubble.append(remove);
    }
-   history.append(bubble);
+   if(!m.deleted_at){const replyButton=document.createElement('button');replyButton.type='button';replyButton.className='private-chat-reply-button';replyButton.textContent='↩ Responder';replyButton.onclick=()=>{if(selectReply)selectReply(m);};bubble.append(replyButton);}
+   bubble.dataset.messageId=m.id;history.append(bubble);
   }
   const typingIndicator=document.createElement('p');typingIndicator.className='member-typing-indicator';typingIndicator.id='member-typing-indicator';typingIndicator.setAttribute('role','status');typingIndicator.setAttribute('aria-live','polite');
   panel.append(heading,history,typingIndicator);
@@ -824,6 +828,11 @@ async function loadPrivateMessages(){
    const input=document.createElement('textarea');input.required=false;input.maxLength=2000;input.placeholder='Escribe tu mensaje privado…';input.setAttribute('aria-label','Mensaje privado');
    const button=document.createElement('button');button.className='gradient-btn mini';button.type='submit';button.textContent='Enviar mensaje';
    const status=document.createElement('p');status.setAttribute('role','status');
+   let replyToId=null;
+   const replyPreview=document.createElement('div');replyPreview.className='private-chat-reply-preview';replyPreview.hidden=true;
+   const replyText=document.createElement('span');const cancelReply=document.createElement('button');cancelReply.type='button';cancelReply.textContent='✕ Cancelar';cancelReply.onclick=()=>{replyToId=null;replyPreview.hidden=true;replyText.textContent='';};
+   replyPreview.append(replyText,cancelReply);
+   selectReply=message=>{replyToId=message.id;replyText.textContent='Respondiendo a '+(message.sender_id===me?'tu mensaje: ':'mensaje de miembro: ')+(message.body?.trim()|| (message.image_path?'📷 Imagen':message.audio_path?'🎤 Audio':'Mensaje'));replyPreview.hidden=false;input.focus();};
    const imageInput=document.createElement('input');imageInput.type='file';imageInput.accept='image/jpeg,image/png,image/webp,image/gif';imageInput.className='private-chat-image-input';imageInput.setAttribute('aria-label','Seleccionar imagen para enviar');
    const imageLabel=document.createElement('label');imageLabel.className='private-chat-image-label';imageLabel.textContent='📷 Añadir imagen';imageLabel.append(imageInput);
    const imagePreview=document.createElement('p');imagePreview.className='private-chat-image-preview';
@@ -860,7 +869,7 @@ async function loadPrivateMessages(){
      voiceTimer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);voiceStatus.textContent='Grabando… '+seconds+' s';if(seconds>=90)stopVoice();},500);
     }catch(err){voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;voiceStatus.textContent='No se pudo acceder al micrófono. Comprueba sus permisos.';}
    };
-   form.append(input,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreview,discardVoice,button,status);
+   form.append(replyPreview,input,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreview,discardVoice,button,status);
    input.addEventListener('input',()=>sendPrivateTyping(me,active));
    form.onsubmit=async e=>{
     e.preventDefault();
@@ -884,7 +893,7 @@ async function loadPrivateMessages(){
      const {error:audioError}=await sb.storage.from('private-chat-audio').upload(audio_path,voiceBlob,{contentType:voiceMime,upsert:false});
      if(audioError){status.textContent='No se pudo subir el audio: '+audioError.message;button.disabled=false;return;}
     }
-    const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path,audio_path});
+    const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path,audio_path,reply_to_id:replyToId});
     if(sendError){status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}
     else await loadPrivateMessages();
    };
