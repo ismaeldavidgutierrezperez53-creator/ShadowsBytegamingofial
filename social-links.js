@@ -50,3 +50,6 @@ const previousSocialRender=render;
 render=function(...args){const result=previousSocialRender.apply(this,args);loadSiteSocialLinks();return result;};
 const previousSocialInitAdmin=initAdmin;
 initAdmin=async function(...args){const result=await previousSocialInitAdmin.apply(this,args);await initSocialAdmin();return result;};
+
+// Refrescar la vista inicial tras registrar las extensiones.
+render();
