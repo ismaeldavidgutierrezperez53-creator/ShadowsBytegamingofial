@@ -204,7 +204,7 @@ async function renderGiftMailbox(){
  const {data:{user},error:authError}=await sb.auth.getUser();if(!root.isConnected)return;
  if(authError||!user){root.innerHTML='<p>Inicia sesión para ver tus regalos.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión</a>';return}
  const [gifts,owned,equipped]=await Promise.all([
-  sb.from('member_shop_gifts').select('id,sender_id,item_id,created_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_shop_gifts').select('id,sender_id,item_id,created_at,opened_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_shop_purchases').select('item_id').eq('user_id',user.id),
   sb.from('member_shop_equipped').select('category,item_id').eq('user_id',user.id)
  ]);
@@ -223,7 +223,8 @@ async function renderGiftMailbox(){
  const count=document.createElement('p');count.textContent='🎁 '+rows.length+' regalo(s) recibido(s)'+(rows.length===100?' · últimos 100':'');root.append(count);
  for(const gift of rows){
   const item=catalog.get(gift.item_id);const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:16px;margin:12px 0;border:1px solid #ffffff33;border-radius:14px';
-  const title=document.createElement('h3');title.textContent='🎁 '+(item?.name||'Recompensa recibida');card.append(title);
+  if(!gift.opened_at){const title=document.createElement('h3');title.textContent='🎁 ¡Tienes un regalo por descubrir!';card.append(title);const from=document.createElement('p');from.textContent='Enviado por '+(names.get(gift.sender_id)||'Un miembro')+' · '+new Date(gift.created_at).toLocaleString('es-ES');card.append(from);const box=document.createElement('div');box.textContent='🎁';box.setAttribute('aria-hidden','true');box.style.cssText='font-size:76px;text-align:center;transition:transform .5s ease,opacity .5s ease;transform-origin:center;';card.append(box);const open=document.createElement('button');open.type='button';open.className='gradient-btn mini';open.textContent='✨ Abrir regalo';const status=document.createElement('p');status.setAttribute('role','status');open.onclick=async()=>{open.disabled=true;status.textContent='Abriendo tu sorpresa…';const {error}=await sb.rpc('open_member_shop_gift',{p_gift_id:gift.id});if(error){status.textContent='No se pudo abrir: '+error.message;open.disabled=false;return}box.style.transform='scale(1.5) rotate(15deg)';box.style.opacity='0';status.textContent='🎉 ¡Sorpresa! '+(item?.name||'Has recibido una recompensa');open.textContent='🎉 Regalo abierto';setTimeout(()=>{if(root.isConnected)renderGiftMailbox()},1100)};card.append(open,status);root.append(card);continue}
+  const title=document.createElement('h3');title.textContent='🎉 '+(item?.name||'Recompensa recibida');card.append(title);
   const info=document.createElement('p');info.textContent='Enviado por '+(names.get(gift.sender_id)||'Un miembro')+' · '+new Date(gift.created_at).toLocaleString('es-ES');card.append(info);
   if(item?.description){const desc=document.createElement('p');desc.textContent=item.description;card.append(desc)}
   if(item?.image_url&&/^https:\/\//i.test(item.image_url)){const img=document.createElement('img');img.src=item.image_url;img.alt='Imagen de '+item.name;img.loading='lazy';img.style.cssText='width:110px;height:110px;object-fit:cover;border-radius:12px;display:block;margin:10px 0';card.append(img)}
