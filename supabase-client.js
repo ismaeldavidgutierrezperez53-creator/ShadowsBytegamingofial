@@ -137,11 +137,18 @@ async function loadAccountProfile(){
    if(!error){
     const bio=document.getElementById('profile-bio').value.trim();
     const is_public=document.getElementById('profile-public').checked;
-    const {error:profileError}=await sb.from('profiles').upsert({id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public},{onConflict:'id'});
-    if(profileError){status.textContent='Se guardó tu cuenta, pero no el perfil público: '+profileError.message;return;}
+    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public};
+    const {data:existing, error:readError}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
+    if(readError){status.textContent='No se pudo comprobar tu perfil: '+readError.message;return;}
+    const request=existing
+      ?sb.from('profiles').update(payload).eq('id',user.id).select('id,is_public')
+      :sb.from('profiles').insert(payload).select('id,is_public');
+    const {data:saved,error:profileError}=await request.single();
+    if(profileError||!saved){status.textContent='No se pudo guardar el perfil de Miembros: '+(profileError?.message||'No se confirmó el guardado');return;}
+    status.textContent=saved.is_public?'Perfil público guardado. Ya puedes verlo en Miembros.':'Perfil guardado como privado. Activa la casilla para aparecer en Miembros.';
    }
    if(error){status.textContent='No se pudo guardar: '+error.message;return;}
-   heading.textContent=display_name;paintAvatar(avatar_url,display_name);status.textContent='Perfil actualizado correctamente.';
+   heading.textContent=display_name;paintAvatar(avatar_url,display_name);
   }catch(err){status.textContent='No se pudo guardar: '+err.message}
   finally{button.disabled=false;}
  });
