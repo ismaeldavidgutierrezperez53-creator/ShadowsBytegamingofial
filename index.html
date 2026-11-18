@@ -41,6 +41,15 @@
   .mobile-section-links a:focus-visible{outline:2px solid #d88cff}
   .topbar.open #nav{position:absolute!important;top:64px!important;height:calc(100dvh - 64px)!important}
 }
+
+@media(max-width:900px){
+ .mobile-section-links{gap:9px;padding:11px 12px;background:linear-gradient(90deg,#11071e,#180c2c 55%,#071725);scroll-padding-inline:12px}
+ .mobile-section-links a{gap:7px;border-color:#7040a9;background:linear-gradient(145deg,#25133d,#13152b);box-shadow:inset 0 1px #ffffff12,0 3px 10px #0004;transition:background .2s,border-color .2s,box-shadow .2s,transform .2s}
+ .mobile-section-links a::before{content:attr(data-icon);font-size:17px;line-height:1}
+ .mobile-section-links a[aria-current="page"]{color:white;border-color:#31caff;background:linear-gradient(110deg,#a53eff,#087de0);box-shadow:0 0 15px #9b36ff88,0 0 9px #13baff55;transform:translateY(-1px)}
+ .mobile-section-links a:active{transform:scale(.97)}
+}
+@media(prefers-reduced-motion:reduce){.mobile-section-links a{transition:none}}
 </style>
 </head>
 <body>
@@ -51,7 +60,7 @@
     <div class="top-actions" id="account-actions"><label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label><a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a></div>
   </header>
   <nav class="mobile-section-links" aria-label="Apartados de la web">
-    <a href="#/">Inicio</a><a href="#/noticias">Noticias</a><a href="#/anime">Anime</a><a href="#/manga">Manga</a><a href="#/manhwa">Manhwa</a><a href="#/gaming">Gaming</a><a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/comunidad">Comunidad</a><a href="#/miembros">Miembros</a><a href="#/favoritos">Favoritos</a><a href="#/encuestas">Encuestas</a><a href="#/waifu-husbando">Waifu / Husbando</a><a href="#/pokedex">Pokédex</a><a href="#/one-piece">One Piece</a><a href="#/cuenta">Mi cuenta</a><a href="#/admin">Administración</a>
+    <a href="#/" data-icon="⌂">Inicio</a><a href="#/noticias" data-icon="📰">Noticias</a><a href="#/anime" data-icon="🌸">Anime</a><a href="#/manga" data-icon="📖">Manga</a><a href="#/manhwa" data-icon="📚">Manhwa</a><a href="#/gaming" data-icon="🎮">Gaming</a><a href="#/cartelera" data-icon="🎬">Cartelera</a><a href="#/eventos" data-icon="📅">Eventos</a><a href="#/comunidad" data-icon="💬">Comunidad</a><a href="#/miembros" data-icon="👥">Miembros</a><a href="#/favoritos" data-icon="♥">Favoritos</a><a href="#/encuestas" data-icon="📊">Encuestas</a><a href="#/waifu-husbando" data-icon="💜">Waifu / Husbando</a><a href="#/pokedex" data-icon="⚡">Pokédex</a><a href="#/one-piece" data-icon="🏴‍☠️">One Piece</a><a href="#/cuenta" data-icon="👤">Mi cuenta</a><a href="#/admin" data-icon="⚙️">Administración</a>
   </nav>
   <main id="app"><section class="page"><h1>Shadows Byte Gaming Official</h1><p>Cargando contenido…</p></section></main>
   <footer>
@@ -68,6 +77,21 @@
   <script src="social-links.js?v=20261118-social-v1"></script>
   <script src="whatsapp-widget.js?v=20261118-whatsapp-greeting-v5"></script>
   <script>
+    // Highlight the current mobile section and keep it visible.
+    (function(){
+      const bar=document.querySelector('.mobile-section-links');
+      if(!bar)return;
+      const syncActive=()=>{
+        const route=(location.hash.slice(1)||'/').split('?')[0];
+        bar.querySelectorAll('a').forEach(a=>{
+          const active=a.getAttribute('href').slice(1)===route;
+          if(active)a.setAttribute('aria-current','page');
+          else a.removeAttribute('aria-current');
+        });
+      };
+      window.addEventListener('hashchange',syncActive);
+      syncActive();
+    })();
     // Mobile navigation: keep menu accessible and close after selection.
     (function () {
       const header = document.querySelector('.topbar');
