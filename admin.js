@@ -118,6 +118,91 @@ function adminRenderList(){
   finally{if(button.isConnected)button.disabled=false;}
  });
 }
+
+async function adminLoadOverview(){
+ const root=document.getElementById('admin-overview');if(!root)return;
+ const targets=[['profiles','Miembros registrados en perfiles'],['member_posts','Publicaciones de comunidad'],['member_comments','Comentarios'],['news','Noticias'],['billboard','Cartelera'],['events','Eventos']];
+ const results=await Promise.all(targets.map(async ([table,label])=>{const {count,error}=await sb.from(table).select('*',{count:'exact',head:true});return {label,count,error};}));
+ if(!root.isConnected)return;
+ root.replaceChildren();
+ for(const result of results){
+  const tile=document.createElement('div');tile.className='admin-stat';
+  const label=document.createElement('span');label.textContent=result.label;
+  const number=document.createElement('strong');number.textContent=result.error?'—':String(result.count??0);
+  tile.append(label,number);root.append(tile);
+ }
+}
+async function adminLoadMembers(){
+ const root=document.getElementById('admin-members-list');if(!root)return;
+ root.textContent='Cargando miembros…';
+ const {data,error}=await sb.from('profiles').select('id,display_name,username,is_public,created_at').order('created_at',{ascending:false}).limit(100);
+ if(!root.isConnected)return;
+ if(error){root.textContent='No se pudieron cargar los miembros: '+error.message;return;}
+ const input=document.getElementById('admin-members-search');
+ const render=()=>{
+  const term=(input?.value||'').trim().toLocaleLowerCase('es');
+  const filtered=(data||[]).filter(p=>(p.display_name||'').toLocaleLowerCase('es').includes(term)||(p.username||'').toLocaleLowerCase('es').includes(term));
+  root.replaceChildren();
+  if(!filtered.length){root.textContent='No hay miembros que coincidan.';return;}
+  for(const p of filtered){
+   const row=document.createElement('div');row.className='admin-management-row';
+   const info=document.createElement('div');const name=document.createElement('strong');name.textContent=p.display_name||p.username||'Miembro';
+   const detail=document.createElement('small');detail.textContent=p.is_public?'Perfil público':'Perfil privado';info.append(name,detail);
+   row.append(info);
+   if(p.is_public){const link=document.createElement('a');link.href='#/perfil?id='+encodeURIComponent(p.id);link.className='admin-secondary';link.textContent='Ver perfil';row.append(link);}
+   root.append(row);
+  }
+ };
+ if(input)input.oninput=render;render();
+}
+async function adminLoadModeration(){
+ const root=document.getElementById('admin-moderation-list');if(!root)return;
+ root.textContent='Cargando actividad de comunidad…';
+ const [{data:posts,error:postError},{data:comments,error:commentError}]=await Promise.all([
+  sb.from('member_posts').select('id,author_id,content,created_at,image_path').order('created_at',{ascending:false}).limit(50),
+  sb.from('member_comments').select('id,author_id,post_id,content,created_at').order('created_at',{ascending:false}).limit(50)
+ ]);
+ if(!root.isConnected)return;
+ if(postError||commentError){root.textContent='No se pudo cargar la moderación: '+(postError||commentError).message;return;}
+ const filter=document.getElementById('admin-moderation-type');
+ const render=()=>{
+  root.replaceChildren();
+  const type=filter?.value||'all';
+  const entries=[...(type==='all'||type==='posts'?(posts||[]).map(item=>({item,table:'member_posts',label:'Publicación'})):[]),...(type==='all'||type==='comments'?(comments||[]).map(item=>({item,table:'member_comments',label:'Comentario'})):[])].sort((a,b)=>new Date(b.item.created_at)-new Date(a.item.created_at));
+  if(!entries.length){root.textContent='No hay contenido en esta sección.';return;}
+  for(const {item,table,label} of entries){
+   const row=document.createElement('article');row.className='admin-management-row';
+   const info=document.createElement('div');const heading=document.createElement('strong');heading.textContent=label+' · '+new Date(item.created_at).toLocaleString('es-ES');
+   const body=document.createElement('p');body.textContent=(item.content|| (item.image_path?'Publicación con imagen':'Sin texto')).slice(0,280);
+   const author=document.createElement('small');author.textContent='Autor: '+item.author_id;info.append(heading,body,author);row.append(info);
+   const remove=document.createElement('button');remove.type='button';remove.className='admin-danger';remove.textContent='Eliminar';
+   remove.onclick=async()=>{
+    if(!confirm('¿Eliminar definitivamente este '+label.toLowerCase()+' de la comunidad?'))return;
+    remove.disabled=true;
+    const {data:deleted,error}=await sb.from(table).delete().eq('id',item.id).select('id');
+    if(error||!deleted?.length){adminMessage('No se pudo eliminar: '+(error?.message||'Sin permiso o registro inexistente'),'error');remove.disabled=false;return;}
+    adminMessage(label+' eliminado correctamente.','success');
+    if(table==='member_posts'){const i=posts.findIndex(x=>x.id===item.id);if(i>=0)posts.splice(i,1);}
+    else{const i=comments.findIndex(x=>x.id===item.id);if(i>=0)comments.splice(i,1);}
+    render();adminLoadOverview();
+   };
+   row.append(remove);root.append(row);
+  }
+ };
+ if(filter)filter.onchange=render;render();
+}
+function adminInitExtended(){
+ const dashboard=document.querySelector('#admin-root .admin-dashboard');if(!dashboard)return;
+ const overview=document.createElement('section');overview.className='admin-panel';
+ overview.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">RESUMEN GENERAL</span><h2>Estadísticas de la web</h2><p>Totales actuales de las principales secciones.</p></div><button type="button" class="admin-secondary" id="admin-refresh">Actualizar</button></div><div id="admin-overview" class="admin-stats">Cargando estadísticas…</div>';
+ const welcome=dashboard.querySelector('.admin-welcome');welcome?.after(overview);
+ const members=document.createElement('section');members.className='admin-panel';members.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE MIEMBROS</span><h2>Miembros</h2><p>Consulta los perfiles y busca usuarios. Los permisos de acceso no se modifican aquí.</p></div><input id="admin-members-search" type="search" placeholder="Buscar miembro…" aria-label="Buscar miembro"></div><div id="admin-members-list"></div>';
+ const moderation=document.createElement('section');moderation.className='admin-panel';moderation.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">MODERACIÓN</span><h2>Publicaciones y comentarios</h2><p>Revisa la actividad reciente y elimina contenido inapropiado.</p></div><select id="admin-moderation-type" aria-label="Tipo de contenido"><option value="all">Todo</option><option value="posts">Publicaciones</option><option value="comments">Comentarios</option></select></div><div id="admin-moderation-list"></div>';
+ dashboard.append(members,moderation);
+ document.getElementById('admin-refresh').onclick=()=>{adminLoadOverview();adminLoadMembers();adminLoadModeration();};
+ adminLoadOverview();adminLoadMembers();adminLoadModeration();
+}
+
 async function initAdmin(){
  const root=document.getElementById('admin-root');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
@@ -132,5 +217,5 @@ async function initAdmin(){
  }
  document.getElementById('admin-new').onclick=()=>adminForm();
  document.getElementById('admin-search').oninput=adminRenderList;
- adminSetActiveTab();await adminLoad();
+ adminSetActiveTab();await adminLoad();adminInitExtended();
 }
