@@ -652,6 +652,28 @@ async function renderPostLikes(postId,root,me){
  button.onclick=async()=>{button.disabled=true;const result=liked?await sb.from('member_likes').delete().eq('post_id',postId).eq('user_id',me):await sb.from('member_likes').insert({post_id:postId,user_id:me});if(result.error){button.textContent='Error: '+result.error.message;button.disabled=false;}else await renderPostLikes(postId,root,me);};
  root.append(button);
 }
+function appendReportButton(container,targetId,type,viewerId){
+ if(!viewerId)return;
+ const button=document.createElement('button');button.type='button';button.className='social-report';button.textContent='⚑ Reportar';
+ button.onclick=async()=>{
+  const reasons={spam:'Spam',harassment:'Acoso',hate:'Discurso de odio',inappropriate:'Contenido inapropiado',other:'Otro motivo'};
+  const choice=prompt('Motivo del reporte: escribe spam, harassment, hate, inappropriate u other');
+  if(choice===null)return;
+  const reason=choice.trim().toLowerCase();
+  if(!Object.hasOwn(reasons,reason)){alert('Motivo no válido. Usa una de las opciones indicadas.');return;}
+  const details=prompt('Describe el problema (opcional, máximo 1000 caracteres):','');
+  if(details===null)return;
+  if(details.length>1000){alert('La descripción es demasiado larga.');return;}
+  if(!confirm('¿Enviar este reporte al equipo de administración?'))return;
+  button.disabled=true;
+  const payload={reporter_id:viewerId,reason,details};
+  payload[type==='comment'?'comment_id':'post_id']=targetId;
+  const {error}=await sb.from('member_reports').insert(payload);
+  if(error){alert(error.code==='23505'?'Ya has reportado este contenido.':'No se pudo enviar el reporte: '+error.message);button.disabled=false;return;}
+  button.textContent='✓ Reportado';
+ };
+ container.append(button);
+}
 async function loadCommunityFeed(){
  const root=document.getElementById('community-feed');if(!root)return;
  const [{data:posts,error},{data:{user}}]=await Promise.all([sb.from('member_posts').select('id,author_id,content,image_path,created_at').order('created_at',{ascending:false}).limit(50),sb.auth.getUser()]);
@@ -671,7 +693,7 @@ async function loadCommunityFeed(){
   const profile=document.createElement('a');profile.href=author.href;profile.className='outline-btn mini';profile.textContent='Ver publicación y comentarios';
   article.append(author,date,content);
   if(post.image_path){const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);}
-  article.append(likes,profile);root.append(article);
+  article.append(likes,profile);appendReportButton(article,post.id,'post',user?.id);root.append(article);
   renderPostLikes(post.id,likes,user?.id||null);
  }
  if(!root.children.length)root.textContent='Todavía no hay publicaciones públicas.';
