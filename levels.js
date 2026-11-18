@@ -94,3 +94,24 @@ async function renderStreakRanking(){
   const detail=document.createElement('div');detail.textContent='🔥 Racha actual: '+current+' días · Récord: '+best+' días'+(medals?' · '+medals:'');li.append(detail);list.append(li);
  }host.replaceChildren(list);
 }
+
+const COMMUNITY_MISSIONS={daily_post:{name:'📝 Publica en la comunidad',period:'Diaria'},daily_comments:{name:'💬 Escribe 2 comentarios',period:'Diaria'},weekly_votes:{name:'📊 Vota en 3 encuestas',period:'Semanal'},weekly_favorites:{name:'❤️ Guarda 5 favoritos',period:'Semanal'}};
+async function renderCommunityMissions(){
+ const host=document.getElementById('community-missions');if(!host)return;
+ const {data:{user},error:authError}=await sb.auth.getUser();if(!host.isConnected)return;
+ if(authError||!user){host.textContent='Inicia sesión para ver tus misiones.';return}
+ const {data,error}=await sb.rpc('community_mission_status');if(!host.isConnected)return;
+ if(error){host.textContent='No se pudieron cargar las misiones: '+error.message;return}
+ host.replaceChildren();const intro=document.createElement('p');intro.textContent='Completa las actividades y reclama XP adicionales. Las misiones diarias se reinician a las 00:00 UTC; las semanales, los lunes a las 00:00 UTC.';host.append(intro);
+ for(const mission of data||[]){
+  const definition=COMMUNITY_MISSIONS[mission.mission_key];if(!definition)continue;
+  const panel=document.createElement('article');panel.className='profile-panel';panel.style.cssText='margin:12px 0;padding:14px;border:1px solid #ffffff2a;border-radius:12px';
+  const heading=document.createElement('h3');heading.textContent=definition.name+' · +'+mission.xp_reward+' XP';panel.append(heading);
+  const description=document.createElement('p');description.textContent=definition.period+' · '+Math.min(Number(mission.progress),mission.target)+' / '+mission.target+' completados';panel.append(description);
+  const progress=document.createElement('progress');progress.max=mission.target;progress.value=Math.min(Number(mission.progress),mission.target);progress.style.width='100%';panel.append(progress);
+  const claim=document.createElement('button');claim.className='gradient-btn mini';claim.style.marginTop='10px';claim.textContent=mission.claimed?'✓ Reclamada':Number(mission.progress)>=mission.target?'🎁 Reclamar '+mission.xp_reward+' XP':'🔒 Aún no completada';claim.disabled=mission.claimed||Number(mission.progress)<mission.target;
+  const status=document.createElement('p');status.setAttribute('role','status');
+  claim.onclick=async()=>{claim.disabled=true;const {data:ok,error:claimError}=await sb.rpc('claim_community_mission',{requested_key:mission.mission_key});if(claimError){status.textContent=claimError.message;claim.disabled=false;return}if(ok){await renderCommunityMissions();await renderMyLevels();await renderLevelRanking()}else{status.textContent='La misión ya fue reclamada o aún no está completada.';await renderCommunityMissions()}};
+  panel.append(claim,status);host.append(panel);
+ }
+}
