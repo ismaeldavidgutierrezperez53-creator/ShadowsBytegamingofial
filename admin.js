@@ -194,7 +194,7 @@ async function adminLoadModeration(){
 async function adminLoadReports(){
  const root=document.getElementById('admin-reports-list');if(!root)return;
  root.textContent='Cargando reportes…';
- const {data,error}=await sb.from('member_reports').select('id,reporter_id,post_id,comment_id,reason,details,status,created_at').order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await sb.from('member_reports').select('id,reporter_id,post_id,comment_id,reported_member_id,reason,details,status,created_at').order('created_at',{ascending:false}).limit(100);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los reportes: '+error.message;return;}
  const filter=document.getElementById('admin-reports-filter');
@@ -205,9 +205,9 @@ async function adminLoadReports(){
   for(const report of rows){
    const row=document.createElement('article');row.className='admin-management-row';
    const info=document.createElement('div');const title=document.createElement('strong');
-   title.textContent=(report.post_id?'Publicación':'Comentario')+' · '+report.reason+' · '+report.status;
+   title.textContent=(report.reported_member_id?'Perfil':report.post_id?'Publicación':'Comentario')+' · '+report.reason+' · '+report.status;
    const desc=document.createElement('p');desc.textContent=report.details||'Sin descripción adicional';
-   const meta=document.createElement('small');meta.textContent='Enviado: '+new Date(report.created_at).toLocaleString('es-ES')+' · ID: '+(report.post_id||report.comment_id);
+   const meta=document.createElement('small');meta.textContent='Enviado: '+new Date(report.created_at).toLocaleString('es-ES')+' · ID: '+(report.reported_member_id||report.post_id||report.comment_id);
    info.append(title,desc,meta);row.append(info);
    if(report.status==='pending'){
     const actions=document.createElement('div');actions.className='admin-report-actions';
