@@ -381,6 +381,8 @@ async function loadAccountProfile(){
  communityPanel.setAttribute('aria-label','Mi comunidad');
  communityPanel.innerHTML='<h3>✦ Mi comunidad</h3><p>Publica novedades, responde comentarios y participa con otros miembros.</p><p class="account-community-links"><a class="outline-btn mini" href="#/comunidad">Ver muro de la comunidad</a> <a class="outline-btn mini" href="#/notificaciones">🔔 Mis notificaciones</a></p><div id="account-community-social" class="account-community-social">Cargando publicaciones…</div>';
  root.querySelector('.profile-body')?.append(communityPanel);
+ const myAchievements=document.createElement('section');myAchievements.className='profile-panel';myAchievements.innerHTML='<h3>🏆 Mis logros y nivel</h3><p>Consulta tus insignias, XP y clasificación.</p><a class="gradient-btn mini" href="#/logros">Ver mis logros</a>';
+ root.querySelector('.profile-body')?.prepend(myAchievements);
  initAccountReportStatuses(user.id,root.querySelector('.profile-body'));
  const followPanel=document.createElement('section');followPanel.className='profile-panel account-follows-panel';followPanel.id='account-follows';communityPanel.before(followPanel);const blockedPanel=document.createElement('section');blockedPanel.className='profile-panel account-blocked-members';blockedPanel.id='account-blocked-members';followPanel.after(blockedPanel);loadAccountFollows(user.id,followPanel);
  loadMemberSocial(user.id,communityPanel.querySelector('#account-community-social'));
@@ -486,6 +488,17 @@ async function loadPublicMemberProfile(){
  const bio=document.createElement('p');bio.className='public-member-bio';bio.textContent=member.bio||'Este miembro todavía no ha escrito una presentación.';
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
  content.append(avatar,title,badge,bioTitle,bio);
+ const achievementPanel=document.createElement('section');achievementPanel.className='profile-panel member-achievements';achievementPanel.innerHTML='<h2>🏆 Logros y nivel</h2><p>Cargando experiencia…</p>';content.append(achievementPanel);
+ sb.rpc('community_member_xp',{target_member:member.id}).then(({data:xp,error:xpError})=>{
+  if(!achievementPanel.isConnected)return;
+  if(xpError||xp===null){achievementPanel.textContent='No se pudo cargar el nivel.';return}
+  const score=Number(xp)||0,level=Math.floor(Math.sqrt(score/100))+1;
+  const badges=[['🌱 Primer paso',score>=5],['⭐ Participante',score>=50],['🔥 Miembro activo',score>=150],['🏆 Leyenda',score>=500]];
+  achievementPanel.replaceChildren();const heading=document.createElement('h2');heading.textContent='🏆 Nivel '+level+' · '+score+' XP';achievementPanel.append(heading);
+  const next=document.createElement('p');next.textContent='Próximo nivel: '+(100*level*level)+' XP';achievementPanel.append(next);
+  const progress=document.createElement('progress');progress.max=100*level*level-100*(level-1)*(level-1);progress.value=score-100*(level-1)*(level-1);progress.style.cssText='width:100%;accent-color:#b15cff';progress.setAttribute('aria-label','Progreso hacia el próximo nivel');achievementPanel.append(progress);
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';for(const [label,earned] of badges){const item=document.createElement('span');item.textContent=label+(earned?' ✓':' 🔒');item.style.cssText='padding:8px;border:1px solid #ffffff33;border-radius:10px;opacity:'+(earned?'1':'.45');row.append(item)}achievementPanel.append(row);
+ });
  const social=document.createElement('section');social.className='member-social';social.id='member-social';
  const gallery=document.createElement('section');gallery.className='member-gallery-panel';gallery.id='member-gallery';
  const messageLink=document.createElement('a');
