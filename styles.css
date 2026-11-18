@@ -101,3 +101,40 @@
 .top-actions .notification-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;font-size:22px;text-decoration:none;color:#fff}
 .notification-count{position:absolute;top:-4px;right:-8px;background:#e53b83;color:#fff;border:2px solid #090810;border-radius:999px;font:700 11px Arial,sans-serif;min-width:21px;height:21px;display:grid;place-items:center;padding:0 4px}
 .notification-count[hidden]{display:none!important}
+
+
+/* Mi comunidad — panel renovado */
+.account-community-panel{margin-top:24px;padding:28px;background:linear-gradient(145deg,#1a122d 0%,#101426 58%,#11101d 100%);border:1px solid #62417e;box-shadow:0 16px 45px #05030d55;position:relative;overflow:hidden}
+.account-community-panel::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#d24aff,#765dff,#00c9f6)}
+.account-community-panel>h3{font-family:Orbitron,sans-serif;font-size:22px;letter-spacing:.03em}
+.account-community-panel>p{margin-top:8px!important;margin-bottom:18px!important;line-height:1.5}
+.account-community-links{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 26px!important}
+.account-community-links .outline-btn{display:inline-flex;align-items:center;justify-content:center;background:#211733;border-color:#634581;transition:background .2s,border-color .2s,transform .2s}
+.account-community-links .outline-btn:hover{background:#342149;border-color:#c26bff;transform:translateY(-2px)}
+.account-community-social{max-width:860px;margin:auto}
+.account-community-social>h2{font-family:Orbitron,sans-serif;font-size:18px;letter-spacing:.04em;margin:22px 0 12px}
+.account-community-social>.social-count{display:inline-flex;margin:0 0 12px;padding:6px 12px;border:1px solid #594073;border-radius:999px;background:#241937;color:#e2c7ff;font-size:15px}
+.account-community-social>.social-form:not(.social-comment-form){background:linear-gradient(140deg,#241837,#17172c);border:1px solid #60427b;border-radius:18px;padding:22px;margin:12px 0 28px;box-shadow:0 12px 28px #08050d55}
+.account-community-social>.social-form>label{font-size:19px;font-weight:800;color:#f6edff}
+.account-community-social .social-form textarea{border:1px solid #55416f;background:#0e0c1c;border-radius:12px;padding:14px;line-height:1.45;transition:border-color .2s,box-shadow .2s}
+.account-community-social .social-form textarea:focus{outline:0;border-color:#aa6dff;box-shadow:0 0 0 3px #9854ec30}
+.account-community-social .social-form button{cursor:pointer;font:inherit;font-weight:700;transition:transform .2s,filter .2s}
+.account-community-social .social-form button:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.12)}
+.account-community-social .social-form button:disabled{opacity:.65;cursor:wait}
+.account-community-social>.social-post{position:relative;background:linear-gradient(145deg,#21182f,#151427);border:1px solid #48365f;border-radius:18px;padding:23px;margin:18px 0;box-shadow:0 12px 28px #08050d55;transition:border-color .2s,transform .2s}
+.account-community-social>.social-post:hover{border-color:#78549d;transform:translateY(-2px)}
+.account-community-social .social-post-body{font-size:18px;line-height:1.55;margin:0 0 12px;color:#f5f0ff}
+.account-community-social .social-post>small{display:block;color:#b5a8ca;font-size:14px}
+.account-community-social .post-like-box{display:inline-flex;margin:16px 12px 10px 0}
+.account-community-social .post-like-button{border-radius:999px;background:#312042;border-color:#7a4c9a;font-weight:700}
+.account-community-social .post-like-button:hover:not(:disabled){background:#4b2a65}
+.account-community-social .social-delete{font:inherit;font-size:14px;color:#ffb8ce;text-underline-offset:3px}
+.account-community-social .social-post>h3{padding-top:16px;border-top:1px solid #42344f;font-size:17px;color:#e5d5ff}
+.account-community-social .social-comments{gap:12px}
+.account-community-social .social-comment{background:#110f20;border:1px solid #362b4b;border-radius:12px;padding:14px}
+.account-community-social .social-comment a{font-weight:700;text-decoration:none}
+.account-community-social .social-comment-form{margin:18px 0 0}
+.account-community-social .social-comment-form textarea{min-height:72px}
+.account-community-social .social-comment-form .outline-btn{background:#281b3b;border-color:#8052a5;border-radius:10px}
+@media(max-width:760px){.account-community-panel{padding:18px}.account-community-panel>h3{font-size:19px}.account-community-links{flex-direction:column}.account-community-links .outline-btn{width:100%}.account-community-social>.social-form:not(.social-comment-form){padding:16px}.account-community-social>.social-post{padding:16px}.account-community-social .social-post-body{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.account-community-panel *{transition:none!important}.account-community-social>.social-post:hover{transform:none}}
