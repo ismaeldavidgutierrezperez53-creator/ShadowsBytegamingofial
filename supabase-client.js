@@ -106,10 +106,21 @@ async function refreshAccountActions() {
   return;
  }
  const admin=user.app_metadata?.role==='admin';
- actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
+ actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-mark-all">Marcar todas como leídas</button><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
  document.getElementById('account-logout').addEventListener('click',logout);
  setupNotificationPopover(user.id);
  refreshNotificationBadge(user.id);
+}
+async function markAllMemberNotifications(userId,button){
+ if(!userId||!button||button.disabled)return;
+ button.disabled=true;const original=button.textContent;button.textContent='Marcando…';
+ const {error}=await sb.from('member_notifications').update({is_read:true}).eq('recipient_id',userId).eq('is_read',false);
+ if(error){button.textContent='Error. Reintentar';button.disabled=false;console.warn('No se pudieron marcar las notificaciones:',error.message);return;}
+ button.textContent='Todas leídas';
+ await refreshNotificationBadge(userId);
+ if(document.getElementById('notification-popover')?.hidden===false)await loadNotificationPreview(userId);
+ if(document.getElementById('member-notifications'))await loadMemberNotifications();
+ if(button.isConnected){button.textContent=original;button.disabled=false;}
 }
 let notificationPopoverOutside=null;
 function setupNotificationPopover(userId){
@@ -119,6 +130,7 @@ function setupNotificationPopover(userId){
  const close=()=>{panel.hidden=true;bell.setAttribute('aria-expanded','false');};
  bell.onclick=()=>{panel.hidden=!panel.hidden;bell.setAttribute('aria-expanded',String(!panel.hidden));if(!panel.hidden)loadNotificationPreview(userId);};
  document.getElementById('notification-close').onclick=close;
+ document.getElementById('notification-mark-all').onclick=()=>markAllMemberNotifications(userId,document.getElementById('notification-mark-all'));
  panel.querySelector('a').onclick=close;
  notificationPopoverOutside=e=>{if(!bell.parentElement.contains(e.target))close();};
  document.addEventListener('click',notificationPopoverOutside);
@@ -590,6 +602,7 @@ async function loadMemberNotifications(){
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
  if(!(data||[]).length){root.textContent='Todavía no tienes notificaciones.';return;}
+ const markAll=document.createElement('button');markAll.type='button';markAll.className='gradient-btn mini';markAll.textContent='Marcar todas como leídas';markAll.disabled=!data.some(n=>!n.is_read);markAll.onclick=()=>markAllMemberNotifications(user.id,markAll);root.append(markAll);
  const postIds=[...new Set(data.map(n=>n.post_id).filter(Boolean))];
  const {data:relatedPosts}=postIds.length?await sb.from('member_posts').select('id,image_path').in('id',postIds):{data:[]};
  const photoPostIds=new Set((relatedPosts||[]).filter(p=>p.image_path).map(p=>p.id));
