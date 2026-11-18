@@ -755,7 +755,7 @@ async function loadPrivateMessages(){
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
- const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,audio_path').order('created_at',{ascending:false}).limit(300);
+ const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,audio_path,deleted_at').order('created_at',{ascending:false}).limit(300);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
@@ -791,13 +791,29 @@ async function loadPrivateMessages(){
   if(!conversation.length){const hint=document.createElement('p');hint.textContent='Todavía no hay mensajes en esta conversación.';history.append(hint);}
   for(const m of conversation){
    const bubble=document.createElement('div');bubble.className='message-bubble'+(m.sender_id===me?' mine':'');
-   const text=document.createElement('p');text.textContent=m.body;
+   const text=document.createElement('p');text.textContent=m.deleted_at?'Mensaje eliminado':m.body;if(m.deleted_at)text.className='private-chat-deleted';
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
    bubble.append(text);
-   if(m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen del chat');photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};}});}
-   if(m.audio_path){const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.className='private-chat-audio';audio.setAttribute('aria-label','Mensaje de voz');bubble.append(audio);sb.storage.from('private-chat-audio').createSignedUrl(m.audio_path,3600).then(({data})=>{if(data?.signedUrl&&audio.isConnected)audio.src=data.signedUrl;});}
+   if(!m.deleted_at&&m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen del chat');photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};}});}
+   if(!m.deleted_at&&m.audio_path){const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.className='private-chat-audio';audio.setAttribute('aria-label','Mensaje de voz');bubble.append(audio);sb.storage.from('private-chat-audio').createSignedUrl(m.audio_path,3600).then(({data})=>{if(data?.signedUrl&&audio.isConnected)audio.src=data.signedUrl;});}
    bubble.append(date);
-   if(m.sender_id===me){const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);}
+   if(m.sender_id===me&&!m.deleted_at){
+    const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);
+    const remove=document.createElement('button');remove.type='button';remove.className='private-chat-delete';remove.textContent='🗑️ Eliminar';remove.setAttribute('aria-label','Eliminar este mensaje');
+    remove.onclick=async()=>{
+     if(!confirm('¿Eliminar este mensaje para todos? Esta acción no se puede deshacer.'))return;
+     remove.disabled=true;remove.textContent='Eliminando…';
+     const {data:deleted,error:deleteError}=await sb.from('member_direct_messages').update({body:'',image_path:null,audio_path:null,deleted_at:new Date().toISOString()}).eq('id',m.id).eq('sender_id',me).is('deleted_at',null).select('id');
+     if(deleteError||!deleted?.length){alert('No se pudo eliminar el mensaje: '+(deleteError?.message||'No tienes permiso.'));remove.disabled=false;remove.textContent='🗑️ Eliminar';return;}
+     const cleanup=[];
+     if(m.image_path)cleanup.push(sb.storage.from('private-chat-images').remove([m.image_path]));
+     if(m.audio_path)cleanup.push(sb.storage.from('private-chat-audio').remove([m.audio_path]));
+     const results=await Promise.all(cleanup);
+     if(results.some(r=>r.error))console.warn('No se pudo borrar algún archivo adjunto del almacenamiento.');
+     await loadPrivateMessages();
+    };
+    bubble.append(remove);
+   }
    history.append(bubble);
   }
   const typingIndicator=document.createElement('p');typingIndicator.className='member-typing-indicator';typingIndicator.id='member-typing-indicator';typingIndicator.setAttribute('role','status');typingIndicator.setAttribute('aria-live','polite');
@@ -895,7 +911,7 @@ function syncPrivateMessageRealtime(userId){
    refreshLivePrivateConversation();
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
-   refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
+   refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);refreshLivePrivateConversation();
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_direct_messages',filter:'sender_id=eq.'+userId},()=>{
    refreshLivePrivateConversation();
