@@ -278,15 +278,51 @@ async function loadAccountReportStatuses(userId,announce=false){
   row.append(title,details);root.append(row);
  }
 }
+
+let accountReportHistoryChannel=null;
+async function loadAccountReportHistory(userId){
+ const root=document.getElementById('account-report-history');if(!root)return;
+ const {data,error}=await sb.from('member_report_notifications').select('id,report_id,status,created_at,is_read').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(100);
+ if(!root.isConnected)return;
+ root.replaceChildren();
+ if(error){root.textContent='No se pudo cargar el historial de avisos.';return;}
+ if(!data?.length){root.textContent='Todavía no tienes avisos sobre tus denuncias.';return;}
+ const pending=data.filter(x=>!x.is_read).length;
+ const summary=document.createElement('p');summary.textContent=pending?pending+' aviso(s) sin leer':'Todos los avisos están leídos';root.append(summary);
+ if(pending){
+  const all=document.createElement('button');all.type='button';all.className='outline-btn mini';all.textContent='Marcar todos como leídos';
+  all.onclick=async()=>{all.disabled=true;const {error}=await sb.from('member_report_notifications').update({is_read:true}).eq('recipient_id',userId).eq('is_read',false);if(error){all.disabled=false;alert('No se pudieron marcar los avisos.');return;}loadAccountReportHistory(userId);};
+  root.append(all);
+ }
+ for(const n of data){
+  const row=document.createElement('article');row.className='account-report-row'+(n.is_read?'':' unread');
+  const title=document.createElement('strong');title.textContent='🔔 Tu denuncia fue '+(n.status==='reviewed'?'revisada':'descartada');
+  const detail=document.createElement('small');detail.textContent=new Date(n.created_at).toLocaleString('es-ES');
+  row.append(title,detail);
+  if(!n.is_read){
+   const button=document.createElement('button');button.type='button';button.className='outline-btn mini';button.textContent='Marcar como leído';
+   button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_report_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(error){button.disabled=false;return;}loadAccountReportHistory(userId);};
+   row.append(button);
+  }
+  root.append(row);
+ }
+}
+
 function initAccountReportStatuses(userId,root){
  if(accountReportChannel){sb.removeChannel(accountReportChannel);accountReportChannel=null;}
  accountReportStatuses=new Map();
+ if(accountReportHistoryChannel){sb.removeChannel(accountReportHistoryChannel);accountReportHistoryChannel=null;}
  const section=document.createElement('section');section.className='profile-panel account-report-panel';
  section.innerHTML='<h3>🛡 Mis denuncias</h3><p>Consulta el estado de tus reportes. Los cambios aparecen automáticamente mientras tengas abierta esta página.</p><p id="account-report-update" role="status" aria-live="polite"></p><div id="account-report-statuses">Cargando denuncias…</div>';
  root.append(section);
+ const history=document.createElement('section');history.className='profile-panel account-report-panel';history.innerHTML='<h3>🔔 Historial de avisos de denuncias</h3><p>Los avisos se guardan aunque cierres la página. Puedes marcarlos como leídos.</p><div id="account-report-history">Cargando historial…</div>';root.append(history);
  loadAccountReportStatuses(userId);
+ loadAccountReportHistory(userId);
  accountReportChannel=sb.channel('account-reports-'+userId)
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_reports',filter:'reporter_id=eq.'+userId},()=>loadAccountReportStatuses(userId,true))
+  .subscribe();
+ accountReportHistoryChannel=sb.channel('account-report-history-'+userId)
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+userId},()=>loadAccountReportHistory(userId))
   .subscribe();
 }
 
