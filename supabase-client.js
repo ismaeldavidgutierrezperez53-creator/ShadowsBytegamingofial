@@ -536,13 +536,16 @@ async function loadMemberNotifications(){
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
  if(!(data||[]).length){root.textContent='Todavía no tienes notificaciones.';return;}
+ const postIds=[...new Set(data.map(n=>n.post_id).filter(Boolean))];
+ const {data:relatedPosts}=postIds.length?await sb.from('member_posts').select('id,image_path').in('id',postIds):{data:[]};
+ const photoPostIds=new Set((relatedPosts||[]).filter(p=>p.image_path).map(p=>p.id));
  const ids=[...new Set(data.map(n=>n.actor_id))];
  const {data:profiles}=await sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
  for(const n of data){
   const row=document.createElement('article');row.className='notification-item'+(n.is_read?'':' unread');
   const actor=document.createElement('span');actor.textContent=names.get(n.actor_id)||'Un miembro';
-  const action=document.createElement('span');action.textContent=n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?' dio Me gusta a tu publicación.':' comentó tu publicación.';
+  const action=document.createElement('span');const photo=photoPostIds.has(n.post_id);action.textContent=n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.');
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
   row.append(actor,action,date);
   if(!n.is_read){const button=document.createElement('button');button.className='social-delete';button.textContent='Marcar como leída';button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id);if(error){button.textContent='Error al marcar';button.disabled=false;}else{row.classList.remove('unread');button.remove();refreshNotificationBadge(user.id);}};row.append(button);}
