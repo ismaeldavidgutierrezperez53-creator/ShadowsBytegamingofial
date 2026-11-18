@@ -1,3 +1,22 @@
+
+function applyShopProfileCosmetics(userId,avatarNode,nameNode,container){
+ if(!userId||!avatarNode||!nameNode)return;
+ sb.rpc('public_member_shop_equipped',{target_member:userId}).then(({data,error})=>{
+  if(error||!avatarNode.isConnected||!nameNode.isConnected)return;
+  const items=new Map((data||[]).map(x=>[x.category,x.item_value]));
+  avatarNode.classList.remove('sb-shop-frame-neon','sb-shop-frame-gold');
+  if(items.get('frame')==='neon'||items.get('frame')==='gold')avatarNode.classList.add('sb-shop-frame-'+items.get('frame'));
+  nameNode.style.color='';
+  if(['#22d3ee','#f472b6'].includes(items.get('color')))nameNode.style.color=items.get('color');
+  if(!container||!container.isConnected)return;
+  container.querySelectorAll('.sb-shop-decoration').forEach(el=>el.remove());
+  const after=nameNode.nextSibling;
+  const holder=document.createElement('div');holder.className='sb-shop-decoration';holder.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:5px 0 10px';
+  if(['⭐','👑'].includes(items.get('badge'))){const badge=document.createElement('span');badge.textContent=items.get('badge')+' Insignia exclusiva';badge.className='profile-role';holder.append(badge)}
+  if(['Otaku Élite','Leyenda Byte'].includes(items.get('title'))){const title=document.createElement('span');title.textContent='👑 '+items.get('title');title.className='profile-role';holder.append(title)}
+  if(holder.childNodes.length)container.insertBefore(holder,after);
+ }).catch(()=>{});
+}
 // Shadows Byte Gaming Official V2 — public browser client
 const SUPABASE_URL = 'https://nutoxlbdotcllwlshhhr.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2Jdko8NdnlP8p_5YaArHaA_DzFN6iVE';
@@ -402,7 +421,7 @@ async function loadAccountProfile(){
  }
 
  const heading=document.getElementById('profile-heading'),email=document.getElementById('profile-email');
- heading.textContent=name;email.textContent=user.email||'';
+ heading.textContent=name;email.textContent=user.email||'';applyShopProfileCosmetics(user.id,document.getElementById('profile-avatar'),heading,heading.parentElement);
  const form=document.getElementById('profile-form');
  form.elements.display_name.value=meta.display_name||meta.full_name||'';
  form.elements.avatar_url.value=avatar;
@@ -458,7 +477,7 @@ async function loadMembers(){
    const heading=document.createElement('h2');heading.textContent=name;
    const bio=document.createElement('p');bio.textContent=member.bio||'Miembro de Shadows Byte Gaming Official';
    const link=document.createElement('a');link.className='gradient-btn mini member-view-link';link.href='#/perfil?id='+encodeURIComponent(member.id);link.textContent='Ver perfil';
-   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';card.append(avatar,heading,bio,link,messageLink);root.append(card);
+   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';card.append(avatar,heading,bio,link,messageLink);root.append(card);applyShopProfileCosmetics(member.id,avatar,heading,card);
   });
  }
  document.getElementById('members-search')?.addEventListener('input',draw);draw();
@@ -487,7 +506,7 @@ async function loadPublicMemberProfile(){
  const bioTitle=document.createElement('h2');bioTitle.textContent='Sobre mí';
  const bio=document.createElement('p');bio.className='public-member-bio';bio.textContent=member.bio||'Este miembro todavía no ha escrito una presentación.';
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
- content.append(avatar,title,badge,bioTitle,bio);
+ content.append(avatar,title,badge,bioTitle,bio);applyShopProfileCosmetics(member.id,avatar,title,content);
  const achievementPanel=document.createElement('section');achievementPanel.className='profile-panel member-achievements';achievementPanel.innerHTML='<h2>🏆 Logros y nivel</h2><p>Cargando experiencia…</p>';content.append(achievementPanel);
  sb.rpc('community_member_xp',{target_member:member.id}).then(({data:xp,error:xpError})=>{
   if(!achievementPanel.isConnected)return;
