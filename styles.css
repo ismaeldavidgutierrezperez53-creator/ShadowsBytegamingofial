@@ -212,3 +212,18 @@ body.member-lightbox-open{overflow:hidden}
 /* Reacciones a fotografías en álbumes */
 .member-gallery-like{margin:8px 0;display:flex;align-items:center}
 .member-gallery-like .post-like-button{width:100%;text-align:center}
+
+
+/* Comentarios sincronizados de fotografías */
+.member-gallery-comments{margin:8px 0 12px;border:1px solid #644b83;border-radius:10px;background:#1c142b;color:#f3eafa;overflow:hidden}
+.member-gallery-comments>summary{cursor:pointer;padding:10px 12px;font-weight:600;font-size:13px;list-style-position:inside}
+.member-gallery-comments[open]>summary{border-bottom:1px solid #644b83}
+.member-gallery-comment-list{padding:10px;max-height:360px;overflow-y:auto}
+.member-gallery-comment{padding:9px 0;border-bottom:1px solid #49355e;overflow-wrap:anywhere}
+.member-gallery-comment a{font-weight:700;font-size:12px;color:#d8b7ff}
+.member-gallery-comment p{margin:5px 0;font-size:13px}
+.member-gallery-comment-delete{border:0;background:transparent;color:#ffb0c5;cursor:pointer;padding:4px 0}
+.member-gallery-comment-form{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.member-gallery-comment-form textarea{width:100%;box-sizing:border-box;min-height:62px;resize:vertical;border:1px solid #73528f;border-radius:8px;background:#110d1b;color:white;padding:9px;font-family:inherit}
+.member-gallery-comment-form button{align-self:flex-start}
+.member-gallery-comment-status{font-size:12px;color:#e6d6f4}
