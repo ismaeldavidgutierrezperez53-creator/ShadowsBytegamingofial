@@ -251,3 +251,6 @@ body.member-lightbox-open{overflow:hidden}
 
 .notification-jump{display:inline-block;margin:6px 8px 4px 0;color:#d6b0ff;text-decoration:underline;font-weight:600;font-size:13px}
 .notification-target-post{outline:2px solid #b885f1;outline-offset:4px;scroll-margin-top:110px}
+
+.notification-follow-back{display:inline-block;margin:6px 8px 4px 0;padding:6px 10px;border-radius:7px;border:1px solid #a77ed3;background:#352449;color:#f6efff;font:inherit;font-size:12px;cursor:pointer}
+.notification-follow-back:disabled{opacity:.6;cursor:wait}
