@@ -287,6 +287,8 @@ async function loadMemberGallery(memberId,root){
  if(!root.isConnected)return;
  if(error){const msg=document.createElement('p');msg.className='member-gallery-empty';msg.textContent='No se pudo cargar la galería.';root.append(msg);return;}
  if(!posts?.length){const empty=document.createElement('p');empty.className='member-gallery-empty';empty.textContent='Todavía no hay imágenes publicadas.';root.append(empty);return;}
+ const {data:{user:galleryUser}}=await sb.auth.getUser();
+ const isOwner=galleryUser?.id===memberId;
  const grid=document.createElement('div');grid.className='member-gallery-grid';
  for(const post of posts){
   if(!post.image_path)continue;
@@ -294,7 +296,24 @@ async function loadMemberGallery(memberId,root){
   const link=document.createElement('a');link.className='member-gallery-item';link.href=url;link.title='Ampliar imagen en la galería';link.addEventListener('click',event=>{event.preventDefault();openMemberGalleryLightbox(posts.filter(p=>p.image_path),posts.filter(p=>p.image_path).findIndex(p=>p.id===post.id));});
   const image=document.createElement('img');image.src=url;image.alt=post.content?.trim().slice(0,110)||'Imagen de la comunidad';image.loading='lazy';
   const label=document.createElement('span');label.className='member-gallery-item-label';label.textContent=new Date(post.created_at).toLocaleDateString('es-ES');
-  link.append(image,label);grid.append(link);
+  link.append(image,label);
+  const tile=document.createElement('div');tile.className='member-gallery-tile';tile.append(link);
+  if(isOwner){
+   const remove=document.createElement('button');remove.type='button';remove.className='member-gallery-delete';remove.textContent='🗑️ Eliminar';remove.setAttribute('aria-label','Eliminar fotografía y publicación');
+   remove.addEventListener('click',async()=>{
+    if(!confirm('¿Eliminar esta fotografía? También se eliminará su publicación y los comentarios. Esta acción no se puede deshacer.'))return;
+    remove.disabled=true;remove.textContent='Eliminando…';
+    const {error:deleteError}=await sb.from('member_posts').delete().eq('id',post.id).eq('author_id',memberId);
+    if(deleteError){alert('No se pudo eliminar la publicación: '+deleteError.message);remove.disabled=false;remove.textContent='🗑️ Eliminar';return;}
+    const {error:storageError}=await sb.storage.from('community-images').remove([post.image_path]);
+    if(storageError)alert('Se eliminó la publicación, pero no se pudo borrar el archivo de imagen: '+storageError.message);
+    await loadMemberGallery(memberId,root);
+    const social=document.getElementById('account-community-social')||document.getElementById('member-social');
+    if(social?.isConnected)loadMemberSocial(memberId,social);
+   });
+   tile.append(remove);
+  }
+  grid.append(tile);
  }
  root.append(grid);
 }
