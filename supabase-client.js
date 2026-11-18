@@ -9,9 +9,12 @@ async function getPublished(table, order='created_at') {
  return data || [];
 }
 function newsCards(items) {
- return items.length ? '<div class="content-grid">'+items.map(n=>{
+ return items.length ? '<div class="content-grid news-grid">'+items.map(n=>{
   const cover=typeof n.cover_url==='string' && /^https:\/\//i.test(n.cover_url.trim()) ? n.cover_url.trim() : '';
-  return '<article class="auth-card news-card"><h3>'+escapeHTML(n.title)+'</h3><p>'+escapeHTML(n.excerpt||'')+'</p><p>'+escapeHTML(n.content||'')+'</p>'+(cover?'<img class="news-cover" src="'+escapeHTML(cover)+'" alt="Imagen de '+escapeHTML(n.title)+'" loading="lazy" decoding="async" onerror="this.hidden=true">':'')+'</article>';
+  const published=n.published_at ? new Date(n.published_at) : null;
+  const date=published && !Number.isNaN(published.getTime()) ? published.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}) : '';
+  const excerpt=n.excerpt||((n.content||'').slice(0,180)+((n.content||'').length>180?'…':''));
+  return '<article class="auth-card news-card">'+(cover?'<img class="news-cover" src="'+escapeHTML(cover)+'" alt="Imagen de '+escapeHTML(n.title)+'" loading="lazy" decoding="async" onerror="this.hidden=true">':'')+(date?'<time class="news-date" datetime="'+escapeHTML(n.published_at)+'">📅 '+escapeHTML(date)+'</time>':'')+'<h3>'+escapeHTML(n.title)+'</h3><p>'+escapeHTML(excerpt)+'</p>'+(n.content?'<details class="news-details"><summary>Leer noticia completa <span aria-hidden="true">⌄</span></summary><div class="news-full-content">'+escapeHTML(n.content).replace(/\n/g,'<br>')+'</div></details>':'')+'</article>';
  }).join('')+'</div>' : '<div class="empty">Aún no hay noticias publicadas</div>';
 }
 function billboardCards(items) {
