@@ -11,7 +11,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=20261118-fan-sections-v1" />
   <link rel="stylesheet" href="gaming-theme.css?v=20261118-scroll-6" />
-  <style>.news-card .news-cover{display:block;width:100%;height:auto;max-height:460px;object-fit:cover;border-radius:16px;margin-top:18px;border:1px solid rgba(174,74,255,.28)}.news-card .news-cover[hidden]{display:none}</style>
+  <style>
+.news-grid{align-items:start}
+.news-card{overflow:hidden;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.news-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(150,57,255,.22);border-color:rgba(188,96,255,.55)}
+.news-card .news-cover{display:block;width:100%;height:auto;max-height:520px;aspect-ratio:16/9;object-fit:cover;border-radius:16px;margin:0 0 16px;border:1px solid rgba(174,74,255,.28)}
+.news-card .news-cover[hidden]{display:none}
+.news-date{display:block;color:#c5a2ef;font-size:.9rem;margin:8px 0}
+.news-details{margin-top:16px}
+.news-details summary{display:inline-flex;align-items:center;gap:12px;cursor:pointer;list-style:none;background:linear-gradient(120deg,#7020bd,#b347ed);color:white;padding:11px 17px;border-radius:12px;font-weight:700}
+.news-details summary::-webkit-details-marker{display:none}
+.news-details summary:focus-visible{outline:3px solid #e7c4ff;outline-offset:3px}
+.news-details[open] summary span{transform:rotate(180deg)}
+.news-full-content{margin-top:16px;line-height:1.7;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:600px){.news-card .news-cover{max-height:340px}.news-card:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.news-card{transition:none}}
+</style>
 </head>
 <body>
   <header class="topbar">
@@ -28,7 +43,7 @@
     <p class="follow">SÍGUENOS &nbsp; © <span id="year"></span> &nbsp; Shadows Byte Gaming Official</p>
   </footer>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.84.0/dist/umd/supabase.min.js"></script>
-  <script src="supabase-client.js?v=20261118-news-cover-v1"></script>
+  <script src="supabase-client.js?v=20261118-news-redesign-v2"></script>
   <script src="admin.js?v=20261118-image-upload-v1"></script>
   <script src="app.js?v=20261118-manual-catalog-v1"></script>
   <script>
