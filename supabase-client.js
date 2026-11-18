@@ -305,7 +305,7 @@ async function loadMemberSocial(memberId,root){
    }
    const {error}=await sb.from('member_posts').insert({author_id:me,content,image_path});
    if(error){if(image_path)await sb.storage.from('community-images').remove([image_path]);feedback.textContent='No se pudo publicar: '+error.message;submit.disabled=false;}
-   else await loadMemberSocial(memberId,root);
+   else {await loadMemberSocial(memberId,root);const gallery=document.getElementById('account-gallery');if(gallery&&me===memberId)loadMemberGallery(memberId,gallery);}
   };
   root.append(form);
  }
