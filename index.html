@@ -34,6 +34,13 @@
   .topbar #nav a:focus-visible{outline:2px solid #a956ff;outline-offset:-2px}
   .topbar .menu-toggle{position:relative;z-index:1002;min-width:42px;min-height:44px}
 }
+.mobile-section-links{display:none}
+@media(max-width:900px){
+  .mobile-section-links{display:flex!important;position:relative;z-index:20;width:100%;max-width:100vw;overflow-x:auto;overscroll-behavior-x:contain;gap:8px;padding:10px 12px;background:#100a1c;border-bottom:1px solid #663393;scrollbar-width:thin;flex-shrink:0}
+  .mobile-section-links a{flex:0 0 auto;display:inline-flex;align-items:center;min-height:38px;padding:7px 13px;border:1px solid #64348e;border-radius:22px;color:#f5eaff;text-decoration:none;font-weight:700;font-size:15px;white-space:nowrap;background:#241334}
+  .mobile-section-links a:focus-visible{outline:2px solid #d88cff}
+  .topbar.open #nav{position:absolute!important;top:64px!important;height:calc(100dvh - 64px)!important}
+}
 </style>
 </head>
 <body>
@@ -43,6 +50,9 @@
     <nav id="nav"><a href="#/comunidad">Comunidad</a><a href="#/anime">Anime & Manga</a><a href="#/gaming">Gaming</a><a href="#/favoritos">❤️ Favoritos</a><a href="#/encuestas">📊 Encuestas</a><a href="#/waifu-husbando">Waifu / Husbando</a><a href="#/pokedex">Pokédex</a><a href="#/one-piece">One Piece</a><a href="#/noticias">Noticias</a><a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/miembros">Miembros</a><a href="#/contacto">Contacto</a></nav>
     <div class="top-actions" id="account-actions"><label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label><a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a></div>
   </header>
+  <nav class="mobile-section-links" aria-label="Apartados de la web">
+    <a href="#/">Inicio</a><a href="#/noticias">Noticias</a><a href="#/anime">Anime</a><a href="#/manga">Manga</a><a href="#/manhwa">Manhwa</a><a href="#/gaming">Gaming</a><a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/comunidad">Comunidad</a><a href="#/miembros">Miembros</a><a href="#/favoritos">Favoritos</a><a href="#/encuestas">Encuestas</a><a href="#/waifu-husbando">Waifu / Husbando</a><a href="#/pokedex">Pokédex</a><a href="#/one-piece">One Piece</a><a href="#/cuenta">Mi cuenta</a><a href="#/admin">Administración</a>
+  </nav>
   <main id="app"><section class="page"><h1>Shadows Byte Gaming Official</h1><p>Cargando contenido…</p></section></main>
   <footer>
     <a class="brand" href="#/"><span>SB</span><b>SHADOWS BYTE<small>GAMING OFFICIAL</small></b></a>
