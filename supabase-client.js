@@ -807,6 +807,7 @@ async function loadPrivateMessages(){
   }else{const p=document.createElement('p');p.textContent='Este miembro ya no tiene un perfil público; no puedes enviarle nuevos mensajes.';panel.append(p);}
  }
  wrapper.append(sidebar,panel);root.append(wrapper);
+ const visibleHistory=panel.querySelector('.messages-history');if(visibleHistory)visibleHistory.scrollTop=visibleHistory.scrollHeight;
 }
 
 let privateMessageRealtimeChannel=null;
@@ -819,7 +820,10 @@ function syncPrivateMessageRealtime(userId){
  privateMessageRealtimeChannel=sb.channel('direct-message-alerts-'+userId)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
-   if(document.getElementById('private-messages'))loadPrivateMessages();
+   refreshLivePrivateConversation();
+  })
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'sender_id=eq.'+userId},()=>{
+   refreshLivePrivateConversation();
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
@@ -833,4 +837,27 @@ async function refreshPrivateMessageBadge(userId){
  if(error){badge.hidden=true;return;}
  badge.hidden=!count;
  badge.textContent=count>99?'99+':String(count||0);
+}
+
+let privateConversationRefreshPending=false;
+async function refreshLivePrivateConversation(){
+ const root=document.getElementById('private-messages');
+ if(!root||privateConversationRefreshPending)return;
+ privateConversationRefreshPending=true;
+ try{
+  const draft=root.querySelector('.messages-compose textarea');
+  const draftText=draft?.value||'';
+  const focused=draft===document.activeElement;
+  const history=root.querySelector('.messages-history');
+  const nearBottom=history?history.scrollHeight-history.scrollTop-history.clientHeight<90:true;
+  const previousScroll=history?.scrollTop||0;
+  const route=location.hash;
+  await loadPrivateMessages();
+  if(location.hash!==route)return;
+  const current=document.getElementById('private-messages');
+  const newDraft=current?.querySelector('.messages-compose textarea');
+  if(newDraft&&draftText){newDraft.value=draftText;if(focused)newDraft.focus();}
+  const newHistory=current?.querySelector('.messages-history');
+  if(newHistory)newHistory.scrollTop=nearBottom?newHistory.scrollHeight:previousScroll;
+ }finally{privateConversationRefreshPending=false;}
 }
