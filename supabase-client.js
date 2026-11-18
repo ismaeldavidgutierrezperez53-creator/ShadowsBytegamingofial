@@ -498,6 +498,7 @@ async function loadPublicMemberProfile(){
   const next=document.createElement('p');next.textContent='Próximo nivel: '+(100*level*level)+' XP';achievementPanel.append(next);
   const progress=document.createElement('progress');progress.max=100*level*level-100*(level-1)*(level-1);progress.value=score-100*(level-1)*(level-1);progress.style.cssText='width:100%;accent-color:#b15cff';progress.setAttribute('aria-label','Progreso hacia el próximo nivel');achievementPanel.append(progress);
   const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';for(const [label,earned] of badges){const item=document.createElement('span');item.textContent=label+(earned?' ✓':' 🔒');item.style.cssText='padding:8px;border:1px solid #ffffff33;border-radius:10px;opacity:'+(earned?'1':'.45');row.append(item)}achievementPanel.append(row);
+  if(typeof createRewardPanel==='function')achievementPanel.append(createRewardPanel(level));
  });
  const social=document.createElement('section');social.className='member-social';social.id='member-social';
  const gallery=document.createElement('section');gallery.className='member-gallery-panel';gallery.id='member-gallery';
