@@ -79,3 +79,18 @@ async function renderLevelRanking(){
  host.replaceChildren();const list=document.createElement('ol');
  for(const member of data){const li=document.createElement('li');li.style.cssText='padding:12px;border-bottom:1px solid #ffffff22';const a=document.createElement('a');a.href='#/perfil?id='+encodeURIComponent(member.member_id);a.textContent=member.display_name;li.append(a);li.append(document.createTextNode(' · Nivel '+levelFromXP(Number(member.xp))+' · '+member.xp+' XP'));list.append(li)}host.append(list);
 }
+
+async function renderStreakRanking(){
+ const host=document.getElementById('streak-ranking');if(!host)return;
+ const {data,error}=await sb.rpc('community_streak_ranking');if(!host.isConnected)return;
+ if(error){host.textContent='No se pudo cargar la clasificación de rachas.';return}
+ if(!data?.length){host.textContent='Aún no hay rachas públicas registradas.';return}
+ const list=document.createElement('ol');list.style.cssText='padding-left:25px';
+ for(const member of data){
+  const li=document.createElement('li');li.style.cssText='padding:12px 4px;border-bottom:1px solid #ffffff22';
+  const link=document.createElement('a');link.href='#/perfil?id='+encodeURIComponent(member.member_id);link.textContent=member.display_name;li.append(link);
+  const current=Number(member.current_streak)||0,best=Number(member.best_streak)||0;
+  const medals=STREAK_MEDALS.filter(m=>best>=m.days).map(m=>m.icon+' '+m.title).join(' · ');
+  const detail=document.createElement('div');detail.textContent='🔥 Racha actual: '+current+' días · Récord: '+best+' días'+(medals?' · '+medals:'');li.append(detail);list.append(li);
+ }host.replaceChildren(list);
+}
