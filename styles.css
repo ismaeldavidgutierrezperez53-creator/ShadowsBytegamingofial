@@ -248,3 +248,6 @@ body.member-lightbox-open{overflow:hidden}
 #notification-mark-all{align-self:flex-start;margin-right:28px;border:1px solid #9374b8;border-radius:7px;background:#3b2853;color:#f6efff;padding:7px 10px;cursor:pointer;font-size:12px}
 #notification-mark-all:disabled{opacity:.65;cursor:wait}
 #member-notifications>.gradient-btn{margin-bottom:14px}
+
+.notification-jump{display:inline-block;margin:6px 8px 4px 0;color:#d6b0ff;text-decoration:underline;font-weight:600;font-size:13px}
+.notification-target-post{outline:2px solid #b885f1;outline-offset:4px;scroll-margin-top:110px}
