@@ -237,7 +237,7 @@ async function loadMemberSocial(memberId,root){
  const me=user?.id||null;
  const [{data:follows,error:followError},{data:posts,error:postError}]=await Promise.all([
   sb.from('member_follows').select('follower_id').eq('following_id',memberId),
-  sb.from('member_posts').select('id,author_id,content,created_at').eq('author_id',memberId).order('created_at',{ascending:false}).limit(50)
+  sb.from('member_posts').select('id,author_id,content,image_path,created_at').eq('author_id',memberId).order('created_at',{ascending:false}).limit(50)
  ]);
  if(!root.isConnected)return;
  root.replaceChildren();
@@ -259,10 +259,27 @@ async function loadMemberSocial(memberId,root){
  if(me===memberId){
   const form=document.createElement('form');form.className='social-form';
   const label=document.createElement('label');label.textContent='Nueva publicación';label.htmlFor='new-member-post';
-  const textarea=document.createElement('textarea');textarea.id='new-member-post';textarea.maxLength=1000;textarea.required=true;textarea.placeholder='¿Qué quieres compartir con la comunidad?';
+  const textarea=document.createElement('textarea');textarea.id='new-member-post';textarea.maxLength=1000;textarea.placeholder='¿Qué quieres compartir con la comunidad?';
+  const imageLabel=document.createElement('label');imageLabel.htmlFor='new-member-image';imageLabel.textContent='🖼️ Añadir imagen (opcional, máximo 5 MB)';
+  const imageInput=document.createElement('input');imageInput.id='new-member-image';imageInput.type='file';imageInput.accept='image/jpeg,image/png,image/webp,image/gif';imageInput.className='social-image-input';
+  const preview=document.createElement('img');preview.className='social-image-preview';preview.alt='Vista previa de la imagen';preview.hidden=true;
+  let previewUrl=null;imageInput.onchange=()=>{if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=null;const file=imageInput.files?.[0];preview.hidden=!file;if(file){previewUrl=URL.createObjectURL(file);preview.src=previewUrl;}};
   const submit=document.createElement('button');submit.className='gradient-btn mini';submit.textContent='Publicar';
-  form.append(label,textarea,submit);
-  form.onsubmit=async e=>{e.preventDefault();const content=textarea.value.trim();if(!content)return;submit.disabled=true;const {error}=await sb.from('member_posts').insert({author_id:me,content});if(error){feedback.textContent='No se pudo publicar: '+error.message;submit.disabled=false;}else await loadMemberSocial(memberId,root);};
+  form.append(label,textarea,imageLabel,imageInput,preview,submit);
+  form.onsubmit=async e=>{
+   e.preventDefault();const content=textarea.value.trim();const file=imageInput.files?.[0];if(!content&&!file){feedback.textContent='Escribe un mensaje o selecciona una imagen.';return;}
+   const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
+   if(file&&(!allowed[file.type]||file.size>5*1024*1024)){feedback.textContent='Usa una imagen JPG, PNG, WebP o GIF de hasta 5 MB.';return;}
+   submit.disabled=true;feedback.textContent=file?'Subiendo imagen…':'Publicando…';let image_path=null;
+   if(file){
+    image_path=me+'/'+crypto.randomUUID()+'.'+allowed[file.type];
+    const {error:uploadError}=await sb.storage.from('community-images').upload(image_path,file,{contentType:file.type,upsert:false});
+    if(uploadError){feedback.textContent='No se pudo subir la imagen: '+uploadError.message;submit.disabled=false;return;}
+   }
+   const {error}=await sb.from('member_posts').insert({author_id:me,content,image_path});
+   if(error){if(image_path)await sb.storage.from('community-images').remove([image_path]);feedback.textContent='No se pudo publicar: '+error.message;submit.disabled=false;}
+   else await loadMemberSocial(memberId,root);
+  };
   root.append(form);
  }
  const title=document.createElement('h2');title.textContent='Publicaciones';root.append(title);
@@ -273,9 +290,10 @@ async function loadMemberSocial(memberId,root){
   const body=document.createElement('p');body.className='social-post-body';body.textContent=post.content;
   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
   article.append(body,date);
+  if(post.image_path){const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);}
   const likeBox=document.createElement('div');likeBox.className='post-like-box';article.append(likeBox);
   renderPostLikes(post.id,likeBox,me);
-  if(me===post.author_id){const remove=document.createElement('button');remove.className='social-delete';remove.textContent='Eliminar publicación';remove.onclick=async()=>{if(!confirm('¿Eliminar esta publicación y sus comentarios?'))return;const {error}=await sb.from('member_posts').delete().eq('id',post.id);if(error)feedback.textContent=error.message;else await loadMemberSocial(memberId,root);};article.append(remove);}
+  if(me===post.author_id){const remove=document.createElement('button');remove.className='social-delete';remove.textContent='Eliminar publicación';remove.onclick=async()=>{if(!confirm('¿Eliminar esta publicación y sus comentarios?'))return;const {error}=await sb.from('member_posts').delete().eq('id',post.id);if(error)feedback.textContent=error.message;else{if(post.image_path)await sb.storage.from('community-images').remove([post.image_path]);await loadMemberSocial(memberId,root);}};article.append(remove);}
   const commentTitle=document.createElement('h3');commentTitle.textContent='Comentarios';article.append(commentTitle);
   const list=document.createElement('div');list.className='social-comments';article.append(list);
   const {data:comments,error:commentError}=await sb.from('member_comments').select('id,author_id,content,created_at').eq('post_id',post.id).order('created_at',{ascending:true}).limit(100);
@@ -308,7 +326,7 @@ async function renderPostLikes(postId,root,me){
 }
 async function loadCommunityFeed(){
  const root=document.getElementById('community-feed');if(!root)return;
- const [{data:posts,error},{data:{user}}]=await Promise.all([sb.from('member_posts').select('id,author_id,content,created_at').order('created_at',{ascending:false}).limit(50),sb.auth.getUser()]);
+ const [{data:posts,error},{data:{user}}]=await Promise.all([sb.from('member_posts').select('id,author_id,content,image_path,created_at').order('created_at',{ascending:false}).limit(50),sb.auth.getUser()]);
  if(!root.isConnected)return;root.replaceChildren();
  if(error){root.textContent='No se pudo cargar el muro.';return;}
  if(!(posts||[]).length){root.textContent='Todavía no hay publicaciones públicas.';return;}
@@ -323,7 +341,9 @@ async function loadCommunityFeed(){
   const content=document.createElement('p');content.className='social-post-body';content.textContent=post.content;
   const likes=document.createElement('div');likes.className='post-like-box';
   const profile=document.createElement('a');profile.href=author.href;profile.className='outline-btn mini';profile.textContent='Ver publicación y comentarios';
-  article.append(author,date,content,likes,profile);root.append(article);
+  article.append(author,date,content);
+  if(post.image_path){const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);}
+  article.append(likes,profile);root.append(article);
   renderPostLikes(post.id,likes,user?.id||null);
  }
  if(!root.children.length)root.textContent='Todavía no hay publicaciones públicas.';
