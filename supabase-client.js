@@ -222,29 +222,30 @@ async function loadAccountFollows(userId,root){
   }
   content.append(area);lists.push({area,section});
  }
- const normalize=value=>(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
+ const normalize=value=>(value||'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('es').trim();
  function updateFilter(){
   const term=normalize(search.value);let total=0;
   for(const {area,section} of lists){
    const showSection=activeFilter==='all'||activeFilter===section.key;
-   area.hidden=!showSection;
+   area.hidden=!showSection;area.style.display=showSection?'':'none';
    let visible=0;
    for(const row of area.querySelectorAll('.account-follow-member')){
     const p=names.get(row.dataset.memberId);
     const label=[p?.display_name,p?.username,row.querySelector('span')?.textContent].filter(Boolean).join(' ');
     const match=!term||normalize(label).includes(term);
-    row.hidden=!match;if(match&&showSection)visible++;
+    row.hidden=!match;row.style.display=match?'':'none';if(match&&showSection)visible++;
    }
    total+=visible;
    let empty=area.querySelector('.account-follow-search-empty');
    if(!empty){empty=document.createElement('p');empty.className='account-follow-search-empty';area.append(empty);}
-   empty.hidden=!term||visible>0||!section.ids.length;
+   empty.hidden=!term||visible>0||!section.ids.length;empty.style.display=empty.hidden?'none':'';
    empty.textContent='No hay coincidencias.';
   }
   for(const {value,button} of filterButtons){button.setAttribute('aria-pressed',String(value===activeFilter));}
   count.textContent=total+' '+(total===1?'miembro encontrado':'miembros encontrados')+(term?' para «'+search.value.trim()+'»':'');
  }
  search.addEventListener('input',updateFilter);
+ search.addEventListener('search',updateFilter);
  updateFilter();
 }
 async function loadAccountProfile(){
