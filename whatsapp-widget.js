@@ -18,7 +18,7 @@ document.addEventListener('click',event=>{
  try{url=new URL(link.href,location.href)}catch{return}
  const host=url.hostname.toLowerCase();
  if(host!=='wa.me'&&host!=='api.whatsapp.com')return;
- const phone=host==='wa.me'?url.pathname.match(/^\\/([1-9]\\d{7,14})\\/?$/)?.[1]:url.searchParams.get('phone');
+ const phone=host==='wa.me'?url.pathname.split('/').filter(Boolean)[0]:url.searchParams.get('phone');
  if(!phone||!/^[1-9]\\d{7,14}$/.test(phone))return;
  const target='https://wa.me/'+phone+'?text='+encodeURIComponent(WHATSAPP_GREETING);
  link.href=target;
