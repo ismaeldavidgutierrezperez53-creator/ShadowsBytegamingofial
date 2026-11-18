@@ -227,3 +227,19 @@ body.member-lightbox-open{overflow:hidden}
 .member-gallery-comment-form textarea{width:100%;box-sizing:border-box;min-height:62px;resize:vertical;border:1px solid #73528f;border-radius:8px;background:#110d1b;color:white;padding:9px;font-family:inherit}
 .member-gallery-comment-form button{align-self:flex-start}
 .member-gallery-comment-status{font-size:12px;color:#e6d6f4}
+
+
+/* Panel desplegable de notificaciones */
+.notification-menu{position:relative;display:inline-flex;align-items:center}
+.notification-menu .notification-bell{cursor:pointer;border:0;background:transparent;color:inherit;font:inherit}
+.notification-popover[hidden]{display:none!important}
+.notification-popover{position:absolute;right:0;top:calc(100% + 10px);width:min(360px,90vw);max-height:470px;overflow-y:auto;z-index:1000;background:#191325;color:#f6efff;border:1px solid #715391;border-radius:12px;box-shadow:0 16px 40px #0009;padding:14px;display:flex;flex-direction:column;gap:10px}
+.notification-popover>strong{font-size:16px}
+#notification-close{position:absolute;top:9px;right:10px;cursor:pointer;background:transparent;color:inherit;border:0;font-size:18px}
+#notification-preview{display:flex;flex-direction:column;gap:8px}
+.notification-preview-item{padding:10px;border-radius:8px;background:#261d35;border:1px solid #48375e}
+.notification-preview-item.unread{border-color:#b885f1;background:#322243}
+.notification-preview-item p{margin:0 0 5px;font-size:13px;line-height:1.4}
+.notification-preview-item small{display:block;opacity:.8}
+.notification-preview-item button{margin-top:7px;border:1px solid #9374b8;border-radius:6px;background:transparent;color:#f5e9ff;padding:5px 8px;cursor:pointer}
+.notification-popover>a{color:#d6b0ff;text-decoration:underline;text-align:center;font-weight:600}
