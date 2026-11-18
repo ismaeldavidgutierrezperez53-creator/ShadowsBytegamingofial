@@ -8,6 +8,13 @@ async function memberXP(userId){
  const counts=await Promise.all(LEVEL_RULES.map(async([table,column,points])=>{const {count,error}=await sb.from(table).select('*',{count:'exact',head:true}).eq(column,userId);return error?{count:0,error:error.message,points}:{count:count||0,points}}));
  return {xp:counts.reduce((sum,x)=>sum+x.count*x.points,0),counts,errors:counts.filter(x=>x.error)};
 }
+const STREAK_MEDALS=[{days:3,icon:'🥉',title:'Constancia Byte'},{days:7,icon:'🥈',title:'Guardián de la Racha'},{days:30,icon:'🥇',title:'Leyenda Imparable'}];
+function createStreakMedalsPanel(best){
+ const section=document.createElement('section');section.className='profile-panel';section.style.cssText='margin-top:16px;padding:16px';const heading=document.createElement('h3');heading.textContent='🏅 Medallas de rachas';section.append(heading);
+ const description=document.createElement('p');description.textContent='Mejor racha histórica: '+best+' días. Las medallas conseguidas permanecen en tu perfil.';section.append(description);
+ const list=document.createElement('div');list.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+ for(const medal of STREAK_MEDALS){const earned=best>=medal.days;const item=document.createElement('span');item.textContent=medal.icon+' '+medal.title+' · '+medal.days+' días '+(earned?'✓':'🔒');item.style.cssText='padding:10px;border:1px solid #ffffff44;border-radius:12px;opacity:'+(earned?'1':'.5');list.append(item)}section.append(list);return section;
+}
 function createDailyCalendar(userId){
  const section=document.createElement('section');section.className='profile-panel';section.style.cssText='margin-top:16px;padding:16px';
  const heading=document.createElement('h3');heading.textContent='📅 Calendario de recompensas';section.append(heading);
@@ -52,6 +59,7 @@ async function renderMyLevels(){
  const xp=result.xp,level=levelFromXP(xp),badges=[['🌱 Primer paso',xp>=5],['⭐ Participante',xp>=50],['🔥 Miembro activo',xp>=150],['🏆 Leyenda',xp>=500]];
  host.innerHTML='<h2>🏆 Nivel '+level+'</h2><p>'+xp+' puntos de experiencia (XP)</p><div style="height:12px;border-radius:8px;background:#ffffff22;overflow:hidden"><div style="height:100%;width:'+Math.min(100,Math.round((xp-100*(level-1)**2)/(100*(level**2-(level-1)**2))*100))+'%;background:linear-gradient(90deg,#8b5cf6,#ec4899)"></div></div><p>Próximo nivel: '+(100*level**2)+' XP</p><h3>Insignias</h3><div id="level-badges" style="display:flex;flex-wrap:wrap;gap:10px"></div><h3>Cómo ganar puntos</h3><p>Publicación +20 · Comentario +10 · Me gusta +2 · Favorito +5 · Voto +15</p>';
  host.append(createRewardPanel(level));
+ const {data:bestStreak,error:medalsError}=await sb.rpc('community_streak_medals',{target_member:user.id});if(!medalsError&&bestStreak!==null&&host.isConnected)host.append(createStreakMedalsPanel(Number(bestStreak)||0));
  const daily=document.createElement('section');daily.className='profile-panel';daily.style.cssText='margin-top:16px;padding:16px';daily.innerHTML='<h3>🎁 Recompensa diaria</h3><p>Consigue +10 XP una vez al día (UTC).</p>';
  const claim=document.createElement('button');claim.className='gradient-btn mini';claim.textContent='Reclamar +10 XP';const status=document.createElement('p');status.setAttribute('role','status');
  claim.onclick=async()=>{claim.disabled=true;status.textContent='Comprobando recompensa…';const {data,error}=await sb.rpc('claim_daily_reward');if(error){status.textContent='No se pudo reclamar: '+error.message;claim.disabled=false;return}const outcome=data?.[0];if(outcome?.claimed){status.textContent='🎉 ¡Has recibido 10 XP!'+(outcome.bonus_awarded?' + '+outcome.bonus_awarded+' XP de racha 🔥':'');await renderMyLevels()}else status.textContent='Ya has reclamado la recompensa de hoy. Vuelve mañana (UTC).'};
