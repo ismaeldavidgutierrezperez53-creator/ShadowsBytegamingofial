@@ -26,13 +26,7 @@ async function loadDynamicContent(path) {
   if(target)target.innerHTML=billboardCards(billboard);
  }
  if(path==='/admin') {
-  const {data:{user}}=await sb.auth.getUser();
-  const target=document.getElementById('admin-root');
-  if(!target)return;
-  if(!user){target.textContent='Inicia sesión para acceder.';return;}
-  const {data:{session}}=await sb.auth.getSession();
-  const role=session?.user?.app_metadata?.role;
-  target.textContent=role==='admin'?'Panel de administración habilitado. Próximo paso: editor de contenidos.':'Tu cuenta no tiene permisos de administrador.';
+  await initAdmin();
  }
 }
 async function submitAuth(event) {
