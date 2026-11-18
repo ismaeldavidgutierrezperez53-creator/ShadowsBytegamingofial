@@ -208,3 +208,7 @@ body.member-lightbox-open{overflow:hidden}
 .member-gallery-set-cover{width:100%;margin-top:7px;padding:8px;border-radius:8px;border:1px solid #8861ae;background:#342047;color:#fff;font:inherit;cursor:pointer}
 .member-gallery-set-cover:disabled{opacity:.65;cursor:default}
 @media(max-width:700px){.member-gallery-cover-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+
+/* Reacciones a fotografías en álbumes */
+.member-gallery-like{margin:8px 0;display:flex;align-items:center}
+.member-gallery-like .post-like-button{width:100%;text-align:center}
