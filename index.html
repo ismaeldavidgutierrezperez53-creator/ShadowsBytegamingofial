@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20261118-fan-sections-v1" />
-  <link rel="stylesheet" href="gaming-theme.css?v=20261118-layout-fix-v3" />
+  <link rel="stylesheet" href="styles.css?v=20261118-mobile-nav-v2" />
+  <link rel="stylesheet" href="gaming-theme.css?v=20261118-mobile-nav-v2" />
   <style>
 .news-grid{align-items:start}
 .news-card{overflow:hidden;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
@@ -26,11 +26,19 @@
 .news-full-content{margin-top:16px;line-height:1.7;white-space:normal;overflow-wrap:anywhere}
 @media(max-width:600px){.news-card .news-cover{max-height:340px}.news-card:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.news-card{transition:none}}
+@media(max-width:900px){
+  .topbar{z-index:1000!important}
+  .topbar #nav{display:none!important;position:fixed!important;top:64px!important;left:0!important;right:0!important;width:100%!important;height:calc(100dvh - 64px)!important;max-height:calc(100dvh - 64px)!important;overflow-y:auto!important;overscroll-behavior:contain;background:#100a1c!important;padding:18px 20px 45px!important;flex-direction:column!important;gap:0!important;box-shadow:0 15px 35px #000b;z-index:1001!important}
+  .topbar.open #nav{display:flex!important}
+  .topbar #nav a{display:block!important;padding:13px 14px!important;min-height:46px;border-bottom:1px solid #ffffff19;font-size:18px;white-space:normal}
+  .topbar #nav a:focus-visible{outline:2px solid #a956ff;outline-offset:-2px}
+  .topbar .menu-toggle{position:relative;z-index:1002;min-width:42px;min-height:44px}
+}
 </style>
 </head>
 <body>
   <header class="topbar">
-    <button class="menu-toggle" aria-label="Abrir menú" id="menuToggle">☰</button>
+    <button class="menu-toggle" aria-label="Abrir menú" id="menuToggle" aria-expanded="false" aria-controls="nav">☰</button>
     <a class="brand" href="#/" aria-label="Shadows Byte Gaming Official — inicio"><img src="favicon.svg" alt="Logo Shadows Byte Gaming Official" width="52" height="52" style="width:52px;height:52px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 8px #b63bff88)" /><b>SHADOWS BYTE<small>GAMING OFFICIAL</small></b></a>
     <nav id="nav"><a href="#/comunidad">Comunidad</a><a href="#/anime">Anime & Manga</a><a href="#/gaming">Gaming</a><a href="#/favoritos">❤️ Favoritos</a><a href="#/encuestas">📊 Encuestas</a><a href="#/waifu-husbando">Waifu / Husbando</a><a href="#/pokedex">Pokédex</a><a href="#/one-piece">One Piece</a><a href="#/noticias">Noticias</a><a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/miembros">Miembros</a><a href="#/contacto">Contacto</a></nav>
     <div class="top-actions" id="account-actions"><label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label><a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a></div>
@@ -50,6 +58,27 @@
   <script src="social-links.js?v=20261118-social-v1"></script>
   <script src="whatsapp-widget.js?v=20261118-whatsapp-greeting-v5"></script>
   <script>
+    // Mobile navigation: keep menu accessible and close after selection.
+    (function () {
+      const header = document.querySelector('.topbar');
+      const toggle = document.getElementById('menuToggle');
+      const nav = document.getElementById('nav');
+      if (!header || !toggle || !nav) return;
+      const sync = () => {
+        const opened = header.classList.contains('open');
+        toggle.setAttribute('aria-expanded', String(opened));
+        toggle.setAttribute('aria-label', opened ? 'Cerrar menú' : 'Abrir menú');
+      };
+      toggle.addEventListener('click', () => requestAnimationFrame(sync));
+      nav.addEventListener('click', e => {
+        if (e.target.closest('a')) { header.classList.remove('open'); sync(); }
+      });
+      window.addEventListener('hashchange', () => { header.classList.remove('open'); sync(); });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { header.classList.remove('open'); sync(); }
+      });
+      sync();
+    })();
     // Normalize legacy account links, including links inserted by cached navigation code.
     document.addEventListener('click', function(event) {
       const link = event.target.closest('a');
