@@ -97,6 +97,7 @@ async function refreshAccountActions() {
  const {data:{session},error}=await sb.auth.getSession();
  if(error)console.warn('No se pudo comprobar la sesión:',error.message);
  const user=session?.user;
+ syncNotificationRealtime(user?.id||null);
  const hero=document.getElementById('hero-account-actions');
  if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/cuenta">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
  const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
@@ -108,6 +109,24 @@ async function refreshAccountActions() {
  actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/notificaciones" id="notification-bell" class="notification-bell" aria-label="Notificaciones" title="Notificaciones">🔔<span id="notification-count" class="notification-count" hidden></span></a>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
  document.getElementById('account-logout').addEventListener('click',logout);
  refreshNotificationBadge(user.id);
+}
+let notificationRealtimeChannel=null;
+let notificationRealtimeUserId=null;
+function syncNotificationRealtime(userId){
+ if(notificationRealtimeUserId===userId&&notificationRealtimeChannel)return;
+ if(notificationRealtimeChannel){sb.removeChannel(notificationRealtimeChannel);notificationRealtimeChannel=null;}
+ notificationRealtimeUserId=userId||null;
+ if(!userId)return;
+ notificationRealtimeChannel=sb.channel('member-notifications-'+userId)
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+userId},()=>{
+   refreshNotificationBadge(userId);
+   if(document.getElementById('member-notifications'))loadMemberNotifications();
+  })
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+userId},()=>{
+   refreshNotificationBadge(userId);
+   if(document.getElementById('member-notifications'))loadMemberNotifications();
+  })
+  .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('No se pudo conectar el canal de notificaciones en tiempo real.');});
 }
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
 refreshAccountActions();
