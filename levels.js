@@ -165,16 +165,19 @@ async function renderRewardShop(){
  const host=document.getElementById('reward-shop');if(!host)return;
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
  if(!user){host.textContent='Inicia sesión para comprar recompensas.';return}
- const [catalog,owned,equipped,balance]=await Promise.all([
+ const [catalog,owned,equipped,balance,members,gifts]=await Promise.all([
   sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order,image_url').eq('active',true).order('sort_order'),
   sb.from('member_shop_purchases').select('item_id,price_paid').eq('user_id',user.id),
   sb.from('member_shop_equipped').select('category,item_id').eq('user_id',user.id),
-  sb.rpc('reward_shop_balance')
+  sb.rpc('reward_shop_balance'),
+  sb.from('profiles').select('id,display_name,username').eq('is_public',true).neq('id',user.id).order('display_name').limit(100),
+  sb.from('member_shop_gifts').select('sender_id,recipient_id,item_id,price_paid,created_at').order('created_at',{ascending:false}).limit(50)
  ]);
  if(!host.isConnected)return;host.replaceChildren();
- if([catalog,owned,equipped,balance].some(r=>r.error)){host.textContent='No se pudo cargar la tienda. Inténtalo de nuevo.';return}
+ if([catalog,owned,equipped,balance,members,gifts].some(r=>r.error)){host.textContent='No se pudo cargar la tienda. Inténtalo de nuevo.';return}
  const points=document.createElement('h3');points.textContent='🪙 Saldo disponible: '+Number(balance.data||0)+' puntos';host.append(points);
  const note=document.createElement('p');note.textContent='Los puntos disponibles se obtienen de tu XP ganado menos las compras. Comprar no reduce tu nivel ni tu XP acumulado. Cada artículo se compra una sola vez.';host.append(note);
+ const recipientLabel=document.createElement('label');recipientLabel.textContent='🎁 Enviar regalo a un miembro público: ';const recipient=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='Selecciona un miembro';recipient.append(blank);for(const member of members.data||[]){const option=document.createElement('option');option.value=member.id;option.textContent=member.display_name||member.username||'Miembro';recipient.append(option)}recipientLabel.append(recipient);host.append(recipientLabel);const giftHelp=document.createElement('p');giftHelp.textContent='El regalo consume tus puntos y desbloquea el artículo para el destinatario. No se pueden regalar artículos que ya posee.';host.append(giftHelp);
  const ownedIds=new Set((owned.data||[]).map(p=>p.item_id));const active=new Map((equipped.data||[]).map(e=>[e.category,e.item_id]));
  const categories={frame:'🖼️ Marcos para avatares',badge:'🏷️ Insignias',color:'🌈 Colores de nombre',title:'👑 Títulos especiales'};
  for(const [category,label] of Object.entries(categories)){
@@ -187,8 +190,9 @@ async function renderRewardShop(){
    const button=document.createElement('button');button.className='gradient-btn mini';button.textContent=bought?(isEquipped?'✓ Equipado':'Equipar'):'Comprar · '+item.price+' puntos';button.disabled=isEquipped||(!bought&&Number(balance.data||0)<item.price);
    const status=document.createElement('p');status.setAttribute('role','status');
    button.onclick=async()=>{button.disabled=true;const {data:ok,error}=bought?await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):await sb.rpc('buy_reward_shop_item',{requested_item:item.id});if(error){status.textContent=error.message;button.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}};
-   card.append(button,status);group.append(card);
+   card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent='🎁 Regalar · '+item.price+' puntos';gift.disabled=Number(balance.data||0)<item.price||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+item.price+' puntos?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);group.append(card);
   }
   host.append(group);
  }
+ const history=document.createElement('section');history.className='profile-panel';history.style.cssText='padding:16px;margin:20px 0';const historyTitle=document.createElement('h3');historyTitle.textContent='📜 Historial de regalos';history.append(historyTitle);const names=new Map((members.data||[]).map(m=>[m.id,m.display_name||m.username||'Miembro']));const itemNames=new Map((catalog.data||[]).map(i=>[i.id,i.name]));if(!(gifts.data||[]).length){const p=document.createElement('p');p.textContent='Todavía no hay regalos enviados o recibidos.';history.append(p)}for(const entry of gifts.data||[]){const p=document.createElement('p');const sent=entry.sender_id===user.id;p.textContent=(sent?'📤 Enviado a '+(names.get(entry.recipient_id)||'Miembro'):'📥 Recibido')+' · '+(itemNames.get(entry.item_id)||entry.item_id)+' · '+new Date(entry.created_at).toLocaleDateString('es-ES')+(sent?' · '+entry.price_paid+' puntos':'');history.append(p)}host.append(history);
 }
