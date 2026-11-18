@@ -105,6 +105,17 @@ async function loadAccountProfile(){
  const name=meta.display_name||meta.full_name||'Mi perfil';
  root.innerHTML='<div class="profile-cover"><span>SHADOWS BYTE / PERFIL</span><span class="profile-cover-mark">SB</span></div><div class="profile-body"><div class="profile-identity"><div id="profile-avatar" class="profile-avatar"></div><div class="profile-identity-copy"><div class="profile-kicker">CUENTA PERSONAL</div><h2 id="profile-heading"></h2><p id="profile-email"></p><span class="profile-role">'+(user.app_metadata?.role==='admin'?'★ Administrador':'● Miembro')+'</span></div></div><div class="profile-grid"><section class="profile-panel"><h3>✦ Editar perfil</h3><p>Personaliza cómo apareces en Shadows Byte Gaming.</p><form id="profile-form"><label for="profile-name">Nombre de usuario</label><input id="profile-name" name="display_name" maxlength="60" required autocomplete="nickname" placeholder="Tu nombre"><label for="profile-avatar-url">Imagen de perfil (URL HTTPS)</label><input id="profile-avatar-url" name="avatar_url" type="url" placeholder="https://ejemplo.com/avatar.jpg"><button class="gradient-btn" type="submit">Guardar cambios</button><p id="profile-message" role="status" aria-live="polite"></p></form></section><section class="profile-panel"><h3>⚙ Ajustes de cuenta</h3><p>Información y seguridad de tu cuenta.</p><label for="profile-email-readonly">Correo electrónico</label><input id="profile-email-readonly" type="email" disabled><a class="profile-setting-link" href="#/forgot-password">🔒 Cambiar contraseña <span>→</span></a>'+(user.app_metadata?.role==='admin'?'<a class="profile-setting-link" href="#/admin">🛡 Panel de administración <span>→</span></a>':'')+'<button type="button" class="profile-signout" id="profile-signout">Cerrar sesión</button></section></div></div>';
  document.getElementById('profile-signout').addEventListener('click',logout);
+ // Public member directory is opt-in; keep authentication email private.
+ const {data:profile}=await sb.from('profiles').select('bio,is_public').eq('id',user.id).maybeSingle();
+ const panel=document.querySelector('.profile-panel');
+ if(panel){
+  const extra=document.createElement('div');extra.className='profile-public-settings';
+  extra.innerHTML='<label for="profile-bio">Presentación para la comunidad</label><textarea id="profile-bio" maxlength="280" rows="3" placeholder="Cuéntanos algo sobre ti..."></textarea><label class="profile-checkbox"><input type="checkbox" id="profile-public"> Mostrar mi perfil en Miembros</label><p class="profile-privacy">Solo se mostrarán tu nombre, avatar y presentación. Tu correo no será público.</p>';
+  panel.querySelector('#profile-form').insertBefore(extra,panel.querySelector('#profile-form button[type="submit"]'));
+  document.getElementById('profile-bio').value=profile?.bio||'';
+  document.getElementById('profile-public').checked=profile?.is_public===true;
+ }
+
  const heading=document.getElementById('profile-heading'),email=document.getElementById('profile-email');
  heading.textContent=name;email.textContent=user.email||'';
  const form=document.getElementById('profile-form');
@@ -123,9 +134,39 @@ async function loadAccountProfile(){
   const button=form.querySelector('button[type="submit"]');button.disabled=true;status.textContent='Guardando…';
   try{
    const {error}=await sb.auth.updateUser({data:{display_name,avatar_url}});
+   if(!error){
+    const bio=document.getElementById('profile-bio').value.trim();
+    const is_public=document.getElementById('profile-public').checked;
+    const {error:profileError}=await sb.from('profiles').upsert({id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public},{onConflict:'id'});
+    if(profileError){status.textContent='Se guardó tu cuenta, pero no el perfil público: '+profileError.message;return;}
+   }
    if(error){status.textContent='No se pudo guardar: '+error.message;return;}
    heading.textContent=display_name;paintAvatar(avatar_url,display_name);status.textContent='Perfil actualizado correctamente.';
   }catch(err){status.textContent='No se pudo guardar: '+err.message}
   finally{button.disabled=false;}
  });
+}
+
+async function loadMembers(){
+ const root=document.getElementById('members-list');if(!root)return;
+ const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
+ if(!root.isConnected)return;
+ if(error){root.innerHTML='<div class="admin-empty">No se pudo cargar la lista de miembros.</div>';return;}
+ const members=data||[];
+ function draw(){
+  const term=(document.getElementById('members-search')?.value||'').toLocaleLowerCase().trim();
+  const filtered=members.filter(x=>(x.display_name||x.username||'').toLocaleLowerCase().includes(term));
+  root.replaceChildren();
+  if(!filtered.length){const empty=document.createElement('div');empty.className='admin-empty';empty.textContent=term?'No se encontraron miembros.':'Todavía no hay perfiles públicos. Puedes activar el tuyo desde Mi cuenta.';root.append(empty);return;}
+  filtered.forEach(member=>{
+   const card=document.createElement('article');card.className='member-card';
+   const avatar=document.createElement('div');avatar.className='member-avatar';
+   const name=member.display_name||member.username||'Miembro';
+   if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{avatar.textContent=name.charAt(0).toUpperCase()};avatar.append(img)}else avatar.textContent=name.charAt(0).toUpperCase();
+   const heading=document.createElement('h2');heading.textContent=name;
+   const bio=document.createElement('p');bio.textContent=member.bio||'Miembro de Shadows Byte Gaming Official';
+   card.append(avatar,heading,bio);root.append(card);
+  });
+ }
+ document.getElementById('members-search')?.addEventListener('input',draw);draw();
 }
