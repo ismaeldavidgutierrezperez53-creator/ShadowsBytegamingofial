@@ -9,15 +9,28 @@ const css=document.createElement('style');css.textContent=`
 @media(prefers-reduced-motion:reduce){#site-whatsapp-button{transition:none}}
 `;document.head.append(css);
 const whatsappButton=document.createElement('a');whatsappButton.id='site-whatsapp-button';whatsappButton.hidden=true;whatsappButton.target='_blank';whatsappButton.rel='noopener noreferrer';whatsappButton.setAttribute('aria-label','Contactar por WhatsApp');whatsappButton.title='Escríbenos por WhatsApp';whatsappButton.innerHTML=WHATSAPP_ICON;document.body.append(whatsappButton);
-// Abrir mediante enlace oficial de WhatsApp con texto predefinido.
-whatsappButton.addEventListener('click',event=>{if(!whatsappButton.href||whatsappButton.hidden)return;event.preventDefault();window.open(whatsappButton.href,'_blank','noopener,noreferrer');});
+// Añadir el saludo también a enlaces antiguos de WhatsApp que puedan estar en la página.
+const WHATSAPP_GREETING='Hola, vengo de Shadows Byte Gaming Official';
+document.addEventListener('click',event=>{
+ const link=event.target.closest('a[href]');
+ if(!link)return;
+ let url;
+ try{url=new URL(link.href,location.href)}catch{return}
+ const host=url.hostname.toLowerCase();
+ if(host!=='wa.me'&&host!=='api.whatsapp.com')return;
+ const phone=host==='wa.me'?url.pathname.match(/^\\/([1-9]\\d{7,14})\\/?$/)?.[1]:url.searchParams.get('phone');
+ if(!phone||!/^[1-9]\\d{7,14}$/.test(phone))return;
+ const target='https://wa.me/'+phone+'?text='+encodeURIComponent(WHATSAPP_GREETING);
+ link.href=target;
+ // Mantener la navegación normal para que Android abra WhatsApp directamente.
+},true);
 async function refreshWhatsAppButton(){
  try{
   const {data,error}=await sb.from('site_social_links').select('url').eq('platform','WhatsApp').maybeSingle();
   if(error)throw error;
   const match=data?.url?.match(/^https:\/\/wa\.me\/([1-9]\d{7,14})$/);
   whatsappButton.hidden=!match;
-  if(match)whatsappButton.href='https://api.whatsapp.com/send?phone='+match[1]+'&text='+encodeURIComponent('Hola, vengo de Shadows Byte Gaming Official');
+  if(match)whatsappButton.href='https://wa.me/'+match[1]+'?text='+encodeURIComponent(WHATSAPP_GREETING);
   else whatsappButton.removeAttribute('href');
  }catch(error){whatsappButton.hidden=true;console.warn('WhatsApp no disponible:',error.message)}
 }
