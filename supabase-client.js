@@ -179,6 +179,38 @@ function syncNotificationRealtime(userId){
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
 refreshAccountActions();
 
+async function loadAccountFollows(userId,root){
+ if(!root?.isConnected)return;
+ root.innerHTML='<h3>👥 Seguidores y Siguiendo</h3><p>Consulta las personas que te siguen y las cuentas a las que sigues.</p>';
+ const content=document.createElement('div');content.className='account-follows-content';content.textContent='Cargando miembros…';root.append(content);
+ const [{data:followers,error:followersError},{data:following,error:followingError}]=await Promise.all([
+  sb.from('member_follows').select('follower_id').eq('following_id',userId).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_follows').select('following_id').eq('follower_id',userId).order('created_at',{ascending:false}).limit(100)
+ ]);
+ if(!root.isConnected)return;
+ content.replaceChildren();
+ if(followersError||followingError){content.textContent='No se pudieron cargar los seguidores. Inténtalo de nuevo.';return;}
+ const ids=[...new Set([...(followers||[]).map(x=>x.follower_id),...(following||[]).map(x=>x.following_id)])];
+ const {data:profiles,error:profilesError}=ids.length?await sb.from('profiles').select('id,display_name,username,avatar_url,is_public').in('id',ids):{data:[],error:null};
+ if(!root.isConnected)return;
+ if(profilesError){content.textContent='No se pudieron cargar los perfiles.';return;}
+ const names=new Map((profiles||[]).map(p=>[p.id,p]));
+ const sections=[{title:'Seguidores',ids:(followers||[]).map(x=>x.follower_id)},{title:'Siguiendo',ids:(following||[]).map(x=>x.following_id)}];
+ for(const section of sections){
+  const area=document.createElement('section');area.className='account-follows-list';
+  const title=document.createElement('h4');title.textContent=section.title+' ('+section.ids.length+')';area.append(title);
+  if(!section.ids.length){const empty=document.createElement('p');empty.textContent=section.title==='Seguidores'?'Todavía no tienes seguidores.':'Todavía no sigues a nadie.';area.append(empty);}
+  for(const id of section.ids){
+   const p=names.get(id);const row=document.createElement('div');row.className='account-follow-member';
+   if(p?.avatar_url&&/^https:\/\//i.test(p.avatar_url)){const img=document.createElement('img');img.src=p.avatar_url;img.alt='';img.loading='lazy';row.append(img);}
+   const name=document.createElement('span');name.textContent=p?.display_name||p?.username||'Miembro';row.append(name);
+   if(p?.is_public){const link=document.createElement('a');link.href='#/perfil?id='+encodeURIComponent(id);link.className='outline-btn mini';link.textContent='Ver perfil';row.append(link);}
+   else{const privateLabel=document.createElement('small');privateLabel.textContent='Perfil privado';row.append(privateLabel);}
+   area.append(row);
+  }
+  content.append(area);
+ }
+}
 async function loadAccountProfile(){
  const root=document.getElementById('account-profile');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
@@ -193,6 +225,7 @@ async function loadAccountProfile(){
  communityPanel.setAttribute('aria-label','Mi comunidad');
  communityPanel.innerHTML='<h3>✦ Mi comunidad</h3><p>Publica novedades, responde comentarios y participa con otros miembros.</p><p class="account-community-links"><a class="outline-btn mini" href="#/comunidad">Ver muro de la comunidad</a> <a class="outline-btn mini" href="#/notificaciones">🔔 Mis notificaciones</a></p><div id="account-community-social" class="account-community-social">Cargando publicaciones…</div>';
  root.querySelector('.profile-body')?.append(communityPanel);
+ const followPanel=document.createElement('section');followPanel.className='profile-panel account-follows-panel';followPanel.id='account-follows';communityPanel.before(followPanel);loadAccountFollows(user.id,followPanel);
  loadMemberSocial(user.id,communityPanel.querySelector('#account-community-social'));
  const ownGallery=document.createElement('section');ownGallery.className='profile-panel member-gallery-panel';ownGallery.id='account-gallery';
  communityPanel.before(ownGallery);
