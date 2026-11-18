@@ -29,3 +29,9 @@ button:focus-visible,.gradient-btn:focus-visible,a.gradient-btn:focus-visible{ou
 
 /* Section reveal on scroll */
 @media(prefers-reduced-motion:no-preference){.sb-reveal-pending{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s ease}.sb-reveal-pending.sb-reveal-visible{opacity:1;transform:translateY(0)}}
+
+/* Decorative particles stay behind interactive site content */
+.sb-particles{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:.7}
+.topbar,main,footer{position:relative;z-index:2}
+.topbar{position:sticky}
+@media(prefers-reduced-motion:reduce){.sb-particles{display:none}}
