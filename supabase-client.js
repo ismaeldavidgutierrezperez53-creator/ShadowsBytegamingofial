@@ -767,20 +767,44 @@ async function loadPrivateMessages(){
  const publicIds=new Set((profiles||[]).filter(p=>p.is_public).map(p=>p.id));
  const partners=[...new Set(items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id))];
  if(validId(requested)&&requested!==me&&!partners.includes(requested))partners.unshift(requested);
+ const {data:archiveRows,error:archiveError}=await sb.from('member_conversation_archives').select('partner_id').eq('user_id',me);
+ if(archiveError)console.warn('No se pudo cargar el archivo de conversaciones:',archiveError.message);
+ const archivedIds=new Set((archiveRows||[]).map(row=>row.partner_id));
  const wrapper=document.createElement('div');wrapper.className='messages-layout';
  const sidebar=document.createElement('aside');sidebar.className='messages-sidebar';
  const title=document.createElement('h2');title.textContent='Conversaciones';sidebar.append(title);
- if(!partners.length){const p=document.createElement('p');p.textContent='Aún no tienes conversaciones. Visita Miembros para iniciar una.';sidebar.append(p);}
- const active=validId(requested)&&requested!==me?requested:(partners[0]||null);
- const unreadIds=items.filter(m=>m.sender_id===active&&m.recipient_id===me&&!m.is_read).map(m=>m.id);
- if(unreadIds.length){const {error:readError}=await sb.from('member_direct_messages').update({is_read:true}).eq('recipient_id',me).in('id',unreadIds);if(!readError){for(const m of items)if(unreadIds.includes(m.id))m.is_read=true;refreshPrivateMessageBadge(me);refreshNotificationBadge(me);}}
-
- for(const id of partners){
+ const archiveToggle=document.createElement('button');archiveToggle.type='button';archiveToggle.className='private-chat-archive-toggle';
+ const archiveList=document.createElement('div');archiveList.className='private-chat-archive-list';archiveList.hidden=true;
+ const archivedPartners=partners.filter(id=>archivedIds.has(id));
+ archiveToggle.textContent='📁 Archivadas ('+archivedPartners.length+')';
+ archiveToggle.setAttribute('aria-expanded','false');
+ archiveToggle.onclick=()=>{archiveList.hidden=!archiveList.hidden;archiveToggle.setAttribute('aria-expanded',String(!archiveList.hidden));};
+ const active=validId(requested)&&requested!==me?requested:(partners.find(id=>!archivedIds.has(id))||null);
+ const changeArchive=async(id,archived,control)=>{
+  control.disabled=true;
+  const result=archived?await sb.from('member_conversation_archives').delete().eq('user_id',me).eq('partner_id',id):await sb.from('member_conversation_archives').insert({user_id:me,partner_id:id});
+  if(result.error){alert('No se pudo '+(archived?'desarchivar':'archivar')+' la conversación: '+result.error.message);control.disabled=false;return;}
+  if(archived&&location.hash.includes('id='+encodeURIComponent(id))){await loadPrivateMessages();return;}
+  if(!archived&&active===id){location.hash='#/mensajes';}
+  await loadPrivateMessages();
+ };
+ const renderPartner=(id,archived,destination)=>{
+  const item=document.createElement('div');item.className='private-chat-partner-row';
   const link=document.createElement('a');link.href='#/mensajes?id='+encodeURIComponent(id);
   link.className='messages-partner'+(id===active?' selected':'');
   const unread=items.filter(m=>m.sender_id===id&&m.recipient_id===me&&!m.is_read).length;
-  link.textContent=(names.get(id)||'Miembro')+(unread?' · '+unread+' nuevo(s)':'');sidebar.append(link);
- }
+  link.textContent=(names.get(id)||'Miembro')+(unread?' · '+unread+' nuevo(s)':'');
+  const action=document.createElement('button');action.type='button';action.className='private-chat-archive-action';
+  action.textContent=archived?'↩ Recuperar':'📁 Archivar';
+  action.setAttribute('aria-label',(archived?'Recuperar':'Archivar')+' conversación con '+(names.get(id)||'Miembro'));
+  action.onclick=()=>changeArchive(id,archived,action);
+  item.append(link,action);destination.append(item);
+ };
+ const normalPartners=partners.filter(id=>!archivedIds.has(id));
+ if(!normalPartners.length){const p=document.createElement('p');p.textContent=archivedPartners.length?'No tienes conversaciones activas. Revisa las archivadas.':'Aún no tienes conversaciones. Visita Miembros para iniciar una.';sidebar.append(p);}
+ for(const id of normalPartners)renderPartner(id,false,sidebar);
+ for(const id of archivedPartners)renderPartner(id,true,archiveList);
+ sidebar.append(archiveToggle,archiveList);
  const panel=document.createElement('section');panel.className='messages-panel';
  if(!active){panel.textContent='Selecciona un miembro desde su perfil para comenzar.';}
  else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
