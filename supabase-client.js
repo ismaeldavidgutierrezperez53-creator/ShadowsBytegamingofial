@@ -252,6 +252,42 @@ async function loadAccountFollows(userId,root){
  search.addEventListener('search',updateFilter);
  updateFilter();
 }
+
+let accountReportChannel=null;
+let accountReportStatuses=new Map();
+async function loadAccountReportStatuses(userId,announce=false){
+ const root=document.getElementById('account-report-statuses');if(!root)return;
+ const {data,error}=await sb.from('member_reports').select('id,post_id,comment_id,reason,status,created_at,reviewed_at').eq('reporter_id',userId).order('created_at',{ascending:false}).limit(50);
+ if(!root.isConnected)return;
+ if(error){root.textContent='No se pudo consultar el estado de tus denuncias.';return;}
+ const changes=(data||[]).filter(r=>accountReportStatuses.has(r.id)&&accountReportStatuses.get(r.id)==='pending'&&r.status!=='pending');
+ if(announce&&changes.length){
+  const alert=document.getElementById('account-report-update');
+  if(alert)alert.textContent='🔔 Se ha actualizado el estado de '+changes.length+' denuncia(s).';
+ }
+ accountReportStatuses=new Map((data||[]).map(r=>[r.id,r.status]));
+ root.replaceChildren();
+ if(!data?.length){root.textContent='Todavía no has enviado ninguna denuncia.';return;}
+ const labels={pending:'Pendiente',reviewed:'Revisada',dismissed:'Descartada'};
+ for(const report of data){
+  const row=document.createElement('article');row.className='account-report-row';
+  const title=document.createElement('strong');title.textContent=(report.post_id?'Publicación':'Comentario')+' · '+(labels[report.status]||report.status);
+  const details=document.createElement('small');details.textContent='Motivo: '+report.reason+' · Enviada: '+new Date(report.created_at).toLocaleString('es-ES')+(report.reviewed_at?' · Resuelta: '+new Date(report.reviewed_at).toLocaleString('es-ES'):'');
+  row.append(title,details);root.append(row);
+ }
+}
+function initAccountReportStatuses(userId,root){
+ if(accountReportChannel){sb.removeChannel(accountReportChannel);accountReportChannel=null;}
+ accountReportStatuses=new Map();
+ const section=document.createElement('section');section.className='profile-panel account-report-panel';
+ section.innerHTML='<h3>🛡 Mis denuncias</h3><p>Consulta el estado de tus reportes. Los cambios aparecen automáticamente mientras tengas abierta esta página.</p><p id="account-report-update" role="status" aria-live="polite"></p><div id="account-report-statuses">Cargando denuncias…</div>';
+ root.append(section);
+ loadAccountReportStatuses(userId);
+ accountReportChannel=sb.channel('account-reports-'+userId)
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_reports',filter:'reporter_id=eq.'+userId},()=>loadAccountReportStatuses(userId,true))
+  .subscribe();
+}
+
 async function loadAccountProfile(){
  const root=document.getElementById('account-profile');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
@@ -266,6 +302,7 @@ async function loadAccountProfile(){
  communityPanel.setAttribute('aria-label','Mi comunidad');
  communityPanel.innerHTML='<h3>✦ Mi comunidad</h3><p>Publica novedades, responde comentarios y participa con otros miembros.</p><p class="account-community-links"><a class="outline-btn mini" href="#/comunidad">Ver muro de la comunidad</a> <a class="outline-btn mini" href="#/notificaciones">🔔 Mis notificaciones</a></p><div id="account-community-social" class="account-community-social">Cargando publicaciones…</div>';
  root.querySelector('.profile-body')?.append(communityPanel);
+ initAccountReportStatuses(user.id,root.querySelector('.profile-body'));
  const followPanel=document.createElement('section');followPanel.className='profile-panel account-follows-panel';followPanel.id='account-follows';communityPanel.before(followPanel);loadAccountFollows(user.id,followPanel);
  loadMemberSocial(user.id,communityPanel.querySelector('#account-community-social'));
  const ownGallery=document.createElement('section');ownGallery.className='profile-panel member-gallery-panel';ownGallery.id='account-gallery';
