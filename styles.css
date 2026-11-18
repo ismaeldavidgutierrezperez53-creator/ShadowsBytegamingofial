@@ -278,3 +278,5 @@ body.member-lightbox-open{overflow:hidden}
 .message-unread-count[hidden]{display:none!important}
 
 .member-typing-indicator{min-height:1.5em;margin:6px 0;color:#a9a0ff;font-size:.88rem;font-style:italic}
+
+.message-read-receipt{display:block;text-align:right;opacity:.72;font-size:.72rem;margin-top:3px}.message-read-receipt.is-read{color:#80e2f4;opacity:1;font-weight:700}
