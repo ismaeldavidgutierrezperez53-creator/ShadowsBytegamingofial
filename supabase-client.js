@@ -184,6 +184,8 @@ sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
 refreshAccountActions();
 
 async function loadAccountFollows(userId,root){
+ const blockPanel=document.getElementById('account-blocked-members');
+ if(blockPanel)renderAccountBlockedMembers(userId);
  if(!root?.isConnected)return;
  root.innerHTML='<h3>👥 Seguidores y Siguiendo</h3><p>Consulta las personas que te siguen y las cuentas a las que sigues.</p>';
  const searchLabel=document.createElement('label');searchLabel.htmlFor='account-follow-search';searchLabel.textContent='Buscar seguidores o miembros que sigues';
@@ -807,12 +809,33 @@ async function refreshNotificationBadge(expectedUserId){
  bell.title=total?total+' notificaciones sin leer':'Notificaciones';
 }
 
+async function renderAccountBlockedMembers(userId){
+ const panel=document.getElementById('account-blocked-members');if(!panel)return;
+ panel.replaceChildren();
+ const heading=document.createElement('h3');heading.textContent='🚫 Miembros bloqueados';panel.append(heading);
+ const {data:blocks,error}=await sb.from('member_blocks').select('blocked_id').eq('blocker_id',userId);
+ if(error){const p=document.createElement('p');p.textContent='No se pudieron cargar los bloqueos: '+error.message;panel.append(p);return;}
+ if(!blocks?.length){const p=document.createElement('p');p.textContent='No tienes miembros bloqueados.';panel.append(p);return;}
+ const {data:profiles}=await sb.from('profiles').select('id,display_name,username').in('id',blocks.map(b=>b.blocked_id));
+ const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+ for(const block of blocks){
+  const row=document.createElement('div');row.className='member-block-row';
+  const name=document.createElement('span');name.textContent=names.get(block.blocked_id)||'Miembro';
+  const button=document.createElement('button');button.type='button';button.textContent='🔓 Desbloquear';button.className='private-chat-archive-action';
+  button.onclick=async()=>{button.disabled=true;const {error:removeError}=await sb.from('member_blocks').delete().eq('blocker_id',userId).eq('blocked_id',block.blocked_id);if(removeError){alert(removeError.message);button.disabled=false;return;}await renderAccountBlockedMembers(userId);};
+  row.append(name,button);panel.append(row);
+ }
+}
 async function loadPrivateMessages(){
  const root=document.getElementById('private-messages');if(!root)return;
  const {data:{user},error:authError}=await sb.auth.getUser();
  if(!root.isConnected)return;root.replaceChildren();
  if(authError||!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para enviar mensajes';root.append(link);return;}
  const me=user.id;
+ const {data:blockRows,error:blockError}=await sb.from('member_blocks').select('blocker_id,blocked_id').or('blocker_id.eq.'+me+',blocked_id.eq.'+me);
+ if(blockError)console.warn('No se pudieron consultar los bloqueos:',blockError.message);
+ const blockedByMe=new Set((blockRows||[]).filter(b=>b.blocker_id===me).map(b=>b.blocked_id));
+ const blockedMe=new Set((blockRows||[]).filter(b=>b.blocked_id===me).map(b=>b.blocker_id));
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
@@ -871,6 +894,20 @@ async function loadPrivateMessages(){
  else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
  else {
   const heading=document.createElement('h2');heading.textContent=names.get(active)||'Miembro';
+  const blockControls=document.createElement('div');blockControls.className='member-block-controls';
+  const blockButton=document.createElement('button');blockButton.type='button';blockButton.className='private-chat-archive-action';
+  const currentlyBlocked=blockedByMe.has(active);
+  blockButton.textContent=currentlyBlocked?'🔓 Desbloquear miembro':'🚫 Bloquear miembro';
+  blockButton.onclick=async()=>{
+   if(!currentlyBlocked&&!confirm('¿Bloquear a este miembro? Ninguno de los dos podrá enviar nuevos mensajes privados hasta que lo desbloquees.'))return;
+   blockButton.disabled=true;
+   const result=currentlyBlocked?await sb.from('member_blocks').delete().eq('blocker_id',me).eq('blocked_id',active):await sb.from('member_blocks').insert({blocker_id:me,blocked_id:active});
+   if(result.error){alert('No se pudo cambiar el bloqueo: '+result.error.message);blockButton.disabled=false;return;}
+   await loadPrivateMessages();
+  };
+  blockControls.append(blockButton);
+  if(currentlyBlocked||blockedMe.has(active)){const notice=document.createElement('p');notice.textContent='🚫 No se pueden enviar mensajes privados mientras exista un bloqueo.';blockControls.append(notice);}
+  panel.append(blockControls);
   const searchWrap=document.createElement('div');searchWrap.className='private-chat-search';
   const searchInput=document.createElement('input');searchInput.type='search';searchInput.placeholder='🔎 Buscar mensajes en esta conversación…';searchInput.setAttribute('aria-label','Buscar mensajes en esta conversación');
   const searchClear=document.createElement('button');searchClear.type='button';searchClear.textContent='Limpiar';searchClear.hidden=true;
@@ -1000,7 +1037,7 @@ async function loadPrivateMessages(){
   }
   panel.append(heading,pinnedPanel,searchWrap,history,typingIndicator);
   subscribePrivateTyping(me,active,typingIndicator);
-  if(publicIds.has(active)){
+  if(publicIds.has(active)&&!blockedByMe.has(active)&&!blockedMe.has(active)){
    const form=document.createElement('form');form.className='social-form messages-compose';
    const input=document.createElement('textarea');input.required=false;input.maxLength=2000;input.placeholder='Escribe tu mensaje privado…';input.setAttribute('aria-label','Mensaje privado');
    const button=document.createElement('button');button.className='gradient-btn mini';button.type='submit';button.textContent='Enviar mensaje';
