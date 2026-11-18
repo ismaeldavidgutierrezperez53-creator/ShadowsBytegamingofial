@@ -377,3 +377,22 @@ async function adminInitRewardShop(){
  for(const item of items.data||[]){const row=document.createElement('div');row.style.cssText='padding:10px;border-bottom:1px solid #ffffff22;display:flex;gap:10px;align-items:center;flex-wrap:wrap';if(item.image_url){const img=document.createElement('img');img.src=item.image_url;img.alt='';img.style.cssText='width:50px;height:50px;object-fit:cover;border-radius:8px';row.append(img)}const title=document.createElement('span');title.textContent=item.name+' · '+item.price+' puntos · '+(item.active?'Visible':'Oculto');row.append(title);const button=document.createElement('button');button.type='button';button.className='outline-btn mini';button.textContent='Editar';button.onclick=()=>fill(item);row.append(button);list.append(row)}root.append(list);
  const stats=document.createElement('section');const statsTitle=document.createElement('h3');statsTitle.textContent='📊 Compras por artículo';stats.append(statsTitle);for(const entry of sales.data||[]){const p=document.createElement('p');p.textContent=entry.item_name+' · '+entry.purchases+' compras · '+entry.points_spent+' puntos gastados';stats.append(p)}root.append(stats);
 }
+
+async function adminInitSurpriseBoxes(){
+ const anchor=document.getElementById('admin-shop-root');if(!anchor)return;
+ let root=document.getElementById('admin-surprise-boxes');if(root)root.remove();root=document.createElement('section');root.id='admin-surprise-boxes';root.className='admin-panel';anchor.after(root);
+ const h=document.createElement('h2');h.textContent='🎁 Administración de cajas misteriosas';root.append(h);
+ const [tiers,rewards,items]=await Promise.all([sb.from('surprise_box_tiers').select('*'),sb.from('surprise_box_rewards').select('tier,item_id'),sb.rpc('admin_shop_items')]);
+ if([tiers,rewards,items].some(x=>x.error)){root.append(document.createTextNode('No se pudo cargar la configuración de las cajas.'));return}
+ for(const tier of tiers.data||[]){
+  const form=document.createElement('form');form.style.cssText='padding:14px;margin:12px 0;border:1px solid #ffffff33;border-radius:12px';const title=document.createElement('h3');title.textContent=tier.name;form.append(title);
+  const priceLabel=document.createElement('label');priceLabel.textContent='Precio en puntos ';const price=document.createElement('input');price.type='number';price.min='1';price.max='100000';price.required=true;price.value=tier.price;priceLabel.append(price);form.append(priceLabel);
+  const activeLabel=document.createElement('label');const active=document.createElement('input');active.type='checkbox';active.checked=tier.active;activeLabel.append(active,document.createTextNode(' Caja activa'));form.append(activeLabel);
+  const prizeTitle=document.createElement('p');prizeTitle.textContent='Selecciona los premios posibles:';form.append(prizeTitle);
+  const checks=[];for(const item of items.data||[]){const label=document.createElement('label');label.style.cssText='display:block;margin:6px 0';const check=document.createElement('input');check.type='checkbox';check.checked=(rewards.data||[]).some(x=>x.tier===tier.tier&&x.item_id===item.id);label.append(check,document.createTextNode(' '+item.name));form.append(label);checks.push([item.id,check])}
+  const save=document.createElement('button');save.type='submit';save.className='gradient-btn mini';save.textContent='Guardar '+tier.name;const status=document.createElement('p');status.setAttribute('role','status');form.append(save,status);
+  form.onsubmit=async e=>{e.preventDefault();const selected=checks.filter(x=>x[1].checked).map(x=>x[0]);if(!selected.length){status.textContent='Selecciona al menos un premio.';return}save.disabled=true;const {error}=await sb.rpc('admin_save_surprise_box',{p_tier:tier.tier,p_price:Number(price.value),p_active:active.checked,p_items:selected});status.textContent=error?'Error: '+error.message:'✓ Caja guardada';save.disabled=false};root.append(form)
+ }
+}
+const previousAdminInitRewardShop=adminInitRewardShop;
+adminInitRewardShop=async function(){await previousAdminInitRewardShop();await adminInitSurpriseBoxes()};
