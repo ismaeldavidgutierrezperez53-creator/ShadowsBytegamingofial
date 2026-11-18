@@ -172,8 +172,35 @@ async function loadMembers(){
    if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{avatar.textContent=name.charAt(0).toUpperCase()};avatar.append(img)}else avatar.textContent=name.charAt(0).toUpperCase();
    const heading=document.createElement('h2');heading.textContent=name;
    const bio=document.createElement('p');bio.textContent=member.bio||'Miembro de Shadows Byte Gaming Official';
-   card.append(avatar,heading,bio);root.append(card);
+   const link=document.createElement('a');link.className='gradient-btn mini member-view-link';link.href='#/perfil?id='+encodeURIComponent(member.id);link.textContent='Ver perfil';
+   card.append(avatar,heading,bio,link);root.append(card);
   });
  }
  document.getElementById('members-search')?.addEventListener('input',draw);draw();
+}
+
+async function loadPublicMemberProfile(){
+ const root=document.getElementById('public-member-profile');if(!root)return;
+ const params=new URLSearchParams((location.hash.split('?')[1]||''));
+ const id=params.get('id');
+ if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
+  root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
+ }
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at').eq('id',id).eq('is_public',true).maybeSingle();
+ if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
+ root.replaceChildren();
+ if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
+ const cover=document.createElement('div');cover.className='public-member-cover';cover.textContent='SHADOWS BYTE / COMUNIDAD';
+ const content=document.createElement('div');content.className='public-member-body';
+ const avatar=document.createElement('div');avatar.className='public-member-avatar';
+ const name=member.display_name||member.username||'Miembro';
+ if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){
+  const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{avatar.replaceChildren(document.createTextNode(name.charAt(0).toUpperCase()))};avatar.append(img);
+ }else avatar.textContent=name.charAt(0).toUpperCase();
+ const title=document.createElement('h1');title.textContent=name;
+ const badge=document.createElement('span');badge.className='profile-role';badge.textContent='● Miembro de la comunidad';
+ const bioTitle=document.createElement('h2');bioTitle.textContent='Sobre mí';
+ const bio=document.createElement('p');bio.className='public-member-bio';bio.textContent=member.bio||'Este miembro todavía no ha escrito una presentación.';
+ const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
+ content.append(avatar,title,badge,bioTitle,bio,back);root.append(cover,content);
 }
