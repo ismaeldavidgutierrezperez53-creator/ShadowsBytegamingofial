@@ -45,7 +45,7 @@ async function submitAuth(event) {
  const email=form.elements.email.value.trim();
  const password=form.elements.password.value;
  const signup=location.hash.includes('mode=signup');
- const displayName=signup?form.elements.signup_name?.value.trim().replace(/\\s+/g,' ').slice(0,60):'';
+ const displayName=signup?form.elements.signup_name?.value.trim().replace(/\s+/g,' ').slice(0,60):'';
  if(signup&&(!displayName||displayName.length<2)){document.getElementById('auth-message').textContent='Introduce un nombre de al menos 2 caracteres.';return;}
  const result=signup?await sb.auth.signUp({email,password,options:{emailRedirectTo:RECOVERY_REDIRECT,data:{display_name:displayName,username:displayName}}}):await sb.auth.signInWithPassword({email,password});
  const message=document.getElementById('auth-message');
