@@ -311,3 +311,8 @@ body.member-lightbox-open{overflow:hidden}
 .admin-management-row p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .admin-management-row button,.admin-management-row a{flex-shrink:0}
 @media(max-width:600px){.admin-management-row{align-items:flex-start;flex-direction:column}.admin-panel-heading{flex-wrap:wrap}}
+
+.social-report{border:1px solid #6b506f;border-radius:9px;background:transparent;color:#dfb8d5;padding:7px 12px;cursor:pointer;font:inherit;margin:6px}
+.social-report:disabled{opacity:.65;cursor:default}
+.admin-report-actions{display:flex;flex-wrap:wrap;gap:8px}
+#admin-reports-filter{background:#0a0913;color:#f7f3fc;border:1px solid #443753;border-radius:10px;padding:11px;font:inherit}
