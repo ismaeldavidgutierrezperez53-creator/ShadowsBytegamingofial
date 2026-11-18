@@ -187,3 +187,12 @@ body.member-lightbox-open{overflow:hidden}
 .member-gallery-delete:hover{background:#892a47}
 .member-gallery-delete:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .member-gallery-delete:disabled{opacity:.65;cursor:wait}
+
+
+/* Álbumes de fotografías */
+.member-gallery-albums{display:flex;gap:9px;flex-wrap:wrap;margin:16px 0 20px}
+.member-gallery-album{border:1px solid #6b4b8c;border-radius:999px;background:#21152f;color:#e5d5f4;padding:9px 15px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.member-gallery-album.is-active,.member-gallery-album:hover{background:#6c3f96;color:white;border-color:#c48cf0}
+.member-gallery-select{display:block;width:100%;margin-top:8px;padding:9px;border-radius:9px;border:1px solid #79559b;background:#1c132c;color:#fff;font:inherit}
+.social-album-select{display:block;width:100%;padding:11px;margin-top:7px;background:#1a1229;color:#fff;border:1px solid #79559b;border-radius:9px;font:inherit}
+.member-gallery-grid>.member-gallery-empty{grid-column:1/-1}
