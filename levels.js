@@ -8,6 +8,41 @@ async function memberXP(userId){
  const counts=await Promise.all(LEVEL_RULES.map(async([table,column,points])=>{const {count,error}=await sb.from(table).select('*',{count:'exact',head:true}).eq(column,userId);return error?{count:0,error:error.message,points}:{count:count||0,points}}));
  return {xp:counts.reduce((sum,x)=>sum+x.count*x.points,0),counts,errors:counts.filter(x=>x.error)};
 }
+function createDailyCalendar(userId){
+ const section=document.createElement('section');section.className='profile-panel';section.style.cssText='margin-top:16px;padding:16px';
+ const heading=document.createElement('h3');heading.textContent='📅 Calendario de recompensas';section.append(heading);
+ const navigation=document.createElement('div');navigation.style.cssText='display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0';
+ const previous=document.createElement('button');previous.type='button';previous.className='outline-btn mini';previous.textContent='← Anterior';
+ const monthLabel=document.createElement('strong');monthLabel.setAttribute('aria-live','polite');
+ const next=document.createElement('button');next.type='button';next.className='outline-btn mini';next.textContent='Siguiente →';
+ navigation.append(previous,monthLabel,next);section.append(navigation);
+ const info=document.createElement('p');section.append(info);
+ const calendar=document.createElement('div');calendar.style.cssText='display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;text-align:center';section.append(calendar);
+ const now=new Date(),today=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate());
+ let year=now.getUTCFullYear(),month=now.getUTCMonth(),request=0;
+ const draw=async()=>{
+  const current=++request;const first=new Date(Date.UTC(year,month,1)),last=new Date(Date.UTC(year,month+1,0));
+  const start=first.toISOString().slice(0,10),end=last.toISOString().slice(0,10);
+  monthLabel.textContent=new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric',timeZone:'UTC'}).format(first);
+  next.disabled=year===now.getUTCFullYear()&&month===now.getUTCMonth();info.textContent='Cargando días reclamados…';calendar.replaceChildren();
+  const {data,error}=await sb.from('member_daily_rewards').select('claimed_on,xp,bonus_xp').eq('user_id',userId).gte('claimed_on',start).lte('claimed_on',end).order('claimed_on');
+  if(current!==request||!section.isConnected)return;
+  if(error){info.textContent='No se pudo cargar el calendario.';return}
+  const claimed=new Map((data||[]).map(x=>[x.claimed_on,x]));const count=claimed.size;
+  info.textContent='✓ '+count+' días reclamados · '+(data||[]).reduce((n,x)=>n+(x.xp||0)+(x.bonus_xp||0),0)+' XP obtenidos este mes. Fechas en UTC.';
+  for(const day of ['L','M','X','J','V','S','D']){const head=document.createElement('strong');head.textContent=day;head.style.padding='6px 0';calendar.append(head)}
+  const offset=(first.getUTCDay()+6)%7;for(let n=0;n<offset;n++)calendar.append(document.createElement('span'));
+  for(let n=1;n<=last.getUTCDate();n++){
+   const date=new Date(Date.UTC(year,month,n)),key=date.toISOString().slice(0,10),entry=claimed.get(key),future=date.getTime()>today;
+   const cell=document.createElement('span');cell.textContent=n+(entry?' ✓':'');cell.title=entry?'Reclamado: '+(entry.xp+entry.bonus_xp)+' XP':future?'Día futuro':'Sin reclamar';
+   cell.style.cssText='padding:9px 2px;border-radius:9px;border:1px solid #ffffff24;background:'+(entry?'#16865d55':future?'transparent':'#ffffff0b')+';opacity:'+(future?'.45':'1');
+   if(date.getTime()===today)cell.style.outline='2px solid #a855f7';calendar.append(cell);
+  }
+ };
+ previous.onclick=()=>{month--;if(month<0){month=11;year--}draw()};
+ next.onclick=()=>{if(next.disabled)return;month++;if(month>11){month=0;year++}draw()};
+ draw();return section;
+}
 async function renderMyLevels(){
  const host=document.getElementById('my-levels');if(!host)return;
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
@@ -23,6 +58,7 @@ async function renderMyLevels(){
  daily.append(claim,status);host.append(daily);
  const streakBox=document.createElement('section');streakBox.className='profile-panel';streakBox.style.cssText='margin-top:16px;padding:16px';streakBox.innerHTML='<h3>🔥 Racha diaria</h3><p id="streak-counter">Calculando racha…</p><p>🎯 3 días: +20 XP · 7 días: +50 XP · 30 días: +200 XP</p><p>Reclama cada día antes de que termine el día UTC para mantener tu racha.</p>';host.append(streakBox);
  const {data:days,error:streakError}=await sb.from('member_daily_rewards').select('claimed_on').eq('user_id',user.id).order('claimed_on',{ascending:false}).limit(365);if(streakBox.isConnected){const dates=new Set((days||[]).map(x=>x.claimed_on));let day=new Date();day.setUTCHours(0,0,0,0);if(!dates.has(day.toISOString().slice(0,10)))day.setUTCDate(day.getUTCDate()-1);let streak=0;while(dates.has(day.toISOString().slice(0,10))){streak++;day.setUTCDate(day.getUTCDate()-1)}streakBox.querySelector('#streak-counter').textContent=streakError?'No se pudo consultar la racha.':'🔥 '+streak+' días consecutivos'}
+ host.append(createDailyCalendar(user.id));
  const today=new Date().toISOString().slice(0,10);const {data:existing}=await sb.from('member_daily_rewards').select('claimed_on').eq('user_id',user.id).eq('claimed_on',today).limit(1);if(existing?.length){claim.disabled=true;status.textContent='✓ Recompensa de hoy reclamada';}
  const badgesHost=host.querySelector('#level-badges');for(const [name,unlocked] of badges){const span=document.createElement('span');span.textContent=name+(unlocked?' · conseguido':' · bloqueado');span.style.cssText='padding:9px;border:1px solid #ffffff33;border-radius:12px;opacity:'+(unlocked?'1':'.45');badgesHost.append(span)}
  if(result.errors.length){const p=document.createElement('p');p.textContent='Algunas actividades no pudieron contabilizarse. Inténtalo más tarde.';host.append(p)}
