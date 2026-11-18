@@ -259,9 +259,9 @@ let accountReportChannel=null;
 let accountReportStatuses=new Map();
 async function loadAccountReportStatuses(userId,announce=false){
  const root=document.getElementById('account-report-statuses');if(!root)return;
- const {data,error}=await sb.from('member_reports').select('id,post_id,comment_id,reason,status,created_at,reviewed_at').eq('reporter_id',userId).order('created_at',{ascending:false}).limit(50);
+ const {data,error}=await sb.from('member_reports').select('id,post_id,comment_id,reported_member_id,reason,details,status,created_at,reviewed_at').eq('reporter_id',userId).order('created_at',{ascending:false}).limit(100);
  if(!root.isConnected)return;
- if(error){root.textContent='No se pudo consultar el estado de tus denuncias.';return;}
+ if(error){root.textContent='No se pudo consultar el estado de tus denuncias: '+error.message;return;}
  const changes=(data||[]).filter(r=>accountReportStatuses.has(r.id)&&accountReportStatuses.get(r.id)==='pending'&&r.status!=='pending');
  if(announce&&changes.length){
   const alert=document.getElementById('account-report-update');
@@ -271,12 +271,29 @@ async function loadAccountReportStatuses(userId,announce=false){
  root.replaceChildren();
  if(!data?.length){root.textContent='Todavía no has enviado ninguna denuncia.';return;}
  const labels={pending:'Pendiente',reviewed:'Revisada',dismissed:'Descartada'};
- for(const report of data){
-  const row=document.createElement('article');row.className='account-report-row';
-  const title=document.createElement('strong');title.textContent=(report.post_id?'Publicación':'Comentario')+' · '+(labels[report.status]||report.status);
-  const details=document.createElement('small');details.textContent='Motivo: '+report.reason+' · Enviada: '+new Date(report.created_at).toLocaleString('es-ES')+(report.reviewed_at?' · Resuelta: '+new Date(report.reviewed_at).toLocaleString('es-ES'):'');
-  row.append(title,details);root.append(row);
- }
+ const reasons={spam:'Spam',harassment:'Acoso',hate:'Discurso de odio',inappropriate:'Contenido inapropiado',other:'Otro'};
+ const controls=document.createElement('div');controls.className='account-report-filters';
+ const filterLabel=document.createElement('label');filterLabel.textContent='Filtrar por estado ';
+ const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar denuncias por estado');
+ for(const [value,label] of [['all','Todas'],['pending','Pendientes'],['reviewed','Revisadas'],['dismissed','Descartadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ filter.value=root.dataset.reportFilter||'all';filterLabel.append(filter);
+ const summary=document.createElement('span');summary.setAttribute('role','status');controls.append(filterLabel,summary);root.append(controls);
+ const rows=document.createElement('div');root.append(rows);
+ const draw=()=>{
+  root.dataset.reportFilter=filter.value;rows.replaceChildren();
+  const selected=data.filter(r=>filter.value==='all'||r.status===filter.value);
+  summary.textContent=selected.length+' de '+data.length+' denuncias';
+  if(!selected.length){rows.textContent='No hay denuncias con este estado.';return;}
+  for(const report of selected){
+   const row=document.createElement('article');row.className='account-report-row';
+   const title=document.createElement('strong');title.textContent=(report.reported_member_id?'Perfil':report.post_id?'Publicación':'Comentario')+' · '+(labels[report.status]||report.status);
+   const detail=document.createElement('small');detail.textContent='Motivo: '+(reasons[report.reason]||report.reason)+' · Enviada: '+new Date(report.created_at).toLocaleString('es-ES')+(report.reviewed_at?' · Revisada: '+new Date(report.reviewed_at).toLocaleString('es-ES'):'');
+   row.append(title,detail);
+   if(report.details){const description=document.createElement('p');description.textContent=report.details;row.append(description);}
+   rows.append(row);
+  }
+ };
+ filter.onchange=draw;draw();
 }
 
 let accountReportHistoryChannel=null;
