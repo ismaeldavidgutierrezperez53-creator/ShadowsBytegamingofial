@@ -26,3 +26,6 @@ button:focus-visible,.gradient-btn:focus-visible,a.gradient-btn:focus-visible{ou
 @media(hover:hover){:is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.social-post,.feature-card,.content-card,.post-card,.category-card,.card):hover{transform:translateY(-5px);border-color:#ae55ff;box-shadow:0 12px 32px rgba(121,27,205,.26),0 0 18px rgba(175,54,255,.14)}}
 :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.social-post,.feature-card,.content-card,.post-card,.category-card,.card):focus-within{border-color:#c27bff;box-shadow:0 0 0 2px rgba(193,111,255,.35)}
 @media(prefers-reduced-motion:reduce){:is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.social-post,.feature-card,.content-card,.post-card,.category-card,.card){transition:none!important;transform:none!important}}
+
+/* Section reveal on scroll */
+@media(prefers-reduced-motion:no-preference){.sb-reveal-pending{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s ease}.sb-reveal-pending.sb-reveal-visible{opacity:1;transform:translateY(0)}}
