@@ -182,6 +182,8 @@ refreshAccountActions();
 async function loadAccountFollows(userId,root){
  if(!root?.isConnected)return;
  root.innerHTML='<h3>👥 Seguidores y Siguiendo</h3><p>Consulta las personas que te siguen y las cuentas a las que sigues.</p>';
+ const searchLabel=document.createElement('label');searchLabel.htmlFor='account-follow-search';searchLabel.textContent='Buscar seguidores o miembros que sigues';
+ const search=document.createElement('input');search.type='search';search.id='account-follow-search';search.placeholder='Buscar por nombre o usuario…';search.autocomplete='off';root.append(searchLabel,search);
  const content=document.createElement('div');content.className='account-follows-content';content.textContent='Cargando miembros…';root.append(content);
  const [{data:followers,error:followersError},{data:following,error:followingError}]=await Promise.all([
   sb.from('member_follows').select('follower_id').eq('following_id',userId).order('created_at',{ascending:false}).limit(100),
@@ -196,20 +198,38 @@ async function loadAccountFollows(userId,root){
  if(profilesError){content.textContent='No se pudieron cargar los perfiles.';return;}
  const names=new Map((profiles||[]).map(p=>[p.id,p]));
  const sections=[{title:'Seguidores',ids:(followers||[]).map(x=>x.follower_id)},{title:'Siguiendo',ids:(following||[]).map(x=>x.following_id)}];
+ const lists=[];
  for(const section of sections){
   const area=document.createElement('section');area.className='account-follows-list';
   const title=document.createElement('h4');title.textContent=section.title+' ('+section.ids.length+')';area.append(title);
   if(!section.ids.length){const empty=document.createElement('p');empty.textContent=section.title==='Seguidores'?'Todavía no tienes seguidores.':'Todavía no sigues a nadie.';area.append(empty);}
   for(const id of section.ids){
-   const p=names.get(id);const row=document.createElement('div');row.className='account-follow-member';
+   const p=names.get(id);const row=document.createElement('div');row.className='account-follow-member';row.dataset.memberId=id;
    if(p?.avatar_url&&/^https:\/\//i.test(p.avatar_url)){const img=document.createElement('img');img.src=p.avatar_url;img.alt='';img.loading='lazy';row.append(img);}
    const name=document.createElement('span');name.textContent=p?.display_name||p?.username||'Miembro';row.append(name);
    if(p?.is_public){const link=document.createElement('a');link.href='#/perfil?id='+encodeURIComponent(id);link.className='outline-btn mini';link.textContent='Ver perfil';row.append(link);}
    else{const privateLabel=document.createElement('small');privateLabel.textContent='Perfil privado';row.append(privateLabel);}
    area.append(row);
   }
-  content.append(area);
+  content.append(area);lists.push({area,section});
  }
+ const normalize=value=>(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
+ search.addEventListener('input',()=>{
+  const term=normalize(search.value);
+  for(const {area,section} of lists){
+   let visible=0;
+   for(const row of area.querySelectorAll('.account-follow-member')){
+    const id=row.dataset.memberId;
+    const p=names.get(id);
+    const match=!term||normalize([p?.display_name,p?.username].filter(Boolean).join(' ')).includes(term);
+    row.hidden=!match;if(match)visible++;
+   }
+   let empty=area.querySelector('.account-follow-search-empty');
+   if(!empty){empty=document.createElement('p');empty.className='account-follow-search-empty';area.append(empty);}
+   empty.hidden=!term||visible>0||!section.ids.length;
+   empty.textContent='No hay coincidencias.';
+  }
+ });
 }
 async function loadAccountProfile(){
  const root=document.getElementById('account-profile');if(!root)return;
