@@ -273,3 +273,6 @@ body.member-lightbox-open{overflow:hidden}
 .account-follow-filter[aria-pressed="true"]{background:#7950aa;color:white;border-color:#b28cdb;font-weight:700}
 .account-follow-results{font-size:.9rem;opacity:.85;margin:4px 0 14px}
 .account-follows-list[hidden]{display:none!important}
+
+.message-unread-count{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#e53b83;color:white;font:700 11px Arial,sans-serif;vertical-align:middle}
+.message-unread-count[hidden]{display:none!important}
