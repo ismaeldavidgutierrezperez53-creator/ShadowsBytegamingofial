@@ -330,6 +330,8 @@ async function loadMemberGallery(memberId,root){
   const label=document.createElement('span');label.className='member-gallery-item-label';label.textContent=new Date(post.created_at).toLocaleDateString('es-ES');
   link.append(image,label);
   const tile=document.createElement('div');tile.className='member-gallery-tile';tile.append(link);
+  const likeBox=document.createElement('div');likeBox.className='member-gallery-like';tile.append(likeBox);
+  renderPostLikes(post.id,likeBox,galleryUser?.id||null);
   if(isOwner){
    const albumSelect=document.createElement('select');albumSelect.className='member-gallery-select';albumSelect.setAttribute('aria-label','Cambiar álbum de fotografía');
    for(const album of albumOptions.slice(1)){const option=document.createElement('option');option.value=album;option.textContent=album;albumSelect.append(option);}
