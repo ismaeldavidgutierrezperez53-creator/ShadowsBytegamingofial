@@ -218,7 +218,7 @@ async function adminLoadReports(){
       const {data:{user}}=await sb.auth.getUser();
       const {data:updated,error}=await sb.from('member_reports').update({status,reviewed_by:user?.id,reviewed_at:new Date().toISOString()}).eq('id',report.id).eq('status','pending').select('id');
       if(error||!updated?.length){adminMessage('No se pudo actualizar el reporte: '+(error?.message||'No disponible'),'error');btn.disabled=false;return;}
-      report.status=status;adminMessage('Reporte actualizado.','success');render();
+      report.status=status;adminMessage('Reporte actualizado.','success');render();adminUpdateReportAlerts();
      };actions.append(btn);
     }
     row.append(actions);
@@ -228,6 +228,60 @@ async function adminLoadReports(){
  };
  filter.onchange=render;render();
 }
+
+let adminReportsChannel=null;
+let adminReportsSeen=new Set();
+let adminReportsInitialized=false;
+function adminStopReportAlerts(){
+ if(adminReportsChannel){sb.removeChannel(adminReportsChannel);adminReportsChannel=null;}
+}
+async function adminUpdateReportAlerts(announce=false){
+ const badge=document.getElementById('admin-report-alert-count');
+ if(!badge)return;
+ const {data,error}=await sb.from('member_reports').select('id').eq('status','pending').order('created_at',{ascending:false}).limit(100);
+ if(error){badge.textContent='No se pudieron comprobar las denuncias';return;}
+ const ids=new Set((data||[]).map(x=>x.id));
+ const newlyReceived=[...ids].filter(id=>!adminReportsSeen.has(id));
+ badge.textContent=ids.size+' denuncia'+(ids.size===1?' pendiente':'s pendientes');
+ badge.classList.toggle('admin-alert-active',ids.size>0);
+ if(announce&&adminReportsInitialized&&newlyReceived.length){
+  const message=document.getElementById('admin-report-alert-message');
+  if(message)message.textContent='🔔 Nueva denuncia recibida. Revisa la sección Denuncias recibidas.';
+  if(document.visibilityState==='visible'&&'Notification' in window&&Notification.permission==='granted'){
+   new Notification('Shadows Byte Gaming · Nueva denuncia',{body:'Tienes '+newlyReceived.length+' denuncia(s) nueva(s) por revisar.'});
+  }
+  adminLoadReports();
+ }
+ adminReportsSeen=ids;adminReportsInitialized=true;
+}
+function adminInitReportAlerts(){
+ adminStopReportAlerts();adminReportsSeen=new Set();adminReportsInitialized=false;
+ const dashboard=document.querySelector('#admin-root .admin-dashboard');
+ if(!dashboard)return;
+ const box=document.createElement('section');box.className='admin-panel admin-report-alert-panel';
+ box.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">ALERTAS DE MODERACIÓN</span><h2>🔔 Notificaciones de denuncias</h2><p>Recibirás avisos en este panel cuando lleguen nuevas denuncias mientras esté abierto.</p></div><strong id="admin-report-alert-count" role="status" aria-live="polite">Comprobando…</strong></div><p id="admin-report-alert-message" role="status" aria-live="polite"></p><button type="button" class="admin-secondary" id="admin-browser-alerts">Activar avisos del navegador</button>';
+ const reports=document.getElementById('admin-reports-list')?.closest('.admin-panel');
+ if(reports)reports.before(box);else dashboard.append(box);
+ const button=document.getElementById('admin-browser-alerts');
+ if(!('Notification' in window)||!window.isSecureContext){button.hidden=true;}
+ else{
+  button.textContent=Notification.permission==='granted'?'Avisos del navegador activados':'Activar avisos del navegador';
+  button.disabled=Notification.permission==='granted'||Notification.permission==='denied';
+  button.onclick=async()=>{
+   const permission=await Notification.requestPermission();
+   button.textContent=permission==='granted'?'Avisos del navegador activados':'Permiso no concedido';
+   button.disabled=true;
+  };
+ }
+ adminUpdateReportAlerts(false);
+ adminReportsChannel=sb.channel('admin-new-member-reports')
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_reports'},()=>{
+   if(!document.getElementById('admin-report-alert-count')){adminStopReportAlerts();return;}
+   adminUpdateReportAlerts(true);
+  }).subscribe();
+}
+window.addEventListener('hashchange',()=>{if(location.hash.split('?')[0]!=='#/admin')adminStopReportAlerts();});
+
 function adminInitExtended(){
  const dashboard=document.querySelector('#admin-root .admin-dashboard');if(!dashboard)return;
  const overview=document.createElement('section');overview.className='admin-panel';
@@ -237,8 +291,8 @@ function adminInitExtended(){
  const moderation=document.createElement('section');moderation.className='admin-panel';moderation.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">MODERACIÓN</span><h2>Publicaciones y comentarios</h2><p>Revisa la actividad reciente y elimina contenido inapropiado.</p></div><select id="admin-moderation-type" aria-label="Tipo de contenido"><option value="all">Todo</option><option value="posts">Publicaciones</option><option value="comments">Comentarios</option></select></div><div id="admin-moderation-list"></div>';
  const reports=document.createElement('section');reports.className='admin-panel';reports.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">REPORTES DE LA COMUNIDAD</span><h2>Denuncias recibidas</h2><p>Revisa los reportes de publicaciones y comentarios. Marcar un reporte como revisado no elimina el contenido.</p></div><select id="admin-reports-filter" aria-label="Filtrar reportes"><option value="pending">Pendientes</option><option value="all">Todos</option><option value="reviewed">Revisados</option><option value="dismissed">Descartados</option></select></div><div id="admin-reports-list"></div>';
  dashboard.append(members,moderation,reports);
- document.getElementById('admin-refresh').onclick=()=>{adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();};
- adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();
+ document.getElementById('admin-refresh').onclick=()=>{adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();adminUpdateReportAlerts();};
+ adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();adminInitReportAlerts();
 }
 
 async function initAdmin(){
