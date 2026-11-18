@@ -786,6 +786,11 @@ async function loadPrivateMessages(){
  else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
  else {
   const heading=document.createElement('h2');heading.textContent=names.get(active)||'Miembro';
+  const searchWrap=document.createElement('div');searchWrap.className='private-chat-search';
+  const searchInput=document.createElement('input');searchInput.type='search';searchInput.placeholder='🔎 Buscar mensajes en esta conversación…';searchInput.setAttribute('aria-label','Buscar mensajes en esta conversación');
+  const searchClear=document.createElement('button');searchClear.type='button';searchClear.textContent='Limpiar';searchClear.hidden=true;
+  const searchCount=document.createElement('small');searchCount.setAttribute('role','status');searchCount.setAttribute('aria-live','polite');
+  searchWrap.append(searchInput,searchClear,searchCount);
   const history=document.createElement('div');history.className='messages-history';
   const conversation=items.filter(m=>(m.sender_id===me&&m.recipient_id===active)||(m.recipient_id===me&&m.sender_id===active)).reverse();
   if(!conversation.length){const hint=document.createElement('p');hint.textContent='Todavía no hay mensajes en esta conversación.';history.append(hint);}
@@ -867,7 +872,23 @@ async function loadPrivateMessages(){
    bubble.dataset.messageId=m.id;history.append(bubble);
   }
   const typingIndicator=document.createElement('p');typingIndicator.className='member-typing-indicator';typingIndicator.id='member-typing-indicator';typingIndicator.setAttribute('role','status');typingIndicator.setAttribute('aria-live','polite');
-  panel.append(heading,history,typingIndicator);
+  const filterMessages=()=>{
+   const query=searchInput.value.trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es');
+   let found=0;
+   for(const bubble of history.querySelectorAll('[data-message-id]')){
+    const message=conversationById.get(bubble.dataset.messageId);
+    const content=message&&!message.deleted_at?(message.body||''):'';
+    const normalized=content.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es');
+    const match=!query||normalized.includes(query);
+    bubble.hidden=!match;
+    if(match)found++;
+   }
+   searchCount.textContent=query?(found+' resultado'+(found===1?'':'s')+' en los '+conversation.length+' mensajes cargados'):'';
+   searchClear.hidden=!query;
+  };
+  searchInput.oninput=filterMessages;
+  searchClear.onclick=()=>{searchInput.value='';filterMessages();searchInput.focus();};
+  panel.append(heading,searchWrap,history,typingIndicator);
   subscribePrivateTyping(me,active,typingIndicator);
   if(publicIds.has(active)){
    const form=document.createElement('form');form.className='social-form messages-compose';
