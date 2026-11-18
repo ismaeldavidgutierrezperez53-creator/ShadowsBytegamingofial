@@ -267,3 +267,9 @@ body.member-lightbox-open{overflow:hidden}
 
 #account-follow-search{display:block;width:100%;max-width:480px;margin:8px 0 18px;padding:11px 13px;border:1px solid #ffffff45;border-radius:9px;background:#161326;color:#fff;font:inherit}
 .account-follow-member[hidden],.account-follow-search-empty[hidden]{display:none!important}
+
+.account-follow-filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.account-follow-filter{padding:8px 14px;border:1px solid #ffffff55;border-radius:999px;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.account-follow-filter[aria-pressed="true"]{background:#7950aa;color:white;border-color:#b28cdb;font-weight:700}
+.account-follow-results{font-size:.9rem;opacity:.85;margin:4px 0 14px}
+.account-follows-list[hidden]{display:none!important}
