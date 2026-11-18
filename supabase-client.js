@@ -89,8 +89,9 @@ async function refreshAccountActions() {
   return;
  }
  const admin=user.app_metadata?.role==='admin';
- actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
+ actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/notificaciones" id="notification-bell" class="notification-bell" aria-label="Notificaciones" title="Notificaciones">🔔<span id="notification-count" class="notification-count" hidden></span></a>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
  document.getElementById('account-logout').addEventListener('click',logout);
+ refreshNotificationBadge(user.id);
 }
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
 refreshAccountActions();
@@ -324,7 +325,22 @@ async function loadMemberNotifications(){
   const action=document.createElement('span');action.textContent=n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?' dio Me gusta a tu publicación.':' comentó tu publicación.';
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
   row.append(actor,action,date);
-  if(!n.is_read){const button=document.createElement('button');button.className='social-delete';button.textContent='Marcar como leída';button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id);if(error){button.textContent='Error al marcar';button.disabled=false;}else{row.classList.remove('unread');button.remove();}};row.append(button);}
+  if(!n.is_read){const button=document.createElement('button');button.className='social-delete';button.textContent='Marcar como leída';button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id);if(error){button.textContent='Error al marcar';button.disabled=false;}else{row.classList.remove('unread');button.remove();refreshNotificationBadge(user.id);}};row.append(button);}
   root.append(row);
  }
+ refreshNotificationBadge(user.id);
+}
+
+async function refreshNotificationBadge(expectedUserId){
+ const badge=document.getElementById('notification-count');
+ const bell=document.getElementById('notification-bell');
+ if(!badge||!bell)return;
+ const {count,error}=await sb.from('member_notifications').select('id',{count:'exact',head:true}).eq('is_read',false);
+ if(!badge.isConnected||!bell.isConnected)return;
+ if(error){badge.hidden=true;bell.title='Notificaciones';return;}
+ const total=count||0;
+ badge.hidden=total===0;
+ badge.textContent=total>99?'99+':String(total);
+ bell.setAttribute('aria-label',total?'Notificaciones: '+total+' sin leer':'Notificaciones: ninguna sin leer');
+ bell.title=total?total+' notificaciones sin leer':'Notificaciones';
 }
