@@ -794,7 +794,7 @@ async function loadPrivateMessages(){
    const text=document.createElement('p');text.textContent=m.body;
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
    bubble.append(text);
-   if(m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.onclick=()=>window.open(data.signedUrl,'_blank','noopener,noreferrer');}});}
+   if(m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen del chat');photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};}});}
    bubble.append(date);
    if(m.sender_id===me){const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);}
    history.append(bubble);
@@ -930,4 +930,15 @@ async function sendPrivateTyping(me,partner){
  const updated_at=new Date().toISOString();
  const {error}=await sb.from('member_typing_status').upsert({sender_id:me,recipient_id:partner,updated_at},{onConflict:'sender_id,recipient_id'});
  if(error)console.warn('Estado de escritura no disponible:',error.message);
+}
+
+function openPrivateChatLightbox(src){
+ const previous=document.activeElement;
+ const overlay=document.createElement('div');overlay.className='private-chat-lightbox';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Imagen ampliada del chat');
+ const image=document.createElement('img');image.src=src;image.alt='Imagen del chat ampliada';
+ const close=document.createElement('button');close.type='button';close.className='private-chat-lightbox-close';close.textContent='✕ Cerrar';close.setAttribute('aria-label','Cerrar imagen ampliada');
+ const dismiss=()=>{document.removeEventListener('keydown',onKey);overlay.remove();if(previous?.isConnected)previous.focus();};
+ const onKey=e=>{if(e.key==='Escape'){e.preventDefault();dismiss();}else if(e.key==='Tab'){e.preventDefault();close.focus();}};
+ close.onclick=dismiss;overlay.onclick=e=>{if(e.target===overlay)dismiss();};
+ overlay.append(image,close);document.body.append(overlay);document.addEventListener('keydown',onKey);close.focus();
 }
