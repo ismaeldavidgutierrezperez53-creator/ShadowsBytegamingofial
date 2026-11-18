@@ -290,6 +290,25 @@ async function loadMemberGallery(memberId,root){
  const {data:{user:galleryUser}}=await sb.auth.getUser();
  const isOwner=galleryUser?.id===memberId;
  const albumOptions=['Todos','Gaming','Anime','Capturas','Otros'];
+ const {data:coverRows, error:coverError}=await sb.from('member_album_covers').select('category,post_id').eq('owner_id',memberId);
+ const covers=new Map((coverRows||[]).map(row=>[row.category,row.post_id]));
+ const coverPanel=document.createElement('div');coverPanel.className='member-gallery-cover-grid';
+ const renderCovers=()=>{
+  coverPanel.replaceChildren();
+  for(const album of albumOptions.slice(1)){
+   const candidates=posts.filter(p=>p.image_path&&(p.gallery_category||'Otros')===album);
+   const featured=candidates.find(p=>p.id===covers.get(album))||candidates[0];
+   const card=document.createElement('button');card.type='button';card.className='member-gallery-cover-card';card.setAttribute('aria-label','Ver álbum '+album);
+   if(featured){const photo=document.createElement('img');photo.loading='lazy';photo.alt='Portada del álbum '+album;photo.src=sb.storage.from('community-images').getPublicUrl(featured.image_path).data.publicUrl;card.append(photo);}
+   else{const placeholder=document.createElement('span');placeholder.className='member-gallery-cover-placeholder';placeholder.textContent='🖼️';card.append(placeholder);}
+   const name=document.createElement('strong');name.textContent=album;const count=document.createElement('span');count.textContent=candidates.length+' fotos';card.append(name,count);
+   card.onclick=()=>{activeAlbum=album;refresh();tabs.scrollIntoView({behavior:'smooth',block:'nearest'});};
+   coverPanel.append(card);
+  }
+ };
+ if(coverError){const note=document.createElement('p');note.className='member-gallery-empty';note.textContent='Las portadas personalizadas no están disponibles por el momento.';root.append(note);}
+ root.append(coverPanel);
+
  const tabs=document.createElement('div');tabs.className='member-gallery-albums';tabs.setAttribute('aria-label','Filtrar álbum');
  let activeAlbum='Todos';
  const grid=document.createElement('div');grid.className='member-gallery-grid';
@@ -298,6 +317,7 @@ async function loadMemberGallery(memberId,root){
   grid.replaceChildren();
   for(const post of filtered)buildTile(post,filtered);
   if(!filtered.length){const empty=document.createElement('p');empty.className='member-gallery-empty';empty.textContent='Este álbum todavía no tiene fotografías.';grid.append(empty);}
+  renderCovers();
   for(const button of tabs.children){const selected=button.dataset.album===activeAlbum;button.classList.toggle('is-active',selected);button.setAttribute('aria-pressed',String(selected));}
  };
  for(const album of albumOptions){const button=document.createElement('button');button.type='button';button.className='member-gallery-album';button.dataset.album=album;button.textContent=album+' ('+(album==='Todos'?posts.length:posts.filter(p=>(p.gallery_category||'Otros')===album).length)+')';button.onclick=()=>{activeAlbum=album;refresh();};tabs.append(button);}
@@ -316,6 +336,17 @@ async function loadMemberGallery(memberId,root){
    albumSelect.value=post.gallery_category||'Otros';
    albumSelect.onchange=async()=>{albumSelect.disabled=true;const {error}=await sb.from('member_posts').update({gallery_category:albumSelect.value}).eq('id',post.id).eq('author_id',memberId);if(error){alert('No se pudo cambiar el álbum: '+error.message);albumSelect.disabled=false;}else await loadMemberGallery(memberId,root);};
    tile.append(albumSelect);
+   const setCover=document.createElement('button');setCover.type='button';setCover.className='member-gallery-set-cover';
+   const album=post.gallery_category||'Otros';
+   setCover.textContent=covers.get(album)===post.id?'★ Portada actual':'☆ Usar como portada';
+   setCover.disabled=covers.get(album)===post.id;
+   setCover.onclick=async()=>{
+    setCover.disabled=true;
+    const {error}=await sb.from('member_album_covers').upsert({owner_id:memberId,category:album,post_id:post.id},{onConflict:'owner_id,category'});
+    if(error){alert('No se pudo establecer la portada: '+error.message);setCover.disabled=false;return;}
+    covers.set(album,post.id);refresh();
+   };
+   tile.append(setCover);
    const remove=document.createElement('button');remove.type='button';remove.className='member-gallery-delete';remove.textContent='🗑️ Eliminar';remove.setAttribute('aria-label','Eliminar fotografía y publicación');
    remove.addEventListener('click',async()=>{
     if(!confirm('¿Eliminar esta fotografía? También se eliminará su publicación y los comentarios. Esta acción no se puede deshacer.'))return;
