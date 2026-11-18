@@ -15,7 +15,7 @@ async function refreshWhatsAppButton(){
   if(error)throw error;
   const match=data?.url?.match(/^https:\/\/wa\.me\/([1-9]\d{7,14})$/);
   whatsappButton.hidden=!match;
-  if(match)whatsappButton.href='https://wa.me/'+match[1];
+  if(match)whatsappButton.href='https://wa.me/'+match[1]+'?text='+encodeURIComponent('Hola, vengo de Shadows Byte Gaming Official');
   else whatsappButton.removeAttribute('href');
  }catch(error){whatsappButton.hidden=true;console.warn('WhatsApp no disponible:',error.message)}
 }
