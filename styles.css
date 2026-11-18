@@ -68,3 +68,20 @@
 .profile-setting-link:hover{border-color:#b157f2}.profile-signout{margin-top:20px;background:transparent;border:1px solid #a14b66;border-radius:10px;padding:11px 16px;color:#ffb3c8;font:inherit;cursor:pointer}
 #profile-message{min-height:1em;color:#9ee9ca}
 @media(max-width:760px){.profile-grid{grid-template-columns:1fr}.profile-body{padding:0 17px 20px}.profile-cover{height:145px}.profile-identity{align-items:center;gap:12px}.profile-avatar{width:86px;height:86px;font-size:33px}.profile-panel{padding:18px}}
+
+/* Community directory and profile visibility */
+.members-toolbar{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:30px 0}
+.members-toolbar label{border:1px solid #443453;border-radius:10px;padding:11px 15px;background:#151020}
+.members-toolbar input{background:transparent;border:0;color:#fff;outline:none;font:inherit}
+.members-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+.members-grid>.admin-empty{grid-column:1/-1}
+.member-card{border:1px solid #3e3051;background:linear-gradient(155deg,#221333,#100d1c);border-radius:18px;padding:26px;text-align:center;overflow-wrap:anywhere}
+.member-avatar{height:84px;width:84px;margin:0 auto 15px;border-radius:23px;display:grid;place-items:center;background:linear-gradient(135deg,#a448e8,#0baef0);font:700 32px Orbitron,sans-serif;overflow:hidden}
+.member-avatar img{width:100%;height:100%;object-fit:cover}.member-card h2{margin:0 0 9px;font-size:23px}.member-card p{color:#b7adc7;margin:0}
+.profile-public-settings{border-top:1px solid #40334d;margin-top:20px;padding-top:8px}
+.profile-public-settings textarea{width:100%;background:#0c0915;border:1px solid #4a3a5f;border-radius:10px;color:#fff;padding:12px;font:inherit;resize:vertical;margin-top:8px}
+.profile-public-settings .profile-checkbox{display:flex;align-items:center;gap:10px;font-weight:600}
+.profile-public-settings .profile-checkbox input{width:18px;height:18px;margin:0;accent-color:#a34fe8}
+.profile-privacy{font-size:14px;color:#a99fba}
+.admin-quicklinks{display:flex;flex-wrap:wrap;gap:10px}.admin-quicklinks a{padding:11px 15px;background:#1a1428;border:1px solid #423152;border-radius:10px;text-decoration:none;color:#e9ddf7;font-weight:700}.admin-quicklinks a:hover{border-color:#a04aff}
+@media(max-width:600px){.members-toolbar{align-items:stretch;flex-direction:column}.members-toolbar input{max-width:80vw}.admin-quicklinks a{flex:1;text-align:center}}
