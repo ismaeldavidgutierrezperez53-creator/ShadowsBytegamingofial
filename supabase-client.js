@@ -98,6 +98,7 @@ async function refreshAccountActions() {
  if(error)console.warn('No se pudo comprobar la sesión:',error.message);
  const user=session?.user;
  syncNotificationRealtime(user?.id||null);
+ syncPrivateMessageRealtime(user?.id||null);
  const hero=document.getElementById('hero-account-actions');
  if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/cuenta">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
  const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
@@ -106,10 +107,11 @@ async function refreshAccountActions() {
   return;
  }
  const admin=user.app_metadata?.role==='admin';
- actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/mensajes" class="messages-header-link">💬 Mensajes</a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-mark-all">Marcar todas como leídas</button><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
+ actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/mensajes" class="messages-header-link">💬 Mensajes <span id="message-unread-count" class="message-unread-count" hidden></span></a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-mark-all">Marcar todas como leídas</button><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
  document.getElementById('account-logout').addEventListener('click',logout);
  setupNotificationPopover(user.id);
  refreshNotificationBadge(user.id);
+ refreshPrivateMessageBadge(user.id);
 }
 async function markAllMemberNotifications(userId,button){
  if(!userId||!button||button.disabled)return;
@@ -736,7 +738,8 @@ async function refreshNotificationBadge(expectedUserId){
  const {count,error}=await sb.from('member_notifications').select('id',{count:'exact',head:true}).eq('is_read',false);
  if(!badge.isConnected||!bell.isConnected)return;
  if(error){badge.hidden=true;bell.title='Notificaciones';return;}
- const total=count||0;
+ const {count:messageCount}=await sb.from('member_direct_messages').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false);
+ const total=(count||0)+(messageCount||0);
  badge.hidden=total===0;
  badge.textContent=total>99?'99+':String(total);
  bell.setAttribute('aria-label',total?'Notificaciones: '+total+' sin leer':'Notificaciones: ninguna sin leer');
@@ -752,10 +755,12 @@ async function loadPrivateMessages(){
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
- const {data:messages,error}=await sb.from('member_direct_messages').select('id,sender_id,recipient_id,body,created_at').order('created_at',{ascending:false}).limit(300);
+ const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read').order('created_at',{ascending:false}).limit(300);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
+ const unreadIds=items.filter(m=>m.recipient_id===me&&!m.is_read).map(m=>m.id);
+ if(unreadIds.length){await sb.from('member_direct_messages').update({is_read:true}).eq('recipient_id',me).in('id',unreadIds);refreshPrivateMessageBadge(me);refreshNotificationBadge(me);}
  const ids=[...new Set(items.flatMap(m=>[m.sender_id,m.recipient_id]).filter(id=>id!==me))];
  if(validId(requested)&&requested!==me&&!ids.includes(requested))ids.push(requested);
  const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username,is_public').in('id',ids):{data:[]};
@@ -772,7 +777,8 @@ async function loadPrivateMessages(){
  for(const id of partners){
   const link=document.createElement('a');link.href='#/mensajes?id='+encodeURIComponent(id);
   link.className='messages-partner'+(id===active?' selected':'');
-  link.textContent=names.get(id)||'Miembro';sidebar.append(link);
+  const unread=items.filter(m=>m.sender_id===id&&m.recipient_id===me&&!m.is_read).length;
+  link.textContent=(names.get(id)||'Miembro')+(unread?' · '+unread+' nuevo(s)':'');sidebar.append(link);
  }
  const panel=document.createElement('section');panel.className='messages-panel';
  if(!active){panel.textContent='Selecciona un miembro desde su perfil para comenzar.';}
@@ -800,4 +806,30 @@ async function loadPrivateMessages(){
   }else{const p=document.createElement('p');p.textContent='Este miembro ya no tiene un perfil público; no puedes enviarle nuevos mensajes.';panel.append(p);}
  }
  wrapper.append(sidebar,panel);root.append(wrapper);
+}
+
+let privateMessageRealtimeChannel=null;
+let privateMessageRealtimeUserId=null;
+function syncPrivateMessageRealtime(userId){
+ if(privateMessageRealtimeUserId===userId&&privateMessageRealtimeChannel)return;
+ if(privateMessageRealtimeChannel){sb.removeChannel(privateMessageRealtimeChannel);privateMessageRealtimeChannel=null;}
+ privateMessageRealtimeUserId=userId||null;
+ if(!userId)return;
+ privateMessageRealtimeChannel=sb.channel('direct-message-alerts-'+userId)
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
+   refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
+   if(document.getElementById('private-messages'))loadPrivateMessages();
+  })
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
+   refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
+  }).subscribe();
+}
+async function refreshPrivateMessageBadge(userId){
+ const badge=document.getElementById('message-unread-count');
+ if(!badge||!userId)return;
+ const {count,error}=await sb.from('member_direct_messages').select('id',{count:'exact',head:true}).eq('recipient_id',userId).eq('is_read',false);
+ if(!badge.isConnected)return;
+ if(error){badge.hidden=true;return;}
+ badge.hidden=!count;
+ badge.textContent=count>99?'99+':String(count||0);
 }
