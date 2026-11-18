@@ -138,3 +138,12 @@
 .account-community-social .social-comment-form .outline-btn{background:#281b3b;border-color:#8052a5;border-radius:10px}
 @media(max-width:760px){.account-community-panel{padding:18px}.account-community-panel>h3{font-size:19px}.account-community-links{flex-direction:column}.account-community-links .outline-btn{width:100%}.account-community-social>.social-form:not(.social-comment-form){padding:16px}.account-community-social>.social-post{padding:16px}.account-community-social .social-post-body{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.account-community-panel *{transition:none!important}.account-community-social>.social-post:hover{transform:none}}
+
+
+/* Imágenes en publicaciones de la comunidad */
+.social-image-input{display:block;width:100%;max-width:100%;font:inherit;font-size:15px;color:#d9c7ee;background:#120f22;border:1px dashed #8253ad;border-radius:12px;padding:12px;cursor:pointer}
+.social-image-input::file-selector-button{background:#462965;color:#fff;border:1px solid #8c57b7;border-radius:8px;padding:8px 12px;margin-right:12px;cursor:pointer;font:inherit}
+.social-image-preview,.social-post-image{display:block;width:100%;max-height:460px;object-fit:contain;background:#0b0917;border:1px solid #4b365e;border-radius:14px;margin:12px 0}
+.social-image-preview[hidden]{display:none}
+.social-image-preview{max-height:260px}
+.social-post-image{margin:18px 0}
