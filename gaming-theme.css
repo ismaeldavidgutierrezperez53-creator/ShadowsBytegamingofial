@@ -1,0 +1,4 @@
+/* Fondo gaming de Shadows Byte Gaming Official */
+html{background-color:#07030d!important}
+body{background-image:linear-gradient(rgba(6,3,13,.38),rgba(6,3,13,.62)),url("./gaming-background.svg")!important;background-color:#07030d!important;background-position:center top!important;background-size:cover!important;background-repeat:no-repeat!important;background-attachment:fixed!important;color:#f5efff}
+@media(max-width:768px){body{background-attachment:scroll!important;background-size:auto 100%!important}}
