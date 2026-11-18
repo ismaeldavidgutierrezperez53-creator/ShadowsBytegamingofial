@@ -147,13 +147,14 @@ async function loadNotificationPreview(userId){
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
  const photos=new Set((posts||[]).filter(p=>p.image_path).map(p=>p.id));
  for(const n of data){
-  const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');
+  const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');if(n.kind==='follow')item.dataset.followActor=n.actor_id;
   const message=document.createElement('p');const photo=photos.has(n.post_id);
   message.textContent=(names.get(n.actor_id)||'Un miembro')+(n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');item.append(message,date);
   if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
   root.append(item);
  }
+ await appendFollowBackActions(root,data,userId);
 }
 let notificationRealtimeChannel=null;
 let notificationRealtimeUserId=null;
@@ -598,6 +599,28 @@ async function loadCommunityFeed(){
  }
  if(!root.children.length)root.textContent='Todavía no hay publicaciones públicas.';
 }
+async function appendFollowBackActions(root,notifications,userId){
+ const actors=[...new Set(notifications.filter(n=>n.kind==='follow'&&n.actor_id&&n.actor_id!==userId).map(n=>n.actor_id))];
+ if(!actors.length)return;
+ const {data:following,error}=await sb.from('member_follows').select('following_id').eq('follower_id',userId).in('following_id',actors);
+ if(error||!root.isConnected)return;
+ const followed=new Set((following||[]).map(f=>f.following_id));
+ for(const node of root.querySelectorAll('[data-follow-actor]')){
+  const actor=node.dataset.followActor;if(!actors.includes(actor))continue;
+  const btn=document.createElement('button');btn.type='button';btn.className='notification-follow-back';
+  const setLabel=()=>{btn.textContent=followed.has(actor)?'✓ Siguiendo':'➕ Seguir de vuelta';};
+  setLabel();
+  btn.onclick=async()=>{
+   btn.disabled=true;
+   const already=followed.has(actor);
+   const {error:followError}=already?await sb.from('member_follows').delete().eq('follower_id',userId).eq('following_id',actor):await sb.from('member_follows').insert({follower_id:userId,following_id:actor});
+   if(followError){btn.textContent='No se pudo actualizar';btn.disabled=false;return;}
+   if(already)followed.delete(actor);else followed.add(actor);
+   setLabel();btn.disabled=false;
+  };
+  node.append(btn);
+ }
+}
 function notificationDestination(n){return n.post_id?'#/cuenta?post='+encodeURIComponent(n.post_id):(n.actor_id?'#/perfil?id='+encodeURIComponent(n.actor_id):'#/notificaciones');}
 function focusNotificationPost(root,id){if(!id||!root?.isConnected)return;const el=[...root.querySelectorAll('[data-post-id]')].find(x=>x.dataset.postId===id);if(el){el.classList.add('notification-target-post');el.scrollIntoView({behavior:'smooth',block:'center'});}}
 async function loadMemberNotifications(){
@@ -618,7 +641,7 @@ async function loadMemberNotifications(){
  const {data:profiles}=await sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true);
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
  for(const n of data){
-  const row=document.createElement('article');row.className='notification-item'+(n.is_read?'':' unread');
+  const row=document.createElement('article');row.className='notification-item'+(n.is_read?'':' unread');if(n.kind==='follow')row.dataset.followActor=n.actor_id;
   const actor=document.createElement('span');actor.textContent=names.get(n.actor_id)||'Un miembro';
   const action=document.createElement('span');const photo=photoPostIds.has(n.post_id);action.textContent=n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.');
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
@@ -627,6 +650,7 @@ async function loadMemberNotifications(){
   if(!n.is_read){const button=document.createElement('button');button.className='social-delete';button.textContent='Marcar como leída';button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id);if(error){button.textContent='Error al marcar';button.disabled=false;}else{row.classList.remove('unread');button.remove();refreshNotificationBadge(user.id);}};row.append(button);}
   root.append(row);
  }
+ await appendFollowBackActions(root,data,user.id);
  refreshNotificationBadge(user.id);
 }
 
