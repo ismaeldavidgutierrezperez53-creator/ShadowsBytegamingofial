@@ -20,3 +20,9 @@ button:active,.gradient-btn:active,a.gradient-btn:active{box-shadow:0 0 0 2px rg
 button:focus-visible,.gradient-btn:focus-visible,a.gradient-btn:focus-visible{outline:2px solid #e7a3ff;outline-offset:3px;box-shadow:0 0 18px rgba(174,47,255,.55)}
 @media(hover:hover){button:hover,.gradient-btn:hover,a.gradient-btn:hover{box-shadow:0 0 17px rgba(164,46,255,.38)}}
 @media(prefers-reduced-motion:reduce){button,.gradient-btn,a.gradient-btn{transition:none!important}}
+
+/* Futuristic card animations: news, anime, manga, gaming, community */
+:is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.social-post,.feature-card,.content-card,.post-card,.category-card,.card){transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;transform:translateZ(0)}
+@media(hover:hover){:is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.social-post,.feature-card,.content-card,.post-card,.category-card,.card):hover{transform:translateY(-5px);border-color:#ae55ff;box-shadow:0 12px 32px rgba(121,27,205,.26),0 0 18px rgba(175,54,255,.14)}}
+:is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.social-post,.feature-card,.content-card,.post-card,.category-card,.card):focus-within{border-color:#c27bff;box-shadow:0 0 0 2px rgba(193,111,255,.35)}
+@media(prefers-reduced-motion:reduce){:is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.social-post,.feature-card,.content-card,.post-card,.category-card,.card){transition:none!important;transform:none!important}}
