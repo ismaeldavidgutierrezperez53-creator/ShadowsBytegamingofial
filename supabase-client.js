@@ -106,9 +106,42 @@ async function refreshAccountActions() {
   return;
  }
  const admin=user.app_metadata?.role==='admin';
- actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/notificaciones" id="notification-bell" class="notification-bell" aria-label="Notificaciones" title="Notificaciones">🔔<span id="notification-count" class="notification-count" hidden></span></a>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
+ actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
  document.getElementById('account-logout').addEventListener('click',logout);
+ setupNotificationPopover(user.id);
  refreshNotificationBadge(user.id);
+}
+let notificationPopoverOutside=null;
+function setupNotificationPopover(userId){
+ const bell=document.getElementById('notification-bell'),panel=document.getElementById('notification-popover');
+ if(!bell||!panel)return;
+ if(notificationPopoverOutside)document.removeEventListener('click',notificationPopoverOutside);
+ const close=()=>{panel.hidden=true;bell.setAttribute('aria-expanded','false');};
+ bell.onclick=()=>{panel.hidden=!panel.hidden;bell.setAttribute('aria-expanded',String(!panel.hidden));if(!panel.hidden)loadNotificationPreview(userId);};
+ document.getElementById('notification-close').onclick=close;
+ panel.querySelector('a').onclick=close;
+ notificationPopoverOutside=e=>{if(!bell.parentElement.contains(e.target))close();};
+ document.addEventListener('click',notificationPopoverOutside);
+}
+async function loadNotificationPreview(userId){
+ const root=document.getElementById('notification-preview');if(!root||!userId)return;
+ const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
+ if(!root.isConnected)return;root.replaceChildren();
+ if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
+ if(!data?.length){root.textContent='Todavía no tienes notificaciones.';return;}
+ const ids=[...new Set(data.map(n=>n.actor_id))],postIds=[...new Set(data.map(n=>n.post_id).filter(Boolean))];
+ const [{data:profiles},{data:posts}]=await Promise.all([sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true),postIds.length?sb.from('member_posts').select('id,image_path').in('id',postIds):Promise.resolve({data:[]})]);
+ if(!root.isConnected)return;
+ const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
+ const photos=new Set((posts||[]).filter(p=>p.image_path).map(p=>p.id));
+ for(const n of data){
+  const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');
+  const message=document.createElement('p');const photo=photos.has(n.post_id);
+  message.textContent=(names.get(n.actor_id)||'Un miembro')+(n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
+  const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');item.append(message,date);
+  if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
+  root.append(item);
+ }
 }
 let notificationRealtimeChannel=null;
 let notificationRealtimeUserId=null;
@@ -120,10 +153,12 @@ function syncNotificationRealtime(userId){
  notificationRealtimeChannel=sb.channel('member-notifications-'+userId)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+userId},()=>{
    refreshNotificationBadge(userId);
+   if(document.getElementById('notification-popover')?.hidden===false)loadNotificationPreview(userId);
    if(document.getElementById('member-notifications'))loadMemberNotifications();
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+userId},()=>{
    refreshNotificationBadge(userId);
+   if(document.getElementById('notification-popover')?.hidden===false)loadNotificationPreview(userId);
    if(document.getElementById('member-notifications'))loadMemberNotifications();
   })
   .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('No se pudo conectar el canal de notificaciones en tiempo real.');});
