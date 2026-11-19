@@ -30,3 +30,15 @@ html[data-sb-theme="light"] :is(.news-card,.anime-card,.manga-card,.gaming-card,
 html[data-sb-theme="light"] .sb-customize-panel{background:#faf2ff;color:#27133e;border-color:#8454bb}
 html[data-sb-theme="light"] .sb-customize-panel select{background:#fff;color:#27133e}
 html[data-sb-theme="light"] .sb-customize-panel button{background:#61338f;color:white}
+
+html[data-sb-bg="aurora"] body{background-image:linear-gradient(#08081966,#08081966),url("./anime-aurora-scene.svg")!important;background-size:cover!important;background-position:center center!important;background-attachment:fixed!important}
+
+html[data-sb-bg="ember"] body{background-image:linear-gradient(#08081966,#08081966),url("./anime-ember-scene.svg")!important;background-size:cover!important;background-position:center center!important;background-attachment:fixed!important}
+
+html[data-sb-bg="celestial"] body{background-image:linear-gradient(#08081966,#08081966),url("./anime-celestial-scene.svg")!important;background-size:cover!important;background-position:center center!important;background-attachment:fixed!important}
+
+html[data-sb-bg="legend"] body{background-image:linear-gradient(#08081966,#08081966),url("./anime-legend-scene.svg")!important;background-size:cover!important;background-position:center center!important;background-attachment:fixed!important}
+
+html[data-sb-bg="aurora"] .sb-anime-sparkle,html[data-sb-bg="celestial"] .sb-anime-sparkle{filter:drop-shadow(0 0 8px #4dffd5)}
+html[data-sb-bg="ember"] .sb-anime-sparkle,html[data-sb-bg="legend"] .sb-anime-sparkle{filter:drop-shadow(0 0 9px #ff6d96)}
+.sb-exclusive-info{font-size:13px;margin-top:12px;line-height:1.4}.sb-exclusive-info button{margin:5px 5px 5px 0}.sb-exclusive-info button:disabled{opacity:.55;cursor:not-allowed}
