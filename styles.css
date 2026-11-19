@@ -577,3 +577,11 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 #account-notification-settings .notification-quick-mute{display:flex!important;visibility:visible!important;flex-wrap:wrap;gap:9px}
 #account-notification-settings .notification-quick-mute>button{display:inline-flex!important;visibility:visible!important;align-items:center;justify-content:center;opacity:1}
 @media(max-width:540px){#account-notification-settings .notification-quick-mute{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+
+/* Direct No molestar page: keep quick actions prominently visible on all screens */
+.quiet-mode-page #quick-dnd-panel{display:block;width:100%;max-width:900px;margin-inline:auto}
+.quiet-mode-page #quick-dnd-panel>.account-notification-preferences{display:block;width:100%;box-sizing:border-box;margin:0 0 24px}
+.quiet-mode-page .notification-quiet-settings{display:grid!important;visibility:visible!important;opacity:1!important}
+.quiet-mode-page .notification-quick-mute{display:flex!important;flex-wrap:wrap;gap:10px}
+.quiet-mode-page .notification-quick-mute [data-dnd-minutes]{font-weight:700;min-height:44px}
+@media(max-width:560px){.quiet-mode-page .notification-quick-mute{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))}}
