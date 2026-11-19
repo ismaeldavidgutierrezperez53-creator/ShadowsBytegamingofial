@@ -976,44 +976,70 @@ function focusNotificationPost(root,id){if(!id||!root?.isConnected)return;const 
 async function loadMemberNotifications(){
  const root=document.getElementById('member-notifications');if(!root)return;
  const {data:{user}}=await sb.auth.getUser();
- if(!root.isConnected)return;
- root.replaceChildren();
+ if(!root.isConnected)return;root.replaceChildren();
  if(!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para ver tus notificaciones';root.append(link);return;}
- const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,created_at,is_read').order('created_at',{ascending:false}).limit(50);
+ const [communityResult,reportsResult,messagesResult]=await Promise.all([
+  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,created_at,is_read').eq('recipient_id',user.id).is('dismissed_at',null).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_report_notifications').select('id,status,created_at,is_read').eq('recipient_id',user.id).is('dismissed_at',null).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100)
+ ]);
  if(!root.isConnected)return;
- if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
- if(!(data||[]).length){root.textContent='Todavía no tienes notificaciones.';return;}
- const markAll=document.createElement('button');markAll.type='button';markAll.className='gradient-btn mini';markAll.textContent='Marcar todas como leídas';markAll.disabled=!data.some(n=>!n.is_read);markAll.onclick=()=>markAllMemberNotifications(user.id,markAll);root.append(markAll);
- const postIds=[...new Set(data.map(n=>n.post_id).filter(Boolean))];
- const {data:relatedPosts}=postIds.length?await sb.from('member_posts').select('id,image_path').in('id',postIds):{data:[]};
- const photoPostIds=new Set((relatedPosts||[]).filter(p=>p.image_path).map(p=>p.id));
- const ids=[...new Set(data.map(n=>n.actor_id))];
- const {data:profiles}=await sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true);
- const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Un miembro']));
- const giftNames=await shopGiftNotificationNames(data||[]);
- for(const n of data){
-  const row=document.createElement('article');row.className='notification-item'+(n.is_read?'':' unread');if(n.kind==='follow')row.dataset.followActor=n.actor_id;
-  const actor=document.createElement('span');actor.textContent=names.get(n.actor_id)||'Un miembro';
-  const action=document.createElement('span');const photo=photoPostIds.has(n.post_id);action.textContent=n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.');
-  const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
-  row.append(actor,action,date);
-  const jump=document.createElement('a');jump.href=notificationDestination(n);jump.textContent=n.kind==='gift'?'🎁 Ver regalo y equipar':n.post_id?'Ver publicación':'Ver perfil';jump.className='notification-jump';row.append(jump);
-  if(!n.is_read){const button=document.createElement('button');button.className='social-delete';button.textContent='Marcar como leída';button.onclick=async()=>{button.disabled=true;const {error}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id);if(error){button.textContent='Error al marcar';button.disabled=false;}else{row.classList.remove('unread');button.remove();refreshNotificationBadge(user.id);}};row.append(button);}
-  root.append(row);
- }
- await appendFollowBackActions(root,data,user.id);
- refreshNotificationBadge(user.id);
+ if(communityResult.error||reportsResult.error||messagesResult.error){root.textContent='No se pudieron cargar todas las notificaciones. Inténtalo de nuevo.';return;}
+ const community=communityResult.data||[],reports=reportsResult.data||[],messages=messagesResult.data||[];
+ const ids=[...new Set([...community.map(x=>x.actor_id),...messages.map(x=>x.sender_id)].filter(Boolean))];
+ const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username').in('id',ids):{data:[]};
+ const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+ const items=[
+  ...community.map(n=>({...n,category:'community',title:(names.get(n.actor_id)||'Un miembro')+(n.kind==='gift'?' te envió un regalo.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?' dio Me gusta a tu publicación.':' comentó tu publicación.'),href:notificationDestination(n),table:'member_notifications'})),
+  ...reports.map(n=>({...n,category:'reports',title:'Tu denuncia fue '+(n.status==='reviewed'?'revisada.':'descartada.'),href:'#/cuenta',table:'member_report_notifications'})),
+  ...messages.map(n=>({...n,category:'messages',title:'Mensaje privado de '+(names.get(n.sender_id)||'un miembro'),href:'#/mensajes?id='+encodeURIComponent(n.sender_id),table:null}))
+ ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+ const heading=document.createElement('h2');heading.textContent='🔔 Centro de notificaciones';root.append(heading);
+ const controls=document.createElement('div');controls.className='notification-center-controls';
+ const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar notificaciones');
+ for(const [value,label] of [['all','Todas'],['community','Comunidad'],['messages','Mensajes privados'],['reports','Denuncias'],['unread','Sin leer']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ const summary=document.createElement('span');summary.setAttribute('role','status');
+ const markAll=document.createElement('button');markAll.type='button';markAll.className='outline-btn mini';markAll.textContent='Marcar avisos como leídos';
+ controls.append(filter,markAll,summary);root.append(controls);
+ const list=document.createElement('div');root.append(list);
+ const draw=()=>{
+  list.replaceChildren();
+  const visible=items.filter(n=>filter.value==='all'||(filter.value==='unread'?!n.is_read:n.category===filter.value));
+  summary.textContent=visible.length+' notificaciones';
+  markAll.disabled=!items.some(n=>!n.is_read&&n.table);
+  if(!visible.length){list.textContent='No hay notificaciones en esta categoría.';return;}
+  for(const n of visible){
+   const row=document.createElement('article');row.className='notification-item notification-center-item'+(n.is_read?'':' unread');
+   const title=document.createElement('strong');title.textContent=n.title;
+   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
+   const link=document.createElement('a');link.href=n.href;link.className='notification-jump';link.textContent='Ver';
+   row.append(title,date,link);
+   if(n.table){
+    if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.className='outline-btn mini';mark.textContent='Marcar leída';mark.onclick=async()=>{mark.disabled=true;const {error}=await sb.from(n.table).update({is_read:true}).eq('id',n.id).eq('recipient_id',user.id);if(error){mark.disabled=false;return;}n.is_read=true;draw();refreshNotificationBadge(user.id);};row.append(mark);}
+    const hide=document.createElement('button');hide.type='button';hide.className='outline-btn mini';hide.textContent='Ocultar aviso';hide.onclick=async()=>{hide.disabled=true;const {error}=await sb.from(n.table).update({dismissed_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',user.id);if(error){hide.disabled=false;return;}items.splice(items.indexOf(n),1);draw();refreshNotificationBadge(user.id);};row.append(hide);
+   }
+   list.append(row);
+  }
+ };
+ markAll.onclick=async()=>{
+  markAll.disabled=true;
+  const results=await Promise.all(['member_notifications','member_report_notifications'].map(table=>sb.from(table).update({is_read:true}).eq('recipient_id',user.id).eq('is_read',false).is('dismissed_at',null)));
+  if(results.some(x=>x.error)){summary.textContent='No se pudieron marcar todos los avisos.';markAll.disabled=false;return;}
+  for(const n of items)if(n.table)n.is_read=true;
+  draw();refreshNotificationBadge(user.id);
+ };
+ filter.onchange=draw;draw();
 }
 
 async function refreshNotificationBadge(expectedUserId){
  const badge=document.getElementById('notification-count');
  const bell=document.getElementById('notification-bell');
  if(!badge||!bell)return;
- const {count,error}=await sb.from('member_notifications').select('id',{count:'exact',head:true}).eq('is_read',false);
+ const {count,error}=await sb.from('member_notifications').select('id',{count:'exact',head:true}).eq('is_read',false).is('dismissed_at',null);
  if(!badge.isConnected||!bell.isConnected)return;
  if(error){console.warn('No se pudieron cargar las notificaciones:',error.message);return;}
  const {count:messageCount}=await sb.from('member_direct_messages').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false);
- const {count:reportCount,error:reportError}=await sb.from('member_report_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false);
+ const {count:reportCount,error:reportError}=await sb.from('member_report_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false).is('dismissed_at',null);
  if(!badge.isConnected||!bell.isConnected)return;
  const total=(count||0)+(messageCount||0)+(reportError?0:(reportCount||0));
  badge.hidden=total===0;
