@@ -425,6 +425,39 @@ function initAccountReportStatuses(userId,root){
   .subscribe();
 }
 
+async function initSecurityPrivacyCenter(userId,root){
+ if(!root)return;
+ const center=document.createElement('section');center.className='profile-panel security-center';center.id='security-privacy-center';
+ const title=document.createElement('h3');title.textContent='🔐 Centro de seguridad y privacidad';
+ const description=document.createElement('p');description.textContent='Gestiona tus bloqueos, denuncias, privacidad y preferencias de avisos desde un solo lugar.';
+ const nav=document.createElement('div');nav.className='security-center-links';
+ for(const [label,target] of [['🚫 Miembros bloqueados','#account-blocked-members'],['🛡 Mis denuncias','#account-report-statuses'],['🔔 Avisos de denuncias','#account-report-history'],['🔒 Privacidad de mi perfil','#profile-public']]){
+  const button=document.createElement('button');button.type='button';button.className='outline-btn mini';button.textContent=label;
+  button.onclick=()=>{const el=document.querySelector(target);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'center'});if(target==='#profile-public')el.focus();};
+  nav.append(button);
+ }
+ const preferences=document.createElement('form');preferences.className='security-preferences';
+ const heading=document.createElement('h4');heading.textContent='⚙️ Preferencias de avisos';
+ const note=document.createElement('p');note.textContent='Guarda tus preferencias personales. Los avisos automáticos existentes siguen funcionando con su configuración actual.';
+ const labels=[['notify_private_messages','Avisos de mensajes privados'],['notify_report_updates','Avisos de cambios en denuncias']];
+ const inputs={};
+ for(const [field,label] of labels){const wrapper=document.createElement('label');wrapper.className='profile-checkbox';const input=document.createElement('input');input.type='checkbox';input.checked=true;inputs[field]=input;wrapper.append(input,document.createTextNode(' '+label));preferences.append(wrapper);}
+ const save=document.createElement('button');save.type='submit';save.className='gradient-btn mini';save.textContent='Guardar preferencias';
+ const status=document.createElement('p');status.setAttribute('role','status');
+ preferences.prepend(heading,note);preferences.append(save,status);
+ center.append(title,description,nav,preferences);root.prepend(center);
+ const {data,error}=await sb.from('member_privacy_settings').select('notify_private_messages,notify_report_updates').eq('user_id',userId).maybeSingle();
+ if(!center.isConnected)return;
+ if(error)status.textContent='No se pudieron cargar las preferencias.';
+ else if(data)for(const [field] of labels)inputs[field].checked=data[field]!==false;
+ preferences.onsubmit=async event=>{
+  event.preventDefault();save.disabled=true;status.textContent='Guardando…';
+  const payload={user_id:userId,notify_private_messages:inputs.notify_private_messages.checked,notify_report_updates:inputs.notify_report_updates.checked,updated_at:new Date().toISOString()};
+  const {error}=await sb.from('member_privacy_settings').upsert(payload,{onConflict:'user_id'});
+  status.textContent=error?'No se pudieron guardar: '+error.message:'Preferencias guardadas correctamente.';
+  save.disabled=false;
+ };
+}
 async function loadAccountProfile(){
  const root=document.getElementById('account-profile');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
@@ -442,6 +475,7 @@ async function loadAccountProfile(){
  const myAchievements=document.createElement('section');myAchievements.className='profile-panel';myAchievements.innerHTML='<h3>🏆 Mis logros y nivel</h3><p>Consulta tus insignias, XP y clasificación.</p><a class="gradient-btn mini" href="#/logros">Ver mis logros</a>';
  root.querySelector('.profile-identity')?.after(myAchievements);
  initAccountReportStatuses(user.id,root.querySelector('.profile-body'));
+ initSecurityPrivacyCenter(user.id,root.querySelector('.profile-body'));
  const followPanel=document.createElement('section');followPanel.className='profile-panel account-follows-panel';followPanel.id='account-follows';communityPanel.before(followPanel);const blockedPanel=document.createElement('section');blockedPanel.className='profile-panel account-blocked-members';blockedPanel.id='account-blocked-members';followPanel.after(blockedPanel);loadAccountFollows(user.id,followPanel);
  loadMemberSocial(user.id,communityPanel.querySelector('#account-community-social'));
  const ownGallery=document.createElement('section');ownGallery.className='profile-panel member-gallery-panel';ownGallery.id='account-gallery';
