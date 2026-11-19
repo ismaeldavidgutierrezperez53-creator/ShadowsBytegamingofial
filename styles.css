@@ -401,3 +401,10 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .group-chat-send input[type=file]{flex:1 1 210px}
 .group-chat-send input:not([type=file]){flex:1 1 220px}
 @media(max-width:650px){.group-chat-send{flex-direction:column!important;align-items:stretch}.group-chat-send>*{width:100%!important;flex:auto!important}}
+
+.group-call-controls,.group-call-incoming{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.group-call-controls select{flex:1 1 180px}
+.group-call-panel{padding:14px;border:1px solid #8b5cf6;border-radius:12px;margin:12px 0;background:rgba(70,40,110,.25)}
+.group-call-panel video{display:inline-block;max-width:100%;width:260px;max-height:220px;background:#161022;border-radius:10px;margin:8px}
+.group-call-panel video[hidden]{display:none}
+.group-call-panel button{display:block;margin-top:10px}
