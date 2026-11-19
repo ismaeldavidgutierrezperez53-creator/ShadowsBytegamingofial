@@ -504,6 +504,32 @@ async function loadAccountProfile(){
  const avatarNode=document.getElementById('profile-avatar');
  function paintAvatar(url,label){avatarNode.replaceChildren();if(url){const img=document.createElement('img');img.src=url;img.alt='Avatar';img.referrerPolicy='no-referrer';img.style.cssText='width:100%;height:100%;object-fit:cover';img.onerror=()=>{avatarNode.textContent=(label||'?').charAt(0).toUpperCase()};avatarNode.append(img)}else avatarNode.textContent=(label||'?').charAt(0).toUpperCase();}
  paintAvatar(avatar,name);
+ const editorPanel=form.closest('.profile-panel');
+ const progress=document.createElement('div');progress.className='profile-completion';progress.setAttribute('aria-live','polite');
+ const progressTitle=document.createElement('strong');const progressTrack=document.createElement('progress');progressTrack.max=100;progressTrack.setAttribute('aria-label','Perfil completado');
+ const progressHint=document.createElement('p');progress.append(progressTitle,progressTrack,progressHint);
+ const preview=document.createElement('div');preview.className='profile-live-preview';
+ const previewHeading=document.createElement('h4');previewHeading.textContent='👁 Vista previa del perfil';
+ const previewCard=document.createElement('div');previewCard.className='profile-preview-card';
+ const previewAvatar=document.createElement('div');previewAvatar.className='profile-preview-avatar';
+ const previewCopy=document.createElement('div');const previewName=document.createElement('strong');const previewBio=document.createElement('p');const previewVisibility=document.createElement('small');
+ previewCopy.append(previewName,previewBio,previewVisibility);previewCard.append(previewAvatar,previewCopy);preview.append(previewHeading,previewCard);
+ const publicLink=document.createElement('a');publicLink.className='outline-btn mini';publicLink.href='#/perfil?id='+encodeURIComponent(user.id);publicLink.textContent='Ver mi perfil público';
+ preview.append(publicLink);editorPanel.append(progress,preview);
+ function updateProfilePreview(){
+  const currentName=form.elements.display_name.value.trim(),currentAvatar=form.elements.avatar_url.value.trim(),bio=document.getElementById('profile-bio')?.value.trim()||'',visible=document.getElementById('profile-public')?.checked;
+  const score=[!!currentName,!!currentAvatar,!!bio,!!visible].filter(Boolean).length*25;
+  progressTitle.textContent='Perfil completado: '+score+'%';progressTrack.value=score;
+  progressHint.textContent=score===100?'¡Tu perfil está completo!':'Completa tu nombre, imagen, presentación y visibilidad para llegar al 100%.';
+  previewName.textContent=currentName||'Tu nombre';previewBio.textContent=bio||'Tu presentación aparecerá aquí.';
+  previewVisibility.textContent=visible?'Visible en Miembros al guardar':'Perfil privado';
+  previewAvatar.replaceChildren();
+  if(/^https:\/\/[^\s]+$/i.test(currentAvatar)){const img=document.createElement('img');img.src=currentAvatar;img.alt='Vista previa del avatar';img.referrerPolicy='no-referrer';img.onerror=()=>{previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase()};previewAvatar.append(img);}
+  else previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase();
+  publicLink.hidden=!visible;
+ }
+ for(const element of [form.elements.display_name,form.elements.avatar_url,document.getElementById('profile-bio'),document.getElementById('profile-public')]){if(element){element.addEventListener('input',updateProfilePreview);element.addEventListener('change',updateProfilePreview);}}
+ updateProfilePreview();
  form.addEventListener('submit',async event=>{
   event.preventDefault();
   const display_name=form.elements.display_name.value.trim(),avatar_url=form.elements.avatar_url.value.trim();
@@ -527,7 +553,7 @@ async function loadAccountProfile(){
     status.textContent=saved.is_public?'Perfil público guardado. Ya puedes verlo en Miembros.':'Perfil guardado como privado. Activa la casilla para aparecer en Miembros.';
    }
    if(error){status.textContent='No se pudo guardar: '+error.message;return;}
-   heading.textContent=display_name;paintAvatar(avatar_url,display_name);
+   heading.textContent=display_name;paintAvatar(avatar_url,display_name);updateProfilePreview();
   }catch(err){status.textContent='No se pudo guardar: '+err.message}
   finally{button.disabled=false;}
  });
