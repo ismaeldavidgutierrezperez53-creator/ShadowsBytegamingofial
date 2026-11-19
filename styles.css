@@ -512,3 +512,10 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @keyframes group-video-reaction-float{0%{opacity:0;transform:translateY(25px) scale(.65)}20%{opacity:1}100%{opacity:0;transform:translateY(-190px) scale(1.3)}}
 @media(prefers-reduced-motion:reduce){.group-video-reaction-bubble{animation:none;opacity:1}}
 @media(max-width:700px){.group-video-reaction-bubble{font-size:1.7rem}.group-video-floating-reactions{max-width:100%}}
+
+/* Experimental anime backgrounds: decorative only, not video segmentation */
+.group-video-tile.virtual-anime-sakura{background:radial-gradient(circle at 70% 20%,#ffd3ec,#d955aa 50%,#40155e)!important}
+.group-video-tile.virtual-anime-night{background:radial-gradient(circle at 65% 20%,#b5b9ff,#26377e 50%,#0b1239)!important}
+.group-video-tile.virtual-anime-neon{background:linear-gradient(135deg,#0e0a29,#d139d4 50%,#0db7df)!important}
+.group-video-activity input[type=datetime-local]{width:100%;max-width:100%;min-height:44px}
+.group-video-activity input:not([type=checkbox]){max-width:100%}
