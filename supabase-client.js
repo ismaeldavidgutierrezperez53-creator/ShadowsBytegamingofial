@@ -1072,6 +1072,64 @@ async function renderAccountBlockedMembers(userId){
   row.append(name,button);panel.append(row);
  }
 }
+let groupCallSession=null;
+function stopGroupCallSession(){
+ const session=groupCallSession;if(!session)return;
+ groupCallSession=null;clearInterval(session.timer);
+ session.pc?.close();session.stream?.getTracks().forEach(t=>t.stop());
+ session.container?.remove();
+}
+async function startGroupPeerCall(group,userId,members,thread,say,kind,calleeId,incoming=null){
+ if(groupCallSession){say('Finaliza la llamada actual antes de iniciar otra.');return;}
+ if(!window.RTCPeerConnection||!navigator.mediaDevices?.getUserMedia){say('Tu navegador no permite llamadas WebRTC.');return;}
+ let stream;
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='video'});}
+ catch(e){say('No se pudo acceder al micrófono o cámara: '+e.message);return;}
+ const panel=document.createElement('div');panel.className='group-call-panel';
+ const label=document.createElement('p');label.textContent=(incoming?'📞 Llamada entrante':'📞 Llamando')+' · '+(kind==='video'?'Vídeo':'Voz');
+ const local=document.createElement('video');local.autoplay=true;local.muted=true;local.playsInline=true;local.srcObject=stream;local.hidden=kind!=='video';
+ const remote=document.createElement('video');remote.autoplay=true;remote.playsInline=true;remote.controls=true;
+ const hang=document.createElement('button');hang.type='button';hang.textContent='🔴 Colgar';
+ panel.append(label,local,remote,hang);thread.prepend(panel);
+ const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+ stream.getTracks().forEach(track=>pc.addTrack(track,stream));
+ pc.ontrack=e=>{remote.srcObject=e.streams[0];remote.play().catch(()=>{label.textContent='Pulsa reproducir para escuchar la llamada.';});};
+ let call=incoming,seenIce=0,busy=false;
+ const session={pc,stream,container:panel,timer:null};groupCallSession=session;
+ async function endCall(){
+  if(call)await sb.from('member_group_calls').update({status:'ended',updated_at:new Date().toISOString()}).eq('id',call.id);
+  if(groupCallSession===session)stopGroupCallSession();
+ }
+ hang.onclick=endCall;
+ try{
+  if(!incoming){
+   const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+   const {data,error}=await sb.from('member_group_calls').insert({group_id:group.id,caller_id:userId,callee_id:calleeId,kind,offer:pc.localDescription.toJSON()}).select().single();
+   if(error)throw error;call=data;
+  }else{
+   await pc.setRemoteDescription(new RTCSessionDescription(incoming.offer));
+   const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+   const {data,error}=await sb.from('member_group_calls').update({answer:pc.localDescription.toJSON(),status:'active',updated_at:new Date().toISOString()}).eq('id',incoming.id).select().single();
+   if(error)throw error;call=data;
+  }
+  pc.onicecandidate=async e=>{if(e.candidate&&groupCallSession===session)await sb.from('member_group_call_ice').insert({call_id:call.id,sender_id:userId,candidate:e.candidate.toJSON()});};
+  async function poll(){
+   if(busy||groupCallSession!==session)return;busy=true;
+   try{
+    const {data:latest}=await sb.from('member_group_calls').select('status,answer').eq('id',call.id).single();
+    if(!latest||['ended','declined'].includes(latest.status)){label.textContent='Llamada finalizada';stopGroupCallSession();return;}
+    if(latest.answer&&!pc.currentRemoteDescription&&userId===call.caller_id){
+     await pc.setRemoteDescription(new RTCSessionDescription(latest.answer));label.textContent='🟢 Llamada conectando…';
+    }
+    const {data:ice}=await sb.from('member_group_call_ice').select('id,candidate,sender_id').eq('call_id',call.id).gt('id',seenIce).order('id').limit(100);
+    for(const item of ice||[]){seenIce=Math.max(seenIce,item.id);if(item.sender_id!==userId){try{await pc.addIceCandidate(new RTCIceCandidate(item.candidate));}catch(e){console.warn('ICE pendiente',e.message);}}}
+   }finally{busy=false;}
+  }
+  session.timer=setInterval(poll,1500);poll();
+  pc.onconnectionstatechange=()=>{if(pc.connectionState==='connected')label.textContent='🟢 Llamada conectada';if(pc.connectionState==='failed')label.textContent='No se pudo conectar. Puede hacer falta un servidor TURN.';};
+ }catch(e){say('No se pudo iniciar la llamada: '+e.message);stopGroupCallSession();}
+}
+
 let activeGroupChatChannel=null;
 let groupChatAlertsChannel=null;
 async function initGroupChats(userId,root){
@@ -1093,6 +1151,32 @@ async function initGroupChats(userId,root){
   const {data:members,error:membersError}=await sb.from('member_chat_group_members').select('user_id,role').eq('group_id',group.id);
   if(membersError){say('No se pudieron cargar los participantes.');return;}
   const count=document.createElement('p');count.textContent=(members||[]).length+' participantes';thread.append(count);
+  const callControls=document.createElement('div');callControls.className='group-call-controls';
+  const calleeSelect=document.createElement('select');calleeSelect.setAttribute('aria-label','Miembro al que llamar');
+  const choose=document.createElement('option');choose.value='';choose.textContent='Selecciona a quién llamar';calleeSelect.append(choose);
+  const callIds=(members||[]).map(m=>m.user_id).filter(id=>id!==userId);
+  const {data:callProfiles}=callIds.length?await sb.from('profiles').select('id,display_name,username').in('id',callIds):{data:[]};
+  const callNames=new Map((callProfiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+  for(const id of callIds){const option=document.createElement('option');option.value=id;option.textContent=callNames.get(id)||'Miembro';calleeSelect.append(option);}
+  callControls.append(calleeSelect);
+  for(const [kind,text] of [['audio','📞 Llamar'],['video','📹 Videollamada']]){
+   const button=document.createElement('button');button.type='button';button.textContent=text;
+   button.onclick=()=>{if(!calleeSelect.value){say('Selecciona primero un miembro.');return;}startGroupPeerCall(group,userId,members,thread,say,kind,calleeSelect.value);};
+   callControls.append(button);
+  }
+  thread.append(callControls);
+  const incomingCalls=document.createElement('div');incomingCalls.className='group-call-incoming';thread.append(incomingCalls);
+  async function checkIncomingCalls(){
+   if(!thread.isConnected||groupCallSession)return;
+   const {data}=await sb.from('member_group_calls').select('id,group_id,caller_id,callee_id,kind,status,offer').eq('group_id',group.id).eq('callee_id',userId).eq('status','ringing').order('created_at',{ascending:false}).limit(1);
+   incomingCalls.replaceChildren();const call=data?.[0];if(!call)return;
+   const notice=document.createElement('span');notice.textContent='📲 '+(callNames.get(call.caller_id)||'Miembro')+' te llama ('+(call.kind==='video'?'vídeo':'voz')+')';
+   const accept=document.createElement('button');accept.textContent='Aceptar';accept.onclick=()=>startGroupPeerCall(group,userId,members,thread,say,call.kind,call.caller_id,call);
+   const reject=document.createElement('button');reject.textContent='Rechazar';reject.onclick=async()=>{await sb.from('member_group_calls').update({status:'declined'}).eq('id',call.id);incomingCalls.replaceChildren();};
+   incomingCalls.append(notice,accept,reject);
+  }
+  checkIncomingCalls();
+  const incomingTimer=setInterval(()=>{if(!thread.isConnected){clearInterval(incomingTimer);return;}checkIncomingCalls();},3000);
   if(group.owner_id===userId){
    const adminForm=document.createElement('form');
    const adminSelect=document.createElement('select');adminSelect.required=true;adminSelect.setAttribute('aria-label','Elegir administrador');
