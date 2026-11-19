@@ -477,6 +477,29 @@ async function initAccountNotificationPreferences(userId,root){
  const toastSettings=document.createElement('div');toastSettings.className='notification-toast-preferences';
  toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><p>Elige el sonido de cada tipo de aviso, o selecciona Silencio para esa categoría.</p><div id="notification-category-sound-settings" class="notification-category-sound-settings"></div><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
  section.append(toastSettings);
+ const quietSettings=document.createElement('div');quietSettings.className='notification-quiet-settings';
+ quietSettings.innerHTML='<h4>🌙 Modo No molestar</h4><p>Silencia sonidos y oculta avisos emergentes. Los mensajes y notificaciones seguirán guardándose en la campana.</p><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-manual" disabled> Activar No molestar ahora</label><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-scheduled" disabled> Activar automáticamente cada día</label><div class="notification-quiet-hours"><label for="notification-dnd-start">Desde <input id="notification-dnd-start" type="time" value="22:00" disabled></label><label for="notification-dnd-end">Hasta <input id="notification-dnd-end" type="time" value="08:00" disabled></label></div><small id="notification-dnd-timezone"></small><button type="button" id="notification-dnd-save-schedule" class="outline-btn mini" disabled>💾 Guardar horario</button><p id="notification-dnd-status" role="status" aria-live="polite">Cargando modo No molestar…</p>';
+ section.insertBefore(quietSettings,toastSettings);
+ const dndManual=quietSettings.querySelector('#notification-dnd-manual');
+ const dndScheduled=quietSettings.querySelector('#notification-dnd-scheduled');
+ const dndStart=quietSettings.querySelector('#notification-dnd-start');
+ const dndEnd=quietSettings.querySelector('#notification-dnd-end');
+ const dndSave=quietSettings.querySelector('#notification-dnd-save-schedule');
+ const dndZone=quietSettings.querySelector('#notification-dnd-timezone');
+ const dndStatus=quietSettings.querySelector('#notification-dnd-status');
+ const quietControls=[dndManual,dndScheduled,dndStart,dndEnd,dndSave];
+ const refreshQuietStatus=()=>{
+  const manual=activeToastPreferences.dnd_enabled,scheduled=activeToastPreferences.dnd_schedule_enabled,quiet=isNotificationQuietNow();
+  dndStatus.textContent=manual?'🌙 No molestar activo manualmente.':quiet?'🌙 No molestar activo por el horario programado.':scheduled?'🔔 Fuera del horario de descanso: los avisos están activos.':'🔔 No molestar desactivado.';
+ };
+ const refreshQuietControls=()=>{
+  dndManual.checked=activeToastPreferences.dnd_enabled;
+  dndScheduled.checked=activeToastPreferences.dnd_schedule_enabled;
+  dndStart.value=activeToastPreferences.dnd_start;
+  dndEnd.value=activeToastPreferences.dnd_end;
+  dndZone.textContent='Zona horaria del horario: '+activeToastPreferences.dnd_timezone+'. Al guardarlo se usará la zona horaria de este dispositivo.';
+  refreshQuietStatus();
+ };
  const popupToggle=toastSettings.querySelector('#popup-notification-enabled'),soundToggle=toastSettings.querySelector('#sound-notification-enabled'),toastStatus=toastSettings.querySelector('#notification-toast-preference-status');
  const soundRows=[['message_sound','💬 Mensajes privados'],['comment_sound','📝 Comentarios y respuestas'],['gift_sound','🎁 Regalos'],['follow_sound','👥 Nuevos seguidores']];
  const soundPresets=[['message','Mensaje · dos tonos agudos'],['comment','Comentario · tonos suaves'],['gift','Regalo · melodía'],['follow','Seguidor · tonos ascendentes'],['default','Clásico · dos tonos'],['off','🔕 Silencio']];
@@ -497,9 +520,48 @@ async function initAccountNotificationPreferences(userId,root){
   controls.append(select,test);row.append(label,controls);soundSettings.append(row);soundSelectors.set(field,select);
  }
  const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone').eq('user_id',userId).maybeSingle();
- if(section.isConnected){if(toastError){toastStatus.textContent='No se pudieron cargar las preferencias.';}else{
+ if(section.isConnected){if(toastError){toastStatus.textContent='No se pudieron cargar las preferencias.';dndStatus.textContent='No se pudo cargar No molestar.';}else{
  popupToggle.checked=toastData?.popup_enabled!==false;soundToggle.checked=toastData?.sound_enabled===true;popupToggle.disabled=false;soundToggle.disabled=false;toastStatus.textContent='Preferencias listas.';
- activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked,...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(toastData?.[field],defaultSound)]))};
+ activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked,...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(toastData?.[field],defaultSound)])),...normalizeQuietPreferences(toastData)};
+ refreshQuietControls();
+ for(const control of quietControls)control.disabled=false;
+ const saveQuietPatch=async(patch)=>{
+  for(const control of quietControls)control.disabled=true;
+  dndStatus.textContent='Guardando modo No molestar…';
+  let failure=null,stored=null;
+  try{
+   const {data:session,error:authError}=await sb.auth.getUser();
+   if(authError||session?.user?.id!==userId)throw new Error('La sesión ha cambiado. Vuelve a iniciar sesión.');
+   const {data:existing,error:readError}=await sb.from('member_notification_preferences').select('user_id').eq('user_id',userId).maybeSingle();
+   if(readError)throw readError;
+   const payload={...patch,updated_at:new Date().toISOString()};
+   const query=existing
+    ?sb.from('member_notification_preferences').update(payload).eq('user_id',userId)
+    :sb.from('member_notification_preferences').insert({user_id:userId,...payload});
+   const {data,error}=await query.select('dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone').single();
+   if(error)throw error;
+   if(!data)throw new Error('No se pudo verificar la configuración guardada.');
+   stored=normalizeQuietPreferences(data);
+   if(Object.entries(patch).some(([key,value])=>stored[key]!==value))throw new Error('La configuración guardada no coincide.');
+  }catch(e){failure=e;}
+  if(failure){refreshQuietControls();dndStatus.textContent='No se pudo guardar: '+(failure.message||'Error desconocido');}
+  else{
+   Object.assign(activeToastPreferences,stored);
+   refreshQuietControls();
+   if(isNotificationQuietNow()){document.querySelectorAll('.sb-notification-toast,.member-live-alert').forEach(n=>n.remove());}
+   dndStatus.textContent+=' Preferencia guardada.';
+  }
+  for(const control of quietControls)control.disabled=false;
+ };
+ dndManual.onchange=()=>saveQuietPatch({dnd_enabled:dndManual.checked});
+ const markSchedulePending=()=>{dndStatus.textContent='Cambios pendientes: pulsa Guardar horario para aplicarlos.';};
+ dndScheduled.onchange=markSchedulePending;dndStart.onchange=markSchedulePending;dndEnd.onchange=markSchedulePending;
+ dndSave.onclick=()=>{
+  const from=normalizeQuietClock(dndStart.value,''),to=normalizeQuietClock(dndEnd.value,'');
+  if(!from||!to||from===to){dndStatus.textContent='Indica dos horas válidas y diferentes.';return;}
+  saveQuietPatch({dnd_schedule_enabled:dndScheduled.checked,dnd_start:from,dnd_end:to,dnd_timezone:deviceNotificationTimezone()});
+ };
+ const quietStatusTimer=setInterval(()=>{if(!quietSettings.isConnected){clearInterval(quietStatusTimer);return;}if(!quietControls.some(c=>c.disabled))refreshQuietStatus();},60000);
  for(const [field,select] of soundSelectors){select.value=activeToastPreferences[field];select.dataset.savedValue=select.value;select.disabled=false;}
  const saveToastPreference=async(field,toggle)=>{const requested=toggle.checked;toggle.disabled=true;toastStatus.textContent='Guardando…';
  const {data:session}=await sb.auth.getUser();if(session?.user?.id!==userId){toggle.checked=!requested;toggle.disabled=false;toastStatus.textContent='La sesión ha cambiado.';return;}
