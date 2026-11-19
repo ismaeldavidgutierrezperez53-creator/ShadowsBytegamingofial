@@ -229,6 +229,11 @@ function normalizeQuietPreferences(data){
   dnd_until:data?.dnd_until&&Number.isFinite(Date.parse(data.dnd_until))?new Date(data.dnd_until).toISOString():null
  };
 }
+function formatQuietRemaining(milliseconds){
+ const total=Math.max(0,Math.ceil(Number(milliseconds)/1000)||0);
+ const hours=Math.floor(total/3600),minutes=Math.floor(total%3600/60),seconds=total%60;
+ return [hours,minutes,seconds].map(value=>String(value).padStart(2,'0')).join(':');
+}
 function isNotificationQuietNow(preferences=activeToastPreferences,date=new Date()){
  if(preferences.dnd_enabled===true)return true;
  if(preferences.dnd_until&&Number.isFinite(Date.parse(preferences.dnd_until))&&date.getTime()<Date.parse(preferences.dnd_until))return true;
@@ -494,7 +499,7 @@ async function initAccountNotificationPreferences(userId,root){
  toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><p>Elige el sonido de cada tipo de aviso, o selecciona Silencio para esa categoría.</p><div id="notification-category-sound-settings" class="notification-category-sound-settings"></div><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
  section.append(toastSettings);
  const quietSettings=document.createElement('div');quietSettings.className='notification-quiet-settings';
- quietSettings.innerHTML='<h4>🌙 Modo No molestar</h4><p><strong>Silencio rápido: 30 minutos, 1 hora o 2 horas.</strong> También puedes silenciar hasta desactivarlo o establecer un horario. Los avisos seguirán guardados en la campana.</p><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-manual" disabled> Activar No molestar hasta desactivarlo</label><div class="notification-quick-mute" role="group" aria-label="Duración de No molestar"><button type="button" class="outline-btn mini" data-dnd-minutes="30" disabled>30 minutos</button><button type="button" class="outline-btn mini" data-dnd-minutes="60" disabled>1 hora</button><button type="button" class="outline-btn mini" data-dnd-minutes="120" disabled>2 horas</button><button type="button" class="outline-btn mini" id="notification-dnd-indefinite" disabled>Hasta desactivar</button><button type="button" class="outline-btn mini" id="notification-dnd-cancel" disabled>Desactivar silencio temporal o manual</button></div><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-scheduled" disabled> Activar automáticamente cada día</label><div class="notification-quiet-hours"><label for="notification-dnd-start">Desde <input id="notification-dnd-start" type="time" value="22:00" disabled></label><label for="notification-dnd-end">Hasta <input id="notification-dnd-end" type="time" value="08:00" disabled></label></div><small id="notification-dnd-timezone"></small><button type="button" id="notification-dnd-save-schedule" class="outline-btn mini" disabled>💾 Guardar horario</button><p id="notification-dnd-status" role="status" aria-live="polite">Cargando modo No molestar…</p>';
+ quietSettings.innerHTML='<h4>🌙 Modo No molestar</h4><p><strong>Silencio rápido: 30 minutos, 1 hora o 2 horas.</strong> También puedes silenciar hasta desactivarlo o establecer un horario. Los avisos seguirán guardados en la campana.</p><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-manual" disabled> Activar No molestar hasta desactivarlo</label><div class="notification-quick-mute" role="group" aria-label="Duración de No molestar"><button type="button" class="outline-btn mini" data-dnd-minutes="30" disabled>30 minutos</button><button type="button" class="outline-btn mini" data-dnd-minutes="60" disabled>1 hora</button><button type="button" class="outline-btn mini" data-dnd-minutes="120" disabled>2 horas</button><button type="button" class="outline-btn mini" id="notification-dnd-indefinite" disabled>Hasta desactivar</button><button type="button" class="outline-btn mini" id="notification-dnd-cancel" disabled>Desactivar silencio temporal o manual</button></div><div id=\"notification-dnd-countdown\" class=\"notification-dnd-countdown\" role=\"timer\" aria-label=\"Tiempo restante de No molestar\" aria-live=\"off\" hidden><span>⏳ Tiempo restante</span><strong id=\"notification-dnd-remaining\">00:00:00</strong><small id=\"notification-dnd-ends-at\"></small></div><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-scheduled" disabled> Activar automáticamente cada día</label><div class="notification-quiet-hours"><label for="notification-dnd-start">Desde <input id="notification-dnd-start" type="time" value="22:00" disabled></label><label for="notification-dnd-end">Hasta <input id="notification-dnd-end" type="time" value="08:00" disabled></label></div><small id="notification-dnd-timezone"></small><button type="button" id="notification-dnd-save-schedule" class="outline-btn mini" disabled>💾 Guardar horario</button><p id="notification-dnd-status" role="status" aria-live="polite">Cargando modo No molestar…</p>';
  section.insertBefore(quietSettings,toastSettings);
  const dndManual=quietSettings.querySelector('#notification-dnd-manual');
  const dndScheduled=quietSettings.querySelector('#notification-dnd-scheduled');
@@ -503,6 +508,22 @@ async function initAccountNotificationPreferences(userId,root){
  const dndSave=quietSettings.querySelector('#notification-dnd-save-schedule');
  const dndZone=quietSettings.querySelector('#notification-dnd-timezone');
  const dndStatus=quietSettings.querySelector('#notification-dnd-status');
+ const dndCountdown=quietSettings.querySelector('#notification-dnd-countdown');
+ const dndRemaining=quietSettings.querySelector('#notification-dnd-remaining');
+ const dndEndsAt=quietSettings.querySelector('#notification-dnd-ends-at');
+ let countdownWasActive=false;
+ const refreshQuietCountdown=()=>{
+  const timestamp=activeToastPreferences.dnd_until?Date.parse(activeToastPreferences.dnd_until):NaN;
+  const now=Date.now();
+  const active=!activeToastPreferences.dnd_enabled&&Number.isFinite(timestamp)&&timestamp>now;
+  dndCountdown.hidden=!active;
+  if(active){
+   dndRemaining.textContent=formatQuietRemaining(timestamp-now);
+   dndEndsAt.textContent='Finaliza a las '+new Date(timestamp).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+'.';
+  }
+  if(countdownWasActive&&!active)refreshQuietStatus();
+  countdownWasActive=active;
+ };
  const quickMuteButtons=[...quietSettings.querySelectorAll('.notification-quick-mute button')];
  const quietControls=[dndManual,dndScheduled,dndStart,dndEnd,dndSave,...quickMuteButtons];
  const refreshQuietStatus=()=>{
@@ -521,6 +542,7 @@ async function initAccountNotificationPreferences(userId,root){
   dndEnd.value=activeToastPreferences.dnd_end;
   dndZone.textContent='Zona horaria del horario: '+activeToastPreferences.dnd_timezone+'. Al guardarlo se usará la zona horaria de este dispositivo.';
   refreshQuietStatus();
+  refreshQuietCountdown();
  };
  const popupToggle=toastSettings.querySelector('#popup-notification-enabled'),soundToggle=toastSettings.querySelector('#sound-notification-enabled'),toastStatus=toastSettings.querySelector('#notification-toast-preference-status');
  const soundRows=[['message_sound','💬 Mensajes privados'],['comment_sound','📝 Comentarios y respuestas'],['gift_sound','🎁 Regalos'],['follow_sound','👥 Nuevos seguidores']];
@@ -592,7 +614,16 @@ async function initAccountNotificationPreferences(userId,root){
   if(!from||!to||from===to){dndStatus.textContent='Indica dos horas válidas y diferentes.';return;}
   saveQuietPatch({dnd_schedule_enabled:dndScheduled.checked,dnd_start:from,dnd_end:to,dnd_timezone:deviceNotificationTimezone()});
  };
- const quietStatusTimer=setInterval(()=>{if(!quietSettings.isConnected){clearInterval(quietStatusTimer);return;}if(!quietControls.some(c=>c.disabled))refreshQuietStatus();},60000);
+ let lastStatusMinute=Math.floor(Date.now()/60000);
+ const quietStatusTimer=setInterval(()=>{
+  if(!quietSettings.isConnected){clearInterval(quietStatusTimer);return;}
+  refreshQuietCountdown();
+  const minute=Math.floor(Date.now()/60000);
+  if(minute!==lastStatusMinute&&!quietControls.some(control=>control.disabled)){
+   lastStatusMinute=minute;
+   refreshQuietStatus();
+  }
+ },1000);
  for(const [field,select] of soundSelectors){select.value=activeToastPreferences[field];select.dataset.savedValue=select.value;select.disabled=false;}
  const saveToastPreference=async(field,toggle)=>{const requested=toggle.checked;toggle.disabled=true;toastStatus.textContent='Guardando…';
  const {data:session}=await sb.auth.getUser();if(session?.user?.id!==userId){toggle.checked=!requested;toggle.disabled=false;toastStatus.textContent='La sesión ha cambiado.';return;}
