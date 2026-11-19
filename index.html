@@ -50,6 +50,41 @@
  .mobile-section-links a:active{transform:scale(.97)}
 }
 @media(prefers-reduced-motion:reduce){.mobile-section-links a{transition:none}}
+
+/* Navegación simplificada y accesible: enlaces principales + panel «Más». */
+.topbar{z-index:1000}
+.topbar #nav{display:flex;align-items:center;gap:clamp(10px,1vw,18px);margin-left:auto;min-width:0}
+.topbar #nav>a{font-size:15px;white-space:nowrap;padding:9px 0}
+.topbar #nav>a[aria-current="page"]{color:#f5d1ff;border-bottom:2px solid #ad56f0}
+.topbar #nav .nav-more{position:relative;flex:0 0 auto}
+.topbar #nav .nav-more summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:7px;padding:8px 11px;border:1px solid #70419c;border-radius:10px;color:#fff;background:#261338;cursor:pointer;font:700 15px Rajdhani,Arial,sans-serif;white-space:nowrap}
+.topbar #nav .nav-more summary::-webkit-details-marker{display:none}
+.topbar #nav .nav-more summary:hover,.topbar #nav .nav-more[open] summary,.topbar #nav .nav-more.has-current summary{border-color:#c16cff;background:#3a1b54}
+.topbar #nav .nav-more summary:focus-visible,.topbar #nav a:focus-visible{outline:2px solid #42d5ff;outline-offset:3px}
+.topbar #nav .nav-more[open] summary span{transform:rotate(180deg)}
+.topbar #nav .nav-more-panel{position:absolute;right:0;top:calc(100% + 10px);width:min(650px,calc(100vw - 24px));padding:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-height:min(70vh,600px);overflow-y:auto;border:1px solid #8149ae;border-radius:15px;background:#160d23;box-shadow:0 18px 40px #000b;z-index:1100}
+.topbar #nav .nav-group{display:flex;flex-direction:column;gap:3px;min-width:0}
+.topbar #nav .nav-group strong{font-size:14px;color:#d6a7ff;letter-spacing:.03em;padding:4px 9px 8px}
+.topbar #nav .nav-more-panel a{display:block;text-decoration:none;font-size:15px;color:#eadff5;padding:9px 10px;border-radius:8px;overflow-wrap:anywhere}
+.topbar #nav .nav-more-panel a:hover,.topbar #nav .nav-more-panel a[aria-current="page"]{color:white;background:#42225b}
+@media(min-width:1451px){.topbar .menu-toggle{display:none}}
+@media(max-width:1650px){.topbar .top-actions .search{display:none}}
+@media(max-width:1450px){
+ .topbar .menu-toggle{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 42px;min-height:44px;position:relative;z-index:1003}
+ .topbar #nav{display:none!important;position:fixed!important;top:64px!important;left:0!important;right:0!important;margin:0!important;width:100%!important;height:calc(100dvh - 64px)!important;max-height:calc(100dvh - 64px)!important;overflow-y:auto!important;overscroll-behavior:contain;align-items:stretch;flex-direction:column;gap:0!important;padding:16px 18px 65px!important;background:#110a1e!important;box-shadow:0 18px 32px #000b;z-index:1002!important}
+ .topbar.open #nav{display:flex!important;position:fixed!important;top:64px!important;height:calc(100dvh - 64px)!important}
+ .topbar #nav>a{display:block!important;padding:13px 14px!important;min-height:46px;font-size:18px!important;border-bottom:1px solid #ffffff1b;white-space:normal}
+ .topbar #nav .nav-more{width:100%;margin-top:10px}
+ .topbar #nav .nav-more summary{font-size:18px;min-height:46px;padding:12px 14px}
+ .topbar #nav .nav-more-panel{position:static;width:100%;max-height:none;margin-top:9px;box-shadow:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:13px}
+ .topbar #nav .nav-more-panel a{display:block!important;padding:10px!important;min-height:42px;font-size:16px;white-space:normal;border-bottom:0!important}
+}
+@media(max-width:650px){
+ .topbar #nav .nav-more-panel{grid-template-columns:1fr}
+ .topbar #nav .nav-group{border-bottom:1px solid #ffffff1a;padding-bottom:7px}
+ .topbar #nav .nav-group:last-child{border-bottom:0}
+}
+@media(prefers-reduced-motion:reduce){.topbar #nav .nav-more summary span{transition:none}}
 </style>
 <style>.sb-shop-frame-neon{border:4px solid #22d3ee!important;box-shadow:0 0 12px #22d3ee,0 0 24px #22d3ee88!important}.sb-shop-frame-gold{border:4px solid #facc15!important;box-shadow:0 0 12px #facc15,0 0 24px #facc1588!important}</style>  <link rel="stylesheet" href="sakura.css?v=20261119-1" />
   <link rel="stylesheet" href="anime-effects.css?v=20261119-1" />
@@ -59,12 +94,29 @@
   <header class="topbar">
     <button class="menu-toggle" aria-label="Abrir menú" id="menuToggle" aria-expanded="false" aria-controls="nav">☰</button>
     <a class="brand" href="#/" aria-label="Shadows Byte Gaming Official — inicio"><img src="favicon.svg" alt="Logo Shadows Byte Gaming Official" width="52" height="52" style="width:52px;height:52px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 8px #b63bff88)" /><b>SHADOWS BYTE<small>GAMING OFFICIAL</small></b></a>
-    <nav id="nav"><a href="#/comunidad">Comunidad</a><a href="#/anime">Anime & Manga</a><a href="#/gaming">Gaming</a><a href="#/favoritos">❤️ Favoritos</a><a href="#/encuestas">📊 Encuestas</a><a href="#/logros">🏆 Logros</a><a href="#/waifu-husbando">Waifu / Husbando</a><a href="#/pokedex">Pokédex</a><a href="#/one-piece">One Piece</a><a href="#/noticias">Noticias</a><a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/miembros">Miembros</a><a href="#/no-molestar">🌙 No molestar</a><a href="#/contacto">Contacto</a></nav>
+    <nav id="nav" aria-label="Menú principal">
+      <a href="#/">Inicio</a>
+      <a href="#/comunidad">Comunidad</a>
+      <a href="#/anime">Anime</a>
+      <a href="#/gaming">Gaming</a>
+      <a href="#/noticias">Noticias</a>
+      <details class="nav-more">
+        <summary>Más <span aria-hidden="true">⌄</span></summary>
+        <div class="nav-more-panel">
+          <div class="nav-group"><strong>Anime y cultura</strong>
+            <a href="#/manga">Manga</a><a href="#/manhwa">Manhwa</a><a href="#/waifu-husbando">Waifu / Husbando</a><a href="#/pokedex">Pokédex</a><a href="#/one-piece">One Piece</a>
+          </div>
+          <div class="nav-group"><strong>Participar</strong>
+            <a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/miembros">Miembros</a><a href="#/favoritos">❤️ Favoritos</a><a href="#/encuestas">📊 Encuestas</a><a href="#/logros">🏆 Logros</a>
+          </div>
+          <div class="nav-group"><strong>Tu espacio</strong>
+            <a href="#/cuenta">Mi cuenta</a><a href="#/mensajes">Mensajes</a><a href="#/no-molestar">🌙 No molestar</a><a href="#/contacto">Contacto</a><a href="#/admin">Administración</a>
+          </div>
+        </div>
+      </details>
+    </nav>
     <div class="top-actions" id="account-actions"><label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label><a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a></div>
   </header>
-  <nav class="mobile-section-links" aria-label="Apartados de la web">
-    <a href="#/" data-icon="⌂">Inicio</a><a href="#/noticias" data-icon="📰">Noticias</a><a href="#/anime" data-icon="🌸">Anime</a><a href="#/manga" data-icon="📖">Manga</a><a href="#/manhwa" data-icon="📚">Manhwa</a><a href="#/gaming" data-icon="🎮">Gaming</a><a href="#/cartelera" data-icon="🎬">Cartelera</a><a href="#/eventos" data-icon="📅">Eventos</a><a href="#/comunidad" data-icon="💬">Comunidad</a><a href="#/miembros" data-icon="👥">Miembros</a><a href="#/favoritos" data-icon="♥">Favoritos</a><a href="#/encuestas" data-icon="📊">Encuestas</a><a href="#/logros" data-icon="🏆">Logros</a><a href="#/waifu-husbando" data-icon="💜">Waifu / Husbando</a><a href="#/pokedex" data-icon="⚡">Pokédex</a><a href="#/one-piece" data-icon="🏴‍☠️">One Piece</a><a href="#/no-molestar" data-icon="🌙">No molestar</a><a href="#/cuenta" data-icon="👤">Mi cuenta</a><a href="#/admin" data-icon="⚙️">Administración</a>
-  </nav>
   <main id="app"><section class="page"><h1>Shadows Byte Gaming Official</h1><p>Cargando contenido…</p></section></main>
   <footer>
     <a class="brand" href="#/"><span>SB</span><b>SHADOWS BYTE<small>GAMING OFFICIAL</small></b></a>
@@ -82,17 +134,18 @@
   <script src="social-links.js?v=20261118-social-v1"></script>
   <script src="whatsapp-widget.js?v=20261118-whatsapp-greeting-v5"></script>
   <script>
-    // Highlight the current mobile section and keep it visible.
+    // Highlight the current route in both the primary links and «Más».
     (function(){
-      const bar=document.querySelector('.mobile-section-links');
-      if(!bar)return;
+      const nav=document.getElementById('nav');
+      if(!nav)return;
       const syncActive=()=>{
         const route=(location.hash.slice(1)||'/').split('?')[0];
-        bar.querySelectorAll('a').forEach(a=>{
-          const active=a.getAttribute('href').slice(1)===route;
-          if(active)a.setAttribute('aria-current','page');
+        nav.querySelectorAll('a[href^="#/"]').forEach(a=>{
+          if(a.getAttribute('href').slice(1)===route)a.setAttribute('aria-current','page');
           else a.removeAttribute('aria-current');
         });
+        const more=nav.querySelector('.nav-more');
+        if(more)more.classList.toggle('has-current',!!more.querySelector('a[aria-current="page"]'));
       };
       window.addEventListener('hashchange',syncActive);
       syncActive();
@@ -109,12 +162,28 @@
         toggle.setAttribute('aria-label', opened ? 'Cerrar menú' : 'Abrir menú');
       };
       toggle.addEventListener('click', () => requestAnimationFrame(sync));
+      const more = nav.querySelector('.nav-more');
       nav.addEventListener('click', e => {
-        if (e.target.closest('a')) { header.classList.remove('open'); sync(); }
+        if (e.target.closest('a')) {
+          header.classList.remove('open');
+          if (more) more.open = false;
+          sync();
+        }
       });
-      window.addEventListener('hashchange', () => { header.classList.remove('open'); sync(); });
+      window.addEventListener('hashchange', () => {
+        header.classList.remove('open');
+        if (more) more.open = false;
+        sync();
+      });
+      document.addEventListener('click', e => {
+        if (more && !more.contains(e.target)) more.open = false;
+      });
       document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { header.classList.remove('open'); sync(); }
+        if (e.key === 'Escape') {
+          header.classList.remove('open');
+          if (more) more.open = false;
+          sync();
+        }
       });
       sync();
     })();
