@@ -1854,6 +1854,34 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  fullView.onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else panel.requestFullscreen?.().catch(e=>say('Pantalla completa: '+e.message));};
  viewBar.append(gridView,focusView,fullView);panel.insertBefore(viewBar,videos);panel.insertBefore(shareStatus,actions);
  const peers=new Map();let lastSignal=0,busy=false,screenStream=null,originalVideo=null,closed=false;
+ const connectionPanel=document.createElement('div');connectionPanel.className='group-video-connection-health';
+ const qualityTitle=document.createElement('strong');qualityTitle.textContent='📶 Diagnóstico de conexión';
+ const qualityStatus=document.createElement('span');qualityStatus.textContent='Esperando participantes…';
+ const checkQualityButton=document.createElement('button');checkQualityButton.type='button';checkQualityButton.textContent='🔄 Comprobar conexión';
+ connectionPanel.append(qualityTitle,qualityStatus,checkQualityButton);
+ panel.insertBefore(connectionPanel,actions);
+ let lastHealthScan=0;
+ async function checkVideoConnection(){
+  const connected=[...peers.values()].filter(p=>p.pc.connectionState==='connected');
+  const failed=[...peers.values()].filter(p=>['failed','disconnected','closed'].includes(p.pc.connectionState));
+  if(!peers.size){qualityStatus.textContent='Esperando a otros participantes. La cámara local está activa.';return;}
+  let rttSum=0,rttCount=0;
+  await Promise.all(connected.map(async peer=>{
+   try{
+    const stats=await peer.pc.getStats();
+    stats.forEach(report=>{
+     if(report.type==='candidate-pair'&&report.state==='succeeded'&&(report.nominated||report.selected)&&Number.isFinite(report.currentRoundTripTime)){
+      rttSum+=report.currentRoundTripTime*1000;rttCount++;
+     }
+    });
+   }catch(e){console.warn('Estadísticas de videollamada:',e.message);}
+  }));
+  const latency=rttCount?' · latencia media '+Math.round(rttSum/rttCount)+' ms':'';
+  qualityStatus.textContent=connected.length+' de '+peers.size+' conexiones activas'+latency+(failed.length?' · ⚠️ '+failed.length+' desconectada(s). Prueba salir y volver a entrar.':'');
+ }
+ checkQualityButton.onclick=()=>{checkQualityButton.disabled=true;checkVideoConnection().finally(()=>{checkQualityButton.disabled=false;});};
+ const healthTimer=setInterval(()=>{if(closed)return;checkVideoConnection().catch(console.warn);},12000);
+
  const sendSignal=async(to,signal)=>{const {error}=await sb.from('member_group_video_signals').insert({room_id:room.id,sender_id:userId,recipient_id:to,signal});if(error)console.warn('Señal de vídeo:',error.message);};
  const createPeer=(other)=>{
   if(peers.has(other))return peers.get(other);
@@ -1949,7 +1977,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   }catch(e){say('No se pudo compartir pantalla: '+e.message);}
  };
  async function leaveRoom(){
-  if(closed)return;closed=true;animeBackgroundRequest++;animeBackgroundController?.stop();stopRecording();if(groupRecorder?.state==='recording')groupRecorder.stop();clearInterval(session.timer);
+  if(closed)return;closed=true;clearInterval(healthTimer);animeBackgroundRequest++;animeBackgroundController?.stop();stopRecording();if(groupRecorder?.state==='recording')groupRecorder.stop();clearInterval(session.timer);
   for(const {pc,tile} of peers.values()){pc.close();tile.remove();}
   screenStream?.getTracks().forEach(t=>t.stop());stream.getTracks().forEach(t=>t.stop());
   await sb.from('member_group_video_participants').delete().eq('room_id',room.id).eq('user_id',userId);
