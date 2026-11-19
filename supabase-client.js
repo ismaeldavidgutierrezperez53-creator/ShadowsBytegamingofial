@@ -1155,6 +1155,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  catch(e){say('No se pudo abrir cámara o micrófono: '+e.message);return;}
  const {data:existingParticipant,error:lookupError}=await sb.from('member_group_video_participants').select('user_id').eq('room_id',room.id).eq('user_id',userId).maybeSingle();
  if(lookupError){stream.getTracks().forEach(t=>t.stop());say('No se pudo comprobar tu acceso: '+lookupError.message);return;}
+ const {data:blocked}=await sb.from('member_group_video_removals').select('user_id').eq('room_id',room.id).eq('user_id',userId).maybeSingle();
+ if(blocked){stream.getTracks().forEach(t=>t.stop());say('Un administrador te expulsó de esta sala. Pídele que autorice tu regreso o espera a una nueva videollamada.');return;}
  const {error:joinError}=existingParticipant?{error:null}:await sb.from('member_group_video_participants').insert({room_id:room.id,user_id:userId});
  if(joinError){stream.getTracks().forEach(t=>t.stop());say('No se pudo entrar en la sala: '+joinError.message);return;}
  const panel=document.createElement('section');panel.className='group-call-panel group-multi-video';
@@ -1183,7 +1185,14 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   const kickSelect=document.createElement('select');kickSelect.setAttribute('aria-label','Participante a expulsar');
   const kick=document.createElement('button');kick.type='button';kick.textContent='🛡️ Expulsar participante';
   kick.onclick=async()=>{if(!kickSelect.value)return;if(!confirm('¿Expulsar a este participante de la sala?'))return;const {error}=await sb.rpc('moderate_group_video_participant',{p_room_id:room.id,p_target_id:kickSelect.value});say(error?'No se pudo expulsar: '+error.message:'Participante expulsado.');};
-  moderator.append(kickSelect,kick);
+  const restoreSelect=document.createElement('select');restoreSelect.setAttribute('aria-label','Participante a readmitir');
+  const restore=document.createElement('button');restore.type='button';restore.textContent='✅ Permitir volver a entrar';
+  restore.onclick=async()=>{if(!restoreSelect.value)return;const {error}=await sb.rpc('restore_group_video_participant',{p_room_id:room.id,p_target_id:restoreSelect.value});say(error?'No se pudo autorizar el regreso: '+error.message:'Acceso restablecido. La persona puede pulsar Unirse.');};
+  moderator.append(kickSelect,kick,restoreSelect,restore);
+  moderator.refreshBlocked=async()=>{
+   const {data:removed}=await sb.from('member_group_video_removals').select('user_id').eq('room_id',room.id);
+   restoreSelect.replaceChildren();for(const item of removed||[]){const o=document.createElement('option');o.value=item.user_id;o.textContent=profileMap.get(item.user_id)?.display_name||profileMap.get(item.user_id)?.username||'Miembro';restoreSelect.append(o);}
+  };
   moderator.refresh=(ids)=>{kickSelect.replaceChildren();for(const id of ids){if(id===userId)continue;const o=document.createElement('option');o.value=id;o.textContent=profileMap.get(id)?.display_name||profileMap.get(id)?.username||'Miembro';kickSelect.append(o);}};
  }
 
@@ -1236,7 +1245,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    const active=new Set((participants||[]).map(p=>p.user_id));
    if(!active.has(userId)){say('Un moderador te ha retirado de la sala.');await leaveRoom();return;}
    inviteSelect.replaceChildren();for(const [id,p] of profileMap){if(id===userId||active.has(id))continue;const o=document.createElement('option');o.value=id;o.textContent=p.display_name||p.username||'Miembro';inviteSelect.append(o);}
-   if(moderator.refresh)moderator.refresh(active);
+   if(moderator.refresh){moderator.refresh(active);await moderator.refreshBlocked();}
    for(const [id,peer] of peers)if(!active.has(id)){peer.pc.close();peer.tile.remove();peers.delete(id);}
    // Only the newer participant creates offers, avoiding simultaneous negotiation.
    for(const p of participants||[])if(p.user_id!==userId&&!peers.has(p.user_id)&&userId>p.user_id)await offerPeer(p.user_id);
