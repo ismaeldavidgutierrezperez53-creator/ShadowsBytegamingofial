@@ -375,3 +375,13 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .security-center{margin:16px 0}.security-center-links{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.security-preferences{display:flex;flex-direction:column;gap:10px;margin-top:14px}.security-preferences h4,.security-preferences p{margin:0}.security-preferences button{align-self:flex-start}
 
 .member-live-alert{position:fixed;right:16px;bottom:18px;z-index:9999;max-width:min(420px,calc(100vw - 32px));display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px;border:1px solid rgba(165,145,200,.55);border-radius:12px;background:#19172c;color:#fff;box-shadow:0 12px 32px rgba(0,0,0,.4)}.member-live-alert button{cursor:pointer;background:transparent;border:0;color:inherit}
+
+.group-chat-panel{margin-bottom:24px}
+.group-chat-panel form{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.group-chat-panel input,.group-chat-panel select{min-width:0;flex:1;padding:10px;border-radius:8px}
+#group-chat-list{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#group-chat-thread{border-top:1px solid rgba(160,130,220,.3);padding-top:12px}
+.group-chat-messages{max-height:350px;overflow:auto;padding:12px;background:rgba(0,0,0,.15);border-radius:10px}
+.group-chat-messages p{overflow-wrap:anywhere;margin:8px 0}
+.group-chat-messages small{opacity:.7}
+@media(max-width:600px){.group-chat-panel form{flex-direction:column}.group-chat-panel input,.group-chat-panel select{width:100%}}
