@@ -1554,6 +1554,10 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    const isCohost=(cohosts||[]).some(c=>c.user_id===userId);
    roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':isCohost?'👑 Eres coanfitrión — puedes moderar la sala':'Participante de la sala';
    if(isCohost&&!canModerate)roleStatus.textContent+=' (sal y vuelve a entrar para activar los controles)';
+   if(groupRecorder?.state==='recording'){
+    const {data:approvals}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
+    if([...active].some(id=>!(approvals||[]).some(a=>a.user_id===id&&a.consented))){groupRecorder.stop();say('Grabación grupal detenida: falta consentimiento de un participante.');}
+   }
    if(recorder?.state==='recording'){
     recordingStatus.textContent='🔴 Grabando tu cámara y micrófono · '+Math.floor((Date.now()-recordStart)/60000)+' min '+String(Math.floor((Date.now()-recordStart)/1000)%60).padStart(2,'0')+' s';
     const {data:approvals}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
