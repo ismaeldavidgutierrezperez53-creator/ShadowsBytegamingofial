@@ -763,12 +763,25 @@ async function loadAccountProfile(){
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Public member directory is opt-in; keep authentication email private.
- const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url').eq('id',user.id).maybeSingle();
+ const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message').eq('id',user.id).maybeSingle();
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
   extra.innerHTML='<label for="profile-bio">Presentación para la comunidad</label><textarea id="profile-bio" maxlength="280" rows="3" placeholder="Cuéntanos algo sobre ti..."></textarea><label class="profile-checkbox"><input type="checkbox" id="profile-public"> Mostrar mi perfil en Miembros</label><p class="profile-privacy">Solo se mostrarán tu nombre, avatar y presentación. Tu correo no será público.</p>';
   panel.querySelector('#profile-form').insertBefore(extra,panel.querySelector('#profile-form button[type="submit"]'));
+  const statusControls=document.createElement('div');statusControls.className='profile-gaming-status-editor';
+  const gameStatusLabel=document.createElement('label');gameStatusLabel.textContent='🎮 Estado gaming';gameStatusLabel.htmlFor='profile-gaming-status';
+  const gameStatus=document.createElement('select');gameStatus.id='profile-gaming-status';
+  for(const [value,label] of [['disponible','🟢 Disponible'],['jugando','🎮 Jugando'],['buscando_grupo','👥 Buscando grupo'],['ausente','🌙 Ausente']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;gameStatus.append(option);
+  }
+  gameStatus.value=profile?.gaming_status||'disponible';
+  const gameStatusMessageLabel=document.createElement('label');gameStatusMessageLabel.htmlFor='profile-gaming-message';gameStatusMessageLabel.textContent='💬 Mensaje de estado (máximo 120 caracteres)';
+  const gameStatusMessage=document.createElement('input');gameStatusMessage.id='profile-gaming-message';gameStatusMessage.maxLength=120;gameStatusMessage.placeholder='Ej.: Hoy juego a Pokémon';gameStatusMessage.value=profile?.status_message||'';
+  const gameStatusHint=document.createElement('small');gameStatusHint.textContent='Se mostrará a otros miembros únicamente si activas tu perfil público.';
+  statusControls.append(gameStatusLabel,gameStatus,gameStatusMessageLabel,gameStatusMessage,gameStatusHint);
+  panel.querySelector('#profile-form').insertBefore(statusControls,panel.querySelector('#profile-form button[type="submit"]'));
+
   document.getElementById('profile-bio').value=profile?.bio||'';
   document.getElementById('profile-public').checked=profile?.is_public===true;
   const customization=document.createElement('div');customization.className='profile-customization';
@@ -847,7 +860,7 @@ async function loadAccountProfile(){
     const favorite_games=document.getElementById('profile-favorite-games').value.trim();
     const gaming_social_url=document.getElementById('profile-gaming-social').value.trim();
     if(gaming_social_url&&!/^https:\/\/[^\s]+$/i.test(gaming_social_url)){status.textContent='El enlace social debe comenzar por https://';return;}
-    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,featured_badge:featured_badge||null,favorite_games,gaming_social_url:gaming_social_url||null};
+    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,featured_badge:featured_badge||null,favorite_games,gaming_social_url:gaming_social_url||null,gaming_status:document.getElementById('profile-gaming-status').value,status_message:document.getElementById('profile-gaming-message').value.trim()};
     const {data:existing, error:readError}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
     if(readError){status.textContent='No se pudo comprobar tu perfil: '+readError.message;return;}
     const request=existing
@@ -866,7 +879,7 @@ async function loadAccountProfile(){
 
 async function loadMembers(){
  const root=document.getElementById('members-list');if(!root)return;
- const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,gaming_status,status_message').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
  if(!root.isConnected)return;
  if(error){root.innerHTML='<div class="admin-empty">No se pudo cargar la lista de miembros.</div>';return;}
  const members=data||[];
@@ -883,7 +896,8 @@ async function loadMembers(){
    const heading=document.createElement('h2');heading.textContent=name;
    const bio=document.createElement('p');bio.textContent=member.bio||'Miembro de Shadows Byte Gaming Official';
    const link=document.createElement('a');link.className='gradient-btn mini member-view-link';link.href='#/perfil?id='+encodeURIComponent(member.id);link.textContent='Ver perfil';
-   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';card.append(avatar,heading,bio,link,messageLink);root.append(card);applyShopProfileCosmetics(member.id,avatar,heading,card);
+   const gameStatusText=document.createElement('p');gameStatusText.className='member-gaming-status';const states={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};gameStatusText.textContent=states[member.gaming_status]||states.disponible;if(member.status_message)gameStatusText.textContent+=' · '+member.status_message;
+   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';card.append(avatar,heading,gameStatusText,bio,link,messageLink);root.append(card);applyShopProfileCosmetics(member.id,avatar,heading,card);
   });
  }
  document.getElementById('members-search')?.addEventListener('input',draw);draw();
@@ -896,7 +910,7 @@ async function loadPublicMemberProfile(){
  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
   root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
  }
- const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,game_library_public').eq('id',id).eq('is_public',true).maybeSingle();
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,game_library_public,gaming_status,status_message').eq('id',id).eq('is_public',true).maybeSingle();
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
@@ -920,7 +934,8 @@ async function loadPublicMemberProfile(){
  const bioTitle=document.createElement('h2');bioTitle.textContent='Sobre mí';
  const bio=document.createElement('p');bio.className='public-member-bio';bio.textContent=member.bio||'Este miembro todavía no ha escrito una presentación.';
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
- content.append(avatar,title,badge,featured,bioTitle,bio);
+ const publicStatus=document.createElement('p');publicStatus.className='member-gaming-status';const gamingLabels={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};publicStatus.textContent=(gamingLabels[member.gaming_status]||gamingLabels.disponible)+(member.status_message?' · '+member.status_message:'');
+ content.append(avatar,title,badge,publicStatus,featured,bioTitle,bio);
  const gamerPanel=document.createElement('section');gamerPanel.className='profile-panel gamer-profile-panel';
  const gamerHeading=document.createElement('h2');gamerHeading.textContent='🎮 Perfil de jugador';gamerPanel.append(gamerHeading);
  if(member.favorite_games){const gamesTitle=document.createElement('h3');gamesTitle.textContent='Juegos favoritos';gamerPanel.append(gamesTitle);const games=document.createElement('div');games.className='gamer-favorite-games';member.favorite_games.split(',').map(x=>x.trim()).filter(Boolean).slice(0,12).forEach(game=>{const tag=document.createElement('span');tag.textContent='🎮 '+game;games.append(tag)});gamerPanel.append(games);}
