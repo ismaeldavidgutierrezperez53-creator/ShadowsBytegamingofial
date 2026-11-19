@@ -485,7 +485,7 @@ async function loadAccountProfile(){
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Public member directory is opt-in; keep authentication email private.
- const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color').eq('id',user.id).maybeSingle();
+ const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge').eq('id',user.id).maybeSingle();
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
@@ -498,6 +498,10 @@ async function loadAccountProfile(){
   panel.querySelector('#profile-form').insertBefore(customization,panel.querySelector('#profile-form button[type="submit"]'));
   document.getElementById('profile-cover-url').value=profile?.cover_url||'';
   document.getElementById('profile-theme').value=profile?.theme_color||'violet';
+  const badgeSelect=document.createElement('div');badgeSelect.className='profile-customization';
+  badgeSelect.innerHTML='<label for="profile-featured-badge">🏅 Insignia destacada</label><select id="profile-featured-badge"><option value="">Ninguna</option><option value="first">🌱 Primer paso · 5 XP</option><option value="participant">⭐ Participante · 50 XP</option><option value="active">🔥 Miembro activo · 150 XP</option><option value="legend">🏆 Leyenda · 500 XP</option></select><small>Solo puedes destacar insignias que hayas conseguido.</small>';
+  panel.querySelector('#profile-form').insertBefore(badgeSelect,panel.querySelector('#profile-form button[type="submit"]'));
+  document.getElementById('profile-featured-badge').value=profile?.featured_badge||'';
  }
 
  const heading=document.getElementById('profile-heading'),email=document.getElementById('profile-email');
@@ -554,7 +558,10 @@ async function loadAccountProfile(){
     const cover_url=document.getElementById('profile-cover-url').value.trim();
     if(cover_url&&!/^https:\/\/[^\s]+$/i.test(cover_url)){status.textContent='La portada debe ser una URL HTTPS válida.';return;}
     const theme_color=document.getElementById('profile-theme').value;
-    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color};
+    const featured_badge=document.getElementById('profile-featured-badge').value;
+    const thresholds={first:5,participant:50,active:150,legend:500};
+    if(featured_badge){const {data:xp,error:xpError}=await sb.rpc('community_member_xp',{target_member:user.id});if(xpError||Number(xp)<thresholds[featured_badge]){status.textContent='Todavía no has desbloqueado esa insignia.';return;}}
+    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,featured_badge:featured_badge||null};
     const {data:existing, error:readError}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
     if(readError){status.textContent='No se pudo comprobar tu perfil: '+readError.message;return;}
     const request=existing
@@ -603,7 +610,7 @@ async function loadPublicMemberProfile(){
  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
   root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
  }
- const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color').eq('id',id).eq('is_public',true).maybeSingle();
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge').eq('id',id).eq('is_public',true).maybeSingle();
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
@@ -621,10 +628,19 @@ async function loadPublicMemberProfile(){
  }else avatar.textContent=name.charAt(0).toUpperCase();
  const title=document.createElement('h1');title.textContent=name;
  const badge=document.createElement('span');badge.className='profile-role';badge.textContent='● Miembro de la comunidad';
+ const featuredLabels={first:'🌱 Primer paso',participant:'⭐ Participante',active:'🔥 Miembro activo',legend:'🏆 Leyenda'};
+ const featured=document.createElement('span');featured.className='profile-featured-badge';featured.hidden=true;
+ if(featuredLabels[member.featured_badge]){sb.rpc('community_member_xp',{target_member:member.id}).then(({data,error})=>{const thresholds={first:5,participant:50,active:150,legend:500};if(!error&&Number(data)>=thresholds[member.featured_badge]&&featured.isConnected){featured.textContent='Insignia destacada: '+featuredLabels[member.featured_badge];featured.hidden=false;}});}
  const bioTitle=document.createElement('h2');bioTitle.textContent='Sobre mí';
  const bio=document.createElement('p');bio.className='public-member-bio';bio.textContent=member.bio||'Este miembro todavía no ha escrito una presentación.';
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
- content.append(avatar,title,badge,bioTitle,bio);applyShopProfileCosmetics(member.id,avatar,title,content);
+ content.append(avatar,title,badge,featured,bioTitle,bio);applyShopProfileCosmetics(member.id,avatar,title,content);
+ const statsPanel=document.createElement('section');statsPanel.className='profile-panel member-profile-stats';statsPanel.innerHTML='<h2>📊 Estadísticas personales</h2><p>Cargando estadísticas…</p>';content.append(statsPanel);
+ Promise.all([
+  sb.from('member_posts').select('id',{count:'exact',head:true}).eq('author_id',member.id),
+  sb.from('member_follows').select('follower_id',{count:'exact',head:true}).eq('following_id',member.id),
+  sb.from('member_follows').select('following_id',{count:'exact',head:true}).eq('follower_id',member.id)
+ ]).then(results=>{if(!statsPanel.isConnected)return;const labels=['📝 Publicaciones','👥 Seguidores','🤝 Siguiendo'];statsPanel.replaceChildren();const heading=document.createElement('h2');heading.textContent='📊 Estadísticas personales';statsPanel.append(heading);const grid=document.createElement('div');grid.className='member-stats-grid';results.forEach((result,i)=>{const item=document.createElement('div');const count=document.createElement('strong');count.textContent=result.error?'—':String(result.count??0);const label=document.createElement('span');label.textContent=labels[i];item.append(count,label);grid.append(item)});statsPanel.append(grid);}).catch(()=>{if(statsPanel.isConnected)statsPanel.textContent='No se pudieron cargar las estadísticas.';});
  const achievementPanel=document.createElement('section');achievementPanel.className='profile-panel member-achievements';achievementPanel.innerHTML='<h2>🏆 Logros y nivel</h2><p>Cargando experiencia…</p>';content.append(achievementPanel);
  sb.rpc('community_member_xp',{target_member:member.id}).then(({data:xp,error:xpError})=>{
   if(!achievementPanel.isConnected)return;
