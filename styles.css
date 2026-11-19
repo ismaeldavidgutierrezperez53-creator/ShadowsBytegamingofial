@@ -371,3 +371,5 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .notification-preference-label{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700}
 .notification-preference-label input{width:20px;height:20px;accent-color:#9145e8}
 #report-email-preference-message{font-size:.9rem;opacity:.85}
+
+.security-center{margin:16px 0}.security-center-links{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.security-preferences{display:flex;flex-direction:column;gap:10px;margin-top:14px}.security-preferences h4,.security-preferences p{margin:0}.security-preferences button{align-self:flex-start}
