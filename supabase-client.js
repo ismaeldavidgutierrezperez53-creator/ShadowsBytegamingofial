@@ -208,10 +208,30 @@ async function loadNotificationPreview(userId){
 }
 let notificationRealtimeChannel=null;
 let notificationRealtimeUserId=null;
+let activeToastPreferences={popup_enabled:true,sound_enabled:false};
+let toastAudioContext=null;
+async function loadToastPreferences(userId){
+ activeToastPreferences={popup_enabled:true,sound_enabled:false};
+ if(!userId)return;
+ const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled').eq('user_id',userId).maybeSingle();
+ if(!error&&data&&notificationRealtimeUserId===userId)activeToastPreferences={popup_enabled:data.popup_enabled!==false,sound_enabled:data.sound_enabled===true};
+}
+function playNotificationSound(){
+ try{
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass)return;
+  if(!toastAudioContext)toastAudioContext=new AudioContextClass();
+  if(toastAudioContext.state!=='running')return;
+  const oscillator=toastAudioContext.createOscillator(),gain=toastAudioContext.createGain(),now=toastAudioContext.currentTime;
+  oscillator.type='sine';oscillator.frequency.setValueAtTime(660,now);oscillator.frequency.exponentialRampToValueAtTime(880,now+.12);
+  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.045,now+.015);gain.gain.exponentialRampToValueAtTime(.0001,now+.22);
+  oscillator.connect(gain);gain.connect(toastAudioContext.destination);oscillator.start(now);oscillator.stop(now+.23);
+ }catch(error){console.warn('Sonido no disponible:',error);}
+}
 const toastNotificationIds=new Set();
 function showRealtimeNotificationToast(n){
  if(!n||!n.id||toastNotificationIds.has(n.id)||n.is_read)return;
- toastNotificationIds.add(n.id);
+ toastNotificationIds.add(n.id);if(activeToastPreferences.sound_enabled)playNotificationSound();if(!activeToastPreferences.popup_enabled)return;
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
@@ -230,7 +250,9 @@ function syncNotificationRealtime(userId){
  if(notificationRealtimeUserId===userId&&notificationRealtimeChannel)return;
  if(notificationRealtimeChannel){sb.removeChannel(notificationRealtimeChannel);notificationRealtimeChannel=null;}
  notificationRealtimeUserId=userId||null;
+ activeToastPreferences={popup_enabled:true,sound_enabled:false};
  if(!userId)return;
+ loadToastPreferences(userId);
  notificationRealtimeChannel=sb.channel('member-notifications-'+userId)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+userId},payload=>{if(payload.new?.recipient_id===userId)showRealtimeNotificationToast(payload.new);
    refreshNotificationBadge(userId);
@@ -395,6 +417,27 @@ async function initAccountNotificationPreferences(userId,root){
  const section=document.createElement('section');section.className='profile-panel account-notification-preferences';
  section.innerHTML='<h3>⚙ Configuración de notificaciones</h3><p>Elige si quieres recibir correos electrónicos cuando se revisen tus denuncias. Los avisos dentro de la web seguirán activos.</p><label class="notification-preference-label"><input type="checkbox" id="report-email-enabled" disabled> Recibir correos sobre mis denuncias</label><p id="report-email-preference-message" role="status" aria-live="polite">Cargando preferencias…</p>';
  root.append(section);
+ const toastSettings=document.createElement('div');toastSettings.className='notification-toast-preferences';
+ toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><button type="button" class="outline-btn mini" id="notification-sound-test">▶ Probar sonido</button><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
+ section.append(toastSettings);
+ const popupToggle=toastSettings.querySelector('#popup-notification-enabled'),soundToggle=toastSettings.querySelector('#sound-notification-enabled'),toastStatus=toastSettings.querySelector('#notification-toast-preference-status');
+ const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled').eq('user_id',userId).maybeSingle();
+ if(section.isConnected){if(toastError){toastStatus.textContent='No se pudieron cargar las preferencias.';}else{
+ popupToggle.checked=toastData?.popup_enabled!==false;soundToggle.checked=toastData?.sound_enabled===true;popupToggle.disabled=false;soundToggle.disabled=false;toastStatus.textContent='Preferencias listas.';
+ activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked};
+ const saveToastPreference=async(field,toggle)=>{const requested=toggle.checked;toggle.disabled=true;toastStatus.textContent='Guardando…';
+ const {data:session}=await sb.auth.getUser();if(session?.user?.id!==userId){toggle.checked=!requested;toggle.disabled=false;toastStatus.textContent='La sesión ha cambiado.';return;}
+ const {data:existing,error:readError}=await sb.from('member_notification_preferences').select('user_id').eq('user_id',userId).maybeSingle();
+ let error=readError;
+ if(!error){const payload={[field]:requested,updated_at:new Date().toISOString()};
+ const result=existing?await sb.from('member_notification_preferences').update(payload).eq('user_id',userId):await sb.from('member_notification_preferences').insert({user_id:userId,...payload});
+ error=result.error;}
+ if(error){toggle.checked=!requested;toastStatus.textContent='Error al guardar: '+error.message;}else{activeToastPreferences[field]=requested;toastStatus.textContent='Preferencia guardada.';}
+ toggle.disabled=false;};
+ popupToggle.onchange=()=>saveToastPreference('popup_enabled',popupToggle);
+ soundToggle.onchange=()=>saveToastPreference('sound_enabled',soundToggle);
+ toastSettings.querySelector('#notification-sound-test').onclick=async()=>{try{const C=window.AudioContext||window.webkitAudioContext;if(!C){toastStatus.textContent='Este navegador no admite audio.';return;}if(!toastAudioContext)toastAudioContext=new C();await toastAudioContext.resume();playNotificationSound();toastStatus.textContent='Sonido de prueba reproducido.';}catch(e){toastStatus.textContent='El navegador ha bloqueado el sonido.';}};
+ }}
  const checkbox=section.querySelector('#report-email-enabled'),message=section.querySelector('#report-email-preference-message');
  const {data,error}=await sb.from('member_notification_preferences').select('report_email_enabled').eq('user_id',userId).maybeSingle();
  if(!section.isConnected)return;
