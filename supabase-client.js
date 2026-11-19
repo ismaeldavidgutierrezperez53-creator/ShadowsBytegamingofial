@@ -1448,8 +1448,41 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const virtualLabel=document.createElement('label');virtualLabel.textContent='🌸 Fondo virtual anime (experimental)';
  const virtualSelect=document.createElement('select');virtualSelect.setAttribute('aria-label','Fondo virtual anime');
  for(const [value,label] of [['none','Sin fondo virtual'],['sakura','🌸 Sakura'],['night','🌌 Noche estrellada'],['neon','💜 Ciudad neón']]){const o=document.createElement('option');o.value=value;o.textContent=label;virtualSelect.append(o);}
- const virtualHelp=document.createElement('small');virtualHelp.textContent='Fondo visual de tu vista local; la sustitución real mediante segmentación aún no está disponible.';
- virtualSelect.onchange=()=>{local.parentElement.classList.remove('virtual-anime-sakura','virtual-anime-night','virtual-anime-neon');if(virtualSelect.value!=='none')local.parentElement.classList.add('virtual-anime-'+virtualSelect.value);};
+ const virtualHelp=document.createElement('small');virtualHelp.textContent='Sustituye el fondo de tu cámara mediante segmentación local. Puede tardar unos segundos en activarse; requiere conexión para cargar el modelo.';
+ let animeBackgroundController=null,animeBackgroundRequest=0;
+ const activeVideoTrack=()=>animeBackgroundController?.track?.readyState==='live'?animeBackgroundController.track:stream.getVideoTracks()[0];
+ const applyVideoTrack=async()=>{
+  const track=activeVideoTrack();
+  if(!track)return;
+  if(screenStream){originalVideo=track;return;}
+  for(const {pc} of peers.values()){const sender=pc.getSenders().find(s=>s.track?.kind==='video');if(sender)await sender.replaceTrack(track);}
+  local.srcObject=animeBackgroundController?new MediaStream([track,...stream.getAudioTracks()]):stream;
+  local.play().catch(()=>{});
+ };
+ virtualSelect.onchange=async()=>{
+  const request=++animeBackgroundRequest,theme=virtualSelect.value;
+  if(theme==='none'){
+   animeBackgroundController?.stop();animeBackgroundController=null;
+   virtualHelp.textContent='Fondo virtual desactivado. Se utiliza la cámara original.';
+   await applyVideoTrack();return;
+  }
+  if(!window.ShadowsAnimeBackground){virtualHelp.textContent='El procesador de fondos no está disponible. Actualiza la página.';return;}
+  virtualSelect.disabled=true;virtualHelp.textContent='⏳ Cargando el recorte de persona y el fondo anime…';
+  try{
+   const controller=await window.ShadowsAnimeBackground.create(stream,theme,error=>{
+    if(animeBackgroundController===controller){
+     animeBackgroundController=null;virtualSelect.value='none';virtualHelp.textContent='El fondo se desactivó por falta de rendimiento: '+error.message;
+     applyVideoTrack().catch(console.warn);
+    }
+   });
+   if(request!==animeBackgroundRequest||closed){controller.stop();return;}
+   const previous=animeBackgroundController;animeBackgroundController=controller;
+   await applyVideoTrack();previous?.stop();
+   virtualHelp.textContent='✅ Fondo anime real activo en tu vídeo. Tu entorno se recorta localmente.';
+  }catch(e){
+   if(request===animeBackgroundRequest){virtualSelect.value=animeBackgroundController?'sakura':'none';virtualHelp.textContent='No se pudo activar el fondo: '+e.message;console.warn('Fondo anime:',e);}
+  }finally{if(request===animeBackgroundRequest)virtualSelect.disabled=false;}
+ };
  filterBar.append(virtualLabel,virtualSelect,virtualHelp);
  const stickerBar=document.createElement('div');stickerBar.className='group-call-actions';
  const stickerTitle=document.createElement('span');stickerTitle.textContent='✨ Stickers especiales';
@@ -1541,7 +1574,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const createPeer=(other)=>{
   if(peers.has(other))return peers.get(other);
   const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-  stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+  const outbound=new MediaStream([activeVideoTrack(),...stream.getAudioTracks()].filter(Boolean));outbound.getTracks().forEach(t=>pc.addTrack(t,outbound));
   const video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.controls=true;const tile=videoTile(other,video);
   pc.ontrack=e=>{video.srcObject=e.streams[0];video.play().catch(()=>{});};
   pc.onicecandidate=e=>{if(e.candidate)sendSignal(other,{type:'ice',candidate:e.candidate.toJSON()});};
@@ -1625,14 +1658,14 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   if(screenStream){await stopShare();return;}
   try{
    const display=await navigator.mediaDevices.getDisplayMedia({video:true});
-   screenStream=display;originalVideo=stream.getVideoTracks()[0];
+   screenStream=display;originalVideo=activeVideoTrack();
    for(const {pc} of peers.values()){const sender=pc.getSenders().find(s=>s.track?.kind==='video');if(sender)await sender.replaceTrack(display.getVideoTracks()[0]);}
    local.srcObject=display;share.textContent='🛑 Dejar de compartir';shareStatus.textContent='🖥️ Estás compartiendo pantalla';for(const id of peers.keys())sendSignal(id,{type:'screen',active:true});
    display.getVideoTracks()[0].onended=()=>stopShare().catch(console.warn);
   }catch(e){say('No se pudo compartir pantalla: '+e.message);}
  };
  async function leaveRoom(){
-  if(closed)return;closed=true;stopRecording();if(groupRecorder?.state==='recording')groupRecorder.stop();clearInterval(session.timer);
+  if(closed)return;closed=true;animeBackgroundRequest++;animeBackgroundController?.stop();stopRecording();if(groupRecorder?.state==='recording')groupRecorder.stop();clearInterval(session.timer);
   for(const {pc,tile} of peers.values()){pc.close();tile.remove();}
   screenStream?.getTracks().forEach(t=>t.stop());stream.getTracks().forEach(t=>t.stop());
   await sb.from('member_group_video_participants').delete().eq('room_id',room.id).eq('user_id',userId);
