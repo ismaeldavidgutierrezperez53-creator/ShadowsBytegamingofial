@@ -1326,6 +1326,11 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   const pendingList=document.createElement('div');
   const {data:initialSettings}=await sb.from('member_group_video_settings').select('private_mode,locked').eq('room_id',room.id).maybeSingle();
   privateBox.checked=!!initialSettings?.private_mode;lockBox.checked=!!initialSettings?.locked;
+  const accessHint=document.createElement('p');accessHint.setAttribute('role','status');
+  const updateAccessHint=()=>{accessHint.textContent=lockBox.checked?'🔒 Sala bloqueada: los miembros no pueden enviar solicitudes de entrada. Desmarca esta opción para usar la sala de espera.':privateBox.checked?'⏳ Sala de espera activa: los miembros podrán solicitar entrar y recibirás botones para aprobar o rechazar.':'🔓 Sala abierta: los miembros del grupo pueden entrar directamente.';};
+  privateBox.addEventListener('change',()=>{if(privateBox.checked)lockBox.checked=false;updateAccessHint();});
+  lockBox.addEventListener('change',()=>{if(lockBox.checked)privateBox.checked=false;updateAccessHint();});
+  updateAccessHint();
   saveAccess.onclick=async()=>{saveAccess.disabled=true;const {error}=await sb.rpc('set_group_video_settings',{p_room_id:room.id,p_private:privateBox.checked,p_locked:lockBox.checked});saveAccess.disabled=false;say(error?'No se pudieron guardar los permisos: '+error.message:'Permisos de sala actualizados.');if(!error){saveAccess.textContent='✅ Permisos guardados';setTimeout(()=>{if(saveAccess.isConnected)saveAccess.textContent='💾 Guardar permisos de sala';},2500);}};
   accessPanel.refresh=async()=>{
    const {data:pending,error}=await sb.from('member_group_video_waiting').select('user_id,status').eq('room_id',room.id).eq('status','pending');
@@ -1345,7 +1350,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   };
   saveAccess.className='group-video-save-access';saveAccess.style.cssText='display:inline-flex!important;visibility:visible!important;opacity:1!important;align-items:center;justify-content:center;min-height:44px;padding:12px 18px;background:#16a34a;color:#fff;border:2px solid #86efac;border-radius:10px;font-weight:700;cursor:pointer;position:relative;z-index:2;';
   accessPanel.classList.add('group-video-access-panel');
-  accessPanel.append(accessTitle,privateLabel,lockLabel,saveAccess,pendingList);
+  accessPanel.append(accessTitle,privateLabel,lockLabel,accessHint,saveAccess,pendingList);
  }
  const activity=document.createElement('section');activity.className='group-video-activity';
  const activityTitle=document.createElement('h5');activityTitle.textContent='✋ Participación y chat de la sala';
