@@ -211,20 +211,54 @@ let notificationRealtimeUserId=null;
 const DEFAULT_NOTIFICATION_SOUNDS={message_sound:'message',comment_sound:'comment',gift_sound:'gift',follow_sound:'follow'};
 const VALID_NOTIFICATION_SOUNDS=new Set(['default','message','comment','gift','follow','off']);
 function normalizeNotificationSound(value,fallback){return VALID_NOTIFICATION_SOUNDS.has(value)?value:fallback;}
-let activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS};
+const DEFAULT_QUIET_PREFERENCES={dnd_enabled:false,dnd_schedule_enabled:false,dnd_start:'22:00',dnd_end:'08:00',dnd_timezone:'Europe/Madrid'};
+function deviceNotificationTimezone(){
+ try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Madrid';}catch(_){return 'Europe/Madrid';}
+}
+function normalizeQuietClock(value,fallback){
+ const time=String(value||'').slice(0,5);
+ return /^([01]\d|2[0-3]):[0-5]\d$/.test(time)?time:fallback;
+}
+function normalizeQuietPreferences(data){
+ return {
+  dnd_enabled:data?.dnd_enabled===true,
+  dnd_schedule_enabled:data?.dnd_schedule_enabled===true,
+  dnd_start:normalizeQuietClock(data?.dnd_start,'22:00'),
+  dnd_end:normalizeQuietClock(data?.dnd_end,'08:00'),
+  dnd_timezone:typeof data?.dnd_timezone==='string'&&data.dnd_timezone.length<=80?data.dnd_timezone:deviceNotificationTimezone()
+ };
+}
+function isNotificationQuietNow(preferences=activeToastPreferences,date=new Date()){
+ if(preferences.dnd_enabled===true)return true;
+ if(preferences.dnd_schedule_enabled!==true)return false;
+ const from=normalizeQuietClock(preferences.dnd_start,'22:00'),to=normalizeQuietClock(preferences.dnd_end,'08:00');
+ if(from===to)return false;
+ let minute;
+ try{
+  const parts=Intl.DateTimeFormat('en-GB',{timeZone:preferences.dnd_timezone||deviceNotificationTimezone(),hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+  const hours=Number(parts.find(part=>part.type==='hour')?.value),mins=Number(parts.find(part=>part.type==='minute')?.value);
+  minute=hours*60+mins;
+  if(!Number.isFinite(minute))return false;
+ }catch(_){return false;}
+ const a=Number(from.slice(0,2))*60+Number(from.slice(3,5));
+ const b=Number(to.slice(0,2))*60+Number(to.slice(3,5));
+ return a<b?(minute>=a&&minute<b):(minute>=a||minute<b);
+}
+let activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS,...DEFAULT_QUIET_PREFERENCES};
 let toastAudioContext=null;
 async function loadToastPreferences(userId){
- activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS};
+ activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS,...DEFAULT_QUIET_PREFERENCES};
  if(!userId)return;
- const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound').eq('user_id',userId).maybeSingle();
+ const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone').eq('user_id',userId).maybeSingle();
  if(!error&&notificationRealtimeUserId===userId)activeToastPreferences={
   popup_enabled:data?.popup_enabled!==false,
   sound_enabled:data?.sound_enabled===true,
-  ...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(data?.[field],defaultSound)]))
+  ...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(data?.[field],defaultSound)])),
+  ...normalizeQuietPreferences(data)
  };
 }
-function playNotificationSound(kind='default'){
- if(kind==='off')return;
+function playNotificationSound(kind='default',preview=false){
+ if(kind==='off'||(!preview&&isNotificationQuietNow()))return;
  try{
   const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
   if(!toastAudioContext)toastAudioContext=new C();
@@ -254,7 +288,7 @@ function notificationSoundKind(kind){
 const toastNotificationIds=new Set();
 function showRealtimeNotificationToast(n){
  if(!n||!n.id||toastNotificationIds.has(n.id)||n.is_read)return;
- toastNotificationIds.add(n.id);if(activeToastPreferences.sound_enabled)playNotificationSound(notificationSoundKind(n.kind));if(!activeToastPreferences.popup_enabled)return;
+ toastNotificationIds.add(n.id);if(isNotificationQuietNow())return;if(activeToastPreferences.sound_enabled)playNotificationSound(notificationSoundKind(n.kind));if(!activeToastPreferences.popup_enabled)return;
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
@@ -273,7 +307,7 @@ function syncNotificationRealtime(userId){
  if(notificationRealtimeUserId===userId&&notificationRealtimeChannel)return;
  if(notificationRealtimeChannel){sb.removeChannel(notificationRealtimeChannel);notificationRealtimeChannel=null;}
  notificationRealtimeUserId=userId||null;
- activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS};
+ activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS,...DEFAULT_QUIET_PREFERENCES};
  if(!userId)return;
  loadToastPreferences(userId);
  notificationRealtimeChannel=sb.channel('member-notifications-'+userId)
@@ -457,12 +491,12 @@ async function initAccountNotificationPreferences(userId,root){
   test.onclick=async()=>{
    if(select.value==='off'){toastStatus.textContent=labelText+': sonido desactivado.';return;}
    try{const C=window.AudioContext||window.webkitAudioContext;if(!C){toastStatus.textContent='Este navegador no admite audio.';return;}
-    if(!toastAudioContext)toastAudioContext=new C();await toastAudioContext.resume();playNotificationSound(select.value);toastStatus.textContent='Prueba de sonido: '+labelText+'.';
+    if(!toastAudioContext)toastAudioContext=new C();await toastAudioContext.resume();playNotificationSound(select.value,true);toastStatus.textContent='Prueba de sonido: '+labelText+'.';
    }catch(e){toastStatus.textContent='El navegador ha bloqueado el sonido.';}
   };
   controls.append(select,test);row.append(label,controls);soundSettings.append(row);soundSelectors.set(field,select);
  }
- const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound').eq('user_id',userId).maybeSingle();
+ const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone').eq('user_id',userId).maybeSingle();
  if(section.isConnected){if(toastError){toastStatus.textContent='No se pudieron cargar las preferencias.';}else{
  popupToggle.checked=toastData?.popup_enabled!==false;soundToggle.checked=toastData?.sound_enabled===true;popupToggle.disabled=false;soundToggle.disabled=false;toastStatus.textContent='Preferencias listas.';
  activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked,...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(toastData?.[field],defaultSound)]))};
@@ -2483,7 +2517,7 @@ async function loadLiveAlertPreferences(userId){
  if(!error)liveAlertPreferences={notify_private_messages:data?.notify_private_messages!==false,notify_report_updates:data?.notify_report_updates!==false};
 }
 function showMemberLiveAlert(message,href){
- if(document.visibilityState!=='visible')return;
+ if(document.visibilityState!=='visible'||isNotificationQuietNow())return;
  const toast=document.createElement('div');toast.className='member-live-alert';toast.setAttribute('role','status');
  const label=document.createElement('span');label.textContent=message;
  const link=document.createElement('a');link.href=href;link.textContent='Ver';link.className='outline-btn mini';
@@ -2511,7 +2545,7 @@ function syncPrivateMessageRealtime(userId){
  privateMessageRealtimeChannel=sb.channel('direct-message-alerts-'+userId)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
-   if(activeToastPreferences.sound_enabled)playNotificationSound(activeToastPreferences.message_sound);
+   if(!isNotificationQuietNow()&&activeToastPreferences.sound_enabled)playNotificationSound(activeToastPreferences.message_sound);
    if(liveAlertPreferences.notify_private_messages)showMemberLiveAlert('💬 Has recibido un mensaje privado.','#/mensajes');
    refreshLivePrivateConversation();
   })
