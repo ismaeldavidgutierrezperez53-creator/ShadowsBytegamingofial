@@ -1,0 +1,15 @@
+/* Shadows Byte anime visual enhancements — layered over existing anime and sakura artwork. */
+:root{--sb-anime-violet:#ba6bff;--sb-anime-cyan:#48dfff;--sb-anime-pink:#ff85da}
+@keyframes sb-anime-glow{0%,100%{text-shadow:0 0 7px #b65cff66,0 0 16px #6b38e444}50%{text-shadow:0 0 12px #d789ffb3,0 0 25px #6f8dff88}}
+@keyframes sb-anime-shimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes sb-anime-enter{from{opacity:.55;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+body :is(.hero h1,.page-hero h1,.section-title,.social h2){animation:sb-anime-glow 5s ease-in-out infinite}
+body :is(.gradient-btn,.news-details summary){background-size:200% 100%;background-image:linear-gradient(110deg,#9130dc,#29b9f4,#e95ad2,#9130dc);animation:sb-anime-shimmer 8s linear infinite}
+body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card,.card){background-color:rgba(19,13,40,.84);border:1px solid rgba(181,110,255,.3);border-radius:14px;box-shadow:inset 0 1px rgba(255,255,255,.07),0 6px 22px rgba(5,2,18,.24);backdrop-filter:blur(8px)}
+@media(hover:hover) and (pointer:fine){body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card,.card):hover{box-shadow:0 10px 32px #7b2cf54d,0 0 18px #3ecfff2c,inset 0 1px #ffffff30;border-color:#bd7aff}}
+body #app.sb-anime-route-enter{animation:sb-anime-enter .34s ease-out both}
+.sb-anime-sparkles{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden;contain:layout style paint}
+.sb-anime-sparkle{position:absolute;left:var(--sx);top:var(--sy);width:var(--ss);height:var(--ss);border-radius:50%;background:#d9f8ff;box-shadow:0 0 8px 2px #7cdbffb3,0 0 17px #c55dff66;opacity:0;animation:sb-anime-twinkle var(--sd) ease-in-out var(--so) infinite alternate}
+@keyframes sb-anime-twinkle{0%,15%{opacity:0;transform:scale(.3)}60%{opacity:.65}100%{opacity:.15;transform:scale(1.2)}}
+@media(max-width:700px){body :is(.hero h1,.page-hero h1,.section-title,.social h2){animation-duration:8s}body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card,.card){backdrop-filter:none;background-color:rgba(19,13,40,.9)}.sb-anime-sparkle:nth-child(n+11){display:none}}
+@media(prefers-reduced-motion:reduce){body :is(.hero h1,.page-hero h1,.section-title,.social h2,.gradient-btn,.news-details summary),body #app.sb-anime-route-enter{animation:none!important}.sb-anime-sparkles{display:none!important}}
