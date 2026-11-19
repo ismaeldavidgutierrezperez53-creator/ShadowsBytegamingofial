@@ -485,7 +485,7 @@ async function loadAccountProfile(){
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Public member directory is opt-in; keep authentication email private.
- const {data:profile}=await sb.from('profiles').select('bio,is_public').eq('id',user.id).maybeSingle();
+ const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color').eq('id',user.id).maybeSingle();
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
@@ -493,6 +493,11 @@ async function loadAccountProfile(){
   panel.querySelector('#profile-form').insertBefore(extra,panel.querySelector('#profile-form button[type="submit"]'));
   document.getElementById('profile-bio').value=profile?.bio||'';
   document.getElementById('profile-public').checked=profile?.is_public===true;
+  const customization=document.createElement('div');customization.className='profile-customization';
+  customization.innerHTML='<label for="profile-cover-url">🖼️ Portada (URL HTTPS)</label><input id="profile-cover-url" type="url" placeholder="https://ejemplo.com/portada.jpg"><label for="profile-theme">🎨 Color del perfil</label><select id="profile-theme"><option value="violet">Morado</option><option value="blue">Azul</option><option value="emerald">Verde</option><option value="rose">Rosa</option><option value="amber">Dorado</option></select>';
+  panel.querySelector('#profile-form').insertBefore(customization,panel.querySelector('#profile-form button[type="submit"]'));
+  document.getElementById('profile-cover-url').value=profile?.cover_url||'';
+  document.getElementById('profile-theme').value=profile?.theme_color||'violet';
  }
 
  const heading=document.getElementById('profile-heading'),email=document.getElementById('profile-email');
@@ -518,6 +523,7 @@ async function loadAccountProfile(){
  preview.append(publicLink);editorPanel.append(progress,preview);
  function updateProfilePreview(){
   const currentName=form.elements.display_name.value.trim(),currentAvatar=form.elements.avatar_url.value.trim(),bio=document.getElementById('profile-bio')?.value.trim()||'',visible=document.getElementById('profile-public')?.checked;
+  const coverInput=document.getElementById('profile-cover-url');const coverNode=root.querySelector('.profile-cover');const coverUrl=coverInput?.value.trim()||'';const theme=document.getElementById('profile-theme')?.value||'violet';if(coverNode){coverNode.style.backgroundImage=/^https:\/\/[^\s]+$/i.test(coverUrl)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';coverNode.dataset.theme=theme;}
   const score=[!!currentName,!!currentAvatar,!!bio,!!visible].filter(Boolean).length*25;
   progressTitle.textContent='Perfil completado: '+score+'%';progressTrack.value=score;
   progressHint.textContent=score===100?'¡Tu perfil está completo!':'Completa tu nombre, imagen, presentación y visibilidad para llegar al 100%.';
@@ -528,7 +534,7 @@ async function loadAccountProfile(){
   else previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase();
   publicLink.hidden=!visible;
  }
- for(const element of [form.elements.display_name,form.elements.avatar_url,document.getElementById('profile-bio'),document.getElementById('profile-public')]){if(element){element.addEventListener('input',updateProfilePreview);element.addEventListener('change',updateProfilePreview);}}
+ for(const element of [form.elements.display_name,form.elements.avatar_url,document.getElementById('profile-bio'),document.getElementById('profile-public'),document.getElementById('profile-cover-url'),document.getElementById('profile-theme')]){if(element){element.addEventListener('input',updateProfilePreview);element.addEventListener('change',updateProfilePreview);}}
  updateProfilePreview();
  form.addEventListener('submit',async event=>{
   event.preventDefault();
@@ -542,7 +548,10 @@ async function loadAccountProfile(){
    if(!error){
     const bio=document.getElementById('profile-bio').value.trim();
     const is_public=document.getElementById('profile-public').checked;
-    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public};
+    const cover_url=document.getElementById('profile-cover-url').value.trim();
+    if(cover_url&&!/^https:\/\/[^\s]+$/i.test(cover_url)){status.textContent='La portada debe ser una URL HTTPS válida.';return;}
+    const theme_color=document.getElementById('profile-theme').value;
+    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color};
     const {data:existing, error:readError}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
     if(readError){status.textContent='No se pudo comprobar tu perfil: '+readError.message;return;}
     const request=existing
@@ -591,7 +600,7 @@ async function loadPublicMemberProfile(){
  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
   root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
  }
- const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at').eq('id',id).eq('is_public',true).maybeSingle();
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color').eq('id',id).eq('is_public',true).maybeSingle();
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
