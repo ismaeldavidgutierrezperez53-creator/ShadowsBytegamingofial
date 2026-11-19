@@ -1096,6 +1096,8 @@ async function startGroupPeerCall(group,userId,members,thread,say,kind,calleeId,
  pc.ontrack=e=>{remote.srcObject=e.streams[0];remote.play().catch(()=>{label.textContent='Pulsa reproducir para escuchar la llamada.';});};
  let call=incoming,seenIce=0,busy=false;
  const session={pc,stream,container:panel,timer:null};groupCallSession=session;
+ const pendingIce=[];
+ pc.onicecandidate=e=>{if(!e.candidate)return;const candidate=e.candidate.toJSON();if(!call?.id){pendingIce.push(candidate);return;}sb.from('member_group_call_ice').insert({call_id:call.id,sender_id:userId,candidate}).then(({error})=>{if(error)console.warn('ICE:',error.message);});};
  async function endCall(){
   if(call)await sb.from('member_group_calls').update({status:'ended',updated_at:new Date().toISOString()}).eq('id',call.id);
   if(groupCallSession===session)stopGroupCallSession();
@@ -1112,7 +1114,7 @@ async function startGroupPeerCall(group,userId,members,thread,say,kind,calleeId,
    const {data,error}=await sb.from('member_group_calls').update({answer:pc.localDescription.toJSON(),status:'active',updated_at:new Date().toISOString()}).eq('id',incoming.id).select().single();
    if(error)throw error;call=data;
   }
-  pc.onicecandidate=async e=>{if(e.candidate&&groupCallSession===session)await sb.from('member_group_call_ice').insert({call_id:call.id,sender_id:userId,candidate:e.candidate.toJSON()});};
+  for(const candidate of pendingIce)await sb.from('member_group_call_ice').insert({call_id:call.id,sender_id:userId,candidate});
   async function poll(){
    if(busy||groupCallSession!==session)return;busy=true;
    try{
