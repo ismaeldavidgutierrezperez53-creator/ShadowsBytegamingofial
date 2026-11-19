@@ -1450,8 +1450,8 @@ async function loadCommunityCompetitions(root){
      (!own?' Comprueba que tu perfil sea público y que la competición siga abierta.':'');
      signup.disabled=false;return;
     }
-    note.textContent=own?'Has cancelado tu inscripción.':'¡Inscripción registrada!';
-    await reload();
+    const message=own?'Has cancelado tu inscripción.':'¡Inscripción registrada!';
+    await reload();note.textContent=message;
    };
    card.append(title,state,description,dates,count,signup);
    const ranked=members.filter(e=>e.completed||e.score>0).sort((a,b)=>b.score-a.score||new Date(a.joined_at)-new Date(b.joined_at)).slice(0,10);
