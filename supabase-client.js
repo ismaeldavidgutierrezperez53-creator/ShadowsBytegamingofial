@@ -1311,27 +1311,80 @@ function appendReportButton(container,targetId,type,viewerId){
 }
 async function loadCommunityFeed(){
  const root=document.getElementById('community-feed');if(!root)return;
- const [{data:posts,error},{data:{user}}]=await Promise.all([sb.from('member_posts').select('id,author_id,content,image_path,created_at').order('created_at',{ascending:false}).limit(50),sb.auth.getUser()]);
- if(!root.isConnected)return;root.replaceChildren();
- if(error){root.textContent='No se pudo cargar el muro.';return;}
- if(!(posts||[]).length){root.textContent='Todavía no hay publicaciones públicas.';return;}
- const ids=[...new Set(posts.map(p=>p.author_id))];
- const {data:profiles}=await sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true);
- const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
- for(const post of posts){
-  if(!names.has(post.author_id))continue;
-  const article=document.createElement('article');article.className='social-post';
-  const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(post.author_id);author.className='feed-author';author.textContent=names.get(post.author_id);
-  const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
-  const content=document.createElement('p');content.className='social-post-body';content.textContent=post.content;
-  const likes=document.createElement('div');likes.className='post-like-box';
-  const profile=document.createElement('a');profile.href=author.href;profile.className='outline-btn mini';profile.textContent='Ver publicación y comentarios';
-  article.append(author,date,content);
-  if(post.image_path){const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);}
-  article.append(likes,profile);appendReportButton(article,post.id,'post',user?.id);root.append(article);
-  renderPostLikes(post.id,likes,user?.id||null);
+ const [{data:{user},error:authError},{data:posts,error:postsError}]=await Promise.all([
+  sb.auth.getUser(),
+  sb.from('member_posts').select('id,author_id,content,image_path,created_at').order('created_at',{ascending:false}).limit(50)
+ ]);
+ if(!root.isConnected)return;
+ root.replaceChildren();
+ if(postsError){root.textContent='No se pudo cargar el muro: '+postsError.message;return;}
+ const toolbar=document.createElement('div');toolbar.className='community-bookmark-toolbar';
+ const allButton=document.createElement('button');allButton.type='button';allButton.textContent='🌐 Últimas publicaciones';
+ const savedButton=document.createElement('button');savedButton.type='button';savedButton.textContent='🔖 Mis guardados';
+ savedButton.disabled=!user;
+ if(!user)savedButton.title='Inicia sesión para guardar publicaciones';
+ toolbar.append(allButton,savedButton);
+ const content=document.createElement('div');content.className='community-bookmark-feed';
+ root.append(toolbar,content);
+ let bookmarked=new Set(),mode='recent',requestId=0;
+ if(user&&!authError){
+  const {data:saved,error:savedError}=await sb.from('member_post_bookmarks').select('post_id').eq('user_id',user.id).order('created_at',{ascending:false}).limit(150);
+  if(savedError)console.warn('Marcadores:',savedError.message);else bookmarked=new Set((saved||[]).map(x=>x.post_id));
  }
- if(!root.children.length)root.textContent='Todavía no hay publicaciones públicas.';
+ const render=async()=>{
+  const request=++requestId;
+  allButton.setAttribute('aria-pressed',String(mode==='recent'));savedButton.setAttribute('aria-pressed',String(mode==='saved'));
+  content.textContent='Cargando publicaciones…';
+  let visible=posts||[];
+  if(mode==='saved'){
+   const ids=[...bookmarked].slice(0,150);
+   if(!ids.length){content.textContent='Todavía no tienes publicaciones guardadas.';return;}
+   const {data,error}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at').in('id',ids).order('created_at',{ascending:false}).limit(150);
+   if(request!==requestId)return;
+   if(error){content.textContent='No se pudieron cargar los guardados: '+error.message;return;}
+   visible=data||[];
+  }
+  const ids=[...new Set(visible.map(p=>p.author_id))];
+  const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true):{data:[]};
+  if(request!==requestId||!content.isConnected)return;
+  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+  content.replaceChildren();
+  for(const post of visible){
+   if(!names.has(post.author_id))continue;
+   const article=document.createElement('article');article.className='social-post';
+   const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(post.author_id);author.className='feed-author';author.textContent=names.get(post.author_id);
+   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
+   const body=document.createElement('p');body.className='social-post-body';body.textContent=post.content;
+   const likes=document.createElement('div');likes.className='post-like-box';
+   const profile=document.createElement('a');profile.href=author.href;profile.className='outline-btn mini';profile.textContent='Ver publicación y comentarios';
+   const save=document.createElement('button');save.type='button';save.className='community-save-post';
+   const updateButton=()=>{const active=bookmarked.has(post.id);save.textContent=active?'🔖 Guardado · Quitar':'🔖 Guardar publicación';save.setAttribute('aria-pressed',String(active));};
+   updateButton();save.disabled=!user;
+   if(!user)save.title='Inicia sesión para guardar publicaciones';
+   save.onclick=async()=>{
+    if(!user)return;
+    save.disabled=true;const active=bookmarked.has(post.id);
+    const result=active
+     ?await sb.from('member_post_bookmarks').delete().eq('user_id',user.id).eq('post_id',post.id)
+     :await sb.from('member_post_bookmarks').insert({user_id:user.id,post_id:post.id});
+    if(result.error){save.textContent='Error al guardar: '+result.error.message;save.disabled=false;return;}
+    if(active)bookmarked.delete(post.id);else bookmarked.add(post.id);
+    if(mode==='saved'&&active){article.remove();if(!content.children.length)content.textContent='Todavía no tienes publicaciones guardadas.';}
+    else{updateButton();save.disabled=false;}
+   };
+   article.append(author,date,body);
+   if(post.image_path){
+    const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';
+    image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);
+   }
+   article.append(likes,profile,save);appendReportButton(article,post.id,'post',user?.id);content.append(article);
+   renderPostLikes(post.id,likes,user?.id||null);
+  }
+  if(!content.children.length)content.textContent=mode==='saved'?'No hay guardados visibles en este momento.':'Todavía no hay publicaciones públicas.';
+ };
+ allButton.onclick=()=>{mode='recent';render();};
+ savedButton.onclick=()=>{mode='saved';render();};
+ await render();
 }
 async function appendFollowBackActions(root,notifications,userId){
  const actors=[...new Set(notifications.filter(n=>n.kind==='follow'&&n.actor_id&&n.actor_id!==userId).map(n=>n.actor_id))];
