@@ -1681,8 +1681,40 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const invites=document.createElement('div');invites.className='group-video-invites';
  const inviteSelect=document.createElement('select');inviteSelect.setAttribute('aria-label','Invitar miembro');
  const inviteButton=document.createElement('button');inviteButton.type='button';inviteButton.textContent='✉️ Invitar';
- inviteButton.onclick=async()=>{if(!inviteSelect.value)return;const {error}=await sb.from('member_group_video_invites').insert({room_id:room.id,inviter_id:userId,invitee_id:inviteSelect.value});say(error?'No se pudo invitar: '+error.message:'Invitación enviada.');};
- invites.append(inviteSelect,inviteButton);
+ const inviteReplies=document.createElement('div');inviteReplies.className='group-video-invite-replies';inviteReplies.setAttribute('aria-live','polite');
+ const attendanceSummary=document.createElement('div');attendanceSummary.className='group-video-attendance-summary';
+ const refreshInviteReplies=async()=>{
+  const {data,error}=await sb.from('member_group_video_invites').select('invitee_id,response').eq('room_id',room.id).eq('inviter_id',userId);
+  if(error){inviteReplies.textContent='No se pudieron cargar las respuestas: '+error.message;return;}
+  const labels={pending:'⏳ Pendiente',accepted:'✅ Aceptada',declined:'❌ Rechazada'};
+  inviteReplies.replaceChildren();
+  if(!data?.length){inviteReplies.textContent='Todavía no has enviado invitaciones.';return;}
+  for(const item of data){
+   const span=document.createElement('span');span.className='group-video-invite-chip';
+   const name=profileMap.get(item.invitee_id)?.display_name||profileMap.get(item.invitee_id)?.username||'Miembro';
+   span.textContent=name+' · '+(labels[item.response]||labels.pending);inviteReplies.append(span);
+  }
+ };
+ const refreshAttendanceStats=async()=>{
+  const {data,error}=await sb.from('member_group_video_attendance').select('user_id,joined_at,left_at').eq('room_id',room.id).limit(500);
+  if(error){attendanceSummary.textContent='No se pudieron cargar las estadísticas: '+error.message;return;}
+  const visits=data||[],unique=new Set(visits.map(v=>v.user_id));
+  const totalSeconds=visits.reduce((acc,v)=>acc+Math.max(0,(new Date(v.left_at||Date.now()).getTime()-new Date(v.joined_at).getTime())/1000),0);
+  attendanceSummary.textContent='📊 Asistencia registrada: '+unique.size+' participante(s), '+visits.length+' entrada(s) · '+Math.round(totalSeconds/60)+' min acumulados aproximados (suma de asistencias).';
+ };
+ let refreshAnalyticsAt=0;
+ const refreshInvites=document.createElement('button');refreshInvites.type='button';refreshInvites.textContent='🔄 Ver respuestas y estadísticas';
+ refreshInvites.onclick=()=>{refreshInviteReplies();refreshAttendanceStats();};
+ inviteButton.onclick=async()=>{
+  if(!inviteSelect.value){say('Selecciona un miembro para invitar.');return;}
+  inviteButton.disabled=true;
+  const {error}=await sb.from('member_group_video_invites').insert({room_id:room.id,inviter_id:userId,invitee_id:inviteSelect.value});
+  inviteButton.disabled=false;
+  say(error?(error.code==='23505'?'Ya existe una invitación para esa persona en esta sala.':'No se pudo invitar: '+error.message):'Invitación enviada. El destinatario puede aceptarla o rechazarla desde su grupo.');
+  refreshInviteReplies();
+ };
+ invites.append(inviteSelect,inviteButton,refreshInvites,inviteReplies,attendanceSummary);
+ refreshInviteReplies();refreshAttendanceStats();
  const moderator=document.createElement('div');moderator.className='group-video-moderator';
  const {data:myRole}=await sb.from('member_chat_group_members').select('role').eq('group_id',group.id).eq('user_id',userId).maybeSingle();
  const {data:cohostMembership}=await sb.from('member_group_video_cohosts').select('user_id').eq('room_id',room.id).eq('user_id',userId).maybeSingle();
@@ -1999,6 +2031,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    inviteSelect.replaceChildren();for(const [id,p] of profileMap){if(id===userId||active.has(id))continue;const o=document.createElement('option');o.value=id;o.textContent=p.display_name||p.username||'Miembro';inviteSelect.append(o);}
    if(moderator.refresh){moderator.refresh(active);moderator.refreshMute(active);await moderator.refreshBlocked();}
    if(extras.refreshCohost)extras.refreshCohost(active);
+   if(Date.now()>(refreshAnalyticsAt||0)){refreshAnalyticsAt=Date.now()+12000;refreshInviteReplies().catch(console.warn);refreshAttendanceStats().catch(console.warn);}
    if(accessPanel.refresh)await accessPanel.refresh();
    for(const [id,peer] of peers)if(!active.has(id)){peer.pc.close();peer.tile.remove();peers.delete(id);}
    // Only the newer participant creates offers, avoiding simultaneous negotiation.
@@ -2284,12 +2317,42 @@ async function initGroupChats(userId,root){
   }
   const multiStart=document.createElement('button');multiStart.type='button';multiStart.textContent='📹 Iniciar videollamada grupal';
   const multiJoin=document.createElement('button');multiJoin.type='button';multiJoin.textContent='👥 Unirse a videollamada grupal';
-  const inviteNotice=document.createElement('p');inviteNotice.setAttribute('role','status');callControls.append(inviteNotice);
+  const inviteNotice=document.createElement('p');inviteNotice.setAttribute('role','status');
+  const inviteActions=document.createElement('div');inviteActions.className='group-call-actions group-video-rsvp';
+  callControls.append(inviteNotice,inviteActions);
+  let inviteRefreshBusy=false;
   async function checkVideoInvites(){
-   if(!thread.isConnected)return;
-   const {data}=await sb.from('member_group_video_invites').select('room_id,created_at').eq('invitee_id',userId).order('created_at',{ascending:false}).limit(10);
-   const {data:open}=await sb.from('member_group_video_rooms').select('id').eq('group_id',group.id).eq('status','open');
-   const ids=new Set((open||[]).map(r=>r.id));inviteNotice.textContent=(data||[]).some(i=>ids.has(i.room_id))?'✉️ Tienes una invitación para esta videollamada. Pulsa Unirse.':'';
+   if(!thread.isConnected||inviteRefreshBusy)return;
+   inviteRefreshBusy=true;
+   try{
+    const {data,error}=await sb.from('member_group_video_invites').select('id,room_id,response,created_at').eq('invitee_id',userId).order('created_at',{ascending:false}).limit(15);
+    const {data:open}=await sb.from('member_group_video_rooms').select('id').eq('group_id',group.id).eq('status','open');
+    if(!inviteActions.isConnected)return;
+    inviteActions.replaceChildren();inviteNotice.textContent='';
+    if(error){inviteNotice.textContent='No se pudieron leer las invitaciones: '+error.message;return;}
+    const openIds=new Set((open||[]).map(r=>r.id));
+    const invitation=(data||[]).find(i=>openIds.has(i.room_id)&&i.response!=='declined');
+    if(!invitation)return;
+    if(invitation.response==='accepted'){
+     inviteNotice.textContent='✅ Invitación aceptada. Puedes solicitar entrar a la sala (se mantienen los permisos de acceso).';
+     const join=document.createElement('button');join.type='button';join.textContent='📹 Unirme ahora';
+     join.onclick=()=>multiJoin.click();inviteActions.append(join);return;
+    }
+    inviteNotice.textContent='✉️ Has recibido una invitación a una videollamada grupal.';
+    for(const [value,label] of [['accepted','✅ Aceptar invitación'],['declined','❌ Rechazar invitación']]){
+     const button=document.createElement('button');button.type='button';button.textContent=label;
+     button.onclick=async()=>{
+      for(const b of inviteActions.querySelectorAll('button'))b.disabled=true;
+      const {data:updated,error:updateError}=await sb.from('member_group_video_invites').update({response:value,responded_at:new Date().toISOString()})
+       .eq('id',invitation.id).eq('invitee_id',userId).eq('response','pending').select('id');
+      if(updateError||!updated?.length){say('No se pudo responder a la invitación: '+(updateError?.message||'Ya respondida.'));return checkVideoInvites();}
+      say(value==='accepted'?'Invitación aceptada. Pulsa Unirme ahora para entrar.':'Invitación rechazada.');
+      inviteNotice.textContent=value==='accepted'?'✅ Invitación aceptada.':'Invitación rechazada.';
+      inviteActions.replaceChildren();
+      if(value==='accepted'){const join=document.createElement('button');join.textContent='📹 Unirme ahora';join.onclick=()=>multiJoin.click();inviteActions.append(join);}
+     };inviteActions.append(button);
+    }
+   }finally{inviteRefreshBusy=false;}
   }
   checkVideoInvites();const inviteTimer=setInterval(()=>{if(!thread.isConnected){clearInterval(inviteTimer);return;}checkVideoInvites();},5000);
   const lobbyControls=document.createElement('div');lobbyControls.className='group-call-actions';
