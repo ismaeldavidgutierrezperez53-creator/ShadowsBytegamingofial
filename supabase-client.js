@@ -1145,21 +1145,42 @@ async function initGroupChats(userId,root){
   }
   const form=document.createElement('form');form.className='group-chat-send';
   const input=document.createElement('input');input.required=true;input.maxLength=2000;input.placeholder='Escribe un mensaje al grupo…';input.setAttribute('aria-label','Mensaje al grupo');
-  const upload=document.createElement('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp,image/gif,audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav';upload.setAttribute('aria-label','Adjuntar imagen o audio');
-  const send=document.createElement('button');send.type='submit';send.textContent='Enviar';form.append(input,upload,send);
-  form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim(),file=upload.files?.[0];if(!body&&!file)return;send.disabled=true;
+  const upload=document.createElement('input');upload.type='file';upload.accept='image/*,audio/*,.m4a,.aac,.3gp,.wav,.mp3,.ogg,.webm';upload.setAttribute('aria-label','Adjuntar imagen o audio');
+  const record=document.createElement('button');record.type='button';record.textContent='🎙️ Grabar voz';
+  const recordingStatus=document.createElement('small');recordingStatus.setAttribute('role','status');
+  let recorder=null,recordStream=null,recordedFile=null;
+  record.onclick=async()=>{
+   if(recorder?.state==='recording'){recorder.stop();record.textContent='🎙️ Grabar voz';recordingStatus.textContent='Preparando audio…';return;}
+   if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){recordingStatus.textContent='Este navegador no permite grabar voz. Puedes adjuntar un archivo de audio.';return;}
+   try{
+    recordedFile=null;recordStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+    recorder=new MediaRecorder(recordStream,mime?{mimeType:mime}:undefined);
+    const chunks=[];recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    recorder.onstop=()=>{
+     recordStream?.getTracks().forEach(t=>t.stop());recordStream=null;
+     const type=recorder.mimeType.split(';')[0]||'audio/webm';
+     const ext=type==='audio/mp4'?'m4a':type==='audio/ogg'?'ogg':'webm';
+     recordedFile=new File(chunks,'nota-de-voz.'+ext,{type});
+     recordingStatus.textContent='Nota de voz lista ('+Math.round(recordedFile.size/1024)+' KB). Pulsa Enviar.';
+    };
+    recorder.start();record.textContent='⏹️ Detener grabación';recordingStatus.textContent='Grabando nota de voz…';
+   }catch(e){recordStream?.getTracks().forEach(t=>t.stop());recordingStatus.textContent='No se pudo acceder al micrófono: '+(e.message||'Permiso denegado');}
+  };
+  const send=document.createElement('button');send.type='submit';send.textContent='Enviar';form.append(input,upload,record,recordingStatus,send);
+  form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim(),file=recordedFile||upload.files?.[0];if(recorder?.state==='recording'){say('Detén la grabación antes de enviarla.');return;}if(!body&&!file)return;send.disabled=true;
    let image_path=null,audio_path=null;
    if(file){
-    const allowed=['image/jpeg','image/png','image/webp','image/gif','audio/webm','audio/mp4','audio/mpeg','audio/ogg','audio/wav'];
+    const allowed=['image/jpeg','image/png','image/webp','image/gif','audio/webm','audio/mp4','audio/mpeg','audio/ogg','audio/wav','audio/x-wav','audio/aac','audio/x-m4a','audio/3gpp','audio/3gpp2'];
     if(!allowed.includes(file.type)||file.size>10485760){say('Archivo no permitido o mayor de 10 MB.');send.disabled=false;return;}
-    const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','audio/webm':'webm','audio/mp4':'m4a','audio/mpeg':'mp3','audio/ogg':'ogg','audio/wav':'wav'})[file.type];
+    const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','audio/webm':'webm','audio/mp4':'m4a','audio/mpeg':'mp3','audio/ogg':'ogg','audio/wav':'wav','audio/x-wav':'wav','audio/aac':'aac','audio/x-m4a':'m4a','audio/3gpp':'3gp','audio/3gpp2':'3g2'})[file.type];
     const path=group.id+'/'+userId+'/'+crypto.randomUUID()+'.'+ext;
     const {error:uploadError}=await sb.storage.from('member-group-chat').upload(path,file,{contentType:file.type});
     if(uploadError){say('No se pudo subir el archivo: '+uploadError.message);send.disabled=false;return;}
     if(file.type.startsWith('image/'))image_path=path;else audio_path=path;
    }
    const {error}=await sb.from('member_chat_group_messages').insert({group_id:group.id,sender_id:userId,body:body||(image_path?'📷 Imagen':'🎤 Audio'),image_path,audio_path});
-   send.disabled=false;if(error)say('No se pudo enviar: '+error.message);else{input.value='';upload.value='';refresh();}};
+   send.disabled=false;if(error)say('No se pudo enviar: '+error.message);else{input.value='';upload.value='';recordedFile=null;recordingStatus.textContent='';refresh();}};
   thread.append(form);
   if(activeGroupChatChannel)sb.removeChannel(activeGroupChatChannel);
   activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).subscribe();
