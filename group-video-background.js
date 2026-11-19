@@ -50,6 +50,10 @@
   if(!ctx||!maskCtx||!personCtx){segmenter.close();throw Error('No se ha podido inicializar Canvas.');}
   let stopped=false,raf=0,lastVideoTime=-1,lastTick=0,failures=0;
   const output=canvas.captureStream(12),track=output.getVideoTracks()[0];
+  const cleanup=()=>{
+   if(stopped)return;stopped=true;cancelAnimationFrame(raf);track.stop();
+   source.pause();source.srcObject=null;segmenter.close();
+  };
   const render=()=>{
    if(stopped)return;
    raf=requestAnimationFrame(render);
@@ -77,17 +81,15 @@
    try{
     const returned=segmenter.segmentForVideo(source,now,finishFrame);
     if(!rendered&&returned?.categoryMask)finishFrame(returned);
-    if(!rendered){drawAnimeScene(ctx,theme,width,height,now);ctx.drawImage(source,0,0,width,height);}
+    if(!rendered)throw Error('La segmentación no entregó una máscara válida.');
     failures=0;
    }catch(e){
     console.warn('Segmentación anime:',e);
-    if(++failures>4){stopped=true;cancelAnimationFrame(raf);onFatal?.(e);}
+    if(++failures>4){cleanup();onFatal?.(e);}
    }
   };
   render();
-  return {track,stop(){
-   if(stopped)return;stopped=true;cancelAnimationFrame(raf);track.stop();source.pause();source.srcObject=null;segmenter.close();
-  }};
+  return {track,stop:cleanup};
  }
  window.ShadowsAnimeBackground={create};
 })();
