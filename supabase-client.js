@@ -518,12 +518,12 @@ async function loadAccountProfile(){
  const previewCard=document.createElement('div');previewCard.className='profile-preview-card';
  const previewAvatar=document.createElement('div');previewAvatar.className='profile-preview-avatar';
  const previewCopy=document.createElement('div');const previewName=document.createElement('strong');const previewBio=document.createElement('p');const previewVisibility=document.createElement('small');
- previewCopy.append(previewName,previewBio,previewVisibility);previewCard.append(previewAvatar,previewCopy);preview.append(previewHeading,previewCard);
+ previewCopy.append(previewName,previewBio,previewVisibility);previewCard.append(previewAvatar,previewCopy);const previewCover=document.createElement('div');previewCover.className='profile-preview-cover';previewCover.textContent='SHADOWS BYTE / COMUNIDAD';preview.append(previewHeading,previewCover,previewCard);
  const publicLink=document.createElement('a');publicLink.className='outline-btn mini';publicLink.href='#/perfil?id='+encodeURIComponent(user.id);publicLink.textContent='Ver mi perfil público';
  preview.append(publicLink);editorPanel.append(progress,preview);
  function updateProfilePreview(){
   const currentName=form.elements.display_name.value.trim(),currentAvatar=form.elements.avatar_url.value.trim(),bio=document.getElementById('profile-bio')?.value.trim()||'',visible=document.getElementById('profile-public')?.checked;
-  const coverInput=document.getElementById('profile-cover-url');const coverNode=root.querySelector('.profile-cover');const coverUrl=coverInput?.value.trim()||'';const theme=document.getElementById('profile-theme')?.value||'violet';if(coverNode){coverNode.style.backgroundImage=/^https:\/\/[^\s]+$/i.test(coverUrl)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';coverNode.dataset.theme=theme;}
+  const coverInput=document.getElementById('profile-cover-url');const coverNode=root.querySelector('.profile-cover');const coverUrl=coverInput?.value.trim()||'';const theme=document.getElementById('profile-theme')?.value||'violet';previewCover.style.backgroundImage=/^https:\/\/[^\s]+$/i.test(coverUrl)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';previewCover.dataset.theme=theme;if(coverNode){coverNode.style.backgroundImage=/^https:\/\/[^\s]+$/i.test(coverUrl)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';coverNode.dataset.theme=theme;}
   const score=[!!currentName,!!currentAvatar,!!bio,!!visible].filter(Boolean).length*25;
   progressTitle.textContent='Perfil completado: '+score+'%';progressTrack.value=score;
   progressHint.textContent=score===100?'¡Tu perfil está completo!':'Completa tu nombre, imagen, presentación y visibilidad para llegar al 100%.';
