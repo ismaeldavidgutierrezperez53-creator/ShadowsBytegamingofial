@@ -260,7 +260,21 @@ let quietEndNoticeLastShown=null;
 function showQuietEndNotice(preview=false){
  if(!preview&&(document.visibilityState!=='visible'||!activeToastPreferences.popup_enabled||isNotificationQuietNow()))return;
  if(document.getElementById('sb-quiet-end-notice'))return;
- const toast=document.createElement('div');toast.id='sb-quiet-end-notice';toast.className='member-live-alert sb-quiet-end-notice';toast.setAttribute('role','status');
+ const toast=document.createElement('div');toast.id='sb-quiet-end-notice';toast.className='member-live-alert sb-quiet-end-notice sb-quiet-anime-finale';toast.setAttribute('role','status');
+ // Decorative animation is strictly visual and does not interfere with the alert or its controls.
+ const reduceMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(!reduceMotion){
+  const effects=document.createElement('div');effects.className='sb-quiet-finale-particles';effects.setAttribute('aria-hidden','true');
+  for(let i=0;i<12;i++){
+   const sparkle=document.createElement('i');sparkle.className='sb-quiet-finale-sparkle';
+   sparkle.style.setProperty('--particle-x',((i*37+11)%92+3)+'%');
+   sparkle.style.setProperty('--particle-y',((i*29+13)%75+12)+'%');
+   sparkle.style.setProperty('--particle-delay',(i%6*.11)+'s');
+   sparkle.style.setProperty('--particle-duration',(1.7+(i%4)*.35)+'s');
+   effects.append(sparkle);
+  }
+  toast.append(effects);
+ }
  const label=document.createElement('span');label.textContent=preview?'🔔 Vista previa: ¡Modo No molestar finalizado! Ya puedes recibir avisos nuevamente.':'🔔 ¡Modo No molestar finalizado! Ya puedes recibir avisos nuevamente.';
  const link=document.createElement('a');link.href='#/no-molestar';link.className='outline-btn mini';link.textContent='Ver ajustes';
  const close=document.createElement('button');close.type='button';close.textContent='✕';close.setAttribute('aria-label','Cerrar aviso de No molestar');
