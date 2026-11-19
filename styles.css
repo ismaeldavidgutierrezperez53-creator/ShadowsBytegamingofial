@@ -476,3 +476,5 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .group-video-tile{cursor:pointer;min-width:0}
 .group-multi-video:fullscreen{background:#101018;overflow:auto;padding:1rem}
 .group-multi-video:fullscreen .group-multi-video-grid video{max-height:70vh}
+
+.group-video-access-panel{display:flex!important;flex-direction:column!important;gap:12px!important;align-items:stretch!important}.group-video-access-panel .group-video-save-access{width:100%!important;white-space:normal!important;}
