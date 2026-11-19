@@ -126,6 +126,7 @@ async function refreshAccountActions() {
  const user=session?.user;
  syncNotificationRealtime(user?.id||null);
  syncPrivateMessageRealtime(user?.id||null);
+ if(liveAlertUserId!==user?.id){loadLiveAlertPreferences(user?.id||null);syncReportLiveAlerts(user?.id||null);}
  const hero=document.getElementById('hero-account-actions');
  if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/cuenta">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
  const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
@@ -438,7 +439,7 @@ async function initSecurityPrivacyCenter(userId,root){
  }
  const preferences=document.createElement('form');preferences.className='security-preferences';
  const heading=document.createElement('h4');heading.textContent='⚙️ Preferencias de avisos';
- const note=document.createElement('p');note.textContent='Guarda tus preferencias personales. Los avisos automáticos existentes siguen funcionando con su configuración actual.';
+ const note=document.createElement('p');note.textContent='Elige qué avisos emergentes deseas ver mientras tienes abierta la web. Los mensajes y el historial de denuncias seguirán disponibles.';
  const labels=[['notify_private_messages','Avisos de mensajes privados'],['notify_report_updates','Avisos de cambios en denuncias']];
  const inputs={};
  for(const [field,label] of labels){const wrapper=document.createElement('label');wrapper.className='profile-checkbox';const input=document.createElement('input');input.type='checkbox';input.checked=true;inputs[field]=input;wrapper.append(input,document.createTextNode(' '+label));preferences.append(wrapper);}
@@ -454,6 +455,7 @@ async function initSecurityPrivacyCenter(userId,root){
   event.preventDefault();save.disabled=true;status.textContent='Guardando…';
   const payload={user_id:userId,notify_private_messages:inputs.notify_private_messages.checked,notify_report_updates:inputs.notify_report_updates.checked,updated_at:new Date().toISOString()};
   const {error}=await sb.from('member_privacy_settings').upsert(payload,{onConflict:'user_id'});
+  if(!error){liveAlertPreferences={notify_private_messages:payload.notify_private_messages,notify_report_updates:payload.notify_report_updates};}
   status.textContent=error?'No se pudieron guardar: '+error.message:'Preferencias guardadas correctamente.';
   save.disabled=false;
  };
@@ -1329,6 +1331,34 @@ async function loadPrivateMessages(){
  const visibleHistory=panel.querySelector('.messages-history');if(visibleHistory)visibleHistory.scrollTop=visibleHistory.scrollHeight;
 }
 
+let liveAlertPreferences={notify_private_messages:true,notify_report_updates:true};
+let liveAlertUserId=null;
+async function loadLiveAlertPreferences(userId){
+ if(!userId){liveAlertUserId=null;liveAlertPreferences={notify_private_messages:true,notify_report_updates:true};return;}
+ liveAlertUserId=userId;
+ const {data,error}=await sb.from('member_privacy_settings').select('notify_private_messages,notify_report_updates').eq('user_id',userId).maybeSingle();
+ if(liveAlertUserId!==userId)return;
+ if(!error)liveAlertPreferences={notify_private_messages:data?.notify_private_messages!==false,notify_report_updates:data?.notify_report_updates!==false};
+}
+function showMemberLiveAlert(message,href){
+ if(document.visibilityState!=='visible')return;
+ const toast=document.createElement('div');toast.className='member-live-alert';toast.setAttribute('role','status');
+ const label=document.createElement('span');label.textContent=message;
+ const link=document.createElement('a');link.href=href;link.textContent='Ver';link.className='outline-btn mini';
+ const close=document.createElement('button');close.type='button';close.textContent='✕';close.setAttribute('aria-label','Cerrar aviso');close.onclick=()=>toast.remove();
+ toast.append(label,link,close);document.body.append(toast);
+ setTimeout(()=>toast.remove(),7000);
+}
+let reportLiveAlertsChannel=null;
+function syncReportLiveAlerts(userId){
+ if(reportLiveAlertsChannel){sb.removeChannel(reportLiveAlertsChannel);reportLiveAlertsChannel=null;}
+ if(!userId)return;
+ reportLiveAlertsChannel=sb.channel('report-alert-preferences-'+userId)
+ .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+userId},()=>{
+  if(liveAlertPreferences.notify_report_updates)showMemberLiveAlert('🛡 Se ha actualizado una de tus denuncias.','#/cuenta');
+  if(document.getElementById('account-report-history'))loadAccountReportHistory(userId);
+ }).subscribe();
+}
 let privateMessageRealtimeChannel=null;
 let privateMessageRealtimeUserId=null;
 function syncPrivateMessageRealtime(userId){
@@ -1339,6 +1369,7 @@ function syncPrivateMessageRealtime(userId){
  privateMessageRealtimeChannel=sb.channel('direct-message-alerts-'+userId)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
+   if(liveAlertPreferences.notify_private_messages)showMemberLiveAlert('💬 Has recibido un mensaje privado.','#/mensajes');
    refreshLivePrivateConversation();
   })
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'sender_id=eq.'+userId},()=>{
