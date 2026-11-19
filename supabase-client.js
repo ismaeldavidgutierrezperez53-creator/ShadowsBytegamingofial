@@ -835,7 +835,7 @@ async function loadAccountProfile(){
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Public member directory is opt-in; keep authentication email private.
- const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message').eq('id',user.id).maybeSingle();
+ const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message,anime_card_style').eq('id',user.id).maybeSingle();
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
@@ -861,6 +861,16 @@ async function loadAccountProfile(){
   panel.querySelector('#profile-form').insertBefore(customization,panel.querySelector('#profile-form button[type="submit"]'));
   document.getElementById('profile-cover-url').value=profile?.cover_url||'';
   document.getElementById('profile-theme').value=profile?.theme_color||'violet';
+  const animeCardEditor=document.createElement('div');animeCardEditor.className='profile-customization';
+  const animeCardTitle=document.createElement('label');animeCardTitle.htmlFor='profile-anime-card';animeCardTitle.textContent='🎴 Tarjeta de perfil anime';
+  const animeCardSelect=document.createElement('select');animeCardSelect.id='profile-anime-card';
+  for(const [value,label] of [['sakura','🌸 Sakura de primavera'],['neon','💜 Ciudad neón'],['stellar','🌌 Guardián estelar']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;animeCardSelect.append(option);
+  }
+  animeCardSelect.value=profile?.anime_card_style||'sakura';
+  const animeCardHint=document.createElement('small');animeCardHint.textContent='El estilo aparecerá en tu tarjeta de Miembros y en tu perfil público.';
+  animeCardEditor.append(animeCardTitle,animeCardSelect,animeCardHint);
+  panel.querySelector('#profile-form').insertBefore(animeCardEditor,panel.querySelector('#profile-form button[type="submit"]'));
   const badgeSelect=document.createElement('div');badgeSelect.className='profile-customization';
   badgeSelect.innerHTML='<label for="profile-featured-badge">🏅 Insignia destacada</label><select id="profile-featured-badge"><option value="">Ninguna</option><option value="first">🌱 Primer paso · 5 XP</option><option value="participant">⭐ Participante · 50 XP</option><option value="active">🔥 Miembro activo · 150 XP</option><option value="legend">🏆 Leyenda · 500 XP</option></select><small>Solo puedes destacar insignias que hayas conseguido.</small>';
   panel.querySelector('#profile-form').insertBefore(badgeSelect,panel.querySelector('#profile-form button[type="submit"]'));
@@ -898,7 +908,7 @@ async function loadAccountProfile(){
   const coverInput=document.getElementById('profile-cover-url');const coverNode=root.querySelector('.profile-cover');const coverUrl=coverInput?.value.trim()||'';const theme=document.getElementById('profile-theme')?.value||'violet';const validCover=/^https:\/\/[^\s]+$/i.test(coverUrl);
   previewCoverImage.hidden=!validCover;previewCoverNotice.textContent=coverUrl&&!validCover?'Introduce una URL HTTPS válida para la portada.':'';
   if(validCover&&previewCoverImage.getAttribute('src')!==coverUrl){previewCoverImage.src=coverUrl;previewCoverImage.onerror=()=>{previewCoverNotice.textContent='No se pudo cargar la imagen. Comprueba el enlace de la portada.';previewCoverImage.hidden=true;};previewCoverImage.onload=()=>{previewCoverNotice.textContent='';previewCoverImage.hidden=false;};}
-  if(!validCover){previewCoverImage.removeAttribute('src');}previewCover.dataset.theme=theme;if(coverNode){coverNode.style.backgroundImage=/^https:\/\/[^\s]+$/i.test(coverUrl)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';coverNode.dataset.theme=theme;}
+  if(!validCover){previewCoverImage.removeAttribute('src');}previewCover.dataset.theme=theme;previewCard.dataset.animeCard=document.getElementById('profile-anime-card')?.value||'sakura';if(coverNode){coverNode.style.backgroundImage=/^https:\/\/[^\s]+$/i.test(coverUrl)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';coverNode.dataset.theme=theme;}
   const score=[!!currentName,!!currentAvatar,!!bio,!!visible].filter(Boolean).length*25;
   progressTitle.textContent='Perfil completado: '+score+'%';progressTrack.value=score;
   progressHint.textContent=score===100?'¡Tu perfil está completo!':'Completa tu nombre, imagen, presentación y visibilidad para llegar al 100%.';
@@ -909,7 +919,7 @@ async function loadAccountProfile(){
   else previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase();
   publicLink.hidden=!visible;
  }
- for(const element of [form.elements.display_name,form.elements.avatar_url,document.getElementById('profile-bio'),document.getElementById('profile-public'),document.getElementById('profile-cover-url'),document.getElementById('profile-theme')]){if(element){element.addEventListener('input',updateProfilePreview);element.addEventListener('change',updateProfilePreview);}}
+ for(const element of [form.elements.display_name,form.elements.avatar_url,document.getElementById('profile-bio'),document.getElementById('profile-public'),document.getElementById('profile-cover-url'),document.getElementById('profile-theme'),document.getElementById('profile-anime-card')]){if(element){element.addEventListener('input',updateProfilePreview);element.addEventListener('change',updateProfilePreview);}}
  updateProfilePreview();
  form.addEventListener('submit',async event=>{
   event.preventDefault();
@@ -932,7 +942,7 @@ async function loadAccountProfile(){
     const favorite_games=document.getElementById('profile-favorite-games').value.trim();
     const gaming_social_url=document.getElementById('profile-gaming-social').value.trim();
     if(gaming_social_url&&!/^https:\/\/[^\s]+$/i.test(gaming_social_url)){status.textContent='El enlace social debe comenzar por https://';return;}
-    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,featured_badge:featured_badge||null,favorite_games,gaming_social_url:gaming_social_url||null,gaming_status:document.getElementById('profile-gaming-status').value,status_message:document.getElementById('profile-gaming-message').value.trim()};
+    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,featured_badge:featured_badge||null,favorite_games,gaming_social_url:gaming_social_url||null,anime_card_style:document.getElementById('profile-anime-card').value,gaming_status:document.getElementById('profile-gaming-status').value,status_message:document.getElementById('profile-gaming-message').value.trim()};
     const {data:existing, error:readError}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
     if(readError){status.textContent='No se pudo comprobar tu perfil: '+readError.message;return;}
     const request=existing
@@ -951,7 +961,7 @@ async function loadAccountProfile(){
 
 async function loadMembers(){
  const root=document.getElementById('members-list');if(!root)return;
- const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,gaming_status,status_message').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,gaming_status,status_message,anime_card_style').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
  if(!root.isConnected)return;
  if(error){root.innerHTML='<div class="admin-empty">No se pudo cargar la lista de miembros.</div>';return;}
  const members=data||[];
@@ -961,7 +971,7 @@ async function loadMembers(){
   root.replaceChildren();
   if(!filtered.length){const empty=document.createElement('div');empty.className='admin-empty';empty.textContent=term?'No se encontraron miembros.':'Todavía no hay perfiles públicos. Puedes activar el tuyo desde Mi cuenta.';root.append(empty);return;}
   filtered.forEach(member=>{
-   const card=document.createElement('article');card.className='member-card';
+   const card=document.createElement('article');card.className='member-card';card.dataset.animeCard=['sakura','neon','stellar'].includes(member.anime_card_style)?member.anime_card_style:'sakura';
    const avatar=document.createElement('div');avatar.className='member-avatar';
    const name=member.display_name||member.username||'Miembro';
    if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{avatar.textContent=name.charAt(0).toUpperCase()};avatar.append(img)}else avatar.textContent=name.charAt(0).toUpperCase();
@@ -982,7 +992,7 @@ async function loadPublicMemberProfile(){
  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
   root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
  }
- const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,game_library_public,gaming_status,status_message').eq('id',id).eq('is_public',true).maybeSingle();
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,game_library_public,gaming_status,status_message,anime_card_style').eq('id',id).eq('is_public',true).maybeSingle();
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
@@ -992,7 +1002,7 @@ async function loadPublicMemberProfile(){
  if(typeof member.cover_url==='string'&&/^https:\/\/[^\s]+$/i.test(member.cover_url)){
   const coverImage=document.createElement('img');coverImage.className='public-member-cover-image';coverImage.src=member.cover_url;coverImage.alt='Portada de '+(member.display_name||member.username||'miembro');coverImage.referrerPolicy='no-referrer';coverImage.onerror=()=>coverImage.remove();cover.prepend(coverImage);
  }
- const content=document.createElement('div');content.className='public-member-body';
+ const content=document.createElement('div');content.className='public-member-body';content.dataset.animeCard=['sakura','neon','stellar'].includes(member.anime_card_style)?member.anime_card_style:'sakura';
  const avatar=document.createElement('div');avatar.className='public-member-avatar';
  const name=member.display_name||member.username||'Miembro';
  if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){
@@ -1008,6 +1018,23 @@ async function loadPublicMemberProfile(){
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
  const publicStatus=document.createElement('p');publicStatus.className='member-gaming-status';const gamingLabels={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};publicStatus.textContent=(gamingLabels[member.gaming_status]||gamingLabels.disponible)+(member.status_message?' · '+member.status_message:'');
  content.append(avatar,title,badge,publicStatus,featured,bioTitle,bio);
+ const earnedPanel=document.createElement('section');earnedPanel.className='member-anime-badges';
+ const earnedTitle=document.createElement('h3');earnedTitle.textContent='🏅 Insignias de la comunidad';
+ const earnedList=document.createElement('div');earnedList.className='member-anime-badge-list';earnedList.textContent='Comprobando insignias…';
+ earnedPanel.append(earnedTitle,earnedList);
+ const levels=[{threshold:5,label:'🌱 Primer paso'},{threshold:50,label:'⭐ Participante'},{threshold:150,label:'🔥 Miembro activo'},{threshold:500,label:'🏆 Leyenda'}];
+ sb.rpc('community_member_xp',{target_member:member.id}).then(({data,error})=>{
+  if(!earnedList.isConnected)return;earnedList.replaceChildren();
+  if(error){earnedList.textContent='No se pudieron comprobar las insignias.';return;}
+  const xp=Number(data)||0;
+  for(const level of levels){
+   const chip=document.createElement('span');const unlocked=xp>=level.threshold;
+   chip.className='member-anime-badge'+(unlocked?' is-earned':' is-locked');
+   chip.textContent=(unlocked?'✅ ':'🔒 ')+level.label+(unlocked?'':' · '+level.threshold+' XP');
+   earnedList.append(chip);
+  }
+ });
+ content.append(earnedPanel);
  const gamerPanel=document.createElement('section');gamerPanel.className='profile-panel gamer-profile-panel';
  const gamerHeading=document.createElement('h2');gamerHeading.textContent='🎮 Perfil de jugador';gamerPanel.append(gamerHeading);
  if(member.favorite_games){const gamesTitle=document.createElement('h3');gamesTitle.textContent='Juegos favoritos';gamerPanel.append(gamesTitle);const games=document.createElement('div');games.className='gamer-favorite-games';member.favorite_games.split(',').map(x=>x.trim()).filter(Boolean).slice(0,12).forEach(game=>{const tag=document.createElement('span');tag.textContent='🎮 '+game;games.append(tag)});gamerPanel.append(games);}
