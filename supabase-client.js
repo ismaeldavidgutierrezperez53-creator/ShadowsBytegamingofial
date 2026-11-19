@@ -1664,7 +1664,7 @@ async function initGroupChats(userId,root){
   checkVideoInvites();const inviteTimer=setInterval(()=>{if(!thread.isConnected){clearInterval(inviteTimer);return;}checkVideoInvites();},5000);
   multiStart.onclick=async()=>{
    const {data:existing}=await sb.from('member_group_video_rooms').select('*').eq('group_id',group.id).eq('status','open').maybeSingle();
-   if(existing){say('Ya hay una sala abierta. Pulsa Unirse.');return;}
+   if(existing){say('Ya hay una sala abierta. Intentando conectarte a ella…');await joinMultiVideoRoom(existing,group,userId,thread,say);return;}
    const {data:room,error}=await sb.from('member_group_video_rooms').insert({group_id:group.id,created_by:userId}).select().single();
    if(error){say('No se pudo crear la sala: '+error.message);return;}
    await joinMultiVideoRoom(room,group,userId,thread,say);
