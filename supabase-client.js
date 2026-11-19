@@ -1390,13 +1390,21 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const extrasTitle=document.createElement('h5');extrasTitle.textContent='❤️ Reacciones, grabación y roles';
  const reactionBar=document.createElement('div');reactionBar.className='group-call-actions';
  for(const emoji of ['❤️','👏','😂','🎉','👍']){const btn=document.createElement('button');btn.type='button';btn.textContent=emoji;btn.setAttribute('aria-label','Reaccionar '+emoji);btn.onclick=()=>postActivity('reaction',emoji);reactionBar.append(btn);}
+ const filterBar=document.createElement('div');filterBar.className='group-call-actions';
+ const filterLabel=document.createElement('label');filterLabel.textContent='✨ Filtro anime en directo';
+ const filterSelect=document.createElement('select');filterSelect.setAttribute('aria-label','Filtro de cámara');
+ for(const [value,label] of [['none','Original'],['vivid','Anime vibrante'],['dream','Anime soñador'],['mono','Manga blanco y negro']]){const o=document.createElement('option');o.value=value;o.textContent=label;filterSelect.append(o);}
+ filterSelect.onchange=()=>{local.classList.remove('anime-filter-vivid','anime-filter-dream','anime-filter-mono');if(filterSelect.value!=='none')local.classList.add('anime-filter-'+filterSelect.value);};
+ filterBar.append(filterLabel,filterSelect);
+ const floatingReactions=document.createElement('div');floatingReactions.className='group-video-floating-reactions';floatingReactions.setAttribute('aria-live','off');videos.parentElement?.append(floatingReactions);
+ const animateReaction=(emoji)=>{if(!['❤️','👏','😂','🎉','👍'].includes(emoji))return;const bubble=document.createElement('span');bubble.className='group-video-reaction-bubble';bubble.textContent=emoji;bubble.style.left=(10+Math.random()*75)+'%';floatingReactions.append(bubble);setTimeout(()=>bubble.remove(),2100);};
  const roleStatus=document.createElement('p');roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':cohostMembership?'👑 Eres coanfitrión — puedes moderar la sala':'Participante de la sala';
  const consentLabel=document.createElement('label');const consent=document.createElement('input');consent.type='checkbox';consentLabel.append(consent,document.createTextNode(' Autorizo la grabación de esta sala'));
  consent.onchange=async()=>{consent.disabled=true;const {error}=await sb.from('member_group_video_recording_consents').upsert({room_id:room.id,user_id:userId,consented:consent.checked,updated_at:new Date().toISOString()},{onConflict:'room_id,user_id'});consent.disabled=false;if(error){say('No se pudo guardar el consentimiento: '+error.message);recordingStatus.textContent='Error guardando consentimiento: '+error.message;consent.checked=!consent.checked;}else{recordingStatus.textContent=consent.checked?'Tu consentimiento está guardado. Esperando la autorización de los demás.':'Has retirado tu consentimiento.';}};
  const recordingStatus=document.createElement('p');recordingStatus.setAttribute('role','status');recordingStatus.textContent='Grabación detenida. Se necesita el consentimiento de todos los participantes.';
  const {data:myConsent}=await sb.from('member_group_video_recording_consents').select('consented').eq('room_id',room.id).eq('user_id',userId).maybeSingle();consent.checked=!!myConsent?.consented;
  const recordBtn=document.createElement('button');recordBtn.type='button';recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';
- let recorder=null,recordChunks=[],recordStream=null,recordingMembers='';
+ let recorder=null,recordChunks=[],recordStream=null,recordingMembers='',recordStart=0;
  const stopRecording=()=>{if(recorder?.state==='recording')recorder.stop();};
  recordBtn.onclick=async()=>{
   if(recorder?.state==='recording'){stopRecording();return;}
@@ -1413,10 +1421,10 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    recorder=new MediaRecorder(recordStream,mime?{mimeType:mime}:undefined);
    recorder.ondataavailable=e=>{if(e.data.size)recordChunks.push(e.data);};
    recorder.onstop=()=>{if(recordChunks.length){const blob=new Blob(recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='shadowsbyte-video-'+Date.now()+(recorder.mimeType?.includes('mp4')?'.mp4':'.webm');a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';recordingStatus.textContent='Grabación finalizada. Archivo local generado.';recordStream=null;};
-   recorder.start(1000);recordingMembers=ids.slice().sort().join(',');recordBtn.textContent='⏹️ Detener grabación';recordingStatus.textContent='🔴 Grabando únicamente tu cámara y micrófono en este navegador.';
+   recorder.start(1000);recordStart=Date.now();recordingMembers=ids.slice().sort().join(',');recordBtn.textContent='⏹️ Detener grabación';recordingStatus.textContent='🔴 Grabando únicamente tu cámara y micrófono en este navegador.';
   }catch(e){recordingStatus.textContent='No se pudo grabar: '+e.message;say('No se pudo grabar: '+e.message);}
  };
- extras.append(extrasTitle,reactionBar,roleStatus,consentLabel,recordBtn,recordingStatus);
+ extras.append(extrasTitle,filterBar,reactionBar,roleStatus,consentLabel,recordBtn,recordingStatus);
  if(room.created_by===userId){
   const cohostSelect=document.createElement('select');cohostSelect.setAttribute('aria-label','Seleccionar coanfitrión');
   const grant=document.createElement('button');grant.type='button';grant.textContent='👑 Nombrar coanfitrión';
@@ -1502,7 +1510,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
     else if(ev.kind==='message')line.textContent=who+': '+ev.body;
     else if(ev.kind==='hand')line.textContent=who+(ev.body==='up'?' ✋ ha levantado la mano':' ha bajado la mano');
     else if(ev.kind==='mute_request')line.textContent=who+' ha solicitado silenciar a '+(profileMap.get(ev.target_id)?.display_name||'un participante');
-    activityLog.append(line);while(activityLog.children.length>60)activityLog.firstElementChild.remove();
+    if(ev.kind==='reaction')animateReaction(ev.body);activityLog.append(line);while(activityLog.children.length>60)activityLog.firstElementChild.remove();
     activityLog.scrollTop=activityLog.scrollHeight;
    }
    const {data:cohosts}=await sb.from('member_group_video_cohosts').select('user_id').eq('room_id',room.id);
@@ -1510,6 +1518,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':isCohost?'👑 Eres coanfitrión — puedes moderar la sala':'Participante de la sala';
    if(isCohost&&!canModerate)roleStatus.textContent+=' (sal y vuelve a entrar para activar los controles)';
    if(recorder?.state==='recording'){
+    recordingStatus.textContent='🔴 Grabando tu cámara y micrófono · '+Math.floor((Date.now()-recordStart)/60000)+' min '+String(Math.floor((Date.now()-recordStart)/1000)%60).padStart(2,'0')+' s';
     const {data:approvals}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
     if([...active].sort().join(',')!==recordingMembers||[...active].some(id=>!(approvals||[]).some(c=>c.user_id===id&&c.consented))){stopRecording();say('Grabación detenida: cambió la participación o el consentimiento.');}
    }
@@ -1677,6 +1686,13 @@ async function initGroupChats(userId,root){
    const ids=new Set((open||[]).map(r=>r.id));inviteNotice.textContent=(data||[]).some(i=>ids.has(i.room_id))?'✉️ Tienes una invitación para esta videollamada. Pulsa Unirse.':'';
   }
   checkVideoInvites();const inviteTimer=setInterval(()=>{if(!thread.isConnected){clearInterval(inviteTimer);return;}checkVideoInvites();},5000);
+  const lobbyControls=document.createElement('div');lobbyControls.className='group-call-actions';
+  const lobbyButton=document.createElement('button');lobbyButton.type='button';lobbyButton.textContent='🏠 Activar sala permanente del grupo';
+  const lobbyStatus=document.createElement('span');lobbyStatus.textContent='Una sala permanente conserva el acceso del grupo; la cámara solo se activa al entrar.';
+  const {data:lobby}=await sb.from('member_group_video_lobbies').select('enabled').eq('group_id',group.id).maybeSingle();
+  if(lobby?.enabled){lobbyButton.textContent='🏠 Sala permanente habilitada';lobbyButton.disabled=true;}
+  lobbyButton.onclick=async()=>{lobbyButton.disabled=true;const {error}=await sb.from('member_group_video_lobbies').upsert({group_id:group.id,enabled:true},{onConflict:'group_id'});if(error){lobbyButton.disabled=false;say('No se pudo habilitar la sala: '+error.message);}else{lobbyButton.textContent='🏠 Sala permanente habilitada';say('Acceso permanente habilitado. Iniciar/Unirse abre la sesión activa del grupo.');}};
+  lobbyControls.append(lobbyButton,lobbyStatus);thread.append(lobbyControls);
   multiStart.onclick=async()=>{
    const {data:existing}=await sb.from('member_group_video_rooms').select('*').eq('group_id',group.id).eq('status','open').maybeSingle();
    if(existing){say('Ya hay una sala abierta. Intentando conectarte a ella…');await joinMultiVideoRoom(existing,group,userId,thread,say);return;}
