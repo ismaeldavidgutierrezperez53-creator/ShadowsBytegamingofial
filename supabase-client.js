@@ -979,9 +979,9 @@ async function loadMemberNotifications(){
  if(!root.isConnected)return;root.replaceChildren();
  if(!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para ver tus notificaciones';root.append(link);return;}
  const [communityResult,reportsResult,messagesResult]=await Promise.all([
-  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,created_at,is_read').eq('recipient_id',user.id).is('dismissed_at',null).order('created_at',{ascending:false}).limit(100),
-  sb.from('member_report_notifications').select('id,status,created_at,is_read').eq('recipient_id',user.id).is('dismissed_at',null).order('created_at',{ascending:false}).limit(100),
-  sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100)
+  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_report_notifications').select('id,status,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_direct_messages').select('id,sender_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100)
  ]);
  if(!root.isConnected)return;
  if(communityResult.error||reportsResult.error||messagesResult.error){root.textContent='No se pudieron cargar todas las notificaciones. Inténtalo de nuevo.';return;}
@@ -997,16 +997,21 @@ async function loadMemberNotifications(){
  const heading=document.createElement('h2');heading.textContent='🔔 Centro de notificaciones';root.append(heading);
  const controls=document.createElement('div');controls.className='notification-center-controls';
  const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar notificaciones');
- for(const [value,label] of [['all','Todas'],['community','Comunidad'],['messages','Mensajes privados'],['reports','Denuncias'],['unread','Sin leer']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ for(const [value,label] of [['all','Todas'],['community','Comunidad'],['messages','Mensajes privados'],['reports','Denuncias'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ const search=document.createElement('input');search.type='search';search.placeholder='Buscar notificaciones';search.setAttribute('aria-label','Buscar notificaciones');
+ const dateFilter=document.createElement('select');dateFilter.setAttribute('aria-label','Filtrar por fecha');for(const [value,label] of [['all','Cualquier fecha'],['today','Hoy'],['week','Últimos 7 días'],['month','Últimos 30 días']]){const option=document.createElement('option');option.value=value;option.textContent=label;dateFilter.append(option);}
+ const counters=document.createElement('p');counters.className='notification-center-counts';
  const summary=document.createElement('span');summary.setAttribute('role','status');
  const markAll=document.createElement('button');markAll.type='button';markAll.className='outline-btn mini';markAll.textContent='Marcar avisos como leídos';
- controls.append(filter,markAll,summary);root.append(controls);
+ controls.append(filter,search,dateFilter,markAll,summary);root.append(counters,controls);
  const list=document.createElement('div');root.append(list);
  const draw=()=>{
   list.replaceChildren();
-  const visible=items.filter(n=>filter.value==='all'||(filter.value==='unread'?!n.is_read:n.category===filter.value));
+  const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length;
+  const now=Date.now();const limit=dateFilter.value==='today'?new Date().setHours(0,0,0,0):dateFilter.value==='week'?now-7*86400000:dateFilter.value==='month'?now-30*86400000:0;
+  const visible=items.filter(n=>(filter.value==='archived'?!!n.dismissed_at:!n.dismissed_at)&&(filter.value==='all'||filter.value==='archived'||(filter.value==='unread'?!n.is_read:n.category===filter.value))&&n.title.toLocaleLowerCase('es').includes(search.value.trim().toLocaleLowerCase('es'))&&new Date(n.created_at).getTime()>=limit);
   summary.textContent=visible.length+' notificaciones';
-  markAll.disabled=!items.some(n=>!n.is_read&&n.table);
+  markAll.disabled=!items.some(n=>!n.is_read&&n.table&&!n.dismissed_at);
   if(!visible.length){list.textContent='No hay notificaciones en esta categoría.';return;}
   for(const n of visible){
    const row=document.createElement('article');row.className='notification-item notification-center-item'+(n.is_read?'':' unread');
@@ -1015,8 +1020,8 @@ async function loadMemberNotifications(){
    const link=document.createElement('a');link.href=n.href;link.className='notification-jump';link.textContent='Ver';
    row.append(title,date,link);
    if(n.table){
-    if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.className='outline-btn mini';mark.textContent='Marcar leída';mark.onclick=async()=>{mark.disabled=true;const {error}=await sb.from(n.table).update({is_read:true}).eq('id',n.id).eq('recipient_id',user.id);if(error){mark.disabled=false;return;}n.is_read=true;draw();refreshNotificationBadge(user.id);};row.append(mark);}
-    const hide=document.createElement('button');hide.type='button';hide.className='outline-btn mini';hide.textContent='Ocultar aviso';hide.onclick=async()=>{hide.disabled=true;const {error}=await sb.from(n.table).update({dismissed_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',user.id);if(error){hide.disabled=false;return;}items.splice(items.indexOf(n),1);draw();refreshNotificationBadge(user.id);};row.append(hide);
+    if(!n.is_read&&!n.dismissed_at){const mark=document.createElement('button');mark.type='button';mark.className='outline-btn mini';mark.textContent='Marcar leída';mark.onclick=async()=>{mark.disabled=true;const {error}=await sb.from(n.table).update({is_read:true}).eq('id',n.id).eq('recipient_id',user.id);if(error){mark.disabled=false;return;}n.is_read=true;draw();refreshNotificationBadge(user.id);};row.append(mark);}
+    const hide=document.createElement('button');hide.type='button';hide.className='outline-btn mini';hide.textContent=n.dismissed_at?'Restaurar aviso':'Archivar aviso';hide.onclick=async()=>{hide.disabled=true;const next=n.dismissed_at?null:new Date().toISOString();const {error}=await sb.from(n.table).update({dismissed_at:next}).eq('id',n.id).eq('recipient_id',user.id);if(error){hide.disabled=false;return;}n.dismissed_at=next;draw();refreshNotificationBadge(user.id);};row.append(hide);
    }
    list.append(row);
   }
@@ -1025,10 +1030,12 @@ async function loadMemberNotifications(){
   markAll.disabled=true;
   const results=await Promise.all(['member_notifications','member_report_notifications'].map(table=>sb.from(table).update({is_read:true}).eq('recipient_id',user.id).eq('is_read',false).is('dismissed_at',null)));
   if(results.some(x=>x.error)){summary.textContent='No se pudieron marcar todos los avisos.';markAll.disabled=false;return;}
-  for(const n of items)if(n.table)n.is_read=true;
+  for(const n of items)if(n.table&&!n.dismissed_at)n.is_read=true;
   draw();refreshNotificationBadge(user.id);
  };
- filter.onchange=draw;draw();
+ filter.onchange=draw;search.oninput=draw;dateFilter.onchange=draw;draw();
+ if(window.notificationCenterChannel){sb.removeChannel(window.notificationCenterChannel);window.notificationCenterChannel=null;}
+ window.notificationCenterChannel=sb.channel('notification-center-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).subscribe();
 }
 
 async function refreshNotificationBadge(expectedUserId){
