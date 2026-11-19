@@ -469,6 +469,9 @@ async function loadAccountProfile(){
  const avatar=typeof meta.avatar_url==='string'&&/^https:\/\//i.test(meta.avatar_url)?meta.avatar_url:'';
  const name=meta.display_name||meta.full_name||'Mi perfil';
  root.innerHTML='<div class="profile-cover"><span>SHADOWS BYTE / PERFIL</span><span class="profile-cover-mark">SB</span></div><div class="profile-body"><div class="profile-identity"><div id="profile-avatar" class="profile-avatar"></div><div class="profile-identity-copy"><div class="profile-kicker">CUENTA PERSONAL</div><h2 id="profile-heading"></h2><p id="profile-email"></p><span class="profile-role">'+(user.app_metadata?.role==='admin'?'★ Administrador':'● Miembro')+'</span></div></div><div class="profile-grid"><section class="profile-panel"><h3>✦ Editar perfil</h3><p>Personaliza cómo apareces en Shadows Byte Gaming.</p><form id="profile-form"><label for="profile-name">Nombre de usuario</label><input id="profile-name" name="display_name" maxlength="60" required autocomplete="nickname" placeholder="Tu nombre"><label for="profile-avatar-url">Imagen de perfil (URL HTTPS)</label><input id="profile-avatar-url" name="avatar_url" type="url" placeholder="https://ejemplo.com/avatar.jpg"><button class="gradient-btn" type="submit">Guardar cambios</button><p id="profile-message" role="status" aria-live="polite"></p></form></section><section class="profile-panel"><h3>⚙ Ajustes de cuenta</h3><a class="profile-setting-link" href="#/regalos">🎁 Mi buzón de regalos <span>→</span></a><p>Información y seguridad de tu cuenta.</p><label for="profile-email-readonly">Correo electrónico</label><input id="profile-email-readonly" type="email" disabled><a class="profile-setting-link" href="#/forgot-password">🔒 Cambiar contraseña <span>→</span></a>'+(user.app_metadata?.role==='admin'?'<a class="profile-setting-link" href="#/admin">🛡 Panel de administración <span>→</span></a>':'')+'<button type="button" class="profile-signout" id="profile-signout">Cerrar sesión</button></section></div></div>';
+ const librarySection=document.createElement('section');librarySection.className='profile-panel game-library-section';librarySection.id='game-library';librarySection.innerHTML='<h3>🎮 Mi biblioteca de videojuegos</h3><p>Organiza tus juegos: jugando, terminados y pendientes. Esta biblioteca es privada.</p><form id="game-library-form" class="game-library-form"><label for="game-library-title">Nombre del videojuego</label><input id="game-library-title" maxlength="120" required placeholder="Ej. Pokémon Escarlata"><label for="game-library-status">Estado</label><select id="game-library-status"><option value="playing">🎮 Jugando</option><option value="completed">🏆 Terminado</option><option value="wishlist">⭐ Quiero jugar</option></select><label for="game-library-platform">Plataforma (opcional)</label><input id="game-library-platform" maxlength="80" placeholder="PC, PlayStation, Nintendo Switch..."><label for="game-library-notes">Notas (opcional)</label><textarea id="game-library-notes" maxlength="500" rows="2" placeholder="Mis impresiones"></textarea><button class="gradient-btn" type="submit">➕ Añadir videojuego</button></form><p id="game-library-message" role="status" aria-live="polite"></p><div class="game-library-filters" role="group" aria-label="Filtrar videojuegos"><button type="button" data-game-filter="all" aria-pressed="true">Todos</button><button type="button" data-game-filter="playing">Jugando</button><button type="button" data-game-filter="completed">Terminados</button><button type="button" data-game-filter="wishlist">Quiero jugar</button></div><div id="game-library-list" aria-live="polite">Cargando biblioteca…</div>';
+ root.querySelector('.profile-body').append(librarySection);
+ initMemberGameLibrary(user.id,librarySection);
  const communityPanel=document.createElement('section');
  communityPanel.className='profile-panel account-community-panel';
  communityPanel.setAttribute('aria-label','Mi comunidad');
@@ -2008,4 +2011,35 @@ async function shopGiftNotificationNames(notifications){
  const {data:items}=await sb.from('reward_shop_items').select('id,name').in('id',[...new Set(gifts.map(g=>g.item_id))]);
  const names=new Map((items||[]).map(i=>[i.id,i.name]));
  return new Map(gifts.map(g=>[g.id,names.get(g.item_id)||'recompensa exclusiva']));
+}
+
+
+async function initMemberGameLibrary(userId,section){
+ const form=section.querySelector('#game-library-form'),list=section.querySelector('#game-library-list'),message=section.querySelector('#game-library-message');
+ let filter='all',items=[];
+ const labels={playing:'🎮 Jugando',completed:'🏆 Terminado',wishlist:'⭐ Quiero jugar'};
+ function render(){
+  list.replaceChildren();
+  const visible=items.filter(item=>filter==='all'||item.status===filter);
+  const summary=document.createElement('p');summary.className='game-library-summary';summary.textContent='Total: '+items.length+' · Jugando: '+items.filter(i=>i.status==='playing').length+' · Terminados: '+items.filter(i=>i.status==='completed').length+' · Quiero jugar: '+items.filter(i=>i.status==='wishlist').length;list.append(summary);
+  if(!visible.length){const empty=document.createElement('p');empty.textContent='Todavía no tienes videojuegos en esta categoría.';list.append(empty);return;}
+  visible.forEach(item=>{
+   const card=document.createElement('article');card.className='game-library-card';
+   const title=document.createElement('h4');title.textContent=item.title;
+   const meta=document.createElement('p');meta.textContent=labels[item.status]+(item.platform?' · '+item.platform:'');
+   card.append(title,meta);
+   if(item.notes){const notes=document.createElement('p');notes.textContent=item.notes;card.append(notes);}
+   const controls=document.createElement('div');controls.className='game-library-actions';
+   const select=document.createElement('select');select.setAttribute('aria-label','Estado de '+item.title);
+   Object.entries(labels).forEach(([value,label])=>{const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);});select.value=item.status;
+   select.onchange=async()=>{select.disabled=true;const {error}=await sb.from('member_game_library').update({status:select.value,updated_at:new Date().toISOString()}).eq('id',item.id).eq('user_id',userId);if(error){message.textContent='No se pudo actualizar: '+error.message;select.value=item.status;}else{item.status=select.value;message.textContent='Estado actualizado.';render();}select.disabled=false;};
+   const remove=document.createElement('button');remove.type='button';remove.className='outline-btn mini';remove.textContent='Eliminar';remove.setAttribute('aria-label','Eliminar '+item.title);
+   remove.onclick=async()=>{if(!confirm('¿Eliminar '+item.title+' de tu biblioteca?'))return;remove.disabled=true;const {error}=await sb.from('member_game_library').delete().eq('id',item.id).eq('user_id',userId);if(error){message.textContent='No se pudo eliminar: '+error.message;remove.disabled=false;}else{items=items.filter(x=>x.id!==item.id);message.textContent='Videojuego eliminado.';render();}};
+   controls.append(select,remove);card.append(controls);list.append(card);
+  });
+ }
+ async function load(){const {data,error}=await sb.from('member_game_library').select('id,title,status,platform,notes,created_at').eq('user_id',userId).order('created_at',{ascending:false}).limit(300);if(!section.isConnected)return;if(error){list.textContent='No se pudo cargar tu biblioteca: '+error.message;return;}items=data||[];render();}
+ section.querySelectorAll('[data-game-filter]').forEach(button=>button.onclick=()=>{filter=button.dataset.gameFilter;section.querySelectorAll('[data-game-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();});
+ form.onsubmit=async e=>{e.preventDefault();const title=form.querySelector('#game-library-title').value.trim(),status=form.querySelector('#game-library-status').value,platform=form.querySelector('#game-library-platform').value.trim(),notes=form.querySelector('#game-library-notes').value.trim();if(!title)return;const button=form.querySelector('button[type="submit"]');button.disabled=true;message.textContent='Guardando…';const {data,error}=await sb.from('member_game_library').insert({user_id:userId,title,status,platform,notes}).select('id,title,status,platform,notes,created_at').single();button.disabled=false;if(error){message.textContent='No se pudo guardar: '+error.message;return;}items.unshift(data);form.reset();message.textContent='Videojuego añadido correctamente.';render();};
+ await load();
 }
