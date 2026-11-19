@@ -2450,8 +2450,12 @@ async function initGroupChats(userId,root){
     .eq('id',invite.id).eq('invitee_id',userId).eq('response','pending').select('id');
    if(error||!updated?.length){inboxState.textContent='No se pudo responder: '+(error?.message||'La invitación ya fue respondida.');return;}
    inboxState.textContent=value==='accepted'?'✅ Invitación aceptada. Puedes ir al grupo y unirte a la sala.':'Invitación rechazada.';
-   inboxLastSnapshot='';await loadGlobalVideoInvites();
-  }finally{inboxActing=false;for(const button of inboxList.querySelectorAll('button'))button.disabled=false;}
+  }finally{
+   inboxActing=false;
+   for(const button of inboxList.querySelectorAll('button'))button.disabled=false;
+   inboxLastSnapshot='';
+   loadGlobalVideoInvites();
+  }
  };
  async function loadGlobalVideoInvites(){
   if(!inviteInbox.isConnected||inboxBusy||inboxActing)return;
