@@ -1220,7 +1220,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   moderator.append(kickSelect,kick,restoreSelect,restore);
   moderator.refreshBlocked=async()=>{
    const {data:removed}=await sb.from('member_group_video_removals').select('user_id').eq('room_id',room.id);
-   restoreSelect.replaceChildren();for(const item of removed||[]){const o=document.createElement('option');o.value=item.user_id;o.textContent=profileMap.get(item.user_id)?.display_name||profileMap.get(item.user_id)?.username||'Miembro';restoreSelect.append(o);}
+   restoreSelect.replaceChildren();const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=(removed||[]).length?'Selecciona un participante expulsado':'No hay participantes expulsados';restoreSelect.append(placeholder);for(const item of removed||[]){const o=document.createElement('option');o.value=item.user_id;o.textContent=profileMap.get(item.user_id)?.display_name||profileMap.get(item.user_id)?.username||'Miembro';restoreSelect.append(o);}
   };
   moderator.refresh=(ids)=>{kickSelect.replaceChildren();for(const id of ids){if(id===userId)continue;const o=document.createElement('option');o.value=id;o.textContent=profileMap.get(id)?.display_name||profileMap.get(id)?.username||'Miembro';kickSelect.append(o);}};
  }
