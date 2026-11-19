@@ -2126,25 +2126,160 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  checkQualityButton.onclick=()=>{checkQualityButton.disabled=true;checkVideoConnection().finally(()=>{checkQualityButton.disabled=false;});};
  const healthTimer=setInterval(()=>{if(closed)return;checkVideoConnection().catch(console.warn);},12000);
 
- const sendSignal=async(to,signal)=>{const {error}=await sb.from('member_group_video_signals').insert({room_id:room.id,sender_id:userId,recipient_id:to,signal});if(error)console.warn('Señal de vídeo:',error.message);};
+ const sendSignal=async(to,signal)=>{
+  const {error}=await sb.from('member_group_video_signals')
+   .insert({room_id:room.id,sender_id:userId,recipient_id:to,signal});
+  if(error){
+   console.warn('Señal de vídeo:',error.message);
+   if(['offer','answer','reconnect_request'].includes(signal.type)){
+    qualityStatus.textContent='⚠️ No se ha podido intercambiar la señal WebRTC: '+error.message;
+    say('La conexión de vídeo no pudo negociar la señal: '+error.message);
+   }
+   return false;
+  }
+  return true;
+ };
  const createPeer=(other)=>{
   if(peers.has(other))return peers.get(other);
-  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-  const outbound=new MediaStream([activeVideoTrack(),...stream.getAudioTracks()].filter(Boolean));outbound.getTracks().forEach(t=>pc.addTrack(t,outbound));
-  const video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.controls=true;const tile=videoTile(other,video);
-  pc.ontrack=e=>{video.srcObject=e.streams[0];video.play().catch(()=>{});};
-  pc.onicecandidate=e=>{if(e.candidate)sendSignal(other,{type:'ice',candidate:e.candidate.toJSON()});};
-  tile.onclick=()=>{for(const node of videos.children)node.classList.remove('group-video-featured');tile.classList.add('group-video-featured');videos.classList.add('group-video-focus');};
-  const peer={pc,video,tile,pending:[]};peers.set(other,peer);
+  const pc=new RTCPeerConnection({iceServers:[
+   {urls:'stun:stun.l.google.com:19302'},
+   {urls:'stun:stun1.l.google.com:19302'}
+  ]});
+  const outbound=new MediaStream([activeVideoTrack(),...stream.getAudioTracks()].filter(Boolean));
+  outbound.getTracks().forEach(track=>pc.addTrack(track,outbound));
+  const video=document.createElement('video');
+  video.autoplay=true;video.playsInline=true;video.controls=true;
+  // Muted autoplay prevents browsers from silently blocking remote playback.
+  // The user can enable remote audio with an explicit gesture.
+  video.muted=true;video.defaultMuted=true;video.setAttribute('muted','');
+  const tile=videoTile(other,video);
+  const videoState=document.createElement('p');
+  videoState.className='group-video-peer-state';
+  videoState.textContent='⏳ Conectando cámara y micrófono…';
+  videoState.setAttribute('role','status');
+  const peerButtons=document.createElement('div');peerButtons.className='group-video-peer-buttons';
+  const audioButton=document.createElement('button');audioButton.type='button';
+  audioButton.textContent='🔊 Activar sonido';
+  audioButton.onclick=async()=>{
+   video.muted=false;video.defaultMuted=false;video.removeAttribute('muted');
+   try{
+    if(video.srcObject)await video.play();
+    audioButton.textContent='🔈 Silenciar sonido';
+    audioButton.onclick=()=>{
+     video.muted=true;video.defaultMuted=true;video.setAttribute('muted','');
+     audioButton.textContent='🔊 Activar sonido';audioButton.onclick=async()=>{
+      video.muted=false;video.defaultMuted=false;video.removeAttribute('muted');
+      try{if(video.srcObject)await video.play();audioButton.textContent='🔈 Sonido activado';}
+      catch(e){videoState.textContent='Pulsa reproducir en el vídeo para escuchar: '+e.message;}
+     };
+    };
+    videoState.textContent=video.readyState>=2?'✅ Vídeo listo y audio activado':'🔊 Sonido activado; esperando vídeo remoto…';
+   }catch(e){
+    videoState.textContent='No se pudo activar el audio: '+e.message+'. Pulsa reproducir en el vídeo.';
+    video.muted=true;video.defaultMuted=true;video.setAttribute('muted','');
+    audioButton.textContent='🔊 Intentar activar sonido';
+   }
+  };
+  const retryButton=document.createElement('button');retryButton.type='button';
+  retryButton.textContent='🔄 Reintentar conexión';
+  retryButton.onclick=async()=>{
+   retryButton.disabled=true;
+   videoState.textContent='🔄 Reiniciando la conexión con el participante…';
+   try{await retryVideoPeer(other);}
+   catch(e){videoState.textContent='⚠️ No se pudo reintentar: '+e.message;}
+   finally{retryButton.disabled=false;}
+  };
+  peerButtons.append(audioButton,retryButton);
+  tile.append(videoState,peerButtons);
+  const peer={pc,video,tile,pending:[],videoState,autoRetried:false,retryTimeout:null};
+  peers.set(other,peer);
+  const playRemote=()=>{
+   if(!video.srcObject)return;
+   video.play().catch(e=>{
+    if(e.name==='NotAllowedError')videoState.textContent='▶️ El navegador bloqueó la reproducción: pulsa reproducir en el vídeo o Activar sonido.';
+    else videoState.textContent='⚠️ Error al reproducir vídeo: '+e.message;
+   });
+  };
+  pc.ontrack=e=>{
+   if(e.streams?.[0])video.srcObject=e.streams[0];
+   else{
+    let media=video.srcObject;
+    if(!(media instanceof MediaStream)){media=new MediaStream();video.srcObject=media;}
+    if(!media.getTracks().some(t=>t.id===e.track.id))media.addTrack(e.track);
+   }
+   e.track.addEventListener('unmute',playRemote);
+   playRemote();
+  };
+  video.addEventListener('loadedmetadata',playRemote);
+  video.addEventListener('playing',()=>{
+   videoState.textContent=video.muted?'✅ Vídeo conectado · pulsa Activar sonido para escuchar':'✅ Vídeo y sonido conectados';
+  });
+  pc.onicecandidate=e=>{
+   if(e.candidate)sendSignal(other,{type:'ice',candidate:e.candidate.toJSON()}).catch(err=>console.warn('ICE:',err));
+  };
+  const showConnectionState=()=>{
+   if(closed||!tile.isConnected)return;
+   const state=pc.connectionState,ice=pc.iceConnectionState;
+   if(state==='connected'){
+    videoState.textContent=video.readyState>=2?
+     (video.muted?'✅ Conexión establecida · activa el sonido para escuchar':'✅ Conexión de audio y vídeo establecida'):
+     '🟢 Conexión establecida; esperando imagen del otro participante. Comprueba su cámara.';
+   }else if(state==='failed'||ice==='failed'){
+    videoState.textContent='⚠️ No se pudo establecer la conexión directa. Pulsa Reintentar conexión. Si persiste, puede necesitarse un servidor TURN.';
+    if(userId>other&&!peer.autoRetried){
+     peer.autoRetried=true;
+     peer.retryTimeout=setTimeout(()=>{
+      if(!closed&&peers.get(other)===peer)retryVideoPeer(other).catch(err=>console.warn('Reintento ICE:',err));
+     },2000);
+    }
+   }else if(state==='disconnected'){
+    videoState.textContent='⚠️ Se ha perdido la conexión; pulsa Reintentar conexión.';
+   }else if(state==='connecting'||ice==='checking'){
+    videoState.textContent='⏳ Negociando conexión de vídeo…';
+   }
+  };
+  pc.onconnectionstatechange=showConnectionState;
+  pc.oniceconnectionstatechange=showConnectionState;
+  peer.retryTimeout=setTimeout(()=>{
+   if(!closed&&peers.get(other)===peer&&pc.connectionState!=='connected'){
+    videoState.textContent='⏳ El vídeo tarda en conectar. Pulsa Reintentar conexión; si estáis en redes diferentes, puede ser necesario TURN.';
+   }
+  },18000);
+  tile.addEventListener('click',event=>{
+   if(event.target.closest('button')||event.target.closest('video'))return;
+   for(const node of videos.children)node.classList.remove('group-video-featured');
+   tile.classList.add('group-video-featured');videos.classList.add('group-video-focus');
+  });
   return peer;
  };
- async function offerPeer(other){
-  const peer=createPeer(other);const offer=await peer.pc.createOffer();await peer.pc.setLocalDescription(offer);
-  await sendSignal(other,{type:'offer',sdp:peer.pc.localDescription.toJSON()});
+ async function offerPeer(other,iceRestart=false){
+  const peer=createPeer(other),pc=peer.pc;
+  if(pc.signalingState!=='stable'||pc.connectionState==='closed')return;
+  const offer=await pc.createOffer(iceRestart?{iceRestart:true}:undefined);
+  await pc.setLocalDescription(offer);
+  await sendSignal(other,{type:'offer',sdp:pc.localDescription.toJSON()});
+ }
+ async function retryVideoPeer(other){
+  const peer=peers.get(other);
+  if(!peer||peer.pc.connectionState==='closed')return;
+  if(userId>other){
+   if(peer.pc.signalingState==='stable')await offerPeer(other,true);
+   else peer.videoState.textContent='⏳ Esperando a que finalice la negociación actual para reintentar.';
+  }else{
+   await sendSignal(other,{type:'reconnect_request'});
+   peer.videoState.textContent='🔄 Solicitud de reconexión enviada; esperando respuesta.';
+  }
  }
  async function handleSignal(row){
   const other=row.sender_id,msg=row.signal;if(!msg||!other)return;
-  if(msg.type==='screen'){shareStatus.textContent=msg.active?'🖥️ '+(profileMap.get(other)?.display_name||'Un participante')+' está compartiendo pantalla':'Nadie comparte pantalla';return;}
+  if(msg.type==='screen'){
+   shareStatus.textContent=msg.active?'🖥️ '+(profileMap.get(other)?.display_name||'Un participante')+' está compartiendo pantalla':'Nadie comparte pantalla';
+   return;
+  }
+  if(msg.type==='reconnect_request'){
+   if(userId>other)await retryVideoPeer(other);
+   return;
+  }
   const peer=createPeer(other),pc=peer.pc;
   if(msg.type==='offer'){
    await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
@@ -2157,7 +2292,10 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    else peer.pending.push(msg.candidate);
   }
   if(pc.remoteDescription&&peer.pending.length){
-   for(const c of peer.pending.splice(0))await pc.addIceCandidate(new RTCIceCandidate(c));
+   for(const c of peer.pending.splice(0)){
+    try{await pc.addIceCandidate(new RTCIceCandidate(c));}
+    catch(e){console.warn('Candidato ICE descartado:',e.message);}
+   }
   }
  }
  async function tick(){
@@ -2173,7 +2311,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    if(extras.refreshCohost)extras.refreshCohost(active);
    if(Date.now()>(refreshAnalyticsAt||0)){refreshAnalyticsAt=Date.now()+12000;refreshInviteReplies().catch(console.warn);refreshAttendanceStats().catch(console.warn);}
    if(accessPanel.refresh)await accessPanel.refresh();
-   for(const [id,peer] of peers)if(!active.has(id)){peer.pc.close();peer.tile.remove();peers.delete(id);}
+   for(const [id,peer] of peers)if(!active.has(id)){clearTimeout(peer.retryTimeout);peer.pc.close();peer.tile.remove();peers.delete(id);}
    // Only the newer participant creates offers, avoiding simultaneous negotiation.
    for(const p of participants||[])if(p.user_id!==userId&&!peers.has(p.user_id)&&userId>p.user_id)await offerPeer(p.user_id);
    const {data:events,error:eventsError}=await sb.from('member_group_video_activity').select('id,user_id,kind,target_id,body').eq('room_id',room.id).gt('id',activityCursor).order('id').limit(100);
@@ -2223,7 +2361,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  };
  async function leaveRoom(){
   if(closed)return;closed=true;clearInterval(healthTimer);animeBackgroundRequest++;animeBackgroundController?.stop();stopRecording();if(groupRecorder?.state==='recording')groupRecorder.stop();clearInterval(session.timer);
-  for(const {pc,tile} of peers.values()){pc.close();tile.remove();}
+  for(const {pc,tile,retryTimeout} of peers.values()){clearTimeout(retryTimeout);pc.close();tile.remove();}
   screenStream?.getTracks().forEach(t=>t.stop());stream.getTracks().forEach(t=>t.stop());
   await sb.from('member_group_video_participants').delete().eq('room_id',room.id).eq('user_id',userId);
   if(room.created_by===userId)await sb.from('member_group_video_rooms').update({status:'closed'}).eq('id',room.id);
