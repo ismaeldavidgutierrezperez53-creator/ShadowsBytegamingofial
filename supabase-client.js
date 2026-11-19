@@ -2431,6 +2431,92 @@ async function initGroupChats(userId,root){
  const status=section.querySelector('#group-chat-status'),list=section.querySelector('#group-chat-list'),thread=section.querySelector('#group-chat-thread');
  const say=t=>{status.textContent=t;};
  const videoCalendar=setupGroupVideoCalendar(userId,section,say);
+ // Global, signed-in invitation inbox: a member need not open the precise group.
+ const inviteInbox=document.createElement('section');inviteInbox.className='group-video-global-inbox';inviteInbox.id='group-video-global-inbox';
+ const inboxTitle=document.createElement('h4');inboxTitle.textContent='✉️ Mis invitaciones a videollamadas';
+ const inboxHelp=document.createElement('p');inboxHelp.textContent='Las invitaciones de cualquier grupo aparecen aquí cuando hay una sala activa.';
+ const inboxRefresh=document.createElement('button');inboxRefresh.type='button';inboxRefresh.textContent='🔄 Buscar invitaciones';
+ const inboxState=document.createElement('p');inboxState.className='group-video-inbox-status';inboxState.setAttribute('role','status');
+ const inboxList=document.createElement('div');inboxList.className='group-video-inbox-list';
+ inviteInbox.append(inboxTitle,inboxHelp,inboxRefresh,inboxState,inboxList);
+ section.insertBefore(inviteInbox,section.querySelector('#group-chat-list'));
+ let inboxBusy=false,inboxLastSnapshot='',inboxActing=false;
+ const replyToVideoInvitation=async(invite,value)=>{
+  inboxActing=true;
+  for(const button of inboxList.querySelectorAll('button'))button.disabled=true;
+  try{
+   const {data:updated,error}=await sb.from('member_group_video_invites')
+    .update({response:value,responded_at:new Date().toISOString()})
+    .eq('id',invite.id).eq('invitee_id',userId).eq('response','pending').select('id');
+   if(error||!updated?.length){inboxState.textContent='No se pudo responder: '+(error?.message||'La invitación ya fue respondida.');return;}
+   inboxState.textContent=value==='accepted'?'✅ Invitación aceptada. Puedes ir al grupo y unirte a la sala.':'Invitación rechazada.';
+   inboxLastSnapshot='';await loadGlobalVideoInvites();
+  }finally{inboxActing=false;for(const button of inboxList.querySelectorAll('button'))button.disabled=false;}
+ };
+ async function loadGlobalVideoInvites(){
+  if(!inviteInbox.isConnected||inboxBusy||inboxActing)return;
+  inboxBusy=true;
+  try{
+   const {data:invites,error}=await sb.from('member_group_video_invites')
+    .select('id,room_id,created_at,response')
+    .eq('invitee_id',userId).in('response',['pending','accepted'])
+    .order('created_at',{ascending:false}).limit(80);
+   if(error){inboxState.textContent='No se pudieron cargar las invitaciones: '+error.message;return;}
+   const ids=[...new Set((invites||[]).map(i=>i.room_id))];
+   if(!ids.length){inboxState.textContent='No tienes invitaciones pendientes a salas activas.';inboxList.replaceChildren();inboxLastSnapshot='';return;}
+   const {data:rooms,error:roomsError}=await sb.from('member_group_video_rooms')
+    .select('id,group_id,created_by,status').in('id',ids).eq('status','open');
+   if(roomsError){inboxState.textContent='No se pudieron comprobar las salas: '+roomsError.message;return;}
+   const roomMap=new Map((rooms||[]).map(r=>[r.id,r]));
+   const active=(invites||[]).filter(i=>roomMap.has(i.room_id));
+   const groupIds=[...new Set(active.map(i=>roomMap.get(i.room_id).group_id))];
+   const {data:groups,error:groupsError}=groupIds.length?
+    await sb.from('member_chat_groups').select('id,name,owner_id').in('id',groupIds):{data:[],error:null};
+   if(groupsError){inboxState.textContent='No se pudieron comprobar los grupos: '+groupsError.message;return;}
+   const groupMap=new Map((groups||[]).map(g=>[g.id,g]));
+   const visible=active.filter(i=>groupMap.has(roomMap.get(i.room_id).group_id));
+   const snapshot=JSON.stringify(visible.map(i=>[i.id,i.response,i.room_id]));
+   if(snapshot===inboxLastSnapshot)return;
+   inboxLastSnapshot=snapshot;inboxList.replaceChildren();
+   const pending=visible.filter(i=>i.response==='pending').length;
+   inboxState.textContent=pending?'📩 Tienes '+pending+' invitación'+(pending===1?'':'es')+' pendiente'+(pending===1?'':'s')+'.':'No tienes invitaciones pendientes a salas activas.';
+   for(const invite of visible){
+    const room=roomMap.get(invite.room_id),group=groupMap.get(room.group_id);
+    const item=document.createElement('article');item.className='group-video-inbox-item';
+    const description=document.createElement('span');
+    description.textContent='📹 '+group.name+' · '+(invite.response==='pending'?'Invitación pendiente':'Invitación aceptada');
+    const controls=document.createElement('div');controls.className='group-video-inbox-actions';
+    if(invite.response==='pending'){
+     for(const [response,label] of [['accepted','✅ Aceptar invitación'],['declined','❌ Rechazar invitación']]){
+      const button=document.createElement('button');button.type='button';button.textContent=label;
+      button.onclick=()=>replyToVideoInvitation(invite,response);
+      controls.append(button);
+     }
+    }else{
+     const join=document.createElement('button');join.type='button';join.textContent='📹 Abrir grupo y unirme';
+     join.onclick=async()=>{
+      join.disabled=true;
+      try{
+       await showGroup(group);
+       await joinMultiVideoRoom(room,group,userId,thread,say);
+      }catch(e){say('No se pudo abrir la videollamada: '+e.message);}
+      finally{join.disabled=false;}
+     };
+     controls.append(join);
+    }
+    item.append(description,controls);inboxList.append(item);
+   }
+  }catch(e){
+   inboxState.textContent='Error al consultar las invitaciones: '+e.message;
+   inboxLastSnapshot='';
+  }finally{inboxBusy=false;}
+ }
+ inboxRefresh.onclick=()=>{inboxLastSnapshot='';loadGlobalVideoInvites();};
+ loadGlobalVideoInvites();
+ const globalInboxTimer=setInterval(()=>{
+  if(!section.isConnected){clearInterval(globalInboxTimer);return;}
+  loadGlobalVideoInvites();
+ },4000);
  let currentGroup=null;
  async function showGroup(group){
   currentGroup=group;
