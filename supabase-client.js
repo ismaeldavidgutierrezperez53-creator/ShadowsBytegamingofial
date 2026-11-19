@@ -1076,6 +1076,8 @@ async function initGroupChats(userId,root){
  let currentGroup=null;
  async function showGroup(group){
   currentGroup=group;
+  const {error:readError}=await sb.from('member_chat_group_reads').upsert({group_id:group.id,user_id:userId,last_read_at:new Date().toISOString()},{onConflict:'group_id,user_id'});
+  if(readError)console.warn('No se pudo marcar el grupo como leído:',readError.message);
   thread.replaceChildren();
   const heading=document.createElement('h4');heading.textContent=group.name;thread.append(heading);
   const {data:members,error:membersError}=await sb.from('member_chat_group_members').select('user_id,role').eq('group_id',group.id);
@@ -1132,6 +1134,7 @@ async function initGroupChats(userId,root){
     messages.append(item);
    }
    messages.scrollTop=messages.scrollHeight;
+   if(currentGroup?.id===group.id)sb.from('member_chat_group_reads').upsert({group_id:group.id,user_id:userId,last_read_at:new Date().toISOString()},{onConflict:'group_id,user_id'}).then(()=>{});
   }
   const form=document.createElement('form');form.className='group-chat-send';
   const input=document.createElement('input');input.required=true;input.maxLength=2000;input.placeholder='Escribe un mensaje al grupo…';input.setAttribute('aria-label','Mensaje al grupo');
@@ -1163,7 +1166,15 @@ async function initGroupChats(userId,root){
   if(!members?.length){list.textContent='Aún no participas en ningún grupo.';return;}
   const {data:groups,error:groupError}=await sb.from('member_chat_groups').select('id,name,owner_id').in('id',members.map(m=>m.group_id)).order('created_at',{ascending:false});
   if(groupError){say('No se pudieron cargar los grupos.');return;}
-  for(const group of groups||[]){const button=document.createElement('button');button.type='button';button.className='outline-btn mini';button.textContent='💬 '+group.name;button.onclick=()=>showGroup(group);list.append(button);}
+  const {data:reads}=await sb.from('member_chat_group_reads').select('group_id,last_read_at').eq('user_id',userId);
+  const readMap=new Map((reads||[]).map(x=>[x.group_id,x.last_read_at]));
+  for(const group of groups||[]){
+   const button=document.createElement('button');button.type='button';button.className='outline-btn mini';button.textContent='💬 '+group.name;
+   const query=sb.from('member_chat_group_messages').select('id',{count:'exact',head:true}).eq('group_id',group.id).neq('sender_id',userId);
+   const {count}=await (readMap.has(group.id)?query.gt('created_at',readMap.get(group.id)):query);
+   if(count)button.textContent+=' 🔔 '+count+' nuevo'+(count===1?'':'s');
+   button.onclick=async()=>{await showGroup(group);loadGroups();};list.append(button);
+  }
  }
  section.querySelector('#group-create-form').onsubmit=async e=>{
   e.preventDefault();const form=e.currentTarget;const name=form.elements.groupName.value.trim();
