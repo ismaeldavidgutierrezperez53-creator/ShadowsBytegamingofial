@@ -2584,7 +2584,7 @@ async function initGroupChats(userId,root){
     }
    }finally{inviteRefreshBusy=false;}
   }
-  checkVideoInvites();const inviteTimer=setInterval(()=>{if(!thread.isConnected){clearInterval(inviteTimer);return;}checkVideoInvites();},5000);
+  const inviteTimer=setInterval(()=>{if(!thread.isConnected){clearInterval(inviteTimer);return;}checkVideoInvites();},5000);
   const lobbyControls=document.createElement('div');lobbyControls.className='group-call-actions';
   const lobbyButton=document.createElement('button');lobbyButton.type='button';lobbyButton.textContent='🏠 Activar sala permanente del grupo';
   const lobbyStatus=document.createElement('span');lobbyStatus.textContent='Una sala permanente conserva el acceso del grupo; la cámara solo se activa al entrar.';
@@ -2615,6 +2615,8 @@ async function initGroupChats(userId,root){
   };
   callControls.append(multiStart,multiJoin);
   thread.append(callControls);
+  // Consult after controls mount: otherwise an early check is silently discarded.
+  checkVideoInvites();
   const incomingCalls=document.createElement('div');incomingCalls.className='group-call-incoming';thread.append(incomingCalls);
   const videoNotices=document.createElement('div');videoNotices.className='group-call-incoming';videoNotices.setAttribute('aria-live','polite');thread.append(videoNotices);
   let notifiedVideoRoom=null;
