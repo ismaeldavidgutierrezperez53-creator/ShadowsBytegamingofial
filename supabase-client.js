@@ -1302,6 +1302,10 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const localTile=local.parentElement;
  background.onchange=()=>{localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon');if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);};
  quality.onchange=async()=>{const track=stream.getVideoTracks()[0];if(!track)return;const height=quality.value==='low'?360:quality.value==='high'?720:480;try{await track.applyConstraints({height:{ideal:height},frameRate:{ideal:quality.value==='low'?15:24,max:30}});qualityInfo.textContent='Calidad solicitada: '+quality.options[quality.selectedIndex].textContent+'. El navegador ajustará según disponibilidad.';}catch(e){qualityInfo.textContent='Tu cámara no admite ese ajuste: '+e.message;}};
+ const {data:savedMedia}=await sb.from('member_group_video_preferences').select('quality,theme').eq('user_id',userId).maybeSingle();
+ const saveMediaPreference=async()=>{const {error}=await sb.from('member_group_video_preferences').upsert({user_id:userId,quality:quality.value,theme:background.value,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)console.warn('Preferencias de vídeo:',error.message);};
+ quality.addEventListener('change',saveMediaPreference);background.addEventListener('change',saveMediaPreference);
+ if(savedMedia){quality.value=savedMedia.quality||'auto';background.value=savedMedia.theme||'none';background.onchange();if(quality.value!=='auto')quality.onchange();}
  mediaSettings.append(mediaTitle,quality,background,qualityInfo);
  const actions=document.createElement('div');actions.className='group-call-actions';
  const invites=document.createElement('div');invites.className='group-video-invites';
