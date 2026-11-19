@@ -385,3 +385,5 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .group-chat-messages p{overflow-wrap:anywhere;margin:8px 0}
 .group-chat-messages small{opacity:.7}
 @media(max-width:600px){.group-chat-panel form{flex-direction:column}.group-chat-panel input,.group-chat-panel select{width:100%}}
+
+.notification-center-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}.notification-center-controls select{padding:9px;border-radius:9px;background:rgba(100,100,145,.2);border:1px solid rgba(150,150,190,.4);color:inherit}.notification-center-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid rgba(150,150,180,.2)}.notification-center-item strong{flex-basis:100%}.notification-center-item small{opacity:.8}
