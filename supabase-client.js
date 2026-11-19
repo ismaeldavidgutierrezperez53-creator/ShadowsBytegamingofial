@@ -1246,8 +1246,24 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  let stream;
  try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});}
  catch(e){say('No se pudo abrir cámara o micrófono: '+e.message);return;}
- const {error:joinError}=await sb.rpc('join_group_video_room',{p_room_id:room.id});
+ let {data:joinState,error:joinError}=await sb.rpc('request_join_group_video_room',{p_room_id:room.id});
  if(joinError){stream.getTracks().forEach(t=>t.stop());say('No se pudo entrar en la sala: '+joinError.message);return;}
+ if(joinState==='waiting'){
+  stream.getTracks().forEach(t=>t.stop());
+  const waiting=document.createElement('section');waiting.className='group-call-panel';
+  const notice=document.createElement('p');notice.textContent='⏳ Esperando aprobación del anfitrión o coanfitrión…';
+  const cancel=document.createElement('button');cancel.textContent='Cancelar solicitud';
+  waiting.append(notice,cancel);thread.prepend(waiting);
+  let activeWaiting=true;
+  cancel.onclick=()=>{activeWaiting=false;clearInterval(waitTimer);waiting.remove();};
+  const check=async()=>{
+   if(!activeWaiting||!waiting.isConnected){clearInterval(waitTimer);return;}
+   const {data,error}=await sb.rpc('request_join_group_video_room',{p_room_id:room.id});
+   if(error){notice.textContent='No se pudo entrar: '+error.message;activeWaiting=false;clearInterval(waitTimer);return;}
+   if(data==='joined'){activeWaiting=false;clearInterval(waitTimer);waiting.remove();joinMultiVideoRoom(room,group,userId,thread,say);}
+  };
+  const waitTimer=setInterval(check,2500);return;
+ }
  const panel=document.createElement('section');panel.className='group-call-panel group-multi-video';
  const title=document.createElement('h4');title.textContent='📹 Videollamada grupal';
  const videos=document.createElement('div');videos.className='group-multi-video-grid';
@@ -1286,6 +1302,34 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   moderator.refresh=(ids)=>{kickSelect.replaceChildren();for(const id of ids){if(id===userId)continue;const o=document.createElement('option');o.value=id;o.textContent=profileMap.get(id)?.display_name||profileMap.get(id)?.username||'Miembro';kickSelect.append(o);}};
  }
 
+ const accessPanel=document.createElement('section');accessPanel.className='group-video-activity';
+ if(canModerate){
+  const accessTitle=document.createElement('h5');accessTitle.textContent='🔐 Acceso a la sala';
+  const privateLabel=document.createElement('label');const privateBox=document.createElement('input');privateBox.type='checkbox';privateLabel.append(privateBox,document.createTextNode(' Sala privada: aprobar entradas'));
+  const lockLabel=document.createElement('label');const lockBox=document.createElement('input');lockBox.type='checkbox';lockLabel.append(lockBox,document.createTextNode(' Bloquear nuevas entradas'));
+  const saveAccess=document.createElement('button');saveAccess.type='button';saveAccess.textContent='Guardar permisos de sala';
+  const pendingList=document.createElement('div');
+  const {data:initialSettings}=await sb.from('member_group_video_settings').select('private_mode,locked').eq('room_id',room.id).maybeSingle();
+  privateBox.checked=!!initialSettings?.private_mode;lockBox.checked=!!initialSettings?.locked;
+  saveAccess.onclick=async()=>{const {error}=await sb.rpc('set_group_video_settings',{p_room_id:room.id,p_private:privateBox.checked,p_locked:lockBox.checked});say(error?'No se pudieron guardar los permisos: '+error.message:'Permisos de sala actualizados.');};
+  accessPanel.refresh=async()=>{
+   const {data:pending,error}=await sb.from('member_group_video_waiting').select('user_id,status').eq('room_id',room.id).eq('status','pending');
+   if(error)return;
+   pendingList.replaceChildren();
+   for(const req of pending||[]){
+    const line=document.createElement('div');line.className='group-call-actions';
+    const name=document.createElement('span');name.textContent=profileMap.get(req.user_id)?.display_name||profileMap.get(req.user_id)?.username||'Miembro';
+    for(const [label,approved] of [['✅ Aprobar',true],['❌ Rechazar',false]]){
+     const btn=document.createElement('button');btn.type='button';btn.textContent=label;
+     btn.onclick=async()=>{const {error}=await sb.rpc('review_group_video_waiting',{p_room_id:room.id,p_target_id:req.user_id,p_approve:approved});say(error?'No se pudo responder: '+error.message:approved?'Entrada aprobada.':'Solicitud rechazada.');await accessPanel.refresh();};
+     line.append(btn);
+    }
+    line.prepend(name);pendingList.append(line);
+   }
+   if(!pendingList.childElementCount)pendingList.textContent='No hay solicitudes pendientes.';
+  };
+  accessPanel.append(accessTitle,privateLabel,lockLabel,saveAccess,pendingList);
+ }
  const activity=document.createElement('section');activity.className='group-video-activity';
  const activityTitle=document.createElement('h5');activityTitle.textContent='✋ Participación y chat de la sala';
  const activityLog=document.createElement('div');activityLog.className='group-video-activity-log';activityLog.setAttribute('role','log');activityLog.setAttribute('aria-live','polite');
@@ -1351,7 +1395,16 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
  const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
- actions.append(mic,camera,share,leave);panel.append(title,videos,actions,invites,moderator,activity,extras);thread.prepend(panel);
+ actions.append(mic,camera,share,leave);panel.append(title,videos,actions,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
+ const viewBar=document.createElement('div');viewBar.className='group-call-actions';
+ const gridView=document.createElement('button');gridView.textContent='▦ Cuadrícula';
+ const focusView=document.createElement('button');focusView.textContent='▣ Destacar vídeo';
+ const fullView=document.createElement('button');fullView.textContent='⛶ Pantalla completa';
+ const shareStatus=document.createElement('p');shareStatus.textContent='Nadie comparte pantalla';
+ gridView.onclick=()=>{videos.classList.remove('group-video-focus');};
+ focusView.onclick=()=>{videos.classList.add('group-video-focus');};
+ fullView.onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else panel.requestFullscreen?.().catch(e=>say('Pantalla completa: '+e.message));};
+ viewBar.append(gridView,focusView,fullView);panel.insertBefore(viewBar,videos);panel.insertBefore(shareStatus,actions);
  const peers=new Map();let lastSignal=0,busy=false,screenStream=null,originalVideo=null,closed=false;
  const sendSignal=async(to,signal)=>{const {error}=await sb.from('member_group_video_signals').insert({room_id:room.id,sender_id:userId,recipient_id:to,signal});if(error)console.warn('Señal de vídeo:',error.message);};
  const createPeer=(other)=>{
@@ -1361,6 +1414,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   const video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.controls=true;const tile=videoTile(other,video);
   pc.ontrack=e=>{video.srcObject=e.streams[0];video.play().catch(()=>{});};
   pc.onicecandidate=e=>{if(e.candidate)sendSignal(other,{type:'ice',candidate:e.candidate.toJSON()});};
+  tile.onclick=()=>{for(const node of videos.children)node.classList.remove('group-video-featured');tile.classList.add('group-video-featured');videos.classList.add('group-video-focus');};
   const peer={pc,video,tile,pending:[]};peers.set(other,peer);
   return peer;
  };
@@ -1370,6 +1424,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  }
  async function handleSignal(row){
   const other=row.sender_id,msg=row.signal;if(!msg||!other)return;
+  if(msg.type==='screen'){shareStatus.textContent=msg.active?'🖥️ '+(profileMap.get(other)?.display_name||'Un participante')+' está compartiendo pantalla':'Nadie comparte pantalla';return;}
   const peer=createPeer(other),pc=peer.pc;
   if(msg.type==='offer'){
    await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
@@ -1396,6 +1451,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    inviteSelect.replaceChildren();for(const [id,p] of profileMap){if(id===userId||active.has(id))continue;const o=document.createElement('option');o.value=id;o.textContent=p.display_name||p.username||'Miembro';inviteSelect.append(o);}
    if(moderator.refresh){moderator.refresh(active);moderator.refreshMute(active);await moderator.refreshBlocked();}
    if(extras.refreshCohost)extras.refreshCohost(active);
+   if(accessPanel.refresh)await accessPanel.refresh();
    for(const [id,peer] of peers)if(!active.has(id)){peer.pc.close();peer.tile.remove();peers.delete(id);}
    // Only the newer participant creates offers, avoiding simultaneous negotiation.
    for(const p of participants||[])if(p.user_id!==userId&&!peers.has(p.user_id)&&userId>p.user_id)await offerPeer(p.user_id);
@@ -1427,7 +1483,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  async function stopShare(){
   if(!screenStream)return;
   for(const {pc} of peers.values()){const sender=pc.getSenders().find(s=>s.track?.kind==='video');if(sender)await sender.replaceTrack(originalVideo);}
-  screenStream.getTracks().forEach(t=>t.stop());screenStream=null;originalVideo=null;local.srcObject=stream;share.textContent='🖥️ Compartir pantalla';
+  screenStream.getTracks().forEach(t=>t.stop());screenStream=null;originalVideo=null;local.srcObject=stream;share.textContent='🖥️ Compartir pantalla';shareStatus.textContent='Nadie comparte pantalla';for(const id of peers.keys())sendSignal(id,{type:'screen',active:false});
  }
  share.onclick=async()=>{
   if(screenStream){await stopShare();return;}
@@ -1435,7 +1491,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    const display=await navigator.mediaDevices.getDisplayMedia({video:true});
    screenStream=display;originalVideo=stream.getVideoTracks()[0];
    for(const {pc} of peers.values()){const sender=pc.getSenders().find(s=>s.track?.kind==='video');if(sender)await sender.replaceTrack(display.getVideoTracks()[0]);}
-   local.srcObject=display;share.textContent='🛑 Dejar de compartir';
+   local.srcObject=display;share.textContent='🛑 Dejar de compartir';shareStatus.textContent='🖥️ Estás compartiendo pantalla';for(const id of peers.keys())sendSignal(id,{type:'screen',active:true});
    display.getVideoTracks()[0].onended=()=>stopShare().catch(console.warn);
   }catch(e){say('No se pudo compartir pantalla: '+e.message);}
  };
