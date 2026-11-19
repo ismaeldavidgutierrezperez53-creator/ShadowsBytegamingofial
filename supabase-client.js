@@ -1237,13 +1237,50 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   moderator.append(muteSelect,muteRequest);
   moderator.refreshMute=ids=>{const selected=muteSelect.value;muteSelect.replaceChildren();for(const id of ids){if(id===userId)continue;const o=document.createElement('option');o.value=id;o.textContent=profileMap.get(id)?.display_name||profileMap.get(id)?.username||'Miembro';muteSelect.append(o);}if([...muteSelect.options].some(o=>o.value===selected))muteSelect.value=selected;};
  }
+ const extras=document.createElement('section');extras.className='group-video-activity';
+ const extrasTitle=document.createElement('h5');extrasTitle.textContent='❤️ Reacciones, grabación y roles';
+ const reactionBar=document.createElement('div');reactionBar.className='group-call-actions';
+ for(const emoji of ['❤️','👏','😂','🎉','👍']){const btn=document.createElement('button');btn.type='button';btn.textContent=emoji;btn.setAttribute('aria-label','Reaccionar '+emoji);btn.onclick=()=>postActivity('reaction',emoji);reactionBar.append(btn);}
+ const roleStatus=document.createElement('p');roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':'Participante de la sala';
+ const consentLabel=document.createElement('label');const consent=document.createElement('input');consent.type='checkbox';consentLabel.append(consent,document.createTextNode(' Autorizo la grabación de esta sala'));
+ consent.onchange=async()=>{const {error}=await sb.from('member_group_video_recording_consents').upsert({room_id:room.id,user_id:userId,consented:consent.checked,updated_at:new Date().toISOString()},{onConflict:'room_id,user_id'});if(error){say('No se pudo guardar el consentimiento: '+error.message);consent.checked=!consent.checked;}};
+ const recordingStatus=document.createElement('p');recordingStatus.setAttribute('role','status');recordingStatus.textContent='Grabación detenida. Se necesita el consentimiento de todos los participantes.';
+ const recordBtn=document.createElement('button');recordBtn.type='button';recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';
+ let recorder=null,recordChunks=[],recordStream=null,recordingMembers='';
+ const stopRecording=()=>{if(recorder?.state==='recording')recorder.stop();};
+ recordBtn.onclick=async()=>{
+  if(recorder?.state==='recording'){stopRecording();return;}
+  if(typeof MediaRecorder==='undefined'){say('Este navegador no admite grabaciones.');return;}
+  const {data:members,error:membersError}=await sb.from('member_group_video_participants').select('user_id').eq('room_id',room.id);
+  const {data:consents,error:consentsError}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
+  if(membersError||consentsError){say('No se pudieron comprobar los consentimientos.');return;}
+  const ids=(members||[]).map(m=>m.user_id);
+  if(!ids.length||ids.some(id=>!(consents||[]).some(c=>c.user_id===id&&c.consented))){say('Todos los participantes deben autorizar la grabación antes de empezar.');return;}
+  try{
+   recordStream=new MediaStream(stream.getTracks());recordChunks=[];
+   recorder=new MediaRecorder(recordStream);
+   recorder.ondataavailable=e=>{if(e.data.size)recordChunks.push(e.data);};
+   recorder.onstop=()=>{if(recordChunks.length){const blob=new Blob(recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='shadowsbyte-video-'+Date.now()+'.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';recordingStatus.textContent='Grabación finalizada. Archivo local generado.';recordStream=null;};
+   recorder.start(1000);recordingMembers=ids.slice().sort().join(',');recordBtn.textContent='⏹️ Detener grabación';recordingStatus.textContent='🔴 Grabando únicamente tu cámara y micrófono en este navegador.';
+  }catch(e){say('No se pudo grabar: '+e.message);}
+ };
+ extras.append(extrasTitle,reactionBar,roleStatus,consentLabel,recordBtn,recordingStatus);
+ if(room.created_by===userId){
+  const cohostSelect=document.createElement('select');cohostSelect.setAttribute('aria-label','Seleccionar coanfitrión');
+  const grant=document.createElement('button');grant.type='button';grant.textContent='👑 Nombrar coanfitrión';
+  const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Quitar coanfitrión';
+  const setCohost=async enabled=>{if(!cohostSelect.value)return;const {error}=await sb.rpc('set_group_video_cohost',{p_room_id:room.id,p_target_id:cohostSelect.value,p_enabled:enabled});say(error?'No se pudo cambiar el rol: '+error.message:enabled?'Coanfitrión asignado.':'Coanfitrión retirado.');};
+  grant.onclick=()=>setCohost(true);revoke.onclick=()=>setCohost(false);
+  extras.append(cohostSelect,grant,revoke);
+  extras.refreshCohost=ids=>{const selected=cohostSelect.value;cohostSelect.replaceChildren();for(const id of ids){if(id===userId)continue;const option=document.createElement('option');option.value=id;option.textContent=profileMap.get(id)?.display_name||profileMap.get(id)?.username||'Miembro';cohostSelect.append(option);}if([...cohostSelect.options].some(o=>o.value===selected))cohostSelect.value=selected;};
+ }
  const mic=document.createElement('button');mic.type='button';mic.textContent='🎙️ Silenciar';
  mic.onclick=()=>{const track=stream.getAudioTracks()[0];if(track){track.enabled=!track.enabled;mic.textContent=track.enabled?'🎙️ Silenciar':'🔇 Activar micrófono';}};
  const camera=document.createElement('button');camera.type='button';camera.textContent='📷 Apagar cámara';
  camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
  const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
- actions.append(mic,camera,share,leave);panel.append(title,videos,actions,invites,moderator,activity);thread.prepend(panel);
+ actions.append(mic,camera,share,leave);panel.append(title,videos,actions,invites,moderator,activity,extras);thread.prepend(panel);
  const peers=new Map();let lastSignal=0,busy=false,screenStream=null,originalVideo=null,closed=false;
  const sendSignal=async(to,signal)=>{const {error}=await sb.from('member_group_video_signals').insert({room_id:room.id,sender_id:userId,recipient_id:to,signal});if(error)console.warn('Señal de vídeo:',error.message);};
  const createPeer=(other)=>{
@@ -1287,6 +1324,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    if(!active.has(userId)){say('Un moderador te ha retirado de la sala.');await leaveRoom();return;}
    inviteSelect.replaceChildren();for(const [id,p] of profileMap){if(id===userId||active.has(id))continue;const o=document.createElement('option');o.value=id;o.textContent=p.display_name||p.username||'Miembro';inviteSelect.append(o);}
    if(moderator.refresh){moderator.refresh(active);moderator.refreshMute(active);await moderator.refreshBlocked();}
+   if(extras.refreshCohost)extras.refreshCohost(active);
    for(const [id,peer] of peers)if(!active.has(id)){peer.pc.close();peer.tile.remove();peers.delete(id);}
    // Only the newer participant creates offers, avoiding simultaneous negotiation.
    for(const p of participants||[])if(p.user_id!==userId&&!peers.has(p.user_id)&&userId>p.user_id)await offerPeer(p.user_id);
@@ -1296,11 +1334,19 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
     const who=profileMap.get(ev.user_id)?.display_name||profileMap.get(ev.user_id)?.username||'Miembro';
     if(ev.kind==='mute_request'&&ev.target_id===userId){say(who+' te solicita silenciar el micrófono.');}
     const line=document.createElement('p');
-    if(ev.kind==='message')line.textContent=who+': '+ev.body;
+    if(ev.kind==='reaction')line.textContent=who+' reaccionó '+ev.body;
+    else if(ev.kind==='message')line.textContent=who+': '+ev.body;
     else if(ev.kind==='hand')line.textContent=who+(ev.body==='up'?' ✋ ha levantado la mano':' ha bajado la mano');
     else if(ev.kind==='mute_request')line.textContent=who+' ha solicitado silenciar a '+(profileMap.get(ev.target_id)?.display_name||'un participante');
     activityLog.append(line);while(activityLog.children.length>60)activityLog.firstElementChild.remove();
     activityLog.scrollTop=activityLog.scrollHeight;
+   }
+   const {data:cohosts}=await sb.from('member_group_video_cohosts').select('user_id').eq('room_id',room.id);
+   const isCohost=(cohosts||[]).some(c=>c.user_id===userId);
+   roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':isCohost?'👑 Eres coanfitrión':'Participante de la sala';
+   if(recorder?.state==='recording'){
+    const {data:approvals}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
+    if([...active].sort().join(',')!==recordingMembers||[...active].some(id=>!(approvals||[]).some(c=>c.user_id===id&&c.consented))){stopRecording();say('Grabación detenida: cambió la participación o el consentimiento.');}
    }
    const {data:signals}=await sb.from('member_group_video_signals').select('id,sender_id,signal').eq('room_id',room.id).eq('recipient_id',userId).gt('id',lastSignal).order('id').limit(100);
    for(const row of signals||[]){lastSignal=row.id;try{await handleSignal(row);}catch(e){console.warn('Señal WebRTC:',e.message);}}
@@ -1322,7 +1368,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   }catch(e){say('No se pudo compartir pantalla: '+e.message);}
  };
  async function leaveRoom(){
-  if(closed)return;closed=true;clearInterval(session.timer);
+  if(closed)return;closed=true;stopRecording();clearInterval(session.timer);
   for(const {pc,tile} of peers.values()){pc.close();tile.remove();}
   screenStream?.getTracks().forEach(t=>t.stop());stream.getTracks().forEach(t=>t.stop());
   await sb.from('member_group_video_participants').delete().eq('room_id',room.id).eq('user_id',userId);
