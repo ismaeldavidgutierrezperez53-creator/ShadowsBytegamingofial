@@ -1396,14 +1396,51 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  for(const [value,label] of [['none','Original'],['vivid','Anime vibrante'],['dream','Anime soñador'],['mono','Manga blanco y negro']]){const o=document.createElement('option');o.value=value;o.textContent=label;filterSelect.append(o);}
  filterSelect.onchange=()=>{local.classList.remove('anime-filter-vivid','anime-filter-dream','anime-filter-mono');if(filterSelect.value!=='none')local.classList.add('anime-filter-'+filterSelect.value);};
  filterBar.append(filterLabel,filterSelect);
+ const virtualLabel=document.createElement('label');virtualLabel.textContent='🌸 Fondo virtual anime (experimental)';
+ const virtualSelect=document.createElement('select');virtualSelect.setAttribute('aria-label','Fondo virtual anime');
+ for(const [value,label] of [['none','Sin fondo virtual'],['sakura','🌸 Sakura'],['night','🌌 Noche estrellada'],['neon','💜 Ciudad neón']]){const o=document.createElement('option');o.value=value;o.textContent=label;virtualSelect.append(o);}
+ const virtualHelp=document.createElement('small');virtualHelp.textContent='Fondo visual de tu vista local; la sustitución real mediante segmentación aún no está disponible.';
+ virtualSelect.onchange=()=>{local.parentElement.classList.remove('virtual-anime-sakura','virtual-anime-night','virtual-anime-neon');if(virtualSelect.value!=='none')local.parentElement.classList.add('virtual-anime-'+virtualSelect.value);};
+ filterBar.append(virtualLabel,virtualSelect,virtualHelp);
+ const stickerBar=document.createElement('div');stickerBar.className='group-call-actions';
+ const stickerTitle=document.createElement('span');stickerTitle.textContent='✨ Stickers especiales';
+ stickerBar.append(stickerTitle);
+ for(const emoji of ['🌸','⭐','🔥','💜']){const button=document.createElement('button');button.type='button';button.textContent=emoji;button.onclick=()=>postActivity('reaction',emoji);stickerBar.append(button);}
+
  const floatingReactions=document.createElement('div');floatingReactions.className='group-video-floating-reactions';floatingReactions.setAttribute('aria-live','off');videos.parentElement?.append(floatingReactions);
- const animateReaction=(emoji)=>{if(!['❤️','👏','😂','🎉','👍'].includes(emoji))return;const bubble=document.createElement('span');bubble.className='group-video-reaction-bubble';bubble.textContent=emoji;bubble.style.left=(10+Math.random()*75)+'%';floatingReactions.append(bubble);setTimeout(()=>bubble.remove(),2100);};
+ const animateReaction=(emoji)=>{if(!['❤️','👏','😂','🎉','👍','🌸','⭐','🔥','💜'].includes(emoji))return;const bubble=document.createElement('span');bubble.className='group-video-reaction-bubble';bubble.textContent=emoji;bubble.style.left=(10+Math.random()*75)+'%';floatingReactions.append(bubble);setTimeout(()=>bubble.remove(),2100);};
  const roleStatus=document.createElement('p');roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':cohostMembership?'👑 Eres coanfitrión — puedes moderar la sala':'Participante de la sala';
  const consentLabel=document.createElement('label');const consent=document.createElement('input');consent.type='checkbox';consentLabel.append(consent,document.createTextNode(' Autorizo la grabación de esta sala'));
  consent.onchange=async()=>{consent.disabled=true;const {error}=await sb.from('member_group_video_recording_consents').upsert({room_id:room.id,user_id:userId,consented:consent.checked,updated_at:new Date().toISOString()},{onConflict:'room_id,user_id'});consent.disabled=false;if(error){say('No se pudo guardar el consentimiento: '+error.message);recordingStatus.textContent='Error guardando consentimiento: '+error.message;consent.checked=!consent.checked;}else{recordingStatus.textContent=consent.checked?'Tu consentimiento está guardado. Esperando la autorización de los demás.':'Has retirado tu consentimiento.';}};
  const recordingStatus=document.createElement('p');recordingStatus.setAttribute('role','status');recordingStatus.textContent='Grabación detenida. Se necesita el consentimiento de todos los participantes.';
  const {data:myConsent}=await sb.from('member_group_video_recording_consents').select('consented').eq('room_id',room.id).eq('user_id',userId).maybeSingle();consent.checked=!!myConsent?.consented;
  const recordBtn=document.createElement('button');recordBtn.type='button';recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';
+ const groupRecordBtn=document.createElement('button');groupRecordBtn.type='button';groupRecordBtn.textContent='🎥 Grabar videollamada completa (vista de esta sala)';
+ let groupRecorder=null,groupRecordTracks=[],groupRecordCanvas=null,groupRecordTimer=null,groupRecordChunks=[];
+ groupRecordBtn.onclick=async()=>{
+  if(groupRecorder?.state==='recording'){groupRecorder.stop();return;}
+  if(typeof MediaRecorder==='undefined'){say('Este navegador no admite grabaciones.');return;}
+  const {data:members,error:membersError}=await sb.from('member_group_video_participants').select('user_id').eq('room_id',room.id);
+  const {data:approvals,error:approvalsError}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
+  if(membersError||approvalsError||!(members||[]).length||(members||[]).some(m=>!(approvals||[]).some(a=>a.user_id===m.user_id&&a.consented))){say('Todos los participantes deben autorizar la grabación antes de comenzar.');return;}
+  try{
+   groupRecordCanvas=document.createElement('canvas');groupRecordCanvas.width=1280;groupRecordCanvas.height=720;const ctx=groupRecordCanvas.getContext('2d');
+   const paint=()=>{const feeds=[local,...[...peers.values()].map(p=>p.video)];ctx.fillStyle='#101022';ctx.fillRect(0,0,1280,720);const cols=Math.ceil(Math.sqrt(feeds.length)),rows=Math.ceil(feeds.length/cols),w=1280/cols,h=720/rows;feeds.forEach((v,i)=>{if(v.readyState>=2){try{ctx.drawImage(v,(i%cols)*w,Math.floor(i/cols)*h,w,h);}catch(_){}}});};
+   paint();groupRecordTimer=setInterval(paint,100);
+   const captured=groupRecordCanvas.captureStream(10);groupRecordTracks=[...captured.getTracks()];
+   const audioCtx=new AudioContext(),destination=audioCtx.createMediaStreamDestination();
+   const audioStreams=[stream,...[...peers.values()].map(p=>p.video.srcObject).filter(Boolean)];
+   for(const audioStream of audioStreams){if(audioStream.getAudioTracks?.().length){const src=audioCtx.createMediaStreamSource(audioStream);src.connect(destination);}}
+   groupRecordTracks.push(...destination.stream.getAudioTracks());
+   const combined=new MediaStream(groupRecordTracks);
+   const mime=['video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported?.(t));
+   groupRecorder=new MediaRecorder(combined,mime?{mimeType:mime}:undefined);groupRecordChunks=[];
+   groupRecorder.ondataavailable=e=>{if(e.data.size)groupRecordChunks.push(e.data);};
+   groupRecorder.onstop=()=>{clearInterval(groupRecordTimer);groupRecordTracks.forEach(t=>t.stop());audioCtx.close().catch(()=>{});groupRecordBtn.textContent='🎥 Grabar videollamada completa (vista de esta sala)';if(groupRecordChunks.length){const blob=new Blob(groupRecordChunks,{type:groupRecorder.mimeType||'video/webm'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='shadowsbyte-grupo-'+Date.now()+(groupRecorder.mimeType?.includes('mp4')?'.mp4':'.webm');link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}};
+   groupRecorder.start(1000);groupRecordBtn.textContent='⏹️ Detener grabación grupal';say('Grabación grupal local iniciada con consentimiento. Se descargará al detenerla.');
+  }catch(e){clearInterval(groupRecordTimer);groupRecordTracks.forEach(t=>t.stop());say('No se pudo grabar la sala: '+e.message);}
+ };
+
  let recorder=null,recordChunks=[],recordStream=null,recordingMembers='',recordStart=0;
  const stopRecording=()=>{if(recorder?.state==='recording')recorder.stop();};
  recordBtn.onclick=async()=>{
@@ -1424,7 +1461,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    recorder.start(1000);recordStart=Date.now();recordingMembers=ids.slice().sort().join(',');recordBtn.textContent='⏹️ Detener grabación';recordingStatus.textContent='🔴 Grabando únicamente tu cámara y micrófono en este navegador.';
   }catch(e){recordingStatus.textContent='No se pudo grabar: '+e.message;say('No se pudo grabar: '+e.message);}
  };
- extras.append(extrasTitle,filterBar,reactionBar,roleStatus,consentLabel,recordBtn,recordingStatus);
+ extras.append(extrasTitle,filterBar,stickerBar,reactionBar,roleStatus,consentLabel,recordBtn,groupRecordBtn,recordingStatus);
  if(room.created_by===userId){
   const cohostSelect=document.createElement('select');cohostSelect.setAttribute('aria-label','Seleccionar coanfitrión');
   const grant=document.createElement('button');grant.type='button';grant.textContent='👑 Nombrar coanfitrión';
@@ -1542,7 +1579,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   }catch(e){say('No se pudo compartir pantalla: '+e.message);}
  };
  async function leaveRoom(){
-  if(closed)return;closed=true;stopRecording();clearInterval(session.timer);
+  if(closed)return;closed=true;stopRecording();if(groupRecorder?.state==='recording')groupRecorder.stop();clearInterval(session.timer);
   for(const {pc,tile} of peers.values()){pc.close();tile.remove();}
   screenStream?.getTracks().forEach(t=>t.stop());stream.getTracks().forEach(t=>t.stop());
   await sb.from('member_group_video_participants').delete().eq('room_id',room.id).eq('user_id',userId);
@@ -1693,6 +1730,15 @@ async function initGroupChats(userId,root){
   if(lobby?.enabled){lobbyButton.textContent='🏠 Sala permanente habilitada';lobbyButton.disabled=true;}
   lobbyButton.onclick=async()=>{lobbyButton.disabled=true;const {error}=await sb.from('member_group_video_lobbies').upsert({group_id:group.id,enabled:true},{onConflict:'group_id'});if(error){lobbyButton.disabled=false;say('No se pudo habilitar la sala: '+error.message);}else{lobbyButton.textContent='🏠 Sala permanente habilitada';say('Acceso permanente habilitado. Iniciar/Unirse abre la sesión activa del grupo.');}};
   lobbyControls.append(lobbyButton,lobbyStatus);thread.append(lobbyControls);
+  const schedulePanel=document.createElement('section');schedulePanel.className='group-video-activity';
+  const scheduleTitle=document.createElement('h5');scheduleTitle.textContent='📅 Programar videollamada';
+  const scheduleName=document.createElement('input');scheduleName.placeholder='Título de la videollamada';scheduleName.maxLength=120;
+  const scheduleDate=document.createElement('input');scheduleDate.type='datetime-local';scheduleDate.setAttribute('aria-label','Fecha y hora de la videollamada');
+  const scheduleSave=document.createElement('button');scheduleSave.type='button';scheduleSave.textContent='📅 Guardar programación';
+  const scheduleList=document.createElement('div');
+  const refreshSchedule=async()=>{const {data}=await sb.from('member_group_video_schedules').select('id,title,starts_at,created_by').eq('group_id',group.id).gte('starts_at',new Date(Date.now()-3600000).toISOString()).order('starts_at').limit(12);scheduleList.replaceChildren();for(const item of data||[]){const line=document.createElement('p');line.textContent='📅 '+item.title+' · '+new Date(item.starts_at).toLocaleString('es-ES');scheduleList.append(line);}};
+  scheduleSave.onclick=async()=>{const starts=new Date(scheduleDate.value);if(!scheduleName.value.trim()||!Number.isFinite(starts.getTime())||starts.getTime()<=Date.now()){say('Indica un título y una fecha futura.');return;}const {error}=await sb.from('member_group_video_schedules').insert({group_id:group.id,created_by:userId,title:scheduleName.value.trim(),starts_at:starts.toISOString()});if(error){say('No se pudo programar: '+error.message);return;}say('Videollamada programada. Abre este grupo a la hora indicada para iniciar la sala.');scheduleName.value='';await refreshSchedule();};
+  schedulePanel.append(scheduleTitle,scheduleName,scheduleDate,scheduleSave,scheduleList);thread.append(schedulePanel);refreshSchedule();
   multiStart.onclick=async()=>{
    const {data:existing}=await sb.from('member_group_video_rooms').select('*').eq('group_id',group.id).eq('status','open').maybeSingle();
    if(existing){say('Ya hay una sala abierta. Intentando conectarte a ella…');await joinMultiVideoRoom(existing,group,userId,thread,say);return;}
