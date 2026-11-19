@@ -1802,6 +1802,31 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   tile.append(video,name);videos.append(tile);return tile;
  }
  const local=document.createElement('video');local.autoplay=true;local.muted=true;local.playsInline=true;local.srcObject=stream;videoTile(userId,local);
+ const participantPanel=document.createElement('section');participantPanel.className='group-video-activity group-video-participant-roster';
+ participantPanel.setAttribute('aria-label','Participantes de la videollamada');
+ const participantHeading=document.createElement('h5');participantHeading.textContent='👥 Participantes (1)';
+ const participantList=document.createElement('div');participantList.className='group-video-participant-list';
+ participantList.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px';
+ participantPanel.append(participantHeading,participantList);
+ const renderVideoParticipants=(active)=>{
+  participantHeading.textContent='👥 Participantes ('+active.size+')';
+  participantList.replaceChildren();
+  for(const id of active){
+   const profile=profileMap.get(id),item=document.createElement('div');
+   item.style.cssText='display:flex;align-items:center;gap:9px;padding:7px 11px;border:1px solid rgba(185,132,255,.35);border-radius:12px;background:rgba(23,17,46,.65);min-width:155px;max-width:100%';
+   const avatar=document.createElement('span');avatar.style.cssText='display:grid;place-items:center;width:32px;height:32px;flex-shrink:0;overflow:hidden;border-radius:50%;background:#47306e;color:white;font-weight:700';
+   const displayName=profile?.display_name||profile?.username||'Miembro';
+   if(profile?.avatar_url){const img=document.createElement('img');img.src=profile.avatar_url;img.alt='';img.referrerPolicy='no-referrer';img.style.cssText='width:100%;height:100%;object-fit:cover';img.onerror=()=>{img.remove();avatar.textContent=displayName.slice(0,1).toUpperCase();};avatar.append(img);}
+   else avatar.textContent=displayName.slice(0,1).toUpperCase();
+   const details=document.createElement('div');details.style.cssText='min-width:0';
+   const name=document.createElement('div');name.textContent=displayName+(id===userId?' (tú)':'');name.style.cssText='font-weight:700;overflow-wrap:anywhere';
+   const status=document.createElement('small');
+   const connection=id===userId?'connected':peers.get(id)?.pc?.connectionState;
+   status.textContent=id===userId?'🟢 En la sala':connection==='connected'?'🟢 Conectado':connection==='failed'||connection==='disconnected'?'🟠 Conexión interrumpida':'🟡 Conectando vídeo';
+   details.append(name,status);item.append(avatar,details);participantList.append(item);
+  }
+ };
+ renderVideoParticipants(new Set([userId]));
  const mediaSettings=document.createElement('section');mediaSettings.className='group-video-activity group-video-media-settings';
  const mediaTitle=document.createElement('h5');mediaTitle.textContent='🎛️ Calidad y fondos de vídeo';
  const quality=document.createElement('select');quality.setAttribute('aria-label','Calidad de vídeo');
@@ -2087,7 +2112,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
  const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
- actions.append(mic,camera,share,leave);panel.append(title,videos,actions,mediaSettings,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
+ actions.append(mic,camera,share,leave);panel.append(title,videos,participantPanel,actions,mediaSettings,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
  const viewBar=document.createElement('div');viewBar.className='group-call-actions';
  const gridView=document.createElement('button');gridView.textContent='▦ Cuadrícula';
  const focusView=document.createElement('button');focusView.textContent='▣ Destacar vídeo';
@@ -2306,6 +2331,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    if(!roomState||roomState.status!=='open'){say('La sala de vídeo se ha cerrado.');await leaveRoom();return;}
    const {data:participants}=await sb.from('member_group_video_participants').select('user_id').eq('room_id',room.id);
    const active=new Set((participants||[]).map(p=>p.user_id));
+   renderVideoParticipants(active);
    if(!active.has(userId)){say('Un moderador te ha retirado de la sala.');await leaveRoom();return;}
    inviteSelect.replaceChildren();for(const [id,p] of profileMap){if(id===userId||active.has(id))continue;const o=document.createElement('option');o.value=id;o.textContent=p.display_name||p.username||'Miembro';inviteSelect.append(o);}
    if(moderator.refresh){moderator.refresh(active);moderator.refreshMute(active);await moderator.refreshBlocked();}
