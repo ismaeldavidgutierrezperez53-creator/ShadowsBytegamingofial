@@ -1842,6 +1842,103 @@ async function startGroupPeerCall(group,userId,members,thread,say,kind,calleeId,
  }catch(e){say('No se pudo iniciar la llamada: '+e.message);stopGroupCallSession();}
 }
 
+function setupGroupVideoCalendar(userId,section,say){
+ const panel=document.createElement('section');panel.className='group-video-calendar group-video-activity';
+ const heading=document.createElement('h4');heading.textContent='📆 Calendario de videollamadas de mis grupos';
+ const intro=document.createElement('p');intro.textContent='Consulta reuniones de todos los grupos a los que perteneces. Los recordatorios se generan automáticamente 15 minutos antes; se mostrarán aquí al abrir la web.';
+ const month=document.createElement('input');month.type='month';month.setAttribute('aria-label','Mes del calendario');
+ const today=new Date();month.value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+ const grid=document.createElement('div');grid.className='group-video-calendar-grid';
+ const list=document.createElement('div');list.className='group-video-calendar-events';
+ const reminderTitle=document.createElement('h5');reminderTitle.textContent='🔔 Recordatorios de próximas videollamadas';
+ const reminderList=document.createElement('div');reminderList.className='group-video-reminder-list';reminderList.setAttribute('aria-live','polite');
+ const shownNotices=new Set();
+ const reload=document.createElement('button');reload.type='button';reload.textContent='🔄 Actualizar calendario';
+ let events=[];
+ const drawEvents=(selectedDay=null)=>{
+  list.replaceChildren();
+  const shown=events.filter(e=>!selectedDay||new Date(e.starts_at).getDate()===selectedDay);
+  if(!shown.length){list.textContent='No hay videollamadas programadas'+(selectedDay?' para este día.':' en este mes.');return;}
+  for(const e of shown){
+   const row=document.createElement('div');row.className='group-video-calendar-event';
+   const label=document.createElement('span');label.textContent='📹 '+e.title+' · '+new Date(e.starts_at).toLocaleString('es-ES')+' · '+(e.groupName||'Grupo');
+   row.append(label);
+   if(e.created_by===userId){
+    const remove=document.createElement('button');remove.type='button';remove.textContent='Cancelar';
+    remove.onclick=async()=>{
+     if(!confirm('¿Cancelar esta videollamada programada?'))return;
+     const {error}=await sb.from('member_group_video_schedules').delete().eq('id',e.id).eq('created_by',userId);
+     if(error){say('No se pudo cancelar: '+error.message);return;}
+     say('Videollamada programada cancelada.');await loadCalendar();
+    };
+    row.append(remove);
+   }
+   list.append(row);
+  }
+ };
+ const loadCalendar=async()=>{
+  const [yy,mm]=month.value.split('-').map(Number);if(!yy||!mm)return;
+  const begin=new Date(yy,mm-1,1),end=new Date(yy,mm,1);
+  const {data,error}=await sb.from('member_group_video_schedules').select('id,title,group_id,starts_at,created_by')
+   .gte('starts_at',begin.toISOString()).lt('starts_at',end.toISOString()).order('starts_at').limit(250);
+  if(error){list.textContent='No se pudo abrir el calendario: '+error.message;return;}
+  const ids=[...new Set((data||[]).map(e=>e.group_id))];
+  const {data:groups}=ids.length?await sb.from('member_chat_groups').select('id,name').in('id',ids):{data:[]};
+  const names=new Map((groups||[]).map(g=>[g.id,g.name]));
+  events=(data||[]).map(e=>({...e,groupName:names.get(e.group_id)||'Grupo'}));
+  grid.replaceChildren();
+  for(const name of ['L','M','X','J','V','S','D']){const head=document.createElement('span');head.className='group-video-calendar-weekday';head.textContent=name;grid.append(head);}
+  const offset=(begin.getDay()+6)%7;
+  for(let k=0;k<offset;k++){const blank=document.createElement('span');blank.className='group-video-calendar-empty';grid.append(blank);}
+  const days=new Date(yy,mm,0).getDate();
+  for(let d=1;d<=days;d++){
+   const day=document.createElement('button');day.type='button';day.className='group-video-calendar-day';
+   const count=events.filter(e=>{const dt=new Date(e.starts_at);return dt.getFullYear()===yy&&dt.getMonth()===mm-1&&dt.getDate()===d;}).length;
+   day.textContent=String(d)+(count?' · '+count:'');
+   day.setAttribute('aria-label',d+' del '+mm+': '+count+' videollamadas');
+   if(count)day.classList.add('has-events');
+   day.onclick=()=>{for(const b of grid.querySelectorAll('button'))b.classList.remove('selected');day.classList.add('selected');drawEvents(d);};
+   grid.append(day);
+  }
+  drawEvents();
+ };
+ const loadReminders=async()=>{
+  const {data:reminders,error}=await sb.from('member_group_video_reminders').select('id,schedule_id,created_at')
+   .is('seen_at',null).order('created_at',{ascending:false}).limit(25);
+  if(error){reminderList.textContent='No se pudieron cargar los recordatorios: '+error.message;return;}
+  const ids=[...new Set((reminders||[]).map(r=>r.schedule_id))];
+  const {data:schedules}=ids.length?await sb.from('member_group_video_schedules').select('id,title,starts_at').in('id',ids):{data:[]};
+  const map=new Map((schedules||[]).map(e=>[e.id,e]));
+  reminderList.replaceChildren();
+  if(!reminders?.length){reminderList.textContent='No tienes recordatorios pendientes.';return;}
+  for(const reminder of reminders){
+   const event=map.get(reminder.schedule_id);if(!event)continue;
+   const message='📹 '+event.title+' · '+new Date(event.starts_at).toLocaleString('es-ES');
+   const item=document.createElement('div');item.className='group-video-calendar-event';
+   const label=document.createElement('span');label.textContent='🔔 Dentro de unos minutos: '+message;
+   const mark=document.createElement('button');mark.type='button';mark.textContent='Visto';
+   mark.onclick=async()=>{
+    const {error:readError}=await sb.from('member_group_video_reminders').update({seen_at:new Date().toISOString()}).eq('id',reminder.id).eq('user_id',userId);
+    if(readError){say('No se pudo marcar el recordatorio: '+readError.message);return;}
+    item.remove();if(!reminderList.children.length)reminderList.textContent='No tienes recordatorios pendientes.';
+   };
+   item.append(label,mark);reminderList.append(item);
+   if(!shownNotices.has(reminder.id)){
+    shownNotices.add(reminder.id);
+    if(document.hidden&&'Notification'in window&&Notification.permission==='granted'){
+     try{new Notification('🔔 Videollamada en 15 minutos',{body:message});}catch(_){}
+    }
+   }
+  }
+ };
+ month.onchange=loadCalendar;reload.onclick=()=>{loadCalendar();loadReminders();};
+ panel.append(heading,intro,month,reload,grid,list,reminderTitle,reminderList);
+ const before=section.querySelector('#group-chat-thread');before.parentElement.insertBefore(panel,before);
+ loadCalendar();loadReminders();
+ const timer=setInterval(()=>{if(!section.isConnected){clearInterval(timer);return;}loadReminders();},45000);
+ return {refresh:loadCalendar,reminders:loadReminders};
+}
+
 let activeGroupChatChannel=null;
 let groupChatAlertsChannel=null;
 async function initGroupChats(userId,root){
@@ -1853,6 +1950,7 @@ async function initGroupChats(userId,root){
  const alertBanner=document.createElement('p');alertBanner.className='group-chat-alert';alertBanner.setAttribute('role','status');alertBanner.setAttribute('aria-live','polite');section.insertBefore(alertBanner,section.querySelector('#group-chat-list'));
  const status=section.querySelector('#group-chat-status'),list=section.querySelector('#group-chat-list'),thread=section.querySelector('#group-chat-thread');
  const say=t=>{status.textContent=t;};
+ const videoCalendar=setupGroupVideoCalendar(userId,section,say);
  let currentGroup=null;
  async function showGroup(group){
   currentGroup=group;
@@ -1901,7 +1999,7 @@ async function initGroupChats(userId,root){
   const scheduleSave=document.createElement('button');scheduleSave.type='button';scheduleSave.textContent='📅 Guardar programación';
   const scheduleList=document.createElement('div');
   const refreshSchedule=async()=>{const {data}=await sb.from('member_group_video_schedules').select('id,title,starts_at,created_by').eq('group_id',group.id).gte('starts_at',new Date(Date.now()-3600000).toISOString()).order('starts_at').limit(12);scheduleList.replaceChildren();for(const item of data||[]){const line=document.createElement('p');line.textContent='📅 '+item.title+' · '+new Date(item.starts_at).toLocaleString('es-ES');scheduleList.append(line);}};
-  scheduleSave.onclick=async()=>{const starts=new Date(scheduleDate.value);if(!scheduleName.value.trim()||!Number.isFinite(starts.getTime())||starts.getTime()<=Date.now()){say('Indica un título y una fecha futura.');return;}const {error}=await sb.from('member_group_video_schedules').insert({group_id:group.id,created_by:userId,title:scheduleName.value.trim(),starts_at:starts.toISOString()});if(error){say('No se pudo programar: '+error.message);return;}say('Videollamada programada. Abre este grupo a la hora indicada para iniciar la sala.');scheduleName.value='';await refreshSchedule();};
+  scheduleSave.onclick=async()=>{const starts=new Date(scheduleDate.value);if(!scheduleName.value.trim()||!Number.isFinite(starts.getTime())||starts.getTime()<=Date.now()){say('Indica un título y una fecha futura.');return;}const {error}=await sb.from('member_group_video_schedules').insert({group_id:group.id,created_by:userId,title:scheduleName.value.trim(),starts_at:starts.toISOString()});if(error){say('No se pudo programar: '+error.message);return;}say('Videollamada programada. El calendario de tus grupos mostrará esta reunión y el sistema creará un recordatorio 15 minutos antes.');scheduleName.value='';await refreshSchedule();videoCalendar.refresh();};
   schedulePanel.append(scheduleTitle,scheduleName,scheduleDate,scheduleSave,scheduleList);thread.append(schedulePanel);refreshSchedule();
   multiStart.onclick=async()=>{
    const {data:existing}=await sb.from('member_group_video_rooms').select('*').eq('group_id',group.id).eq('status','open').maybeSingle();
