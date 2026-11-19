@@ -1208,7 +1208,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  invites.append(inviteSelect,inviteButton);
  const moderator=document.createElement('div');moderator.className='group-video-moderator';
  const {data:myRole}=await sb.from('member_chat_group_members').select('role').eq('group_id',group.id).eq('user_id',userId).maybeSingle();
- const canModerate=group.owner_id===userId||myRole?.role==='admin';
+ const {data:cohostMembership}=await sb.from('member_group_video_cohosts').select('user_id').eq('room_id',room.id).eq('user_id',userId).maybeSingle();
+ const canModerate=room.created_by===userId||group.owner_id===userId||myRole?.role==='admin'||!!cohostMembership;
  if(canModerate){
   const kickSelect=document.createElement('select');kickSelect.setAttribute('aria-label','Participante a expulsar');
   const kick=document.createElement('button');kick.type='button';kick.textContent='🛡️ Expulsar participante';
@@ -1247,7 +1248,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const extrasTitle=document.createElement('h5');extrasTitle.textContent='❤️ Reacciones, grabación y roles';
  const reactionBar=document.createElement('div');reactionBar.className='group-call-actions';
  for(const emoji of ['❤️','👏','😂','🎉','👍']){const btn=document.createElement('button');btn.type='button';btn.textContent=emoji;btn.setAttribute('aria-label','Reaccionar '+emoji);btn.onclick=()=>postActivity('reaction',emoji);reactionBar.append(btn);}
- const roleStatus=document.createElement('p');roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':'Participante de la sala';
+ const roleStatus=document.createElement('p');roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':cohostMembership?'👑 Eres coanfitrión — puedes moderar la sala':'Participante de la sala';
  const consentLabel=document.createElement('label');const consent=document.createElement('input');consent.type='checkbox';consentLabel.append(consent,document.createTextNode(' Autorizo la grabación de esta sala'));
  consent.onchange=async()=>{consent.disabled=true;const {error}=await sb.from('member_group_video_recording_consents').upsert({room_id:room.id,user_id:userId,consented:consent.checked,updated_at:new Date().toISOString()},{onConflict:'room_id,user_id'});consent.disabled=false;if(error){say('No se pudo guardar el consentimiento: '+error.message);recordingStatus.textContent='Error guardando consentimiento: '+error.message;consent.checked=!consent.checked;}else{recordingStatus.textContent=consent.checked?'Tu consentimiento está guardado. Esperando la autorización de los demás.':'Has retirado tu consentimiento.';}};
  const recordingStatus=document.createElement('p');recordingStatus.setAttribute('role','status');recordingStatus.textContent='Grabación detenida. Se necesita el consentimiento de todos los participantes.';
@@ -1352,7 +1353,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    }
    const {data:cohosts}=await sb.from('member_group_video_cohosts').select('user_id').eq('room_id',room.id);
    const isCohost=(cohosts||[]).some(c=>c.user_id===userId);
-   roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':isCohost?'👑 Eres coanfitrión':'Participante de la sala';
+   roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':isCohost?'👑 Eres coanfitrión — puedes moderar la sala':'Participante de la sala';
+   if(isCohost&&!canModerate)roleStatus.textContent+=' (sal y vuelve a entrar para activar los controles)';
    if(recorder?.state==='recording'){
     const {data:approvals}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
     if([...active].sort().join(',')!==recordingMembers||[...active].some(id=>!(approvals||[]).some(c=>c.user_id===id&&c.consented))){stopRecording();say('Grabación detenida: cambió la participación o el consentimiento.');}
