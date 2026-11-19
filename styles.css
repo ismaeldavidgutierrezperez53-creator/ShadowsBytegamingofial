@@ -463,3 +463,16 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .sb-notification-toast-stack{position:fixed;right:18px;bottom:18px;z-index:99999;display:grid;gap:10px;width:min(350px,calc(100vw - 32px));pointer-events:none}.sb-notification-toast{pointer-events:auto;background:#211936;color:#fff;border:1px solid #a78bfa;border-radius:14px;padding:15px;box-shadow:0 10px 35px #0008;display:grid;gap:12px;animation:sbToastIn .2s ease-out}.sb-notification-toast-actions{display:flex;gap:9px;flex-wrap:wrap}.sb-notification-toast-actions a,.sb-notification-toast-actions button{font-size:.84rem}@keyframes sbToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@media(max-width:600px){.sb-notification-toast-stack{right:12px;bottom:12px;width:calc(100vw - 24px)}}@media(prefers-reduced-motion:reduce){.sb-notification-toast{animation:none}}
 
 .notification-toast-preferences{display:grid;gap:10px;margin:16px 0;padding:14px;border:1px solid #ffffff26;border-radius:12px}.notification-toast-preferences .notification-preference-label{display:flex;align-items:center;gap:9px}.notification-toast-preferences button{justify-self:start}
+
+/* Group video: waiting room, access controls and presentation layouts */
+.group-video-activity{display:flex;flex-direction:column;gap:.65rem;margin-top:.7rem;padding:.85rem;border:1px solid var(--border,#444);border-radius:12px}
+.group-video-activity label{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
+.group-video-activity input[type=checkbox]{width:auto;min-width:1rem}
+.group-call-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
+.group-multi-video-grid.group-video-focus{display:flex;flex-wrap:wrap;align-items:stretch}
+.group-multi-video-grid.group-video-focus .group-video-tile{flex:1 1 180px;max-width:260px}
+.group-multi-video-grid.group-video-focus .group-video-tile.group-video-featured{order:-1;flex:1 1 100%;max-width:100%}
+.group-multi-video-grid.group-video-focus .group-video-featured video{max-height:65vh;object-fit:contain}
+.group-video-tile{cursor:pointer;min-width:0}
+.group-multi-video:fullscreen{background:#101018;overflow:auto;padding:1rem}
+.group-multi-video:fullscreen .group-multi-video-grid video{max-height:70vh}
