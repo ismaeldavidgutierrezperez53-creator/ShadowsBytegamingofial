@@ -562,3 +562,9 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 #notification-dnd-timezone{overflow-wrap:anywhere;opacity:.82}
 #notification-dnd-status{min-height:1.5em;overflow-wrap:anywhere}
 @media(max-width:480px){.notification-quiet-settings{padding:12px}.notification-quiet-hours{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+
+/* Quick temporary Do Not Disturb presets */
+.notification-quick-mute{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.notification-quick-mute button{min-height:39px;white-space:normal;text-align:center}
+#notification-dnd-cancel{border-color:rgba(248,160,180,.5)}
+@media(max-width:540px){.notification-quick-mute{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.notification-quick-mute button{width:100%;min-width:0}.notification-quick-mute #notification-dnd-cancel{grid-column:1/-1}}
