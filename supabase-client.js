@@ -485,7 +485,7 @@ async function loadAccountProfile(){
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Public member directory is opt-in; keep authentication email private.
- const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge').eq('id',user.id).maybeSingle();
+ const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url').eq('id',user.id).maybeSingle();
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
@@ -502,6 +502,11 @@ async function loadAccountProfile(){
   badgeSelect.innerHTML='<label for="profile-featured-badge">🏅 Insignia destacada</label><select id="profile-featured-badge"><option value="">Ninguna</option><option value="first">🌱 Primer paso · 5 XP</option><option value="participant">⭐ Participante · 50 XP</option><option value="active">🔥 Miembro activo · 150 XP</option><option value="legend">🏆 Leyenda · 500 XP</option></select><small>Solo puedes destacar insignias que hayas conseguido.</small>';
   panel.querySelector('#profile-form').insertBefore(badgeSelect,panel.querySelector('#profile-form button[type="submit"]'));
   document.getElementById('profile-featured-badge').value=profile?.featured_badge||'';
+  const gamerSettings=document.createElement('div');gamerSettings.className='profile-customization';
+  gamerSettings.innerHTML='<h4>🎮 Perfil de jugador</h4><label for="profile-favorite-games">Juegos favoritos (separados por comas)</label><textarea id="profile-favorite-games" maxlength="300" rows="2" placeholder="Minecraft, Pokémon, Fortnite..."></textarea><label for="profile-gaming-social">Enlace a tu red social o canal (HTTPS)</label><input id="profile-gaming-social" type="url" placeholder="https://..."><small>Solo se mostrarán en tu perfil público si activas su visibilidad.</small>';
+  panel.querySelector('#profile-form').insertBefore(gamerSettings,panel.querySelector('#profile-form button[type="submit"]'));
+  document.getElementById('profile-favorite-games').value=profile?.favorite_games||'';
+  document.getElementById('profile-gaming-social').value=profile?.gaming_social_url||'';
  }
 
  const heading=document.getElementById('profile-heading'),email=document.getElementById('profile-email');
@@ -561,7 +566,10 @@ async function loadAccountProfile(){
     const featured_badge=document.getElementById('profile-featured-badge').value;
     const thresholds={first:5,participant:50,active:150,legend:500};
     if(featured_badge){const {data:xp,error:xpError}=await sb.rpc('community_member_xp',{target_member:user.id});if(xpError||Number(xp)<thresholds[featured_badge]){status.textContent='Todavía no has desbloqueado esa insignia.';return;}}
-    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,featured_badge:featured_badge||null};
+    const favorite_games=document.getElementById('profile-favorite-games').value.trim();
+    const gaming_social_url=document.getElementById('profile-gaming-social').value.trim();
+    if(gaming_social_url&&!/^https:\/\/[^\s]+$/i.test(gaming_social_url)){status.textContent='El enlace social debe comenzar por https://';return;}
+    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,featured_badge:featured_badge||null,favorite_games,gaming_social_url:gaming_social_url||null};
     const {data:existing, error:readError}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
     if(readError){status.textContent='No se pudo comprobar tu perfil: '+readError.message;return;}
     const request=existing
@@ -610,7 +618,7 @@ async function loadPublicMemberProfile(){
  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
   root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
  }
- const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge').eq('id',id).eq('is_public',true).maybeSingle();
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url').eq('id',id).eq('is_public',true).maybeSingle();
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
@@ -634,7 +642,13 @@ async function loadPublicMemberProfile(){
  const bioTitle=document.createElement('h2');bioTitle.textContent='Sobre mí';
  const bio=document.createElement('p');bio.className='public-member-bio';bio.textContent=member.bio||'Este miembro todavía no ha escrito una presentación.';
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
- content.append(avatar,title,badge,featured,bioTitle,bio);applyShopProfileCosmetics(member.id,avatar,title,content);
+ content.append(avatar,title,badge,featured,bioTitle,bio);
+ const gamerPanel=document.createElement('section');gamerPanel.className='profile-panel gamer-profile-panel';
+ const gamerHeading=document.createElement('h2');gamerHeading.textContent='🎮 Perfil de jugador';gamerPanel.append(gamerHeading);
+ if(member.favorite_games){const gamesTitle=document.createElement('h3');gamesTitle.textContent='Juegos favoritos';gamerPanel.append(gamesTitle);const games=document.createElement('div');games.className='gamer-favorite-games';member.favorite_games.split(',').map(x=>x.trim()).filter(Boolean).slice(0,12).forEach(game=>{const tag=document.createElement('span');tag.textContent='🎮 '+game;games.append(tag)});gamerPanel.append(games);}
+ if(member.gaming_social_url&&/^https:\/\/[^\s]+$/i.test(member.gaming_social_url)){const socialLink=document.createElement('a');socialLink.href=member.gaming_social_url;socialLink.target='_blank';socialLink.rel='noopener noreferrer';socialLink.className='outline-btn mini';socialLink.textContent='🔗 Red social / canal';gamerPanel.append(socialLink);}
+ if(gamerPanel.children.length>1)content.append(gamerPanel);
+ applyShopProfileCosmetics(member.id,avatar,title,content);
  const statsPanel=document.createElement('section');statsPanel.className='profile-panel member-profile-stats';statsPanel.innerHTML='<h2>📊 Estadísticas personales</h2><p>Cargando estadísticas…</p>';content.append(statsPanel);
  Promise.all([
   sb.from('member_posts').select('id',{count:'exact',head:true}).eq('author_id',member.id),
