@@ -370,6 +370,25 @@ async function loadAccountReportHistory(userId){
  }
 }
 
+
+async function initAccountNotificationPreferences(userId,root){
+ const section=document.createElement('section');section.className='profile-panel account-notification-preferences';
+ section.innerHTML='<h3>⚙ Configuración de notificaciones</h3><p>Elige si quieres recibir correos electrónicos cuando se revisen tus denuncias. Los avisos dentro de la web seguirán activos.</p><label class="notification-preference-label"><input type="checkbox" id="report-email-enabled" disabled> Recibir correos sobre mis denuncias</label><p id="report-email-preference-message" role="status" aria-live="polite">Cargando preferencias…</p>';
+ root.append(section);
+ const checkbox=section.querySelector('#report-email-enabled'),message=section.querySelector('#report-email-preference-message');
+ const {data,error}=await sb.from('member_notification_preferences').select('report_email_enabled').eq('user_id',userId).maybeSingle();
+ if(!section.isConnected)return;
+ if(error){message.textContent='No se pudieron cargar tus preferencias.';return;}
+ checkbox.checked=data?.report_email_enabled??true;checkbox.disabled=false;message.textContent='Preferencia actual guardada.';
+ checkbox.onchange=async()=>{
+  checkbox.disabled=true;message.textContent='Guardando…';
+  const {error}=await sb.from('member_notification_preferences').upsert({user_id:userId,report_email_enabled:checkbox.checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error){checkbox.checked=!checkbox.checked;message.textContent='No se pudo guardar la preferencia.';}
+  else message.textContent=checkbox.checked?'Correos de denuncias activados.':'Correos de denuncias desactivados.';
+  checkbox.disabled=false;
+ };
+}
+
 function initAccountReportStatuses(userId,root){
  if(accountReportChannel){sb.removeChannel(accountReportChannel);accountReportChannel=null;}
  accountReportStatuses=new Map();
@@ -377,6 +396,7 @@ function initAccountReportStatuses(userId,root){
  const section=document.createElement('section');section.className='profile-panel account-report-panel';
  section.innerHTML='<h3>🛡 Mis denuncias</h3><p>Consulta el estado de tus reportes. Los cambios aparecen automáticamente mientras tengas abierta esta página.</p><p id="account-report-update" role="status" aria-live="polite"></p><div id="account-report-statuses">Cargando denuncias…</div>';
  root.append(section);
+ initAccountNotificationPreferences(userId,root);
  const history=document.createElement('section');history.className='profile-panel account-report-panel';history.innerHTML='<h3>🔔 Historial de avisos de denuncias</h3><p>Los avisos se guardan aunque cierres la página. Puedes marcarlos como leídos.</p><div id="account-report-history">Cargando historial…</div>';root.append(history);
  loadAccountReportStatuses(userId);
  loadAccountReportHistory(userId);
