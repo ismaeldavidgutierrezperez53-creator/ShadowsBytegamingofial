@@ -208,13 +208,31 @@ async function loadNotificationPreview(userId){
 }
 let notificationRealtimeChannel=null;
 let notificationRealtimeUserId=null;
+const toastNotificationIds=new Set();
+function showRealtimeNotificationToast(n){
+ if(!n||!n.id||toastNotificationIds.has(n.id)||n.is_read)return;
+ toastNotificationIds.add(n.id);
+ if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
+ let stack=document.getElementById('sb-notification-toast-stack');
+ if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
+ const labels={game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo'};
+ const toast=document.createElement('div');toast.className='sb-notification-toast';toast.setAttribute('role','status');
+ const message=document.createElement('strong');message.textContent=labels[n.kind]||'🔔 Nueva notificación';
+ const actions=document.createElement('div');actions.className='sb-notification-toast-actions';
+ const open=document.createElement('a');open.className='gradient-btn mini';open.href='#/notificaciones';open.textContent='Ver aviso';
+ const close=document.createElement('button');close.type='button';close.className='outline-btn mini';close.textContent='Cerrar';
+ let timer;const dismiss=()=>{clearTimeout(timer);toast.remove();};close.onclick=dismiss;open.onclick=dismiss;
+ actions.append(open,close);toast.append(message,actions);stack.append(toast);
+ while(stack.children.length>3)stack.firstElementChild.remove();
+ timer=setTimeout(dismiss,7000);
+}
 function syncNotificationRealtime(userId){
  if(notificationRealtimeUserId===userId&&notificationRealtimeChannel)return;
  if(notificationRealtimeChannel){sb.removeChannel(notificationRealtimeChannel);notificationRealtimeChannel=null;}
  notificationRealtimeUserId=userId||null;
  if(!userId)return;
  notificationRealtimeChannel=sb.channel('member-notifications-'+userId)
-  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+userId},()=>{
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+userId},payload=>{if(payload.new?.recipient_id===userId)showRealtimeNotificationToast(payload.new);
    refreshNotificationBadge(userId);
    if(document.getElementById('notification-popover')?.hidden===false)loadNotificationPreview(userId);
    if(document.getElementById('member-notifications'))loadMemberNotifications();
