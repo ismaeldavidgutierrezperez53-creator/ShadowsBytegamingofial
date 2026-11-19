@@ -216,22 +216,37 @@ async function loadToastPreferences(userId){
  const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled').eq('user_id',userId).maybeSingle();
  if(!error&&data&&notificationRealtimeUserId===userId)activeToastPreferences={popup_enabled:data.popup_enabled!==false,sound_enabled:data.sound_enabled===true};
 }
-function playNotificationSound(){
+function playNotificationSound(kind='default'){
  try{
-  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
-  if(!AudioContextClass)return;
-  if(!toastAudioContext)toastAudioContext=new AudioContextClass();
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+  if(!toastAudioContext)toastAudioContext=new C();
   if(toastAudioContext.state!=='running')return;
-  const oscillator=toastAudioContext.createOscillator(),gain=toastAudioContext.createGain(),now=toastAudioContext.currentTime;
-  oscillator.type='sine';oscillator.frequency.setValueAtTime(660,now);oscillator.frequency.exponentialRampToValueAtTime(880,now+.12);
-  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.045,now+.015);gain.gain.exponentialRampToValueAtTime(.0001,now+.22);
-  oscillator.connect(gain);gain.connect(toastAudioContext.destination);oscillator.start(now);oscillator.stop(now+.23);
+  const patterns={
+   message:[[784,0,.09],[988,.12,.13]],
+   comment:[[523,0,.11],[659,.14,.13]],
+   gift:[[523,0,.10],[659,.12,.10],[784,.24,.12],[1047,.38,.22]],
+   follow:[[659,0,.13],[880,.16,.18]],
+   default:[[660,0,.12],[880,.13,.12]]
+  };
+  const pattern=patterns[kind]||patterns.default,base=toastAudioContext.currentTime;
+  for(const [frequency,delay,duration] of pattern){
+   const oscillator=toastAudioContext.createOscillator(),gain=toastAudioContext.createGain(),at=base+delay;
+   oscillator.type=kind==='gift'?'triangle':'sine';oscillator.frequency.setValueAtTime(frequency,at);
+   gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.045,at+.015);gain.gain.exponentialRampToValueAtTime(.0001,at+duration);
+   oscillator.connect(gain);gain.connect(toastAudioContext.destination);oscillator.start(at);oscillator.stop(at+duration+.01);
+  }
  }catch(error){console.warn('Sonido no disponible:',error);}
+}
+function notificationSoundKind(kind){
+ if(kind==='gift')return 'gift';
+ if(kind==='follow')return 'follow';
+ if(['comment','game_comment','game_reply'].includes(kind))return 'comment';
+ return 'default';
 }
 const toastNotificationIds=new Set();
 function showRealtimeNotificationToast(n){
  if(!n||!n.id||toastNotificationIds.has(n.id)||n.is_read)return;
- toastNotificationIds.add(n.id);if(activeToastPreferences.sound_enabled)playNotificationSound();if(!activeToastPreferences.popup_enabled)return;
+ toastNotificationIds.add(n.id);if(activeToastPreferences.sound_enabled)playNotificationSound(notificationSoundKind(n.kind));if(!activeToastPreferences.popup_enabled)return;
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
@@ -418,7 +433,7 @@ async function initAccountNotificationPreferences(userId,root){
  section.innerHTML='<h3>⚙ Configuración de notificaciones</h3><p>Elige si quieres recibir correos electrónicos cuando se revisen tus denuncias. Los avisos dentro de la web seguirán activos.</p><label class="notification-preference-label"><input type="checkbox" id="report-email-enabled" disabled> Recibir correos sobre mis denuncias</label><p id="report-email-preference-message" role="status" aria-live="polite">Cargando preferencias…</p>';
  root.append(section);
  const toastSettings=document.createElement('div');toastSettings.className='notification-toast-preferences';
- toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><button type="button" class="outline-btn mini" id="notification-sound-test">▶ Probar sonido</button><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
+ toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><label class="notification-preference-label" for="notification-sound-kind">Tipo de sonido para probar</label><select id="notification-sound-kind"><option value="message">💬 Mensaje privado</option><option value="comment">📝 Comentario</option><option value="gift">🎁 Regalo</option><option value="follow">👥 Nuevo seguidor</option></select><button type="button" class="outline-btn mini" id="notification-sound-test">▶ Probar sonido seleccionado</button><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
  section.append(toastSettings);
  const popupToggle=toastSettings.querySelector('#popup-notification-enabled'),soundToggle=toastSettings.querySelector('#sound-notification-enabled'),toastStatus=toastSettings.querySelector('#notification-toast-preference-status');
  const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled').eq('user_id',userId).maybeSingle();
@@ -436,7 +451,7 @@ async function initAccountNotificationPreferences(userId,root){
  toggle.disabled=false;};
  popupToggle.onchange=()=>saveToastPreference('popup_enabled',popupToggle);
  soundToggle.onchange=()=>saveToastPreference('sound_enabled',soundToggle);
- toastSettings.querySelector('#notification-sound-test').onclick=async()=>{try{const C=window.AudioContext||window.webkitAudioContext;if(!C){toastStatus.textContent='Este navegador no admite audio.';return;}if(!toastAudioContext)toastAudioContext=new C();await toastAudioContext.resume();playNotificationSound();toastStatus.textContent='Sonido de prueba reproducido.';}catch(e){toastStatus.textContent='El navegador ha bloqueado el sonido.';}};
+ toastSettings.querySelector('#notification-sound-test').onclick=async()=>{try{const C=window.AudioContext||window.webkitAudioContext;if(!C){toastStatus.textContent='Este navegador no admite audio.';return;}if(!toastAudioContext)toastAudioContext=new C();await toastAudioContext.resume();playNotificationSound(toastSettings.querySelector('#notification-sound-kind').value);toastStatus.textContent='Sonido de prueba reproducido.';}catch(e){toastStatus.textContent='El navegador ha bloqueado el sonido.';}};
  }}
  const checkbox=section.querySelector('#report-email-enabled'),message=section.querySelector('#report-email-preference-message');
  const {data,error}=await sb.from('member_notification_preferences').select('report_email_enabled').eq('user_id',userId).maybeSingle();
@@ -2133,6 +2148,7 @@ function syncPrivateMessageRealtime(userId){
  privateMessageRealtimeChannel=sb.channel('direct-message-alerts-'+userId)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
+   if(activeToastPreferences.sound_enabled)playNotificationSound('message');
    if(liveAlertPreferences.notify_private_messages)showMemberLiveAlert('💬 Has recibido un mensaje privado.','#/mensajes');
    refreshLivePrivateConversation();
   })
