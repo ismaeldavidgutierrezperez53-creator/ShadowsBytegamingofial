@@ -607,7 +607,12 @@ async function loadPublicMemberProfile(){
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
- const cover=document.createElement('div');cover.className='public-member-cover';cover.textContent='SHADOWS BYTE / COMUNIDAD';
+ const cover=document.createElement('div');cover.className='public-member-cover';
+ const coverLabel=document.createElement('span');coverLabel.textContent='SHADOWS BYTE / COMUNIDAD';cover.append(coverLabel);
+ cover.dataset.theme=['violet','blue','emerald','rose','amber'].includes(member.theme_color)?member.theme_color:'violet';
+ if(typeof member.cover_url==='string'&&/^https:\/\/[^\s]+$/i.test(member.cover_url)){
+  const coverImage=document.createElement('img');coverImage.className='public-member-cover-image';coverImage.src=member.cover_url;coverImage.alt='Portada de '+(member.display_name||member.username||'miembro');coverImage.referrerPolicy='no-referrer';coverImage.onerror=()=>coverImage.remove();cover.prepend(coverImage);
+ }
  const content=document.createElement('div');content.className='public-member-body';
  const avatar=document.createElement('div');avatar.className='public-member-avatar';
  const name=member.display_name||member.username||'Miembro';
