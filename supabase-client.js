@@ -1142,7 +1142,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const invites=document.createElement('div');invites.className='group-video-invites';
  const inviteSelect=document.createElement('select');inviteSelect.setAttribute('aria-label','Invitar miembro');
  const inviteButton=document.createElement('button');inviteButton.type='button';inviteButton.textContent='✉️ Invitar';
- inviteButton.onclick=async()=>{if(!inviteSelect.value)return;const {error}=await sb.from('member_group_video_invites').upsert({room_id:room.id,inviter_id:userId,invitee_id:inviteSelect.value},{onConflict:'room_id,invitee_id'});say(error?'No se pudo invitar: '+error.message:'Invitación enviada.');};
+ inviteButton.onclick=async()=>{if(!inviteSelect.value)return;const {error}=await sb.from('member_group_video_invites').insert({room_id:room.id,inviter_id:userId,invitee_id:inviteSelect.value});say(error?'No se pudo invitar: '+error.message:'Invitación enviada.');};
  invites.append(inviteSelect,inviteButton);
  const moderator=document.createElement('div');moderator.className='group-video-moderator';
  const {data:myRole}=await sb.from('member_chat_group_members').select('role').eq('group_id',group.id).eq('user_id',userId).maybeSingle();
