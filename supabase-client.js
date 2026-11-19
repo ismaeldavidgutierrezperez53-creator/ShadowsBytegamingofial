@@ -211,7 +211,7 @@ let notificationRealtimeUserId=null;
 const DEFAULT_NOTIFICATION_SOUNDS={message_sound:'message',comment_sound:'comment',gift_sound:'gift',follow_sound:'follow'};
 const VALID_NOTIFICATION_SOUNDS=new Set(['default','message','comment','gift','follow','off']);
 function normalizeNotificationSound(value,fallback){return VALID_NOTIFICATION_SOUNDS.has(value)?value:fallback;}
-const DEFAULT_QUIET_PREFERENCES={dnd_enabled:false,dnd_schedule_enabled:false,dnd_start:'22:00',dnd_end:'08:00',dnd_timezone:'Europe/Madrid'};
+const DEFAULT_QUIET_PREFERENCES={dnd_enabled:false,dnd_schedule_enabled:false,dnd_start:'22:00',dnd_end:'08:00',dnd_timezone:'Europe/Madrid',dnd_until:null};
 function deviceNotificationTimezone(){
  try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Madrid';}catch(_){return 'Europe/Madrid';}
 }
@@ -225,11 +225,13 @@ function normalizeQuietPreferences(data){
   dnd_schedule_enabled:data?.dnd_schedule_enabled===true,
   dnd_start:normalizeQuietClock(data?.dnd_start,'22:00'),
   dnd_end:normalizeQuietClock(data?.dnd_end,'08:00'),
-  dnd_timezone:typeof data?.dnd_timezone==='string'&&data.dnd_timezone.length<=80?data.dnd_timezone:deviceNotificationTimezone()
+  dnd_timezone:typeof data?.dnd_timezone==='string'&&data.dnd_timezone.length<=80?data.dnd_timezone:deviceNotificationTimezone(),
+  dnd_until:data?.dnd_until&&Number.isFinite(Date.parse(data.dnd_until))?new Date(data.dnd_until).toISOString():null
  };
 }
 function isNotificationQuietNow(preferences=activeToastPreferences,date=new Date()){
  if(preferences.dnd_enabled===true)return true;
+ if(preferences.dnd_until&&Number.isFinite(Date.parse(preferences.dnd_until))&&date.getTime()<Date.parse(preferences.dnd_until))return true;
  if(preferences.dnd_schedule_enabled!==true)return false;
  const from=normalizeQuietClock(preferences.dnd_start,'22:00'),to=normalizeQuietClock(preferences.dnd_end,'08:00');
  if(from===to)return false;
@@ -249,7 +251,7 @@ let toastAudioContext=null;
 async function loadToastPreferences(userId){
  activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS,...DEFAULT_QUIET_PREFERENCES};
  if(!userId)return;
- const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone').eq('user_id',userId).maybeSingle();
+ const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,dnd_until').eq('user_id',userId).maybeSingle();
  if(!error&&notificationRealtimeUserId===userId)activeToastPreferences={
   popup_enabled:data?.popup_enabled!==false,
   sound_enabled:data?.sound_enabled===true,
@@ -478,7 +480,7 @@ async function initAccountNotificationPreferences(userId,root){
  toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><p>Elige el sonido de cada tipo de aviso, o selecciona Silencio para esa categoría.</p><div id="notification-category-sound-settings" class="notification-category-sound-settings"></div><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
  section.append(toastSettings);
  const quietSettings=document.createElement('div');quietSettings.className='notification-quiet-settings';
- quietSettings.innerHTML='<h4>🌙 Modo No molestar</h4><p>Silencia sonidos y oculta avisos emergentes. Los mensajes y notificaciones seguirán guardándose en la campana.</p><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-manual" disabled> Activar No molestar ahora</label><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-scheduled" disabled> Activar automáticamente cada día</label><div class="notification-quiet-hours"><label for="notification-dnd-start">Desde <input id="notification-dnd-start" type="time" value="22:00" disabled></label><label for="notification-dnd-end">Hasta <input id="notification-dnd-end" type="time" value="08:00" disabled></label></div><small id="notification-dnd-timezone"></small><button type="button" id="notification-dnd-save-schedule" class="outline-btn mini" disabled>💾 Guardar horario</button><p id="notification-dnd-status" role="status" aria-live="polite">Cargando modo No molestar…</p>';
+ quietSettings.innerHTML='<h4>🌙 Modo No molestar</h4><p>Silencia sonidos y oculta avisos emergentes. Los mensajes y notificaciones seguirán guardándose en la campana.</p><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-manual" disabled> Activar No molestar hasta desactivarlo</label><div class="notification-quick-mute" role="group" aria-label="Duración de No molestar"><button type="button" class="outline-btn mini" data-dnd-minutes="30" disabled>30 minutos</button><button type="button" class="outline-btn mini" data-dnd-minutes="60" disabled>1 hora</button><button type="button" class="outline-btn mini" data-dnd-minutes="120" disabled>2 horas</button><button type="button" class="outline-btn mini" id="notification-dnd-indefinite" disabled>Hasta desactivar</button><button type="button" class="outline-btn mini" id="notification-dnd-cancel" disabled>Desactivar silencio temporal o manual</button></div><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-scheduled" disabled> Activar automáticamente cada día</label><div class="notification-quiet-hours"><label for="notification-dnd-start">Desde <input id="notification-dnd-start" type="time" value="22:00" disabled></label><label for="notification-dnd-end">Hasta <input id="notification-dnd-end" type="time" value="08:00" disabled></label></div><small id="notification-dnd-timezone"></small><button type="button" id="notification-dnd-save-schedule" class="outline-btn mini" disabled>💾 Guardar horario</button><p id="notification-dnd-status" role="status" aria-live="polite">Cargando modo No molestar…</p>';
  section.insertBefore(quietSettings,toastSettings);
  const dndManual=quietSettings.querySelector('#notification-dnd-manual');
  const dndScheduled=quietSettings.querySelector('#notification-dnd-scheduled');
@@ -487,10 +489,16 @@ async function initAccountNotificationPreferences(userId,root){
  const dndSave=quietSettings.querySelector('#notification-dnd-save-schedule');
  const dndZone=quietSettings.querySelector('#notification-dnd-timezone');
  const dndStatus=quietSettings.querySelector('#notification-dnd-status');
- const quietControls=[dndManual,dndScheduled,dndStart,dndEnd,dndSave];
+ const quickMuteButtons=[...quietSettings.querySelectorAll('.notification-quick-mute button')];
+ const quietControls=[dndManual,dndScheduled,dndStart,dndEnd,dndSave,...quickMuteButtons];
  const refreshQuietStatus=()=>{
-  const manual=activeToastPreferences.dnd_enabled,scheduled=activeToastPreferences.dnd_schedule_enabled,quiet=isNotificationQuietNow();
-  dndStatus.textContent=manual?'🌙 No molestar activo manualmente.':quiet?'🌙 No molestar activo por el horario programado.':scheduled?'🔔 Fuera del horario de descanso: los avisos están activos.':'🔔 No molestar desactivado.';
+  const prefs=activeToastPreferences,scheduled=prefs.dnd_schedule_enabled,quiet=isNotificationQuietNow();
+  const until=prefs.dnd_until?Date.parse(prefs.dnd_until):NaN;
+  if(prefs.dnd_enabled)dndStatus.textContent='🌙 No molestar activo hasta que decidas desactivarlo.';
+  else if(Number.isFinite(until)&&Date.now()<until)dndStatus.textContent='🌙 No molestar temporal hasta '+new Date(until).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'})+'.';
+  else if(quiet)dndStatus.textContent='🌙 No molestar activo por el horario programado.';
+  else if(scheduled)dndStatus.textContent='🔔 Fuera del horario de descanso: los avisos están activos.';
+  else dndStatus.textContent='🔔 No molestar desactivado.';
  };
  const refreshQuietControls=()=>{
   dndManual.checked=activeToastPreferences.dnd_enabled;
@@ -519,7 +527,7 @@ async function initAccountNotificationPreferences(userId,root){
   };
   controls.append(select,test);row.append(label,controls);soundSettings.append(row);soundSelectors.set(field,select);
  }
- const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone').eq('user_id',userId).maybeSingle();
+ const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,dnd_until').eq('user_id',userId).maybeSingle();
  if(section.isConnected){if(toastError){toastStatus.textContent='No se pudieron cargar las preferencias.';dndStatus.textContent='No se pudo cargar No molestar.';}else{
  popupToggle.checked=toastData?.popup_enabled!==false;soundToggle.checked=toastData?.sound_enabled===true;popupToggle.disabled=false;soundToggle.disabled=false;toastStatus.textContent='Preferencias listas.';
  activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked,...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(toastData?.[field],defaultSound)])),...normalizeQuietPreferences(toastData)};
@@ -538,11 +546,11 @@ async function initAccountNotificationPreferences(userId,root){
    const query=existing
     ?sb.from('member_notification_preferences').update(payload).eq('user_id',userId)
     :sb.from('member_notification_preferences').insert({user_id:userId,...payload});
-   const {data,error}=await query.select('dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone').single();
+   const {data,error}=await query.select('dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,dnd_until').single();
    if(error)throw error;
    if(!data)throw new Error('No se pudo verificar la configuración guardada.');
    stored=normalizeQuietPreferences(data);
-   if(Object.entries(patch).some(([key,value])=>stored[key]!==value))throw new Error('La configuración guardada no coincide.');
+   if(Object.entries(patch).some(([key,value])=>key==='dnd_until'?(value===null?stored.dnd_until!==null:Date.parse(stored.dnd_until)!==Date.parse(value)):stored[key]!==value))throw new Error('La configuración guardada no coincide.');
   }catch(e){failure=e;}
   if(failure){refreshQuietControls();dndStatus.textContent='No se pudo guardar: '+(failure.message||'Error desconocido');}
   else{
@@ -553,7 +561,16 @@ async function initAccountNotificationPreferences(userId,root){
   }
   for(const control of quietControls)control.disabled=false;
  };
- dndManual.onchange=()=>saveQuietPatch({dnd_enabled:dndManual.checked});
+ dndManual.onchange=()=>saveQuietPatch({dnd_enabled:dndManual.checked,dnd_until:null});
+ for(const button of quietSettings.querySelectorAll('[data-dnd-minutes]')){
+  button.onclick=()=>{
+   const minutes=Number(button.dataset.dndMinutes);
+   if(![30,60,120].includes(minutes))return;
+   saveQuietPatch({dnd_enabled:false,dnd_until:new Date(Date.now()+minutes*60000).toISOString()});
+  };
+ }
+ quietSettings.querySelector('#notification-dnd-indefinite').onclick=()=>saveQuietPatch({dnd_enabled:true,dnd_until:null});
+ quietSettings.querySelector('#notification-dnd-cancel').onclick=()=>saveQuietPatch({dnd_enabled:false,dnd_until:null});
  const markSchedulePending=()=>{dndStatus.textContent='Cambios pendientes: pulsa Guardar horario para aplicarlos.';};
  dndScheduled.onchange=markSchedulePending;dndStart.onchange=markSchedulePending;dndEnd.onchange=markSchedulePending;
  dndSave.onclick=()=>{
