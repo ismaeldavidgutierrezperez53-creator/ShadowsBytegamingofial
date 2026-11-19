@@ -1073,11 +1073,14 @@ async function renderAccountBlockedMembers(userId){
  }
 }
 let activeGroupChatChannel=null;
+let groupChatAlertsChannel=null;
 async function initGroupChats(userId,root){
  if(activeGroupChatChannel){sb.removeChannel(activeGroupChatChannel);activeGroupChatChannel=null;}
+ if(groupChatAlertsChannel){sb.removeChannel(groupChatAlertsChannel);groupChatAlertsChannel=null;}
  const section=document.createElement('section');section.className='profile-panel group-chat-panel';
  section.innerHTML='<h3>👥 Conversaciones grupales</h3><p>Crea grupos privados y conversa con sus miembros.</p><form id="group-create-form"><input name="groupName" required minlength="3" maxlength="60" placeholder="Nombre del grupo" aria-label="Nombre del grupo"><button type="submit" class="gradient-btn mini">Crear grupo</button></form><p id="group-chat-status" role="status"></p><div id="group-chat-list">Cargando grupos…</div><div id="group-chat-thread"></div>';
  root.prepend(section);
+ const alertBanner=document.createElement('p');alertBanner.className='group-chat-alert';alertBanner.setAttribute('role','status');alertBanner.setAttribute('aria-live','polite');section.insertBefore(alertBanner,section.querySelector('#group-chat-list'));
  const status=section.querySelector('#group-chat-status'),list=section.querySelector('#group-chat-list'),thread=section.querySelector('#group-chat-thread');
  const say=t=>{status.textContent=t;};
  let currentGroup=null;
@@ -1212,6 +1215,17 @@ async function initGroupChats(userId,root){
   const {data:group}=await sb.from('member_chat_groups').select('id,name,owner_id').eq('id',data).single();if(group)showGroup(group);
  };
  loadGroups();
+ groupChatAlertsChannel=sb.channel('group-chat-alerts-'+userId)
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages'},async payload=>{
+   if(!section.isConnected)return;
+   const message=payload.new;
+   if(!message||message.sender_id===userId)return;
+   const {data:member}=await sb.from('member_chat_group_members').select('group_id').eq('group_id',message.group_id).eq('user_id',userId).maybeSingle();
+   if(!member||!section.isConnected)return;
+   const {data:group}=await sb.from('member_chat_groups').select('name').eq('id',message.group_id).maybeSingle();
+   alertBanner.textContent='🔔 Nuevo mensaje en '+(group?.name||'un grupo');
+   if(currentGroup?.id!==message.group_id)loadGroups();
+  }).subscribe();
 }
 async function loadPrivateMessages(){
  const root=document.getElementById('private-messages');if(!root)return;
