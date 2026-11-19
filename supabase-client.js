@@ -2121,7 +2121,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    }catch(e){console.warn('Estadísticas de videollamada:',e.message);}
   }));
   const latency=rttCount?' · latencia media '+Math.round(rttSum/rttCount)+' ms':'';
-  qualityStatus.textContent=connected.length+' de '+peers.size+' conexiones activas'+latency+(failed.length?' · ⚠️ '+failed.length+' desconectada(s). Prueba salir y volver a entrar.':'');
+  const waitingForMedia=connected.filter(p=>p.video.readyState<2).length;
+  qualityStatus.textContent=connected.length+' de '+peers.size+' conexiones activas'+latency+(waitingForMedia?' · '+waitingForMedia+' esperando imagen':'')+(failed.length?' · ⚠️ '+failed.length+' desconectada(s). Pulsa Reintentar conexión junto al vídeo.':'');
  }
  checkQualityButton.onclick=()=>{checkQualityButton.disabled=true;checkVideoConnection().finally(()=>{checkQualityButton.disabled=false;});};
  const healthTimer=setInterval(()=>{if(closed)return;checkVideoConnection().catch(console.warn);},12000);
@@ -2161,23 +2162,23 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   const audioButton=document.createElement('button');audioButton.type='button';
   audioButton.textContent='🔊 Activar sonido';
   audioButton.onclick=async()=>{
-   video.muted=false;video.defaultMuted=false;video.removeAttribute('muted');
-   try{
-    if(video.srcObject)await video.play();
-    audioButton.textContent='🔈 Silenciar sonido';
-    audioButton.onclick=()=>{
+   const enable=video.muted;
+   video.muted=!enable;video.defaultMuted=!enable;
+   if(enable){
+    video.removeAttribute('muted');
+    try{
+     if(video.srcObject)await video.play();
+     audioButton.textContent='🔈 Silenciar sonido';
+     videoState.textContent=video.readyState>=2?'✅ Vídeo y sonido activados':'🔊 Sonido activado; esperando imagen remota…';
+    }catch(e){
      video.muted=true;video.defaultMuted=true;video.setAttribute('muted','');
-     audioButton.textContent='🔊 Activar sonido';audioButton.onclick=async()=>{
-      video.muted=false;video.defaultMuted=false;video.removeAttribute('muted');
-      try{if(video.srcObject)await video.play();audioButton.textContent='🔈 Sonido activado';}
-      catch(e){videoState.textContent='Pulsa reproducir en el vídeo para escuchar: '+e.message;}
-     };
-    };
-    videoState.textContent=video.readyState>=2?'✅ Vídeo listo y audio activado':'🔊 Sonido activado; esperando vídeo remoto…';
-   }catch(e){
-    videoState.textContent='No se pudo activar el audio: '+e.message+'. Pulsa reproducir en el vídeo.';
-    video.muted=true;video.defaultMuted=true;video.setAttribute('muted','');
-    audioButton.textContent='🔊 Intentar activar sonido';
+     audioButton.textContent='🔊 Intentar activar sonido';
+     videoState.textContent='No se pudo activar el sonido: '+e.message+'. Comprueba el permiso del navegador.';
+    }
+   }else{
+    video.setAttribute('muted','');
+    audioButton.textContent='🔊 Activar sonido';
+    videoState.textContent='🔇 Sonido silenciado. El vídeo puede seguir reproduciéndose.';
    }
   };
   const retryButton=document.createElement('button');retryButton.type='button';
@@ -2340,8 +2341,9 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
     const {data:approvals}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
     if([...active].sort().join(',')!==recordingMembers||[...active].some(id=>!(approvals||[]).some(c=>c.user_id===id&&c.consented))){stopRecording();say('Grabación detenida: cambió la participación o el consentimiento.');}
    }
-   const {data:signals}=await sb.from('member_group_video_signals').select('id,sender_id,signal').eq('room_id',room.id).eq('recipient_id',userId).gt('id',lastSignal).order('id').limit(100);
-   for(const row of signals||[]){lastSignal=row.id;try{await handleSignal(row);}catch(e){console.warn('Señal WebRTC:',e.message);}}
+   const {data:signals,error:signalsError}=await sb.from('member_group_video_signals').select('id,sender_id,signal').eq('room_id',room.id).eq('recipient_id',userId).gt('id',lastSignal).order('id').limit(100);
+   if(signalsError){qualityStatus.textContent='⚠️ No se pueden recibir señales WebRTC: '+signalsError.message;return;}
+   for(const row of signals||[]){lastSignal=row.id;try{await handleSignal(row);}catch(e){console.warn('Señal WebRTC:',e.message);qualityStatus.textContent='⚠️ Error al negociar vídeo. Prueba Reintentar conexión: '+e.message;}}
   }catch(e){console.warn('Sala de vídeo:',e.message);}finally{busy=false;}
  }
  async function stopShare(){
