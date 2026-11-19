@@ -1,10 +1,10 @@
 /* Fondo gaming de Shadows Byte Gaming Official */
 html{background-color:#07030d!important}
-body{background-image:linear-gradient(rgba(6,3,13,.38),rgba(6,3,13,.62)),url("./gaming-background.svg")!important;background-color:#07030d!important;background-position:center top!important;background-size:cover!important;background-repeat:no-repeat!important;background-attachment:fixed!important;color:#f5efff}
+body{background-image:linear-gradient(rgba(6,3,13,.38),rgba(6,3,13,.62)),url("./anime-background.svg")!important;background-color:#07030d!important;background-position:center top!important;background-size:cover!important;background-repeat:no-repeat!important;background-attachment:fixed!important;color:#f5efff}
 @media(max-width:768px){body{background-attachment:scroll!important;background-size:auto 100%!important}}
 
 /* Show the artwork inside the homepage hero, above the old opaque gradient */
-body .hero{background-image:linear-gradient(90deg,rgba(7,3,16,.65),rgba(7,3,16,.4)),url("./gaming-background.svg")!important;background-color:#090413!important;background-position:center center!important;background-size:cover!important;background-repeat:no-repeat!important}
+body .hero{background-image:linear-gradient(90deg,rgba(7,3,16,.65),rgba(7,3,16,.4)),url("./anime-background.svg")!important;background-color:#090413!important;background-position:center center!important;background-size:cover!important;background-repeat:no-repeat!important}
 body .hero::after{opacity:.12!important;pointer-events:none}
 @media(max-width:768px){body .hero{background-position:52% center!important;background-size:auto 100%!important}}
 
