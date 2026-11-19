@@ -472,6 +472,13 @@ async function loadAccountProfile(){
  const librarySection=document.createElement('section');librarySection.className='profile-panel game-library-section';librarySection.id='game-library';librarySection.innerHTML='<h3>🎮 Mi biblioteca de videojuegos</h3><p>Organiza tus juegos: jugando, terminados y pendientes. Esta biblioteca es privada.</p><form id="game-library-form" class="game-library-form"><label for="game-library-title">Nombre del videojuego</label><input id="game-library-title" maxlength="120" required placeholder="Ej. Pokémon Escarlata"><label for="game-library-status">Estado</label><select id="game-library-status"><option value="playing">🎮 Jugando</option><option value="completed">🏆 Terminado</option><option value="wishlist">⭐ Quiero jugar</option></select><label for="game-library-platform">Plataforma (opcional)</label><input id="game-library-platform" maxlength="80" placeholder="PC, PlayStation, Nintendo Switch..."><label for="game-library-notes">Notas (opcional)</label><textarea id="game-library-notes" maxlength="500" rows="2" placeholder="Mis impresiones"></textarea><button class="gradient-btn" type="submit">➕ Añadir videojuego</button></form><p id="game-library-message" role="status" aria-live="polite"></p><div class="game-library-filters" role="group" aria-label="Filtrar videojuegos"><button type="button" data-game-filter="all" aria-pressed="true">Todos</button><button type="button" data-game-filter="playing">Jugando</button><button type="button" data-game-filter="completed">Terminados</button><button type="button" data-game-filter="wishlist">Quiero jugar</button></div><div id="game-library-list" aria-live="polite">Cargando biblioteca…</div>';
  root.querySelector('.profile-body').append(librarySection);
  initMemberGameLibrary(user.id,librarySection);
+ const libraryPrivacy=document.createElement('label');libraryPrivacy.className='game-library-sharing';
+ const libraryCheckbox=document.createElement('input');libraryCheckbox.type='checkbox';libraryCheckbox.id='game-library-public';
+ const libraryPrivacyText=document.createElement('span');libraryPrivacyText.textContent='Compartir mi biblioteca con otros miembros (solo si mi perfil es público)';
+ const libraryPrivacyStatus=document.createElement('p');libraryPrivacyStatus.setAttribute('role','status');
+ libraryPrivacy.append(libraryCheckbox,libraryPrivacyText);librarySection.insertBefore(libraryPrivacy,librarySection.querySelector('#game-library-form'));librarySection.insertBefore(libraryPrivacyStatus,librarySection.querySelector('#game-library-form'));
+ sb.from('profiles').select('game_library_public').eq('id',user.id).maybeSingle().then(({data,error})=>{if(error){libraryPrivacyStatus.textContent='No se pudo cargar la privacidad: '+error.message;libraryCheckbox.disabled=true;return;}libraryCheckbox.checked=!!data?.game_library_public;});
+ libraryCheckbox.onchange=async()=>{libraryCheckbox.disabled=true;const enabled=libraryCheckbox.checked;const {error}=await sb.from('profiles').update({game_library_public:enabled}).eq('id',user.id);libraryCheckbox.disabled=false;if(error){libraryCheckbox.checked=!enabled;libraryPrivacyStatus.textContent='No se pudo cambiar la privacidad: '+error.message;}else libraryPrivacyStatus.textContent=enabled?'Biblioteca compartida con miembros cuando tu perfil sea público.':'Tu biblioteca vuelve a ser privada.';};
  const communityPanel=document.createElement('section');
  communityPanel.className='profile-panel account-community-panel';
  communityPanel.setAttribute('aria-label','Mi comunidad');
@@ -621,7 +628,7 @@ async function loadPublicMemberProfile(){
  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
   root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
  }
- const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url').eq('id',id).eq('is_public',true).maybeSingle();
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,game_library_public').eq('id',id).eq('is_public',true).maybeSingle();
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
@@ -652,7 +659,20 @@ async function loadPublicMemberProfile(){
  if(member.gaming_social_url&&/^https:\/\/[^\s]+$/i.test(member.gaming_social_url)){const socialLink=document.createElement('a');socialLink.href=member.gaming_social_url;socialLink.target='_blank';socialLink.rel='noopener noreferrer';socialLink.className='outline-btn mini';socialLink.textContent='🔗 Red social / canal';gamerPanel.append(socialLink);}
  if(gamerPanel.children.length>1)content.append(gamerPanel);
  applyShopProfileCosmetics(member.id,avatar,title,content);
- const statsPanel=document.createElement('section');statsPanel.className='profile-panel member-profile-stats';statsPanel.innerHTML='<h2>📊 Estadísticas personales</h2><p>Cargando estadísticas…</p>';content.append(statsPanel);
+ if(member.game_library_public){
+  const publicLibrary=document.createElement('section');publicLibrary.className='profile-panel public-game-library';
+  publicLibrary.innerHTML='<h2>🎮 Biblioteca de videojuegos</h2><p>Cargando juegos compartidos…</p>';content.append(publicLibrary);
+  sb.from('member_game_library').select('title,status,platform').eq('user_id',member.id).order('created_at',{ascending:false}).limit(300).then(({data,error})=>{
+   if(!publicLibrary.isConnected)return;publicLibrary.replaceChildren();const heading=document.createElement('h2');heading.textContent='🎮 Biblioteca de videojuegos';publicLibrary.append(heading);
+   if(error){const msg=document.createElement('p');msg.textContent='No se pudo cargar la biblioteca.';publicLibrary.append(msg);return;}
+   const games=data||[];const labels={playing:'🎮 Jugando',completed:'🏆 Terminados',wishlist:'⭐ Quiero jugar'};
+   const summary=document.createElement('p');summary.textContent='Total: '+games.length+' videojuegos compartidos';publicLibrary.append(summary);
+   if(!games.length){const empty=document.createElement('p');empty.textContent='Este miembro todavía no ha añadido videojuegos.';publicLibrary.append(empty);}
+   const grouped=document.createElement('div');grouped.className='public-game-library-grid';
+   for(const [status,label] of Object.entries(labels)){const items=games.filter(g=>g.status===status);const group=document.createElement('div');group.className='public-game-library-group';const h=document.createElement('h3');h.textContent=label+' ('+items.length+')';group.append(h);for(const game of items){const card=document.createElement('div');card.className='public-game-library-item';const strong=document.createElement('strong');strong.textContent=game.title;card.append(strong);if(game.platform){const platform=document.createElement('small');platform.textContent=game.platform;card.append(platform);}group.append(card);}grouped.append(group);}publicLibrary.append(grouped);
+  });
+ }
+  const statsPanel=document.createElement('section');statsPanel.className='profile-panel member-profile-stats';statsPanel.innerHTML='<h2>📊 Estadísticas personales</h2><p>Cargando estadísticas…</p>';content.append(statsPanel);
  Promise.all([
   sb.from('member_posts').select('id',{count:'exact',head:true}).eq('author_id',member.id),
   sb.from('member_follows').select('follower_id',{count:'exact',head:true}).eq('following_id',member.id),
