@@ -1102,7 +1102,7 @@ let groupCallSession=null;
 function stopGroupCallSession(){
  const session=groupCallSession;if(!session)return;
  groupCallSession=null;clearInterval(session.timer);
- session.pc?.close();session.stream?.getTracks().forEach(t=>t.stop());
+ session.pc?.close();session.screenStream?.getTracks().forEach(t=>t.stop());session.stream?.getTracks().forEach(t=>t.stop());
  session.container?.remove();
 }
 async function startGroupPeerCall(group,userId,members,thread,say,kind,calleeId,incoming=null){
@@ -1115,13 +1115,41 @@ async function startGroupPeerCall(group,userId,members,thread,say,kind,calleeId,
  const label=document.createElement('p');label.textContent=(incoming?'📞 Llamada entrante':'📞 Llamando')+' · '+(kind==='video'?'Vídeo':'Voz');
  const local=document.createElement('video');local.autoplay=true;local.muted=true;local.playsInline=true;local.srcObject=stream;local.hidden=kind!=='video';
  const remote=document.createElement('video');remote.autoplay=true;remote.playsInline=true;remote.controls=true;
+ const controls=document.createElement('div');controls.className='group-call-actions';
+ const mic=document.createElement('button');mic.type='button';mic.textContent='🎙️ Silenciar';
+ mic.onclick=()=>{const track=stream.getAudioTracks()[0];if(!track)return;track.enabled=!track.enabled;mic.textContent=track.enabled?'🎙️ Silenciar':'🔇 Activar micrófono';};
+ controls.append(mic);
+ const camera=document.createElement('button');camera.type='button';camera.textContent='📷 Apagar cámara';camera.hidden=kind!=='video';
+ camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(!track)return;track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';};
+ controls.append(camera);
+ const screen=document.createElement('button');screen.type='button';screen.textContent='🖥️ Compartir pantalla';screen.hidden=kind!=='video';
+ controls.append(screen);
  const hang=document.createElement('button');hang.type='button';hang.textContent='🔴 Colgar';
- panel.append(label,local,remote,hang);thread.prepend(panel);
+ controls.append(hang);panel.append(label,local,remote,controls);thread.prepend(panel);thread.prepend(panel);
  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
  stream.getTracks().forEach(track=>pc.addTrack(track,stream));
  pc.ontrack=e=>{remote.srcObject=e.streams[0];remote.play().catch(()=>{label.textContent='Pulsa reproducir para escuchar la llamada.';});};
  let call=incoming,seenIce=0,busy=false;
- const session={pc,stream,container:panel,timer:null};groupCallSession=session;
+ const session={pc,stream,container:panel,timer:null,screenStream:null};groupCallSession=session;
+ let originalVideoTrack=null;
+ async function stopSharing(){
+  const sender=pc.getSenders().find(s=>s.track?.kind==='video');
+  if(originalVideoTrack&&sender){await sender.replaceTrack(originalVideoTrack);local.srcObject=stream;}
+  session.screenStream?.getTracks().forEach(t=>t.stop());session.screenStream=null;
+  originalVideoTrack=null;screen.textContent='🖥️ Compartir pantalla';
+ }
+ screen.onclick=async()=>{
+  if(session.screenStream){await stopSharing();return;}
+  if(!navigator.mediaDevices.getDisplayMedia){say('Compartir pantalla no está disponible en este navegador.');return;}
+  try{
+   const display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
+   const track=display.getVideoTracks()[0],sender=pc.getSenders().find(s=>s.track?.kind==='video');
+   if(!sender){display.getTracks().forEach(t=>t.stop());say('No hay canal de vídeo para compartir.');return;}
+   originalVideoTrack=sender.track;session.screenStream=display;
+   await sender.replaceTrack(track);local.srcObject=display;screen.textContent='🛑 Dejar de compartir';
+   track.onended=()=>{if(groupCallSession===session)stopSharing().catch(console.warn);};
+  }catch(e){say('No se pudo compartir pantalla: '+e.message);}
+ };
  const pendingIce=[];
  pc.onicecandidate=e=>{if(!e.candidate)return;const candidate=e.candidate.toJSON();if(!call?.id){pendingIce.push(candidate);return;}sb.from('member_group_call_ice').insert({call_id:call.id,sender_id:userId,candidate}).then(({error})=>{if(error)console.warn('ICE:',error.message);});};
  async function endCall(){
