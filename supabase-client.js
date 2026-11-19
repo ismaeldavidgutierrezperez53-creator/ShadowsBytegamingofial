@@ -1292,6 +1292,17 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   tile.append(video,name);videos.append(tile);return tile;
  }
  const local=document.createElement('video');local.autoplay=true;local.muted=true;local.playsInline=true;local.srcObject=stream;videoTile(userId,local);
+ const mediaSettings=document.createElement('section');mediaSettings.className='group-video-activity group-video-media-settings';
+ const mediaTitle=document.createElement('h5');mediaTitle.textContent='🎛️ Calidad y fondos de vídeo';
+ const quality=document.createElement('select');quality.setAttribute('aria-label','Calidad de vídeo');
+ for(const [value,label] of [['auto','Calidad automática'],['low','Ahorro de datos (360p)'],['high','Alta calidad (720p)']]){const option=document.createElement('option');option.value=value;option.textContent=label;quality.append(option);}
+ const background=document.createElement('select');background.setAttribute('aria-label','Fondo de anime');
+ for(const [value,label] of [['none','Sin fondo'],['sakura','🌸 Sakura anime (marco)'],['night','🌌 Noche anime (marco)'],['neon','💜 Neón anime (marco)']]){const option=document.createElement('option');option.value=value;option.textContent=label;background.append(option);}
+ const qualityInfo=document.createElement('p');qualityInfo.textContent='La calidad se adapta a la conexión. Los fondos decoran el marco sin sustituir tu entorno real.';
+ const localTile=local.parentElement;
+ background.onchange=()=>{localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon');if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);};
+ quality.onchange=async()=>{const track=stream.getVideoTracks()[0];if(!track)return;const height=quality.value==='low'?360:quality.value==='high'?720:480;try{await track.applyConstraints({height:{ideal:height},frameRate:{ideal:quality.value==='low'?15:24,max:30}});qualityInfo.textContent='Calidad solicitada: '+quality.options[quality.selectedIndex].textContent+'. El navegador ajustará según disponibilidad.';}catch(e){qualityInfo.textContent='Tu cámara no admite ese ajuste: '+e.message;}};
+ mediaSettings.append(mediaTitle,quality,background,qualityInfo);
  const actions=document.createElement('div');actions.className='group-call-actions';
  const invites=document.createElement('div');invites.className='group-video-invites';
  const inviteSelect=document.createElement('select');inviteSelect.setAttribute('aria-label','Invitar miembro');
@@ -1417,7 +1428,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
  const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
- actions.append(mic,camera,share,leave);panel.append(title,videos,actions,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
+ actions.append(mic,camera,share,leave);panel.append(title,videos,actions,mediaSettings,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
  const viewBar=document.createElement('div');viewBar.className='group-call-actions';
  const gridView=document.createElement('button');gridView.textContent='▦ Cuadrícula';
  const focusView=document.createElement('button');focusView.textContent='▣ Destacar vídeo';
@@ -1677,6 +1688,25 @@ async function initGroupChats(userId,root){
   callControls.append(multiStart,multiJoin);
   thread.append(callControls);
   const incomingCalls=document.createElement('div');incomingCalls.className='group-call-incoming';thread.append(incomingCalls);
+  const videoNotices=document.createElement('div');videoNotices.className='group-call-incoming';videoNotices.setAttribute('aria-live','polite');thread.append(videoNotices);
+  let notifiedVideoRoom=null;
+  const checkVideoRoomNotice=async()=>{
+   if(!thread.isConnected||multiVideoSession)return;
+   const {data:openRoom}=await sb.from('member_group_video_rooms').select('id,created_by').eq('group_id',group.id).eq('status','open').maybeSingle();
+   if(!openRoom){notifiedVideoRoom=null;videoNotices.replaceChildren();return;}
+   if(openRoom.created_by===userId){videoNotices.replaceChildren();return;}
+   if(notifiedVideoRoom!==openRoom.id){notifiedVideoRoom=openRoom.id;if('Notification'in window&&Notification.permission==='granted'&&document.hidden){new Notification('📹 Videollamada grupal disponible',{body:'Hay una videollamada activa en tu grupo.'});}}
+   videoNotices.replaceChildren();
+   const msg=document.createElement('span');msg.textContent='📹 Hay una videollamada grupal activa';
+   const joinNotice=document.createElement('button');joinNotice.type='button';joinNotice.textContent='Unirse ahora';joinNotice.onclick=()=>joinMultiVideoRoom(openRoom,group,userId,thread,say);
+   videoNotices.append(msg,joinNotice);
+  };
+  const notificationPermission=document.createElement('button');notificationPermission.type='button';notificationPermission.textContent='🔔 Activar avisos de llamadas';
+  notificationPermission.onclick=async()=>{if(!('Notification'in window)){say('Este navegador no admite notificaciones.');return;}const result=await Notification.requestPermission();say(result==='granted'?'Avisos activados mientras tengas la web abierta.':'Notificaciones no autorizadas.');};
+  thread.append(notificationPermission);
+  checkVideoRoomNotice();
+  const videoNoticeTimer=setInterval(()=>{if(!thread.isConnected){clearInterval(videoNoticeTimer);return;}checkVideoRoomNotice();},6000);
+
   async function checkIncomingCalls(){
    if(!thread.isConnected||groupCallSession)return;
    const {data}=await sb.from('member_group_calls').select('id,group_id,caller_id,callee_id,kind,status,offer').eq('group_id',group.id).eq('callee_id',userId).eq('status','ringing').order('created_at',{ascending:false}).limit(1);
