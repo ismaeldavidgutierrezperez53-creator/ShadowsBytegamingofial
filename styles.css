@@ -642,3 +642,59 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 .sb-quiet-end-notice button{font-size:1.1rem;padding:4px 8px}
 #notification-dnd-test-notice{justify-self:start;min-height:40px}
 @media(max-width:480px){.sb-quiet-end-notice{left:12px;right:12px;max-width:none;bottom:12px}}
+
+/* Shadows Byte · Cuatro mejoras: RSVP, perfil anime, competiciones y administración */
+.group-video-invite-replies{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.group-video-invite-chip{display:inline-block;padding:7px 10px;border-radius:999px;border:1px solid rgba(185,155,255,.42);background:rgba(92,43,146,.2);font-size:.9rem}
+.group-video-attendance-summary{padding:10px 12px;border:1px solid rgba(94,204,250,.35);border-radius:10px;background:rgba(29,84,130,.18);margin:8px 0;overflow-wrap:anywhere}
+.group-video-rsvp{display:flex;flex-wrap:wrap;gap:8px}
+.group-video-rsvp button{min-height:44px}
+.member-card[data-anime-card],.public-member-body[data-anime-card],.profile-preview-card[data-anime-card]{border:1px solid rgba(193,143,255,.55);transition:border-color .2s ease,box-shadow .2s ease}
+.member-card[data-anime-card="sakura"],.public-member-body[data-anime-card="sakura"],.profile-preview-card[data-anime-card="sakura"]{
+ background-image:linear-gradient(145deg,rgba(255,131,209,.2),rgba(81,34,118,.1) 55%,rgba(255,155,221,.12));border-color:rgba(255,161,224,.6);box-shadow:0 5px 24px rgba(244,114,182,.12);
+}
+.member-card[data-anime-card="neon"],.public-member-body[data-anime-card="neon"],.profile-preview-card[data-anime-card="neon"]{
+ background-image:linear-gradient(145deg,rgba(35,214,255,.15),rgba(123,54,220,.12) 55%,rgba(244,97,238,.16));border-color:rgba(69,218,253,.62);box-shadow:0 5px 24px rgba(0,220,255,.13);
+}
+.member-card[data-anime-card="stellar"],.public-member-body[data-anime-card="stellar"],.profile-preview-card[data-anime-card="stellar"]{
+ background-image:radial-gradient(circle at 80% 8%,rgba(239,212,255,.27) 0 4%,transparent 5%),linear-gradient(145deg,rgba(61,45,154,.32),rgba(119,64,170,.13) 60%,rgba(24,72,115,.21));border-color:rgba(157,170,255,.63);box-shadow:0 5px 24px rgba(112,101,255,.13);
+}
+.member-anime-badges{margin:18px 0;padding:14px;border-radius:12px;border:1px solid rgba(167,139,250,.3)}
+.member-anime-badges h3{margin:0 0 11px}
+.member-anime-badge-list{display:flex;gap:8px;flex-wrap:wrap}
+.member-anime-badge{padding:8px 12px;border:1px solid rgba(173,134,245,.38);border-radius:999px;font-size:.88rem}
+.member-anime-badge.is-earned{background:rgba(107,55,173,.23);border-color:rgba(204,157,255,.65);font-weight:600}
+.member-anime-badge.is-locked{opacity:.66}
+.community-competitions-section{margin:16px 0 28px;padding:18px;border:1px solid rgba(165,126,241,.35);border-radius:18px;background:rgba(66,28,110,.08)}
+.community-contest-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0}
+.community-contest-toolbar select,.community-contest-toolbar button{min-height:44px}
+.community-contest-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,315px),1fr));gap:15px}
+.community-contest-card{padding:18px;border:1px solid rgba(171,133,244,.42);border-radius:15px;background:linear-gradient(145deg,rgba(106,59,172,.18),rgba(33,37,101,.16));display:flex;flex-direction:column;gap:9px}
+.community-contest-card h3{margin:0}
+.community-contest-card p{margin:0;overflow-wrap:anywhere}
+.community-contest-card button{align-self:start;min-height:44px}
+.community-contest-state{align-self:start;padding:5px 9px;border-radius:999px;border:1px solid rgba(180,160,239,.4);font-size:.85rem}
+.community-contest-ranking{margin-top:10px;padding:9px 12px;border-radius:9px;background:rgba(16,21,48,.24)}
+.community-contest-ranking h4{margin:0 0 7px}
+.community-contest-ranking ol{padding-left:24px;overflow-wrap:anywhere}
+.admin-competitions-panel{margin:20px 0}
+.admin-competition-create{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:13px;margin:14px 0}
+.admin-competition-create label{display:flex;flex-direction:column;gap:6px}
+.admin-competition-create input,.admin-competition-create select,.admin-competition-create textarea{width:100%;min-width:0;min-height:42px}
+.admin-competition-create button{align-self:end;min-height:44px}
+.admin-competition-list{display:grid;gap:15px}
+.admin-competition-item{border:1px solid rgba(156,141,245,.35);border-radius:12px;padding:15px;overflow-wrap:anywhere}
+.admin-competition-item h3{margin:0 0 7px}
+.admin-competition-score-row{display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:9px 0;border-top:1px solid rgba(180,154,236,.17)}
+.admin-competition-score-row>span{flex:1 1 160px}
+.admin-competition-score-row input[type="number"]{width:94px;min-height:40px}
+.admin-competition-score-row input[type="checkbox"]{width:auto}
+.admin-competition-score-row button{min-height:42px}
+.admin-report-priority-banner{padding:11px;border:1px solid rgba(250,172,110,.48);border-radius:10px;background:rgba(156,88,19,.14)}
+@media(max-width:620px){
+ .community-competitions-section{padding:12px}
+ .community-contest-card{padding:13px}
+ .community-contest-toolbar select,.community-contest-toolbar button{flex:1 1 145px;max-width:100%}
+ .admin-competition-score-row button{width:100%}
+ .group-video-rsvp button{flex:1 1 135px}
+}
