@@ -354,6 +354,91 @@ async function adminLoadReportAudit(){
  }
 }
 
+async function adminInitCompetitions(){
+ const dashboard=document.querySelector('#admin-root .admin-dashboard');if(!dashboard)return;
+ const panel=document.createElement('section');panel.className='admin-panel admin-competitions-panel';
+ panel.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">RETOS Y TORNEOS</span><h2>🏆 Gestión de competiciones</h2><p>Publica desafíos, gestiona inscripciones y registra puntuaciones. Estas puntuaciones no otorgan XP.</p></div><button type="button" class="admin-secondary" id="admin-competition-refresh">🔄 Actualizar</button></div><form class="admin-competition-create" id="admin-competition-create"><label>Tipo<select name="kind" required><option value="challenge">🎯 Reto</option><option value="tournament">🏆 Torneo</option></select></label><label>Título<input name="title" required minlength="3" maxlength="120" placeholder="Ej.: Torneo Pokémon del mes"></label><label>Descripción<textarea name="description" maxlength="2000" rows="3" placeholder="Reglas y condiciones de participación"></textarea></label><label>Inicio<input type="datetime-local" name="starts_at" required></label><label>Fin<input type="datetime-local" name="ends_at" required></label><label>Estado<select name="status"><option value="draft">Borrador</option><option value="published">Publicado</option></select></label><button type="submit" class="gradient-btn">➕ Crear reto o torneo</button></form><p role="status" id="admin-competition-status"></p><div id="admin-competition-list" class="admin-competition-list">Cargando competiciones…</div>';
+ dashboard.append(panel);
+ const form=panel.querySelector('#admin-competition-create');
+ const list=panel.querySelector('#admin-competition-list');
+ const note=panel.querySelector('#admin-competition-status');
+ const reload=async()=>{
+  list.textContent='Cargando competiciones…';
+  const {data:events,error}=await sb.from('community_competitions').select('id,kind,title,description,starts_at,ends_at,status,created_at').order('created_at',{ascending:false}).limit(70);
+  if(error){list.textContent='No se pudieron cargar las competiciones: '+error.message;return;}
+  const ids=(events||[]).map(e=>e.id);
+  const {data:entries,error:entryError}=ids.length?await sb.from('community_competition_entries').select('competition_id,user_id,score,completed,joined_at').in('competition_id',ids).limit(700):{data:[],error:null};
+  if(entryError){list.textContent='No se pudieron cargar las inscripciones: '+entryError.message;return;}
+  const members=[...new Set((entries||[]).map(e=>e.user_id))];
+  const {data:profiles}=members.length?await sb.from('profiles').select('id,display_name,username').in('id',members):{data:[]};
+  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+  list.replaceChildren();
+  if(!events?.length){list.textContent='Todavía no hay retos ni torneos. Puedes crear el primero con el formulario.';return;}
+  for(const event of events){
+   const box=document.createElement('article');box.className='admin-competition-item';
+   const title=document.createElement('h3');title.textContent=(event.kind==='challenge'?'🎯 ':'🏆 ')+event.title+' · '+event.status;
+   const dates=document.createElement('p');dates.textContent=new Date(event.starts_at).toLocaleString('es-ES')+' – '+new Date(event.ends_at).toLocaleString('es-ES');
+   const description=document.createElement('p');description.textContent=event.description||'Sin descripción.';
+   const actions=document.createElement('div');actions.className='group-call-actions';
+   const statusButton=document.createElement('button');statusButton.type='button';statusButton.className='admin-secondary';
+   statusButton.textContent=event.status==='draft'?'📢 Publicar':event.status==='published'?'🚫 Cancelar':'↩️ Volver a borrador';
+   statusButton.onclick=async()=>{
+    const target=event.status==='draft'?'published':event.status==='published'?'cancelled':'draft';
+    if(!confirm('¿Cambiar «'+event.title+'» a '+target+'?'))return;
+    statusButton.disabled=true;
+    const {error}=await sb.from('community_competitions').update({status:target}).eq('id',event.id);
+    if(error){note.textContent='No se pudo cambiar el estado: '+error.message;statusButton.disabled=false;return;}
+    note.textContent='Competición actualizada.';await reload();
+   };
+   actions.append(statusButton);box.append(title,dates,description,actions);
+   const people=(entries||[]).filter(e=>e.competition_id===event.id).sort((a,b)=>b.score-a.score);
+   const count=document.createElement('strong');count.textContent='👥 '+people.length+' participantes registrados (hasta 700 inscripciones consultadas)';
+   box.append(count);
+   if(!people.length){
+    const noPeople=document.createElement('p');noPeople.textContent='Todavía no hay inscripciones.';box.append(noPeople);
+   }
+   for(const person of people){
+    const row=document.createElement('div');row.className='admin-competition-score-row';
+    const label=document.createElement('span');label.textContent=names.get(person.user_id)||'Miembro sin perfil público';
+    const score=document.createElement('input');score.type='number';score.min='0';score.max='100000';score.step='1';score.value=String(person.score);score.setAttribute('aria-label','Puntuación de '+label.textContent);
+    const completedLabel=document.createElement('label');const completed=document.createElement('input');completed.type='checkbox';completed.checked=person.completed;completedLabel.append(completed,document.createTextNode(' Completado'));
+    const save=document.createElement('button');save.type='button';save.className='admin-secondary';save.textContent='Guardar puntos';
+    save.onclick=async()=>{
+     const value=Number(score.value);
+     if(!Number.isInteger(value)||value<0||value>100000){note.textContent='Introduce una puntuación válida de 0 a 100000.';return;}
+     save.disabled=true;
+     const {error}=await sb.from('community_competition_entries').update({score:value,completed:completed.checked})
+      .eq('competition_id',event.id).eq('user_id',person.user_id);
+     if(error){note.textContent='No se pudo guardar: '+error.message;save.disabled=false;return;}
+     note.textContent='Resultado guardado para '+label.textContent+'. No se ha modificado el XP.';
+     save.disabled=false;
+    };
+    row.append(label,score,completedLabel,save);box.append(row);
+   }
+   list.append(box);
+  }
+ };
+ form.onsubmit=async e=>{
+  e.preventDefault();
+  const fd=new FormData(form);
+  const title=String(fd.get('title')||'').trim(),description=String(fd.get('description')||'').trim();
+  const start=new Date(String(fd.get('starts_at')||'')),end=new Date(String(fd.get('ends_at')||''));
+  if(title.length<3||title.length>120||description.length>2000||!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start||end.getTime()<=Date.now()){
+   note.textContent='Comprueba el título, la descripción y que el final sea posterior al inicio y al momento actual.';return;
+  }
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){note.textContent='Inicia sesión como administrador.';return;}
+  const button=form.querySelector('button[type="submit"]');button.disabled=true;
+  const payload={kind:String(fd.get('kind')),title,description,starts_at:start.toISOString(),ends_at:end.toISOString(),status:String(fd.get('status')),created_by:user.id};
+  const {error}=await sb.from('community_competitions').insert(payload);
+  button.disabled=false;
+  if(error){note.textContent='No se pudo crear la competición: '+error.message;return;}
+  form.reset();note.textContent='🏆 Competición creada. Puedes gestionarla aquí.';await reload();adminLoadOverview();
+ };
+ panel.querySelector('#admin-competition-refresh').onclick=reload;
+ await reload();
+}
+
 async function initAdmin(){
  const root=document.getElementById('admin-root');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
@@ -380,7 +465,7 @@ async function initAdmin(){
  }
  document.getElementById('admin-new').onclick=()=>adminForm();
  document.getElementById('admin-search').oninput=adminRenderList;
- adminSetActiveTab();await adminLoad();adminInitExtended();adminInitSurpriseBoxes();adminInitRewardShop();
+ adminSetActiveTab();await adminLoad();adminInitExtended();adminInitCompetitions();adminInitSurpriseBoxes();adminInitRewardShop();
 }
 
 async function adminInitRewardShop(){
