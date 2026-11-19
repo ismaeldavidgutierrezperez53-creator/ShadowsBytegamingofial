@@ -1107,6 +1107,103 @@ async function renderAccountBlockedMembers(userId){
   row.append(name,button);panel.append(row);
  }
 }
+
+let multiVideoSession=null;
+async function joinMultiVideoRoom(room,group,userId,thread,say){
+ if(multiVideoSession||groupCallSession){say('Finaliza tu llamada actual primero.');return;}
+ if(!navigator.mediaDevices?.getUserMedia||!window.RTCPeerConnection){say('Este navegador no permite videollamadas.');return;}
+ let stream;
+ try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});}
+ catch(e){say('No se pudo abrir cámara o micrófono: '+e.message);return;}
+ const {error:joinError}=await sb.from('member_group_video_participants').upsert({room_id:room.id,user_id:userId});
+ if(joinError){stream.getTracks().forEach(t=>t.stop());say('No se pudo entrar en la sala: '+joinError.message);return;}
+ const panel=document.createElement('section');panel.className='group-call-panel group-multi-video';
+ const title=document.createElement('h4');title.textContent='📹 Videollamada grupal';
+ const videos=document.createElement('div');videos.className='group-multi-video-grid';
+ const local=document.createElement('video');local.autoplay=true;local.muted=true;local.playsInline=true;local.srcObject=stream;videos.append(local);
+ const actions=document.createElement('div');actions.className='group-call-actions';
+ const mic=document.createElement('button');mic.type='button';mic.textContent='🎙️ Silenciar';
+ mic.onclick=()=>{const track=stream.getAudioTracks()[0];if(track){track.enabled=!track.enabled;mic.textContent=track.enabled?'🎙️ Silenciar':'🔇 Activar micrófono';}};
+ const camera=document.createElement('button');camera.type='button';camera.textContent='📷 Apagar cámara';
+ camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
+ const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
+ const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
+ actions.append(mic,camera,share,leave);panel.append(title,videos,actions);thread.prepend(panel);
+ const peers=new Map();let lastSignal=0,busy=false,screenStream=null,originalVideo=null,closed=false;
+ const sendSignal=async(to,signal)=>{const {error}=await sb.from('member_group_video_signals').insert({room_id:room.id,sender_id:userId,recipient_id:to,signal});if(error)console.warn('Señal de vídeo:',error.message);};
+ const createPeer=(other)=>{
+  if(peers.has(other))return peers.get(other);
+  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+  const video=document.createElement('video');video.autoplay=true;video.playsInline=true;video.controls=true;videos.append(video);
+  pc.ontrack=e=>{video.srcObject=e.streams[0];video.play().catch(()=>{});};
+  pc.onicecandidate=e=>{if(e.candidate)sendSignal(other,{type:'ice',candidate:e.candidate.toJSON()});};
+  const peer={pc,video,pending:[]};peers.set(other,peer);
+  return peer;
+ };
+ async function offerPeer(other){
+  const peer=createPeer(other);const offer=await peer.pc.createOffer();await peer.pc.setLocalDescription(offer);
+  await sendSignal(other,{type:'offer',sdp:peer.pc.localDescription.toJSON()});
+ }
+ async function handleSignal(row){
+  const other=row.sender_id,msg=row.signal;if(!msg||!other)return;
+  const peer=createPeer(other),pc=peer.pc;
+  if(msg.type==='offer'){
+   await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+   const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+   await sendSignal(other,{type:'answer',sdp:pc.localDescription.toJSON()});
+  }else if(msg.type==='answer'&&pc.signalingState==='have-local-offer'){
+   await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+  }else if(msg.type==='ice'){
+   if(pc.remoteDescription)await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+   else peer.pending.push(msg.candidate);
+  }
+  if(pc.remoteDescription&&peer.pending.length){
+   for(const c of peer.pending.splice(0))await pc.addIceCandidate(new RTCIceCandidate(c));
+  }
+ }
+ async function tick(){
+  if(busy||closed)return;busy=true;
+  try{
+   const {data:roomState}=await sb.from('member_group_video_rooms').select('status').eq('id',room.id).maybeSingle();
+   if(!roomState||roomState.status!=='open'){say('La sala de vídeo se ha cerrado.');await leaveRoom();return;}
+   const {data:participants}=await sb.from('member_group_video_participants').select('user_id').eq('room_id',room.id);
+   const active=new Set((participants||[]).map(p=>p.user_id));
+   for(const [id,peer] of peers)if(!active.has(id)){peer.pc.close();peer.video.remove();peers.delete(id);}
+   // Only the newer participant creates offers, avoiding simultaneous negotiation.
+   for(const p of participants||[])if(p.user_id!==userId&&!peers.has(p.user_id)&&userId>p.user_id)await offerPeer(p.user_id);
+   const {data:signals}=await sb.from('member_group_video_signals').select('id,sender_id,signal').eq('room_id',room.id).eq('recipient_id',userId).gt('id',lastSignal).order('id').limit(100);
+   for(const row of signals||[]){lastSignal=row.id;try{await handleSignal(row);}catch(e){console.warn('Señal WebRTC:',e.message);}}
+  }catch(e){console.warn('Sala de vídeo:',e.message);}finally{busy=false;}
+ }
+ async function stopShare(){
+  if(!screenStream)return;
+  for(const {pc} of peers.values()){const sender=pc.getSenders().find(s=>s.track?.kind==='video');if(sender)await sender.replaceTrack(originalVideo);}
+  screenStream.getTracks().forEach(t=>t.stop());screenStream=null;originalVideo=null;local.srcObject=stream;share.textContent='🖥️ Compartir pantalla';
+ }
+ share.onclick=async()=>{
+  if(screenStream){await stopShare();return;}
+  try{
+   const display=await navigator.mediaDevices.getDisplayMedia({video:true});
+   screenStream=display;originalVideo=stream.getVideoTracks()[0];
+   for(const {pc} of peers.values()){const sender=pc.getSenders().find(s=>s.track?.kind==='video');if(sender)await sender.replaceTrack(display.getVideoTracks()[0]);}
+   local.srcObject=display;share.textContent='🛑 Dejar de compartir';
+   display.getVideoTracks()[0].onended=()=>stopShare().catch(console.warn);
+  }catch(e){say('No se pudo compartir pantalla: '+e.message);}
+ };
+ async function leaveRoom(){
+  if(closed)return;closed=true;clearInterval(session.timer);
+  for(const {pc,video} of peers.values()){pc.close();video.remove();}
+  screenStream?.getTracks().forEach(t=>t.stop());stream.getTracks().forEach(t=>t.stop());
+  await sb.from('member_group_video_participants').delete().eq('room_id',room.id).eq('user_id',userId);
+  if(room.created_by===userId)await sb.from('member_group_video_rooms').update({status:'closed'}).eq('id',room.id);
+  panel.remove();if(multiVideoSession===session)multiVideoSession=null;
+ }
+ leave.onclick=leaveRoom;
+ const session={timer:null,leave:leaveRoom};multiVideoSession=session;
+ session.timer=setInterval(tick,1600);tick();
+}
+
 let groupCallSession=null;
 function stopGroupCallSession(){
  const session=groupCallSession;if(!session)return;
@@ -1229,6 +1326,21 @@ async function initGroupChats(userId,root){
    button.onclick=()=>{if(!calleeSelect.value){say('Selecciona primero un miembro.');return;}startGroupPeerCall(group,userId,members,thread,say,kind,calleeSelect.value);};
    callControls.append(button);
   }
+  const multiStart=document.createElement('button');multiStart.type='button';multiStart.textContent='📹 Iniciar videollamada grupal';
+  const multiJoin=document.createElement('button');multiJoin.type='button';multiJoin.textContent='👥 Unirse a videollamada grupal';
+  multiStart.onclick=async()=>{
+   const {data:existing}=await sb.from('member_group_video_rooms').select('*').eq('group_id',group.id).eq('status','open').maybeSingle();
+   if(existing){say('Ya hay una sala abierta. Pulsa Unirse.');return;}
+   const {data:room,error}=await sb.from('member_group_video_rooms').insert({group_id:group.id,created_by:userId}).select().single();
+   if(error){say('No se pudo crear la sala: '+error.message);return;}
+   await joinMultiVideoRoom(room,group,userId,thread,say);
+  };
+  multiJoin.onclick=async()=>{
+   const {data:room,error}=await sb.from('member_group_video_rooms').select('*').eq('group_id',group.id).eq('status','open').maybeSingle();
+   if(error||!room){say('No hay ninguna videollamada grupal activa.');return;}
+   await joinMultiVideoRoom(room,group,userId,thread,say);
+  };
+  callControls.append(multiStart,multiJoin);
   thread.append(callControls);
   const incomingCalls=document.createElement('div');incomingCalls.className='group-call-incoming';thread.append(incomingCalls);
   async function checkIncomingCalls(){
