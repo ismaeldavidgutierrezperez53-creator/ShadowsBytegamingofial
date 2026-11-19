@@ -392,3 +392,5 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .group-chat-messages audio.group-chat-media{width:min(100%,360px)}
 .group-chat-messages button{margin:4px;font-size:.8rem}
 .group-chat-panel form select,.group-chat-panel form input{max-width:100%}
+
+.notification-center-controls input{padding:9px;border-radius:9px;background:rgba(100,100,145,.2);border:1px solid rgba(150,150,190,.4);color:inherit;min-width:180px}.notification-center-counts{font-weight:600;margin:12px 0}
