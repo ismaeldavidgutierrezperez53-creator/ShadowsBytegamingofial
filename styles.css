@@ -550,3 +550,15 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  .group-video-calendar-day{font-size:.78rem;min-height:40px;padding:6px 1px}
  .group-video-calendar-event button,.group-video-library-item button{flex:1 1 auto}
 }
+
+/* No molestar: accessible mobile-friendly quiet-hours settings */
+.notification-quiet-settings{display:grid;gap:10px;margin:16px 0;padding:16px;border:1px solid rgba(167,139,250,.45);border-radius:14px;background:rgba(42,31,70,.3)}
+.notification-quiet-settings h4,.notification-quiet-settings p{margin:0}
+.notification-quiet-settings .notification-preference-label{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.notification-quiet-hours{display:flex;gap:12px;flex-wrap:wrap}
+.notification-quiet-hours label{display:grid;gap:6px;flex:1 1 130px;min-width:0}
+.notification-quiet-hours input[type=time]{width:100%;min-width:0;box-sizing:border-box;background:#201735;border:1px solid #a78bfa;border-radius:9px;padding:10px;color:inherit;color-scheme:dark}
+.notification-quiet-settings button{justify-self:start}
+#notification-dnd-timezone{overflow-wrap:anywhere;opacity:.82}
+#notification-dnd-status{min-height:1.5em;overflow-wrap:anywhere}
+@media(max-width:480px){.notification-quiet-settings{padding:12px}.notification-quiet-hours{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
