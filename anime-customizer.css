@@ -42,3 +42,15 @@ html[data-sb-bg="legend"] body{background-image:linear-gradient(#08081966,#08081
 html[data-sb-bg="aurora"] .sb-anime-sparkle,html[data-sb-bg="celestial"] .sb-anime-sparkle{filter:drop-shadow(0 0 8px #4dffd5)}
 html[data-sb-bg="ember"] .sb-anime-sparkle,html[data-sb-bg="legend"] .sb-anime-sparkle{filter:drop-shadow(0 0 9px #ff6d96)}
 .sb-exclusive-info{font-size:13px;margin-top:12px;line-height:1.4}.sb-exclusive-info button{margin:5px 5px 5px 0}.sb-exclusive-info button:disabled{opacity:.55;cursor:not-allowed}
+
+/* Milestone effects: decorative overlays, no interaction interception. */
+html[data-sb-effect]:not([data-sb-effect="none"]) body::after{content:"";position:fixed;inset:0;z-index:900;pointer-events:none;opacity:.6}
+html[data-sb-effect="blue_aura"] body::after{background:radial-gradient(ellipse at 50% 95%,#0daeff77,transparent 58%);animation:sb-aura-breathe 4s ease-in-out infinite}
+html[data-sb-effect="gold_particles"] body::after{background-image:radial-gradient(circle,#ffe58e 1.5px,transparent 3px),radial-gradient(circle,#ffc64a 1px,transparent 3px);background-size:87px 113px,143px 109px;animation:sb-gold-rise 13s linear infinite}
+html[data-sb-effect="magic_flames"] body::after{background:radial-gradient(ellipse at 20% 105%,#ff682688,transparent 42%),radial-gradient(ellipse at 80% 105%,#b442ff88,transparent 45%);animation:sb-aura-breathe 2.8s ease-in-out infinite}
+html[data-sb-effect="legendary_aura"] body::after{background:radial-gradient(ellipse at 10% 60%,#a34aff77,transparent 40%),radial-gradient(ellipse at 90% 40%,#00eaff77,transparent 40%);animation:sb-legend-pulse 4s ease-in-out infinite}
+@keyframes sb-aura-breathe{50%{opacity:.95;filter:brightness(1.3)}}
+@keyframes sb-gold-rise{to{background-position:0 -240px,40px -190px}}
+@keyframes sb-legend-pulse{50%{opacity:.95;filter:hue-rotate(30deg)}}
+@media(prefers-reduced-motion:reduce){html[data-sb-effect] body::after{animation:none!important}}
+html[data-sb-motion="off"] body::after{animation:none!important}
