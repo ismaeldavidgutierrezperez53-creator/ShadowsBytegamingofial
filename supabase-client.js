@@ -2011,7 +2011,7 @@ function setupGroupVideoCalendar(userId,section,say){
    const event=map.get(reminder.schedule_id);if(!event)continue;
    const message='📹 '+event.title+' · '+new Date(event.starts_at).toLocaleString('es-ES');
    const item=document.createElement('div');item.className='group-video-calendar-event';
-   const label=document.createElement('span');label.textContent='🔔 Dentro de unos minutos: '+message;
+   const label=document.createElement('span');label.textContent=(new Date(event.starts_at).getTime()>Date.now()?'🔔 Próxima videollamada: ':'🔔 Recordatorio pendiente: ')+message;
    const mark=document.createElement('button');mark.type='button';mark.textContent='Visto';
    mark.onclick=async()=>{
     const {error:readError}=await sb.from('member_group_video_reminders').update({seen_at:new Date().toISOString()}).eq('id',reminder.id).eq('user_id',userId);
@@ -2021,7 +2021,7 @@ function setupGroupVideoCalendar(userId,section,say){
    item.append(label,mark);reminderList.append(item);
    if(!shownNotices.has(reminder.id)){
     shownNotices.add(reminder.id);
-    if(document.hidden&&'Notification'in window&&Notification.permission==='granted'){
+    if(new Date(event.starts_at).getTime()>Date.now()&&document.hidden&&'Notification'in window&&Notification.permission==='granted'){
      try{new Notification('🔔 Videollamada en 15 minutos',{body:message});}catch(_){}
     }
    }
