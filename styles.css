@@ -394,3 +394,10 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .group-chat-panel form select,.group-chat-panel form input{max-width:100%}
 
 .notification-center-controls input{padding:9px;border-radius:9px;background:rgba(100,100,145,.2);border:1px solid rgba(150,150,190,.4);color:inherit;min-width:180px}.notification-center-counts{font-weight:600;margin:12px 0}
+
+.group-chat-send{display:flex!important;flex-wrap:wrap!important;align-items:center;gap:10px}
+.group-chat-send .group-chat-record-btn{display:inline-flex!important;align-items:center;justify-content:center;order:-10;flex:0 0 100%;width:100%;min-height:44px;padding:10px 16px;border:1px solid #a78bfa;border-radius:10px;background:#6d28d9;color:#fff;font-weight:700;cursor:pointer;visibility:visible!important;opacity:1!important}
+.group-chat-send small[role=status]{order:-9;flex:0 0 100%}
+.group-chat-send input[type=file]{flex:1 1 210px}
+.group-chat-send input:not([type=file]){flex:1 1 220px}
+@media(max-width:650px){.group-chat-send{flex-direction:column!important;align-items:stretch}.group-chat-send>*{width:100%!important;flex:auto!important}}
