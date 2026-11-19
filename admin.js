@@ -259,7 +259,8 @@ async function adminLoadReports(){
       const {data:{user}}=await sb.auth.getUser();
       const {data:updated,error}=await sb.from('member_reports').update({status,reviewed_by:user?.id,reviewed_at:new Date().toISOString()}).eq('id',report.id).eq('status','pending').select('id');
       if(error||!updated?.length){adminMessage('No se pudo actualizar el reporte: '+(error?.message||'No disponible'),'error');btn.disabled=false;return;}
-      report.status=status;adminMessage('Reporte actualizado.','success');render();adminUpdateReportAlerts();
+      report.status=status;adminMessage('Reporte actualizado. Enviando aviso por correo…','success');render();adminUpdateReportAlerts();
+      try{const {data:mail,error:mailError}=await sb.functions.invoke('send-report-review-email',{body:{report_id:report.id}});if(mailError||mail?.error)adminMessage('Denuncia actualizada. El correo no se pudo enviar; el aviso en Mi cuenta sigue disponible.','error');else if(mail?.skipped)adminMessage('Denuncia actualizada. Correo omitido: '+mail.skipped,'success');else adminMessage('Denuncia actualizada y aviso por correo enviado.','success');}catch(e){adminMessage('Denuncia actualizada, pero no se pudo confirmar el envío del correo.','error');}
      };actions.append(btn);
     }
     row.append(actions);
