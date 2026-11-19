@@ -1039,12 +1039,82 @@ async function renderAccountBlockedMembers(userId){
   row.append(name,button);panel.append(row);
  }
 }
+let activeGroupChatChannel=null;
+async function initGroupChats(userId,root){
+ if(activeGroupChatChannel){sb.removeChannel(activeGroupChatChannel);activeGroupChatChannel=null;}
+ const section=document.createElement('section');section.className='profile-panel group-chat-panel';
+ section.innerHTML='<h3>👥 Conversaciones grupales</h3><p>Crea grupos privados y conversa con sus miembros.</p><form id="group-create-form"><input name="groupName" required minlength="3" maxlength="60" placeholder="Nombre del grupo" aria-label="Nombre del grupo"><button type="submit" class="gradient-btn mini">Crear grupo</button></form><p id="group-chat-status" role="status"></p><div id="group-chat-list">Cargando grupos…</div><div id="group-chat-thread"></div>';
+ root.prepend(section);
+ const status=section.querySelector('#group-chat-status'),list=section.querySelector('#group-chat-list'),thread=section.querySelector('#group-chat-thread');
+ const say=t=>{status.textContent=t;};
+ let currentGroup=null;
+ async function showGroup(group){
+  currentGroup=group;
+  thread.replaceChildren();
+  const heading=document.createElement('h4');heading.textContent=group.name;thread.append(heading);
+  const {data:members,error:membersError}=await sb.from('member_chat_group_members').select('user_id').eq('group_id',group.id);
+  if(membersError){say('No se pudieron cargar los participantes.');return;}
+  const count=document.createElement('p');count.textContent=(members||[]).length+' participantes';thread.append(count);
+  if(group.owner_id===userId){
+   const add=document.createElement('form');add.className='group-chat-add';
+   const selector=document.createElement('select');selector.required=true;selector.setAttribute('aria-label','Añadir miembro');
+   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Selecciona un miembro';selector.append(placeholder);
+   const {data:profiles}=await sb.from('profiles').select('id,display_name,username').eq('is_public',true).limit(200);
+   const existing=new Set((members||[]).map(m=>m.user_id));
+   for(const p of profiles||[]){if(existing.has(p.id))continue;const opt=document.createElement('option');opt.value=p.id;opt.textContent=p.display_name||p.username||'Miembro';selector.append(opt);}
+   const button=document.createElement('button');button.type='submit';button.textContent='Añadir';add.append(selector,button);
+   add.onsubmit=async e=>{e.preventDefault();button.disabled=true;const {error}=await sb.from('member_chat_group_members').insert({group_id:group.id,user_id:selector.value});say(error?'No se pudo añadir: '+error.message:'Miembro añadido.');button.disabled=false;if(!error)showGroup(group);};
+   thread.append(add);
+  }
+  const messages=document.createElement('div');messages.className='group-chat-messages';thread.append(messages);
+  async function refresh(){
+   const {data,error}=await sb.from('member_chat_group_messages').select('id,sender_id,body,created_at').eq('group_id',group.id).order('created_at',{ascending:true}).limit(100);
+   if(currentGroup?.id!==group.id||!messages.isConnected)return;
+   messages.replaceChildren();
+   if(error){messages.textContent='No se pudieron cargar los mensajes.';return;}
+   const ids=[...new Set((data||[]).map(m=>m.sender_id))];
+   const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username').in('id',ids):{data:[]};
+   const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+   for(const m of data||[]){
+    const item=document.createElement('p');const name=document.createElement('strong');name.textContent=(m.sender_id===userId?'Tú':names.get(m.sender_id)||'Miembro')+': ';const body=document.createElement('span');body.textContent=m.body;const time=document.createElement('small');time.textContent=' · '+new Date(m.created_at).toLocaleString('es-ES');item.append(name,body,time);messages.append(item);
+   }
+   messages.scrollTop=messages.scrollHeight;
+  }
+  const form=document.createElement('form');form.className='group-chat-send';
+  const input=document.createElement('input');input.required=true;input.maxLength=2000;input.placeholder='Escribe un mensaje al grupo…';input.setAttribute('aria-label','Mensaje al grupo');
+  const send=document.createElement('button');send.type='submit';send.textContent='Enviar';form.append(input,send);
+  form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim();if(!body)return;send.disabled=true;const {error}=await sb.from('member_chat_group_messages').insert({group_id:group.id,sender_id:userId,body});send.disabled=false;if(error)say('No se pudo enviar: '+error.message);else{input.value='';refresh();}};
+  thread.append(form);
+  if(activeGroupChatChannel)sb.removeChannel(activeGroupChatChannel);
+  activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).subscribe();
+  refresh();
+ }
+ async function loadGroups(){
+  const {data:members,error}=await sb.from('member_chat_group_members').select('group_id').eq('user_id',userId);
+  if(!section.isConnected)return;
+  list.replaceChildren();
+  if(error){say('No se pudieron cargar los grupos.');return;}
+  if(!members?.length){list.textContent='Aún no participas en ningún grupo.';return;}
+  const {data:groups,error:groupError}=await sb.from('member_chat_groups').select('id,name,owner_id').in('id',members.map(m=>m.group_id)).order('created_at',{ascending:false});
+  if(groupError){say('No se pudieron cargar los grupos.');return;}
+  for(const group of groups||[]){const button=document.createElement('button');button.type='button';button.className='outline-btn mini';button.textContent='💬 '+group.name;button.onclick=()=>showGroup(group);list.append(button);}
+ }
+ section.querySelector('#group-create-form').onsubmit=async e=>{
+  e.preventDefault();const form=e.currentTarget;const name=form.elements.groupName.value.trim();
+  const {data,error}=await sb.rpc('create_member_chat_group',{p_name:name});
+  if(error){say('No se pudo crear el grupo: '+error.message);return;}
+  form.reset();say('Grupo creado correctamente.');await loadGroups();
+  const {data:group}=await sb.from('member_chat_groups').select('id,name,owner_id').eq('id',data).single();if(group)showGroup(group);
+ };
+ loadGroups();
+}
 async function loadPrivateMessages(){
  const root=document.getElementById('private-messages');if(!root)return;
  const {data:{user},error:authError}=await sb.auth.getUser();
  if(!root.isConnected)return;root.replaceChildren();
  if(authError||!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para enviar mensajes';root.append(link);return;}
  const me=user.id;
+ initGroupChats(me,root);
  const {data:blockRows,error:blockError}=await sb.from('member_blocks').select('blocker_id,blocked_id').or('blocker_id.eq.'+me+',blocked_id.eq.'+me);
  if(blockError)console.warn('No se pudieron consultar los bloqueos:',blockError.message);
  const blockedByMe=new Set((blockRows||[]).filter(b=>b.blocker_id===me).map(b=>b.blocked_id));
