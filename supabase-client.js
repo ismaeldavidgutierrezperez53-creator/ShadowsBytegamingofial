@@ -1408,8 +1408,91 @@ function appendReportButton(container,targetId,type,viewerId){
  };
  container.append(button);
 }
+async function loadCommunityCompetitions(root){
+ if(!root)return;
+ root.replaceChildren();
+ const heading=document.createElement('h2');heading.textContent='🏆 Retos y torneos de la comunidad';
+ const intro=document.createElement('p');intro.textContent='Inscríbete en desafíos y competiciones. Las puntuaciones las registra administración y no añaden XP automáticamente.';
+ const toolbar=document.createElement('div');toolbar.className='community-contest-toolbar';
+ const select=document.createElement('select');select.setAttribute('aria-label','Filtrar retos y torneos');
+ for(const [value,label] of [['all','Todos'],['challenge','🎯 Retos'],['tournament','🏆 Torneos']]){const opt=document.createElement('option');opt.value=value;opt.textContent=label;select.append(opt);}
+ const refresh=document.createElement('button');refresh.type='button';refresh.textContent='🔄 Actualizar retos y torneos';
+ const note=document.createElement('p');note.setAttribute('role','status');
+ const list=document.createElement('div');list.className='community-contest-list';
+ toolbar.append(select,refresh);root.append(heading,intro,toolbar,note,list);
+ let all=[],entries=[],names=new Map(),user=null;
+ const paint=()=>{
+  if(!list.isConnected)return;
+  list.replaceChildren();
+  const visible=all.filter(c=>select.value==='all'||c.kind===select.value);
+  if(!visible.length){list.textContent='Todavía no hay retos o torneos publicados en este filtro.';return;}
+  for(const c of visible){
+   const own=entries.some(e=>e.competition_id===c.id&&e.user_id===user?.id);
+   const members=entries.filter(e=>e.competition_id===c.id);
+   const now=Date.now(),end=new Date(c.ends_at).getTime(),start=new Date(c.starts_at).getTime();
+   const card=document.createElement('article');card.className='community-contest-card';
+   const title=document.createElement('h3');title.textContent=(c.kind==='challenge'?'🎯 Reto: ':'🏆 Torneo: ')+c.title;
+   const description=document.createElement('p');description.textContent=c.description||'Sin descripción adicional.';
+   const dates=document.createElement('p');dates.textContent='📅 Inicio: '+new Date(c.starts_at).toLocaleString('es-ES')+' · Final: '+new Date(c.ends_at).toLocaleString('es-ES');
+   const state=document.createElement('span');state.className='community-contest-state';
+   state.textContent=now>=end?'Finalizado':now>=start?'En curso':'Próximamente';
+   const count=document.createElement('small');count.textContent='👥 '+members.length+' inscripciones visibles';
+   const signup=document.createElement('button');signup.type='button';signup.textContent=own?'↩️ Cancelar mi inscripción':'✅ Inscribirme';
+   if(!user){signup.disabled=true;signup.title='Inicia sesión para inscribirte';}
+   else if(now>=end){signup.disabled=true;signup.textContent=own?'Inscrito · Finalizado':'Inscripciones cerradas';}
+   signup.onclick=async()=>{
+    if(!user)return;signup.disabled=true;
+    const result=own
+     ?await sb.from('community_competition_entries').delete().eq('competition_id',c.id).eq('user_id',user.id)
+     :await sb.from('community_competition_entries').insert({competition_id:c.id,user_id:user.id});
+    if(result.error){
+     note.textContent='No se pudo completar la inscripción: '+result.error.message+
+     (!own?' Comprueba que tu perfil sea público y que la competición siga abierta.':'');
+     signup.disabled=false;return;
+    }
+    note.textContent=own?'Has cancelado tu inscripción.':'¡Inscripción registrada!';
+    await reload();
+   };
+   card.append(title,state,description,dates,count,signup);
+   const ranked=members.filter(e=>e.completed||e.score>0).sort((a,b)=>b.score-a.score||new Date(a.joined_at)-new Date(b.joined_at)).slice(0,10);
+   const ranking=document.createElement('div');ranking.className='community-contest-ranking';
+   const rankingTitle=document.createElement('h4');rankingTitle.textContent='🥇 Clasificación verificada por administración';ranking.append(rankingTitle);
+   if(!ranked.length){const noScore=document.createElement('p');noScore.textContent='Aún no hay puntuaciones registradas.';ranking.append(noScore);}
+   else{
+    const ol=document.createElement('ol');
+    for(const e of ranked){
+     const item=document.createElement('li');item.textContent=(names.get(e.user_id)||'Participante')+' · '+e.score+' punto(s)'+(e.completed?' · completado':'');ol.append(item);
+    }
+    ranking.append(ol);
+   }
+   card.append(ranking);list.append(card);
+  }
+ };
+ const reload=async()=>{
+  note.textContent='Cargando actividades…';
+  const {data:{user:who}}=await sb.auth.getUser();user=who||null;
+  if(!user){list.textContent='Inicia sesión para consultar e inscribirte en las actividades.';note.textContent='';return;}
+  const {data,error}=await sb.from('community_competitions').select('id,kind,title,description,starts_at,ends_at,status').eq('status','published').order('starts_at',{ascending:false}).limit(50);
+  if(error){list.textContent='No se pudieron cargar los torneos: '+error.message;note.textContent='';return;}
+  all=data||[];const ids=all.map(x=>x.id);
+  if(!ids.length){entries=[];names=new Map();note.textContent='';paint();return;}
+  const {data:rows,error:entryError}=await sb.from('community_competition_entries')
+   .select('competition_id,user_id,score,completed,joined_at').in('competition_id',ids).limit(500);
+  if(entryError){note.textContent='No se pudieron cargar las inscripciones: '+entryError.message;return;}
+  entries=rows||[];const users=[...new Set(entries.map(e=>e.user_id))];
+  const {data:profiles}=users.length?await sb.from('profiles').select('id,display_name,username').in('id',users).eq('is_public',true):{data:[]};
+  names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+  note.textContent='';paint();
+ };
+ select.onchange=paint;refresh.onclick=reload;
+ await reload();
+}
+
 async function loadCommunityFeed(){
  const root=document.getElementById('community-feed');if(!root)return;
+ let competitionPanel=document.getElementById('community-competitions');
+ if(!competitionPanel){competitionPanel=document.createElement('section');competitionPanel.id='community-competitions';competitionPanel.className='community-competitions-section';root.before(competitionPanel);}
+ loadCommunityCompetitions(competitionPanel).catch(e=>console.warn('Retos y torneos:',e));
  const [{data:{user},error:authError},{data:posts,error:postsError}]=await Promise.all([
   sb.auth.getUser(),
   sb.from('member_posts').select('id,author_id,content,image_path,created_at').order('created_at',{ascending:false}).limit(50)
