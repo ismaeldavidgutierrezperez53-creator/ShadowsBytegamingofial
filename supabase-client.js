@@ -1303,6 +1303,48 @@ async function renderAccountBlockedMembers(userId){
  }
 }
 
+async function showPrivateGroupVideoLibrary(group,userId,thread,say){
+ const panel=document.createElement('section');panel.className='group-video-activity group-video-library';
+ const title=document.createElement('h5');title.textContent='📁 Mi biblioteca privada de grabaciones';
+ const explanation=document.createElement('p');explanation.textContent='Solo tú puedes abrir y borrar las grabaciones que guardes. Se almacenan en un bucket privado de Supabase; la descarga local sigue siendo opcional.';
+ const refresh=document.createElement('button');refresh.type='button';refresh.textContent='🔄 Actualizar biblioteca';
+ const list=document.createElement('div');list.className='group-video-library-list';
+ const refreshLibrary=async()=>{
+  const {data,error}=await sb.from('member_group_video_recordings').select('id,label,size_bytes,object_path,created_at').eq('owner_id',userId).eq('group_id',group.id).order('created_at',{ascending:false}).limit(40);
+  list.replaceChildren();
+  if(error){list.textContent='No se pudieron leer las grabaciones: '+error.message;return;}
+  if(!data?.length){list.textContent='Todavía no has guardado grabaciones de este grupo.';return;}
+  for(const item of data){
+   const line=document.createElement('div');line.className='group-video-library-item';
+   const name=document.createElement('span');name.textContent='🎥 '+item.label+' · '+new Date(item.created_at).toLocaleString('es-ES')+' · '+(item.size_bytes/1048576).toFixed(1)+' MB';
+   const download=document.createElement('button');download.type='button';download.textContent='🔒 Descargar';
+   download.onclick=async()=>{
+    download.disabled=true;
+    const {data:urlData,error:urlError}=await sb.storage.from('group-video-recordings').createSignedUrl(item.object_path,90,{download:true});
+    if(urlError){say('No se pudo abrir el archivo: '+urlError.message);}else{
+     const link=document.createElement('a');link.href=urlData.signedUrl;link.rel='noopener';link.target='_blank';link.click();
+    }
+    download.disabled=false;
+   };
+   const remove=document.createElement('button');remove.type='button';remove.textContent='🗑️ Borrar';
+   remove.onclick=async()=>{
+    if(!confirm('¿Borrar definitivamente esta grabación de tu biblioteca privada?'))return;
+    remove.disabled=true;
+    const {error:storageError}=await sb.storage.from('group-video-recordings').remove([item.object_path]);
+    if(storageError){say('No se pudo borrar el archivo: '+storageError.message);remove.disabled=false;return;}
+    const {error:dbError}=await sb.from('member_group_video_recordings').delete().eq('id',item.id).eq('owner_id',userId);
+    if(dbError){say('El archivo se borró, pero el registro debe limpiarse: '+dbError.message);remove.disabled=false;return;}
+    say('Grabación borrada.');refreshLibrary();
+   };
+   line.append(name,download,remove);list.append(line);
+  }
+ };
+ refresh.onclick=refreshLibrary;
+ panel.append(title,explanation,refresh,list);thread.append(panel);
+ thread.addEventListener('group-video-recording-saved',refreshLibrary);
+ await refreshLibrary();
+}
+
 let multiVideoSession=null;
 async function joinMultiVideoRoom(room,group,userId,thread,say){
  if(multiVideoSession||groupCallSession){say('Finaliza tu llamada actual primero.');return;}
@@ -1498,6 +1540,30 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const {data:myConsent}=await sb.from('member_group_video_recording_consents').select('consented').eq('room_id',room.id).eq('user_id',userId).maybeSingle();consent.checked=!!myConsent?.consented;
  const recordBtn=document.createElement('button');recordBtn.type='button';recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';
  const groupRecordBtn=document.createElement('button');groupRecordBtn.type='button';groupRecordBtn.textContent='🎥 Grabar videollamada completa (vista de esta sala)';
+ const saveGroupRecordBtn=document.createElement('button');saveGroupRecordBtn.type='button';saveGroupRecordBtn.textContent='🔒 Guardar grabación en mi biblioteca privada';saveGroupRecordBtn.disabled=true;
+ let pendingGroupRecording=null;
+ saveGroupRecordBtn.onclick=async()=>{
+  const blob=pendingGroupRecording;if(!blob)return;
+  if(blob.size>52428800){say('El archivo supera el límite de 50 MB. Conserva la descarga local.');return;}
+  if(!confirm('¿Guardar esta grabación en tu biblioteca privada de Supabase? Solo tú podrás acceder a ella.'))return;
+  saveGroupRecordBtn.disabled=true;saveGroupRecordBtn.textContent='⏳ Subiendo grabación…';
+  const type=blob.type.includes('mp4')?'video/mp4':'video/webm';
+  const path=userId+'/'+group.id+'/'+crypto.randomUUID()+(type==='video/mp4'?'.mp4':'.webm');
+  try{
+   const {error:uploadError}=await sb.storage.from('group-video-recordings').upload(path,blob,{contentType:type,upsert:false});
+   if(uploadError)throw uploadError;
+   const {error:metaError}=await sb.from('member_group_video_recordings').insert({
+    owner_id:userId,group_id:group.id,object_path:path,
+    label:'Videollamada · '+new Date().toLocaleDateString('es-ES'),
+    content_type:type,size_bytes:blob.size
+   });
+   if(metaError){await sb.storage.from('group-video-recordings').remove([path]);throw metaError;}
+   pendingGroupRecording=null;saveGroupRecordBtn.textContent='✅ Guardado en biblioteca';
+   thread.dispatchEvent(new Event('group-video-recording-saved'));
+   say('Grabación guardada en tu biblioteca privada.');
+  }catch(e){saveGroupRecordBtn.disabled=false;saveGroupRecordBtn.textContent='🔒 Reintentar guardado privado';say('No se pudo guardar la grabación privada: '+e.message);}
+ };
+
  let groupRecorder=null,groupRecordTracks=[],groupRecordCanvas=null,groupRecordTimer=null,groupRecordChunks=[];
  groupRecordBtn.onclick=async()=>{
   if(groupRecorder?.state==='recording'){groupRecorder.stop();return;}
@@ -1518,7 +1584,18 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    const mime=['video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported?.(t));
    groupRecorder=new MediaRecorder(combined,mime?{mimeType:mime}:undefined);groupRecordChunks=[];
    groupRecorder.ondataavailable=e=>{if(e.data.size)groupRecordChunks.push(e.data);};
-   groupRecorder.onstop=()=>{clearInterval(groupRecordTimer);groupRecordTracks.forEach(t=>t.stop());audioCtx.close().catch(()=>{});groupRecordBtn.textContent='🎥 Grabar videollamada completa (vista de esta sala)';if(groupRecordChunks.length){const blob=new Blob(groupRecordChunks,{type:groupRecorder.mimeType||'video/webm'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='shadowsbyte-grupo-'+Date.now()+(groupRecorder.mimeType?.includes('mp4')?'.mp4':'.webm');link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}};
+   groupRecorder.onstop=()=>{
+    clearInterval(groupRecordTimer);groupRecordTracks.forEach(t=>t.stop());audioCtx.close().catch(()=>{});
+    groupRecordBtn.textContent='🎥 Grabar videollamada completa (vista de esta sala)';
+    if(groupRecordChunks.length){
+     const blob=new Blob(groupRecordChunks,{type:groupRecorder.mimeType||'video/webm'});
+     pendingGroupRecording=blob;saveGroupRecordBtn.disabled=false;saveGroupRecordBtn.textContent='🔒 Guardar grabación en mi biblioteca privada';
+     const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;
+     link.download='shadowsbyte-grupo-'+Date.now()+(groupRecorder.mimeType?.includes('mp4')?'.mp4':'.webm');
+     link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+     say('Grabación descargada. También puedes guardarla en tu biblioteca privada antes de salir.');
+    }
+   };
    groupRecorder.start(1000);groupRecordBtn.textContent='⏹️ Detener grabación grupal';say('Grabación grupal local iniciada con consentimiento. Se descargará al detenerla.');
   }catch(e){clearInterval(groupRecordTimer);groupRecordTracks.forEach(t=>t.stop());say('No se pudo grabar la sala: '+e.message);}
  };
@@ -1543,7 +1620,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    recorder.start(1000);recordStart=Date.now();recordingMembers=ids.slice().sort().join(',');recordBtn.textContent='⏹️ Detener grabación';recordingStatus.textContent='🔴 Grabando únicamente tu cámara y micrófono en este navegador.';
   }catch(e){recordingStatus.textContent='No se pudo grabar: '+e.message;say('No se pudo grabar: '+e.message);}
  };
- extras.append(extrasTitle,filterBar,stickerBar,reactionBar,roleStatus,consentLabel,recordBtn,groupRecordBtn,recordingStatus);
+ extras.append(extrasTitle,filterBar,stickerBar,reactionBar,roleStatus,consentLabel,recordBtn,groupRecordBtn,saveGroupRecordBtn,recordingStatus);
  if(room.created_by===userId){
   const cohostSelect=document.createElement('select');cohostSelect.setAttribute('aria-label','Seleccionar coanfitrión');
   const grant=document.createElement('button');grant.type='button';grant.textContent='👑 Nombrar coanfitrión';
@@ -1786,6 +1863,7 @@ async function initGroupChats(userId,root){
   const {data:members,error:membersError}=await sb.from('member_chat_group_members').select('user_id,role').eq('group_id',group.id);
   if(membersError){say('No se pudieron cargar los participantes.');return;}
   const count=document.createElement('p');count.textContent=(members||[]).length+' participantes';thread.append(count);
+  showPrivateGroupVideoLibrary(group,userId,thread,say).catch(e=>console.warn('Biblioteca de vídeo:',e));
   const callControls=document.createElement('div');callControls.className='group-call-controls';
   const calleeSelect=document.createElement('select');calleeSelect.setAttribute('aria-label','Miembro al que llamar');
   const choose=document.createElement('option');choose.value='';choose.textContent='Selecciona a quién llamar';calleeSelect.append(choose);
