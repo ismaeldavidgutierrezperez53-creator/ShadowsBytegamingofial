@@ -1248,8 +1248,9 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  for(const emoji of ['❤️','👏','😂','🎉','👍']){const btn=document.createElement('button');btn.type='button';btn.textContent=emoji;btn.setAttribute('aria-label','Reaccionar '+emoji);btn.onclick=()=>postActivity('reaction',emoji);reactionBar.append(btn);}
  const roleStatus=document.createElement('p');roleStatus.textContent=room.created_by===userId?'👑 Eres el anfitrión':'Participante de la sala';
  const consentLabel=document.createElement('label');const consent=document.createElement('input');consent.type='checkbox';consentLabel.append(consent,document.createTextNode(' Autorizo la grabación de esta sala'));
- consent.onchange=async()=>{const {error}=await sb.from('member_group_video_recording_consents').upsert({room_id:room.id,user_id:userId,consented:consent.checked,updated_at:new Date().toISOString()},{onConflict:'room_id,user_id'});if(error){say('No se pudo guardar el consentimiento: '+error.message);consent.checked=!consent.checked;}};
+ consent.onchange=async()=>{consent.disabled=true;const {error}=await sb.from('member_group_video_recording_consents').upsert({room_id:room.id,user_id:userId,consented:consent.checked,updated_at:new Date().toISOString()},{onConflict:'room_id,user_id'});consent.disabled=false;if(error){say('No se pudo guardar el consentimiento: '+error.message);recordingStatus.textContent='Error guardando consentimiento: '+error.message;consent.checked=!consent.checked;}else{recordingStatus.textContent=consent.checked?'Tu consentimiento está guardado. Esperando la autorización de los demás.':'Has retirado tu consentimiento.';}};
  const recordingStatus=document.createElement('p');recordingStatus.setAttribute('role','status');recordingStatus.textContent='Grabación detenida. Se necesita el consentimiento de todos los participantes.';
+ const {data:myConsent}=await sb.from('member_group_video_recording_consents').select('consented').eq('room_id',room.id).eq('user_id',userId).maybeSingle();consent.checked=!!myConsent?.consented;
  const recordBtn=document.createElement('button');recordBtn.type='button';recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';
  let recorder=null,recordChunks=[],recordStream=null,recordingMembers='';
  const stopRecording=()=>{if(recorder?.state==='recording')recorder.stop();};
@@ -1260,14 +1261,16 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   const {data:consents,error:consentsError}=await sb.from('member_group_video_recording_consents').select('user_id,consented').eq('room_id',room.id);
   if(membersError||consentsError){say('No se pudieron comprobar los consentimientos.');return;}
   const ids=(members||[]).map(m=>m.user_id);
-  if(!ids.length||ids.some(id=>!(consents||[]).some(c=>c.user_id===id&&c.consented))){say('Todos los participantes deben autorizar la grabación antes de empezar.');return;}
+  const pending=ids.filter(id=>!(consents||[]).some(c=>c.user_id===id&&c.consented));
+  if(!ids.length||pending.length){const names=pending.map(id=>id===userId?'tú':profileMap.get(id)?.display_name||profileMap.get(id)?.username||'otro participante').join(', ');const msg='No se puede grabar. Falta consentimiento de: '+(names||'participantes de la sala')+'. Cada persona debe marcar su casilla.';recordingStatus.textContent=msg;say(msg);return;}
   try{
    recordStream=new MediaStream(stream.getTracks());recordChunks=[];
-   recorder=new MediaRecorder(recordStream);
+   const mime=['video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported?.(t));
+   recorder=new MediaRecorder(recordStream,mime?{mimeType:mime}:undefined);
    recorder.ondataavailable=e=>{if(e.data.size)recordChunks.push(e.data);};
-   recorder.onstop=()=>{if(recordChunks.length){const blob=new Blob(recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='shadowsbyte-video-'+Date.now()+'.webm';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';recordingStatus.textContent='Grabación finalizada. Archivo local generado.';recordStream=null;};
+   recorder.onstop=()=>{if(recordChunks.length){const blob=new Blob(recordChunks,{type:recorder.mimeType||'video/webm'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='shadowsbyte-video-'+Date.now()+(recorder.mimeType?.includes('mp4')?'.mp4':'.webm');a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}recordBtn.textContent='⏺️ Grabar mi cámara (archivo local)';recordingStatus.textContent='Grabación finalizada. Archivo local generado.';recordStream=null;};
    recorder.start(1000);recordingMembers=ids.slice().sort().join(',');recordBtn.textContent='⏹️ Detener grabación';recordingStatus.textContent='🔴 Grabando únicamente tu cámara y micrófono en este navegador.';
-  }catch(e){say('No se pudo grabar: '+e.message);}
+  }catch(e){recordingStatus.textContent='No se pudo grabar: '+e.message;say('No se pudo grabar: '+e.message);}
  };
  extras.append(extrasTitle,reactionBar,roleStatus,consentLabel,recordBtn,recordingStatus);
  if(room.created_by===userId){
