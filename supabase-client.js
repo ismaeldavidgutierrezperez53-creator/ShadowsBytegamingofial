@@ -981,7 +981,7 @@ async function loadMemberNotifications(){
  const [communityResult,reportsResult,messagesResult]=await Promise.all([
   sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_report_notifications').select('id,status,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
-  sb.from('member_direct_messages').select('id,sender_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100)
+  sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100)
  ]);
  if(!root.isConnected)return;
  if(communityResult.error||reportsResult.error||messagesResult.error){root.textContent='No se pudieron cargar todas las notificaciones. Inténtalo de nuevo.';return;}
