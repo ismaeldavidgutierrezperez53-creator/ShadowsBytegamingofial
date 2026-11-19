@@ -273,6 +273,22 @@ function showQuietEndNotice(preview=false){
    sparkle.style.setProperty('--particle-duration',(1.7+(i%4)*.35)+'s');
    effects.append(sparkle);
   }
+  // Un solo estallido de confeti luminoso al aparecer el aviso.
+  const celebration=document.createElement('div');
+  celebration.className='sb-quiet-finale-celebration';
+  celebration.setAttribute('aria-hidden','true');
+  for(let i=0;i<12;i++){
+   const piece=document.createElement('i');
+   piece.className='sb-quiet-finale-confetti';
+   const angle=(Math.PI*2*i)/12;
+   const radius=56+(i%3)*16;
+   piece.style.setProperty('--burst-x',Math.round(Math.cos(angle)*radius)+'px');
+   piece.style.setProperty('--burst-y',Math.round(Math.sin(angle)*radius)+'px');
+   piece.style.setProperty('--burst-rotate',(i*41)+'deg');
+   piece.style.setProperty('--burst-delay',(i%4*0.045)+'s');
+   celebration.append(piece);
+  }
+  effects.append(celebration);
   toast.append(effects);
  }
  const label=document.createElement('span');label.textContent=preview?'🔔 Vista previa: ¡Modo No molestar finalizado! Ya puedes recibir avisos nuevamente.':'🔔 ¡Modo No molestar finalizado! Ya puedes recibir avisos nuevamente.';
