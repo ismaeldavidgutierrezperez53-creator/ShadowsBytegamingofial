@@ -6,9 +6,9 @@ html[data-sb-neon="gold"]{--sb-user-neon:#ffd36a;--sb-user-glow:#ffd36a66}
 html[data-sb-neon="green"]{--sb-user-neon:#71ffbc;--sb-user-glow:#71ffbc66}
 body :is(.hero h1,.page-hero h1,.section-title,.social h2){color:var(--sb-user-neon);text-shadow:0 0 13px var(--sb-user-glow)}
 body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card,.card){border-color:var(--sb-user-glow)}
-html[data-sb-bg="moon"] body{background-image:linear-gradient(130deg,#050619b8,#29205b77),url("./anime-background.svg")!important}
-html[data-sb-bg="sakura"] body{background-image:linear-gradient(135deg,#43112c99,#4d1b6299),url("./anime-background.svg")!important}
-html[data-sb-bg="cyber"] body{background-image:linear-gradient(135deg,#021824b8,#270b4eb8),repeating-linear-gradient(0deg,transparent 0 36px,#20eaff22 37px 38px),url("./anime-background.svg")!important}
+html[data-sb-bg="moon"] body{background-image:linear-gradient(130deg,#050619b8,#29205b77),url("./anime-moon-scene.svg")!important}
+html[data-sb-bg="sakura"] body{background-image:linear-gradient(135deg,#43112c99,#4d1b6299),url("./anime-sakura-scene.svg")!important}
+html[data-sb-bg="cyber"] body{background-image:linear-gradient(135deg,#021824b8,#270b4eb8),repeating-linear-gradient(0deg,transparent 0 36px,#20eaff22 37px 38px),url("./anime-cyber-scene.svg")!important}
 html[data-sb-motion="off"] .sb-sakura-layer,html[data-sb-motion="off"] .sb-anime-sparkles,html[data-sb-motion="off"] .sb-particles{display:none!important}
 html[data-sb-motion="off"] body :is(.hero h1,.page-hero h1,.section-title,.social h2,.gradient-btn,.news-details summary),html[data-sb-motion="off"] #app.sb-anime-route-enter{animation:none!important}
 .sb-customize-toggle{position:fixed;right:16px;bottom:18px;z-index:10001;border:1px solid #c78dff;background:#170d30;color:#fff;border-radius:999px;padding:11px 15px;font:700 14px Rajdhani,Arial,sans-serif;box-shadow:0 0 16px #9b54fa66;cursor:pointer}
@@ -21,3 +21,12 @@ html[data-sb-motion="off"] body :is(.hero h1,.page-hero h1,.section-title,.socia
 .sb-customize-panel :focus-visible,.sb-customize-toggle:focus-visible{outline:3px solid #63dfff;outline-offset:3px}
 @media(max-width:700px){.sb-customize-toggle{right:10px;bottom:12px;padding:10px 12px}.sb-customize-panel{right:10px;bottom:64px;width:min(330px,calc(100vw - 20px))}}
 @media(prefers-reduced-motion:reduce){.sb-customize-panel,.sb-customize-toggle{transition:none}}
+
+/* Accessible light/dark theme overrides */
+html[data-sb-theme="light"] body{color:#251538!important;background-color:#f8efff!important;background-blend-mode:screen}
+html[data-sb-theme="light"] :is(.topbar,.mobile-section-links){background-color:#eee2fa!important;color:#251538!important}
+html[data-sb-theme="light"] :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card,.card){background-color:rgba(255,247,255,.94)!important;color:#251538!important;border-color:#a07ac4!important}
+html[data-sb-theme="light"] :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card,.card) :is(p,h2,h3,span){color:#251538}
+html[data-sb-theme="light"] .sb-customize-panel{background:#faf2ff;color:#27133e;border-color:#8454bb}
+html[data-sb-theme="light"] .sb-customize-panel select{background:#fff;color:#27133e}
+html[data-sb-theme="light"] .sb-customize-panel button{background:#61338f;color:white}
