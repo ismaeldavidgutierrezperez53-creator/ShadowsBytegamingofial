@@ -2483,7 +2483,7 @@ async function initGroupChats(userId,root){
    if(snapshot===inboxLastSnapshot)return;
    inboxLastSnapshot=snapshot;inboxList.replaceChildren();
    const pending=visible.filter(i=>i.response==='pending').length;
-   inboxState.textContent=pending?'📩 Tienes '+pending+' invitación'+(pending===1?'':'es')+' pendiente'+(pending===1?'':'s')+'.':'No tienes invitaciones pendientes a salas activas.';
+   inboxState.textContent=pending?'📩 Tienes '+pending+' invitación'+(pending===1?'':'es')+' pendiente'+(pending===1?'':'s')+'.':((invites||[]).some(i=>i.response==='pending')?'No hay invitaciones pendientes en salas abiertas. Las invitaciones de salas finalizadas caducan; solicita una nueva con la sala activa.':'No tienes invitaciones pendientes a salas activas.');
    for(const invite of visible){
     const room=roomMap.get(invite.room_id),group=groupMap.get(room.group_id);
     const item=document.createElement('article');item.className='group-video-inbox-item';
