@@ -1153,11 +1153,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  let stream;
  try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});}
  catch(e){say('No se pudo abrir cámara o micrófono: '+e.message);return;}
- const {data:existingParticipant,error:lookupError}=await sb.from('member_group_video_participants').select('user_id').eq('room_id',room.id).eq('user_id',userId).maybeSingle();
- if(lookupError){stream.getTracks().forEach(t=>t.stop());say('No se pudo comprobar tu acceso: '+lookupError.message);return;}
- const {data:blocked}=await sb.from('member_group_video_removals').select('user_id').eq('room_id',room.id).eq('user_id',userId).maybeSingle();
- if(blocked){stream.getTracks().forEach(t=>t.stop());say('Un administrador te expulsó de esta sala. Pídele que autorice tu regreso o espera a una nueva videollamada.');return;}
- const {error:joinError}=existingParticipant?{error:null}:await sb.from('member_group_video_participants').insert({room_id:room.id,user_id:userId});
+ const {error:joinError}=await sb.rpc('join_group_video_room',{p_room_id:room.id});
  if(joinError){stream.getTracks().forEach(t=>t.stop());say('No se pudo entrar en la sala: '+joinError.message);return;}
  const panel=document.createElement('section');panel.className='group-call-panel group-multi-video';
  const title=document.createElement('h4');title.textContent='📹 Videollamada grupal';
