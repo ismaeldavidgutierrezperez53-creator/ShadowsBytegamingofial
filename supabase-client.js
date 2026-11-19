@@ -381,10 +381,27 @@ async function initAccountNotificationPreferences(userId,root){
  if(error){message.textContent='No se pudieron cargar tus preferencias.';return;}
  checkbox.checked=data?.report_email_enabled??true;checkbox.disabled=false;message.textContent='Preferencia actual guardada.';
  checkbox.onchange=async()=>{
-  checkbox.disabled=true;message.textContent='Guardando…';
-  const {error}=await sb.from('member_notification_preferences').upsert({user_id:userId,report_email_enabled:checkbox.checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-  if(error){checkbox.checked=!checkbox.checked;message.textContent='No se pudo guardar la preferencia.';}
-  else message.textContent=checkbox.checked?'Correos de denuncias activados.':'Correos de denuncias desactivados.';
+  const requested=checkbox.checked;
+  checkbox.disabled=true;message.textContent='Guardando preferencia…';
+  const {data:sessionData}=await sb.auth.getUser();
+  if(sessionData?.user?.id!==userId){checkbox.checked=!requested;checkbox.disabled=false;message.textContent='La sesión ha cambiado. Vuelve a entrar en Mi cuenta.';return;}
+  const {data:existing, error:readError}=await sb.from('member_notification_preferences').select('user_id').eq('user_id',userId).maybeSingle();
+  let saveError=readError;
+  if(!saveError){
+   const query=existing
+    ?sb.from('member_notification_preferences').update({report_email_enabled:requested,updated_at:new Date().toISOString()}).eq('user_id',userId)
+    :sb.from('member_notification_preferences').insert({user_id:userId,report_email_enabled:requested});
+   const result=await query.select('report_email_enabled').single();
+   saveError=result.error;
+   if(!saveError&&result.data?.report_email_enabled!==requested)saveError=new Error('El valor guardado no coincide.');
+  }
+  if(saveError){
+   checkbox.checked=!requested;
+   message.textContent='No se pudo guardar: '+(saveError.message||'Error desconocido')+'. Inténtalo de nuevo.';
+   console.warn('Preferencia de correo no guardada:',saveError);
+  }else{
+   message.textContent=requested?'Preferencia guardada: correos activados.':'Preferencia guardada: correos desactivados.';
+  }
   checkbox.disabled=false;
  };
 }
