@@ -568,3 +568,12 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 .notification-quick-mute button{min-height:39px;white-space:normal;text-align:center}
 #notification-dnd-cancel{border-color:rgba(248,160,180,.5)}
 @media(max-width:540px){.notification-quick-mute{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.notification-quick-mute button{width:100%;min-width:0}.notification-quick-mute #notification-dnd-cancel{grid-column:1/-1}}
+
+/* Keep account notification controls discoverable above long profile sections */
+#account-notification-settings{scroll-margin-top:100px;position:relative}
+.account-dnd-shortcut{display:flex;width:100%;align-items:center;justify-content:space-between;margin:12px 0;padding:12px 14px;cursor:pointer;text-align:left;border:1px solid #a78bfa;border-radius:10px;background:rgba(139,92,246,.12);color:inherit;font-weight:650}
+.account-dnd-shortcut:hover,.account-dnd-shortcut:focus-visible{border-color:#c4b5fd;outline-offset:3px;background:rgba(139,92,246,.23)}
+#account-notification-settings.account-settings-highlight{outline:2px solid #a78bfa;outline-offset:4px}
+#account-notification-settings .notification-quick-mute{display:flex!important;visibility:visible!important;flex-wrap:wrap;gap:9px}
+#account-notification-settings .notification-quick-mute>button{display:inline-flex!important;visibility:visible!important;align-items:center;justify-content:center;opacity:1}
+@media(max-width:540px){#account-notification-settings .notification-quick-mute{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
