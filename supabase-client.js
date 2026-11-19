@@ -208,15 +208,23 @@ async function loadNotificationPreview(userId){
 }
 let notificationRealtimeChannel=null;
 let notificationRealtimeUserId=null;
-let activeToastPreferences={popup_enabled:true,sound_enabled:false};
+const DEFAULT_NOTIFICATION_SOUNDS={message_sound:'message',comment_sound:'comment',gift_sound:'gift',follow_sound:'follow'};
+const VALID_NOTIFICATION_SOUNDS=new Set(['default','message','comment','gift','follow','off']);
+function normalizeNotificationSound(value,fallback){return VALID_NOTIFICATION_SOUNDS.has(value)?value:fallback;}
+let activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS};
 let toastAudioContext=null;
 async function loadToastPreferences(userId){
- activeToastPreferences={popup_enabled:true,sound_enabled:false};
+ activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS};
  if(!userId)return;
- const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled').eq('user_id',userId).maybeSingle();
- if(!error&&data&&notificationRealtimeUserId===userId)activeToastPreferences={popup_enabled:data.popup_enabled!==false,sound_enabled:data.sound_enabled===true};
+ const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound').eq('user_id',userId).maybeSingle();
+ if(!error&&notificationRealtimeUserId===userId)activeToastPreferences={
+  popup_enabled:data?.popup_enabled!==false,
+  sound_enabled:data?.sound_enabled===true,
+  ...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(data?.[field],defaultSound)]))
+ };
 }
 function playNotificationSound(kind='default'){
+ if(kind==='off')return;
  try{
   const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
   if(!toastAudioContext)toastAudioContext=new C();
@@ -238,9 +246,9 @@ function playNotificationSound(kind='default'){
  }catch(error){console.warn('Sonido no disponible:',error);}
 }
 function notificationSoundKind(kind){
- if(kind==='gift')return 'gift';
- if(kind==='follow')return 'follow';
- if(['comment','game_comment','game_reply'].includes(kind))return 'comment';
+ if(kind==='gift')return activeToastPreferences.gift_sound;
+ if(kind==='follow')return activeToastPreferences.follow_sound;
+ if(['comment','game_comment','game_reply'].includes(kind))return activeToastPreferences.comment_sound;
  return 'default';
 }
 const toastNotificationIds=new Set();
@@ -265,7 +273,7 @@ function syncNotificationRealtime(userId){
  if(notificationRealtimeUserId===userId&&notificationRealtimeChannel)return;
  if(notificationRealtimeChannel){sb.removeChannel(notificationRealtimeChannel);notificationRealtimeChannel=null;}
  notificationRealtimeUserId=userId||null;
- activeToastPreferences={popup_enabled:true,sound_enabled:false};
+ activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS};
  if(!userId)return;
  loadToastPreferences(userId);
  notificationRealtimeChannel=sb.channel('member-notifications-'+userId)
@@ -433,13 +441,32 @@ async function initAccountNotificationPreferences(userId,root){
  section.innerHTML='<h3>⚙ Configuración de notificaciones</h3><p>Elige si quieres recibir correos electrónicos cuando se revisen tus denuncias. Los avisos dentro de la web seguirán activos.</p><label class="notification-preference-label"><input type="checkbox" id="report-email-enabled" disabled> Recibir correos sobre mis denuncias</label><p id="report-email-preference-message" role="status" aria-live="polite">Cargando preferencias…</p>';
  root.append(section);
  const toastSettings=document.createElement('div');toastSettings.className='notification-toast-preferences';
- toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><label class="notification-preference-label" for="notification-sound-kind">Tipo de sonido para probar</label><select id="notification-sound-kind"><option value="message">💬 Mensaje privado</option><option value="comment">📝 Comentario</option><option value="gift">🎁 Regalo</option><option value="follow">👥 Nuevo seguidor</option></select><button type="button" class="outline-btn mini" id="notification-sound-test">▶ Probar sonido seleccionado</button><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
+ toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><p>Elige el sonido de cada tipo de aviso, o selecciona Silencio para esa categoría.</p><div id="notification-category-sound-settings" class="notification-category-sound-settings"></div><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
  section.append(toastSettings);
  const popupToggle=toastSettings.querySelector('#popup-notification-enabled'),soundToggle=toastSettings.querySelector('#sound-notification-enabled'),toastStatus=toastSettings.querySelector('#notification-toast-preference-status');
- const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled').eq('user_id',userId).maybeSingle();
+ const soundRows=[['message_sound','💬 Mensajes privados'],['comment_sound','📝 Comentarios y respuestas'],['gift_sound','🎁 Regalos'],['follow_sound','👥 Nuevos seguidores']];
+ const soundPresets=[['message','Mensaje · dos tonos agudos'],['comment','Comentario · tonos suaves'],['gift','Regalo · melodía'],['follow','Seguidor · tonos ascendentes'],['default','Clásico · dos tonos'],['off','🔕 Silencio']];
+ const soundSelectors=new Map(),soundSettings=toastSettings.querySelector('#notification-category-sound-settings');
+ for(const [field,labelText] of soundRows){
+  const row=document.createElement('div');row.className='notification-category-sound';
+  const label=document.createElement('label');label.htmlFor='notification-'+field;label.textContent=labelText;
+  const controls=document.createElement('div');controls.className='notification-category-sound-actions';
+  const select=document.createElement('select');select.id='notification-'+field;select.disabled=true;
+  for(const [value,text] of soundPresets){const option=document.createElement('option');option.value=value;option.textContent=text;select.append(option);}
+  const test=document.createElement('button');test.type='button';test.className='outline-btn mini';test.textContent='▶ Probar';
+  test.onclick=async()=>{
+   if(select.value==='off'){toastStatus.textContent=labelText+': sonido desactivado.';return;}
+   try{const C=window.AudioContext||window.webkitAudioContext;if(!C){toastStatus.textContent='Este navegador no admite audio.';return;}
+    if(!toastAudioContext)toastAudioContext=new C();await toastAudioContext.resume();playNotificationSound(select.value);toastStatus.textContent='Prueba de sonido: '+labelText+'.';
+   }catch(e){toastStatus.textContent='El navegador ha bloqueado el sonido.';}
+  };
+  controls.append(select,test);row.append(label,controls);soundSettings.append(row);soundSelectors.set(field,select);
+ }
+ const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound').eq('user_id',userId).maybeSingle();
  if(section.isConnected){if(toastError){toastStatus.textContent='No se pudieron cargar las preferencias.';}else{
  popupToggle.checked=toastData?.popup_enabled!==false;soundToggle.checked=toastData?.sound_enabled===true;popupToggle.disabled=false;soundToggle.disabled=false;toastStatus.textContent='Preferencias listas.';
- activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked};
+ activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked,...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(toastData?.[field],defaultSound)]))};
+ for(const [field,select] of soundSelectors){select.value=activeToastPreferences[field];select.dataset.savedValue=select.value;select.disabled=false;}
  const saveToastPreference=async(field,toggle)=>{const requested=toggle.checked;toggle.disabled=true;toastStatus.textContent='Guardando…';
  const {data:session}=await sb.auth.getUser();if(session?.user?.id!==userId){toggle.checked=!requested;toggle.disabled=false;toastStatus.textContent='La sesión ha cambiado.';return;}
  const {data:existing,error:readError}=await sb.from('member_notification_preferences').select('user_id').eq('user_id',userId).maybeSingle();
@@ -451,7 +478,29 @@ async function initAccountNotificationPreferences(userId,root){
  toggle.disabled=false;};
  popupToggle.onchange=()=>saveToastPreference('popup_enabled',popupToggle);
  soundToggle.onchange=()=>saveToastPreference('sound_enabled',soundToggle);
- toastSettings.querySelector('#notification-sound-test').onclick=async()=>{try{const C=window.AudioContext||window.webkitAudioContext;if(!C){toastStatus.textContent='Este navegador no admite audio.';return;}if(!toastAudioContext)toastAudioContext=new C();await toastAudioContext.resume();playNotificationSound(toastSettings.querySelector('#notification-sound-kind').value);toastStatus.textContent='Sonido de prueba reproducido.';}catch(e){toastStatus.textContent='El navegador ha bloqueado el sonido.';}};
+ for(const [field,select] of soundSelectors){
+  select.onchange=async()=>{
+   const selected=normalizeNotificationSound(select.value,DEFAULT_NOTIFICATION_SOUNDS[field]);
+   const previous=select.dataset.savedValue||DEFAULT_NOTIFICATION_SOUNDS[field];
+   select.disabled=true;toastStatus.textContent='Guardando sonido…';
+   const {data:sessionData,error:authError}=await sb.auth.getUser();
+   if(authError||sessionData?.user?.id!==userId){select.value=previous;select.disabled=false;toastStatus.textContent='La sesión ha cambiado. Vuelve a iniciar sesión.';return;}
+   const {data:existing,error:readError}=await sb.from('member_notification_preferences').select('user_id').eq('user_id',userId).maybeSingle();
+   let saveError=readError;
+   if(!saveError){
+    const payload={[field]:selected,updated_at:new Date().toISOString()};
+    const query=existing
+     ?sb.from('member_notification_preferences').update(payload).eq('user_id',userId)
+     :sb.from('member_notification_preferences').insert({user_id:userId,...payload});
+    const result=await query.select(field).single();
+    saveError=result.error;
+    if(!saveError&&result.data?.[field]!==selected)saveError=new Error('No se pudo verificar el sonido guardado.');
+   }
+   if(saveError){select.value=previous;toastStatus.textContent='No se pudo guardar: '+saveError.message;console.warn('Error al guardar preferencia de sonido:',saveError);}
+   else{select.dataset.savedValue=selected;activeToastPreferences[field]=selected;toastStatus.textContent='Sonido guardado para '+soundRows.find(x=>x[0]===field)[1]+'.';}
+   select.disabled=false;
+  };
+ }
  }}
  const checkbox=section.querySelector('#report-email-enabled'),message=section.querySelector('#report-email-preference-message');
  const {data,error}=await sb.from('member_notification_preferences').select('report_email_enabled').eq('user_id',userId).maybeSingle();
@@ -2253,7 +2302,7 @@ function syncPrivateMessageRealtime(userId){
  privateMessageRealtimeChannel=sb.channel('direct-message-alerts-'+userId)
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
-   if(activeToastPreferences.sound_enabled)playNotificationSound('message');
+   if(activeToastPreferences.sound_enabled)playNotificationSound(activeToastPreferences.message_sound);
    if(liveAlertPreferences.notify_private_messages)showMemberLiveAlert('💬 Has recibido un mensaje privado.','#/mensajes');
    refreshLivePrivateConversation();
   })
