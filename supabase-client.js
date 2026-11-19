@@ -1144,9 +1144,9 @@ async function initGroupChats(userId,root){
    if(currentGroup?.id===group.id)sb.from('member_chat_group_reads').upsert({group_id:group.id,user_id:userId,last_read_at:new Date().toISOString()},{onConflict:'group_id,user_id'}).then(()=>{});
   }
   const form=document.createElement('form');form.className='group-chat-send';
-  const input=document.createElement('input');input.required=true;input.maxLength=2000;input.placeholder='Escribe un mensaje al grupo…';input.setAttribute('aria-label','Mensaje al grupo');
+  const input=document.createElement('input');input.required=false;input.maxLength=2000;input.placeholder='Escribe un mensaje al grupo…';input.setAttribute('aria-label','Mensaje al grupo');
   const upload=document.createElement('input');upload.type='file';upload.accept='image/*,audio/*,.m4a,.aac,.3gp,.wav,.mp3,.ogg,.webm';upload.setAttribute('aria-label','Adjuntar imagen o audio');
-  const record=document.createElement('button');record.type='button';record.textContent='🎙️ Grabar voz';
+  const record=document.createElement('button');record.type='button';record.textContent='🎙️ Grabar voz';record.className='group-chat-record-btn';
   const recordingStatus=document.createElement('small');recordingStatus.setAttribute('role','status');
   let recorder=null,recordStream=null,recordedFile=null;
   record.onclick=async()=>{
@@ -1167,7 +1167,7 @@ async function initGroupChats(userId,root){
     recorder.start();record.textContent='⏹️ Detener grabación';recordingStatus.textContent='Grabando nota de voz…';
    }catch(e){recordStream?.getTracks().forEach(t=>t.stop());recordingStatus.textContent='No se pudo acceder al micrófono: '+(e.message||'Permiso denegado');}
   };
-  const send=document.createElement('button');send.type='submit';send.textContent='Enviar';form.append(input,upload,record,recordingStatus,send);
+  const send=document.createElement('button');send.type='submit';send.textContent='Enviar';form.append(record,recordingStatus,input,upload,send);
   form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim(),file=recordedFile||upload.files?.[0];if(recorder?.state==='recording'){say('Detén la grabación antes de enviarla.');return;}if(!body&&!file)return;send.disabled=true;
    let image_path=null,audio_path=null;
    if(file){
