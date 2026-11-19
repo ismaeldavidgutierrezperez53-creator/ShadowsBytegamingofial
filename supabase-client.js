@@ -472,6 +472,19 @@ async function loadAccountReportHistory(userId){
 }
 
 
+async function loadQuickDndPage(){
+ const root=document.getElementById('quick-dnd-panel');if(!root)return;
+ const {data,error}=await sb.auth.getUser();
+ if(!root.isConnected)return;
+ const user=data?.user;
+ if(error||!user){
+  root.innerHTML='<div class="profile-panel"><p>Inicia sesión para configurar el modo No molestar de tu cuenta.</p><a href="#/auth" class="gradient-btn mini">Iniciar sesión</a></div>';
+  return;
+ }
+ root.replaceChildren();
+ initAccountNotificationPreferences(user.id,root);
+}
+
 async function initAccountNotificationPreferences(userId,root){
  const section=document.createElement('section');section.className='profile-panel account-notification-preferences';section.id='account-notification-settings';
  section.innerHTML='<h3>⚙ Configuración de notificaciones</h3><p>Elige si quieres recibir correos electrónicos cuando se revisen tus denuncias. Los avisos dentro de la web seguirán activos.</p><label class="notification-preference-label"><input type="checkbox" id="report-email-enabled" disabled> Recibir correos sobre mis denuncias</label><p id="report-email-preference-message" role="status" aria-live="polite">Cargando preferencias…</p>';
