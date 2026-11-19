@@ -259,7 +259,7 @@ async function adminLoadReports(){
       const {data:{user}}=await sb.auth.getUser();
       const {data:updated,error}=await sb.from('member_reports').update({status,reviewed_by:user?.id,reviewed_at:new Date().toISOString()}).eq('id',report.id).eq('status','pending').select('id');
       if(error||!updated?.length){adminMessage('No se pudo actualizar el reporte: '+(error?.message||'No disponible'),'error');btn.disabled=false;return;}
-      report.status=status;adminMessage('Reporte actualizado. Enviando aviso por correo…','success');render();adminUpdateReportAlerts();
+      report.status=status;adminMessage('Reporte actualizado. Enviando aviso por correo…','success');render();adminUpdateReportAlerts();adminLoadReportAudit();
       try{const {data:mail,error:mailError}=await sb.functions.invoke('send-report-review-email',{body:{report_id:report.id}});if(mailError||mail?.error)adminMessage('Denuncia actualizada. El correo no se pudo enviar; el aviso en Mi cuenta sigue disponible.','error');else if(mail?.skipped)adminMessage('Denuncia actualizada. Correo omitido: '+mail.skipped,'success');else adminMessage('Denuncia actualizada y aviso por correo enviado.','success');}catch(e){adminMessage('Denuncia actualizada, pero no se pudo confirmar el envío del correo.','error');}
      };actions.append(btn);
     }
@@ -337,12 +337,41 @@ function adminInitExtended(){
  adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();adminInitReportAlerts();
 }
 
+async function adminLoadReportAudit(){
+ const root=document.getElementById('admin-report-audit');if(!root)return;
+ root.textContent='Cargando historial de reportes…';
+ const {data,error}=await sb.from('member_admin_report_audit').select('id,report_id,actor_id,old_status,new_status,changed_at').order('changed_at',{ascending:false}).limit(80);
+ if(!root.isConnected)return;
+ root.replaceChildren();
+ if(error){root.textContent='No se pudo cargar el historial: '+error.message;return;}
+ if(!data?.length){root.textContent='Todavía no hay cambios de estado de reportes registrados.';return;}
+ const names={pending:'Pendiente',reviewed:'Revisado',dismissed:'Descartado'};
+ for(const item of data){
+  const row=document.createElement('div');row.className='admin-management-row admin-report-audit-row';
+  const heading=document.createElement('strong');heading.textContent='🛡️ '+(names[item.old_status]||item.old_status)+' → '+(names[item.new_status]||item.new_status);
+  const detail=document.createElement('small');detail.textContent=new Date(item.changed_at).toLocaleString('es-ES')+' · Reporte: '+item.report_id+' · Responsable: '+(item.actor_id||'Sistema');
+  row.append(heading,detail);root.append(row);
+ }
+}
+
 async function initAdmin(){
  const root=document.getElementById('admin-root');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
  if(error||!user){root.innerHTML='<p>Debes iniciar sesión.</p><a href="#/auth">Entrar</a>';return;}
  if(user.app_metadata?.role!=='admin'){root.textContent='No tienes permisos de administrador. Cierra sesión y vuelve a entrar si acabas de recibir el rol.';return;}
  root.innerHTML='<div class="admin-dashboard"><div class="admin-quicklinks"><a href="#/cuenta">👤 Mi perfil</a><a href="#/miembros">👥 Comunidad</a><a href="#/noticias">📰 Ver noticias</a><a href="#/cartelera">🎬 Ver cartelera</a><a href="#/eventos">📅 Ver eventos</a></div><div class="admin-welcome"><div><span class="admin-kicker">SHADOWS BYTE · CONTROL CENTER</span><h2>Tu centro de mando</h2><p>Gestiona noticias, cartelera, eventos y todas las secciones temáticas desde un único lugar.</p></div><span class="admin-admin-badge">● Administrador</span></div><p class="admin-session">Sesión iniciada: '+escapeHTML(user.email)+'</p><div class="admin-stats" id="admin-stats"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE CONTENIDOS</span><h2>Publicaciones</h2></div><button class="gradient-btn mini" id="admin-new" type="button">+ Crear noticias</button></div><div class="admin-tabs" role="tablist" aria-label="Secciones de administración" id="admin-tabs"></div><div id="admin-message" role="status" aria-live="polite"></div></section><div id="admin-form-root"></div><section class="admin-panel" id="admin-shop-root" style="padding:18px;margin:20px 0">Cargando administración de tienda…</section><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">BIBLIOTECA</span><h2 id="admin-list-title">Noticias</h2></div><input type="search" id="admin-search" placeholder="Buscar por título…" aria-label="Buscar contenido por título"></div><div id="admin-list"></div></section></div>';
+ const dashboard=document.querySelector('#admin-root .admin-dashboard');
+ if(dashboard){
+  const auditSection=document.createElement('section');auditSection.className='admin-panel admin-report-audit-panel';
+  const title=document.createElement('h2');title.textContent='🛡️ Historial de revisión de denuncias';
+  const help=document.createElement('p');help.textContent='Cambios de estado guardados automáticamente en Supabase. Esta información solo está disponible para administradores.';
+  const refresh=document.createElement('button');refresh.type='button';refresh.className='admin-secondary';refresh.textContent='🔄 Actualizar historial';
+  const list=document.createElement('div');list.id='admin-report-audit';list.setAttribute('aria-live','polite');
+  refresh.onclick=adminLoadReportAudit;
+  auditSection.append(title,help,refresh,list);dashboard.append(auditSection);
+  adminLoadReportAudit();
+ }
+
  const tabs=document.getElementById('admin-tabs');
  for(const [table,model] of Object.entries(adminModels)){
   const button=document.createElement('button');button.type='button';button.dataset.table=table;button.setAttribute('role','tab');button.textContent=model.icon+' '+model.label;
