@@ -698,3 +698,42 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  .admin-competition-score-row button{width:100%}
  .group-video-rsvp button{flex:1 1 135px}
 }
+
+/* Anime finale for No molestar: scoped, short-lived, pointer-safe decoration */
+.sb-quiet-anime-finale{
+ position:fixed;isolation:isolate;overflow:hidden;
+ border-color:rgba(117,231,252,.85);
+ background:linear-gradient(125deg,#192341 0%,#291c50 55%,#133c52 100%);
+ box-shadow:0 10px 34px #0009,0 0 18px rgba(90,208,255,.28),inset 0 0 20px rgba(165,83,255,.18);
+ animation:sbQuietAnimeGlow 2.4s ease-in-out 2;
+}
+.sb-quiet-anime-finale::before{
+ content:"";position:absolute;inset:-1px;z-index:0;pointer-events:none;border-radius:inherit;
+ background:linear-gradient(105deg,transparent 10%,rgba(178,101,255,.15) 35%,rgba(95,220,255,.3) 52%,transparent 73%);
+ background-size:200% 100%;animation:sbQuietAnimeSweep 2s ease-out 2;
+}
+.sb-quiet-anime-finale>:not(.sb-quiet-finale-particles){position:relative;z-index:1}
+.sb-quiet-finale-particles{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.sb-quiet-finale-sparkle{
+ position:absolute;left:var(--particle-x);top:var(--particle-y);display:block;
+ width:4px;height:4px;border-radius:50%;
+ background:#d9faff;box-shadow:0 0 7px 2px rgba(110,239,255,.7),0 0 16px 3px rgba(178,103,255,.25);
+ opacity:0;animation:sbQuietMagicFloat var(--particle-duration,2s) ease-in-out var(--particle-delay,0s) 3;
+}
+.sb-quiet-finale-sparkle:nth-child(3n){background:#eac2ff;box-shadow:0 0 8px 2px #d17dff99}
+.sb-quiet-finale-sparkle:nth-child(4n){width:6px;height:6px;background:#a2ecff}
+@keyframes sbQuietAnimeGlow{
+ 0%,100%{box-shadow:0 10px 34px #0009,0 0 18px #5ad0ff47,inset 0 0 20px #a553ff2e}
+ 50%{box-shadow:0 10px 34px #0009,0 0 27px #5ad0ff86,inset 0 0 30px #d28dff55}
+}
+@keyframes sbQuietAnimeSweep{from{background-position:200% 0}to{background-position:-100% 0}}
+@keyframes sbQuietMagicFloat{
+ 0%{opacity:0;transform:translate3d(0,12px,0) scale(.3)}
+ 35%{opacity:.85;transform:translate3d(4px,-4px,0) scale(1)}
+ 100%{opacity:0;transform:translate3d(-8px,-29px,0) scale(.2)}
+}
+@media(max-width:480px){.sb-quiet-anime-finale{animation-duration:2.8s}.sb-quiet-finale-sparkle:nth-child(n+9){display:none}}
+@media(prefers-reduced-motion:reduce){
+ .sb-quiet-anime-finale,.sb-quiet-anime-finale::before,.sb-quiet-finale-sparkle{animation:none!important}
+ .sb-quiet-finale-particles{display:none}
+}
