@@ -57,7 +57,14 @@ async function renderMyLevels(){
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
  if(!user){host.innerHTML='<p>Inicia sesión para consultar tus logros.</p><a class="gradient-btn" href="#/auth">Entrar</a>';return}
  const {data:serverXP,error:xpError}=await sb.rpc('community_member_xp',{target_member:user.id});if(!host.isConnected)return;
- const result={xp:Number(serverXP)||0,errors:xpError?[xpError]:[]};
+ if(xpError||serverXP===null||!Number.isFinite(Number(serverXP))){
+  console.error('No se pudo consultar el XP',xpError||'XP no disponible');
+  host.replaceChildren();
+  const message=document.createElement('p');message.textContent='No se pudo cargar tu nivel y XP. Revisa tu sesión o inténtalo de nuevo.';
+  const retry=document.createElement('button');retry.type='button';retry.className='outline-btn mini';retry.textContent='↻ Reintentar';retry.onclick=()=>{host.textContent='Cargando nivel…';renderMyLevels()};
+  host.append(message,retry);return;
+ }
+ const result={xp:Number(serverXP),errors:[]};
  const xp=result.xp,level=levelFromXP(xp),badges=[['🌱 Primer paso',xp>=5],['⭐ Participante',xp>=50],['🔥 Miembro activo',xp>=150],['🏆 Leyenda',xp>=500]];
  host.innerHTML='<h2>🏆 Nivel '+level+'</h2><p>'+xp+' puntos de experiencia (XP)</p><div style="height:12px;border-radius:8px;background:#ffffff22;overflow:hidden"><div style="height:100%;width:'+Math.min(100,Math.round((xp-100*(level-1)**2)/(100*(level**2-(level-1)**2))*100))+'%;background:linear-gradient(90deg,#8b5cf6,#ec4899)"></div></div><p>Próximo nivel: '+(100*level**2)+' XP</p><h3>Insignias</h3><div id="level-badges" style="display:flex;flex-wrap:wrap;gap:10px"></div><h3>Cómo ganar puntos</h3><p>Publicación +20 · Comentario +10 · Me gusta +2 · Favorito +5 · Voto +15</p>';
  host.append(createRewardPanel(level));
@@ -70,7 +77,7 @@ async function renderMyLevels(){
  const {data:days,error:streakError}=await sb.from('member_daily_rewards').select('claimed_on').eq('user_id',user.id).order('claimed_on',{ascending:false}).limit(365);if(streakBox.isConnected){const dates=new Set((days||[]).map(x=>x.claimed_on));let day=new Date();day.setUTCHours(0,0,0,0);if(!dates.has(day.toISOString().slice(0,10)))day.setUTCDate(day.getUTCDate()-1);let streak=0;while(dates.has(day.toISOString().slice(0,10))){streak++;day.setUTCDate(day.getUTCDate()-1)}streakBox.querySelector('#streak-counter').textContent=streakError?'No se pudo consultar la racha.':'🔥 '+streak+' días consecutivos'}
  host.append(createDailyCalendar(user.id));
  const today=new Date().toISOString().slice(0,10);const {data:existing}=await sb.from('member_daily_rewards').select('claimed_on').eq('user_id',user.id).eq('claimed_on',today).limit(1);if(existing?.length){claim.disabled=true;status.textContent='✓ Recompensa de hoy reclamada';}
- const badgesHost=host.querySelector('#level-badges');for(const [name,unlocked] of badges){const span=document.createElement('span');span.textContent=name+(unlocked?' · conseguido':' · bloqueado');span.style.cssText='padding:9px;border:1px solid #ffffff33;border-radius:12px;opacity:'+(unlocked?'1':'.45');badgesHost.append(span)}
+ const badgesHost=host.querySelector('#level-badges');if(!badgesHost)return;for(const [name,unlocked] of badges){const span=document.createElement('span');span.textContent=name+(unlocked?' · conseguido':' · bloqueado');span.style.cssText='padding:9px;border:1px solid #ffffff33;border-radius:12px;opacity:'+(unlocked?'1':'.45');badgesHost.append(span)}
  if(result.errors.length){const p=document.createElement('p');p.textContent='Algunas actividades no pudieron contabilizarse. Inténtalo más tarde.';host.append(p)}
 }
 async function renderLevelRanking(){
