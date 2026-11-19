@@ -501,3 +501,14 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 .group-multi-video select,.group-multi-video input{max-width:100%}
 .group-multi-video-grid.group-video-focus .group-video-tile.group-video-featured{grid-column:1/-1;max-width:100%}
 }
+
+/* Anime live local camera effects and lightweight floating reactions */
+.anime-filter-vivid{filter:saturate(1.65) contrast(1.16) brightness(1.05)}
+.anime-filter-dream{filter:saturate(1.25) contrast(.88) brightness(1.13) hue-rotate(12deg)}
+.anime-filter-mono{filter:grayscale(1) contrast(1.6)}
+.group-multi-video{position:relative}
+.group-video-floating-reactions{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5}
+.group-video-reaction-bubble{position:absolute;bottom:10%;font-size:2.3rem;animation:group-video-reaction-float 2s ease-out forwards;text-shadow:0 2px 12px #0008}
+@keyframes group-video-reaction-float{0%{opacity:0;transform:translateY(25px) scale(.65)}20%{opacity:1}100%{opacity:0;transform:translateY(-190px) scale(1.3)}}
+@media(prefers-reduced-motion:reduce){.group-video-reaction-bubble{animation:none;opacity:1}}
+@media(max-width:700px){.group-video-reaction-bubble{font-size:1.7rem}.group-video-floating-reactions{max-width:100%}}
