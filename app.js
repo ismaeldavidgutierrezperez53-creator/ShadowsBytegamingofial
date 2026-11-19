@@ -140,18 +140,40 @@ async function loadMyFavorites(){
  for(const item of items||[]){const card=document.createElement('article');card.className='fan-card';if(item.image_url&&item.image_url.startsWith('https://')){const img=document.createElement('img');img.src=item.image_url;img.alt='';img.loading='lazy';img.style.cssText='width:100%;height:160px;object-fit:cover;border-radius:10px';card.append(img)}const h=document.createElement('h3');h.textContent=item.title;card.append(h);const p=document.createElement('p');p.textContent=item.category;card.append(p);const b=document.createElement('button');b.className='outline-btn';b.style.marginTop='12px';b.textContent='♥ Quitar favorito';b.onclick=async()=>{b.disabled=true;const {error:e}=await sb.from('member_catalog_favorites').delete().eq('user_id',user.id).eq('catalog_id',item.id);if(e){alert(e.message);b.disabled=false}else loadMyFavorites()};card.append(b);grid.append(card)}host.append(grid);
 }
 function renderAchievementSection(name,id){
- const host=document.getElementById(id);if(!host)return;
+ const host=document.getElementById(id);
+ if(!host)return;
+ const labels={
+  'my-levels':'tu nivel y tus XP',
+  'level-ranking':'la clasificación de miembros',
+  'streak-ranking':'la clasificación de rachas',
+  'community-missions':'las misiones de la comunidad',
+  'reward-chests':'los cofres de recompensas',
+  'reward-inventory':'el inventario de recompensas'
+ };
+ const label=labels[id]||'este apartado';
  const fail=error=>{
-  console.error('Logros y niveles:',name,error);
+  console.error('Logros y niveles: '+name,error);
   if(!host.isConnected)return;
   host.replaceChildren();
-  const message=document.createElement('p');message.textContent='No se pudo cargar este apartado. Comprueba tu conexión e inténtalo de nuevo.';
-  const retry=document.createElement('button');retry.type='button';retry.className='outline-btn mini';retry.textContent='↻ Reintentar';retry.onclick=()=>{host.textContent='Cargando…';renderAchievementSection(name,id)};
-  host.append(message,retry);
+  const message=document.createElement('p');
+  message.setAttribute('role','alert');
+  message.textContent='No se pudo cargar '+label+'.';
+  const diagnostic=document.createElement('p');
+  diagnostic.style.cssText='font-size:.9rem;overflow-wrap:anywhere;opacity:.85';
+  const detail=error instanceof Error?error.message:String(error?.message||error||'Error desconocido');
+  diagnostic.textContent='Detalle técnico: '+detail;
+  const retry=document.createElement('button');
+  retry.type='button';retry.className='outline-btn mini';retry.textContent='↻ Reintentar';
+  retry.onclick=()=>{host.textContent='Cargando '+label+'…';renderAchievementSection(name,id)};
+  host.append(message,diagnostic,retry);
  };
  try{
   const task=window[name];
-  if(typeof task!=='function')throw new Error('Módulo no disponible: '+name);
+  if(typeof task!=='function'){
+   const error=new Error('El archivo levels.js no se ha cargado correctamente. Prueba a recargar la página con Ctrl + F5.');
+   fail(error);
+   return;
+  }
   Promise.resolve(task()).catch(fail);
  }catch(error){fail(error)}
 }
