@@ -1106,7 +1106,7 @@ async function initGroupChats(userId,root){
   }
   const messages=document.createElement('div');messages.className='group-chat-messages';thread.append(messages);
   async function refresh(){
-   const {data,error}=await sb.from('member_chat_group_messages').select('id,sender_id,body,created_at,edited_at,deleted_at').eq('group_id',group.id).order('created_at',{ascending:true}).limit(100);
+   const {data,error}=await sb.from('member_chat_group_messages').select('id,sender_id,body,created_at,edited_at,deleted_at,image_path,audio_path').eq('group_id',group.id).order('created_at',{ascending:true}).limit(100);
    if(currentGroup?.id!==group.id||!messages.isConnected)return;
    messages.replaceChildren();
    if(error){messages.textContent='No se pudieron cargar los mensajes.';return;}
@@ -1115,6 +1115,15 @@ async function initGroupChats(userId,root){
    const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
    for(const m of data||[]){
     const item=document.createElement('p');const name=document.createElement('strong');name.textContent=(m.sender_id===userId?'Tú':names.get(m.sender_id)||'Miembro')+': ';const body=document.createElement('span');body.textContent=m.body;const time=document.createElement('small');time.textContent=' · '+new Date(m.created_at).toLocaleString('es-ES');item.append(name,body,time);
+    if(!m.deleted_at&&(m.image_path||m.audio_path)){
+     const path=m.image_path||m.audio_path;
+     const {data:signed}=await sb.storage.from('member-group-chat').createSignedUrl(path,1800);
+     if(signed?.signedUrl){
+      const media=m.image_path?document.createElement('img'):document.createElement('audio');
+      media.src=signed.signedUrl;media.controls=!!m.audio_path;media.className='group-chat-media';if(m.image_path){media.alt='Imagen enviada al grupo';media.loading='lazy';}
+      item.append(media);
+     }
+    }
     if(m.edited_at&&!m.deleted_at){const edited=document.createElement('small');edited.textContent=' · editado';item.append(edited);}
     if(!m.deleted_at&&(m.sender_id===userId||group.owner_id===userId||(members||[]).some(x=>x.user_id===userId&&x.role==='admin'))){
      if(m.sender_id===userId){const edit=document.createElement('button');edit.type='button';edit.className='outline-btn mini';edit.textContent='Editar';edit.onclick=async()=>{const next=prompt('Editar mensaje',m.body);if(next===null||!next.trim()||next.trim()===m.body)return;const {error}=await sb.rpc('manage_member_chat_message',{p_message:m.id,p_body:next.trim(),p_delete:false});say(error?'No se pudo editar: '+error.message:'Mensaje editado.');if(!error)refresh();};item.append(edit);}
@@ -1126,8 +1135,21 @@ async function initGroupChats(userId,root){
   }
   const form=document.createElement('form');form.className='group-chat-send';
   const input=document.createElement('input');input.required=true;input.maxLength=2000;input.placeholder='Escribe un mensaje al grupo…';input.setAttribute('aria-label','Mensaje al grupo');
-  const send=document.createElement('button');send.type='submit';send.textContent='Enviar';form.append(input,send);
-  form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim();if(!body)return;send.disabled=true;const {error}=await sb.from('member_chat_group_messages').insert({group_id:group.id,sender_id:userId,body});send.disabled=false;if(error)say('No se pudo enviar: '+error.message);else{input.value='';refresh();}};
+  const upload=document.createElement('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp,image/gif,audio/webm,audio/mp4,audio/mpeg,audio/ogg,audio/wav';upload.setAttribute('aria-label','Adjuntar imagen o audio');
+  const send=document.createElement('button');send.type='submit';send.textContent='Enviar';form.append(input,upload,send);
+  form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim(),file=upload.files?.[0];if(!body&&!file)return;send.disabled=true;
+   let image_path=null,audio_path=null;
+   if(file){
+    const allowed=['image/jpeg','image/png','image/webp','image/gif','audio/webm','audio/mp4','audio/mpeg','audio/ogg','audio/wav'];
+    if(!allowed.includes(file.type)||file.size>10485760){say('Archivo no permitido o mayor de 10 MB.');send.disabled=false;return;}
+    const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','audio/webm':'webm','audio/mp4':'m4a','audio/mpeg':'mp3','audio/ogg':'ogg','audio/wav':'wav'})[file.type];
+    const path=group.id+'/'+userId+'/'+crypto.randomUUID()+'.'+ext;
+    const {error:uploadError}=await sb.storage.from('member-group-chat').upload(path,file,{contentType:file.type});
+    if(uploadError){say('No se pudo subir el archivo: '+uploadError.message);send.disabled=false;return;}
+    if(file.type.startsWith('image/'))image_path=path;else audio_path=path;
+   }
+   const {error}=await sb.from('member_chat_group_messages').insert({group_id:group.id,sender_id:userId,body:body||(image_path?'📷 Imagen':'🎤 Audio'),image_path,audio_path});
+   send.disabled=false;if(error)say('No se pudo enviar: '+error.message);else{input.value='';upload.value='';refresh();}};
   thread.append(form);
   if(activeGroupChatChannel)sb.removeChannel(activeGroupChatChannel);
   activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).subscribe();
