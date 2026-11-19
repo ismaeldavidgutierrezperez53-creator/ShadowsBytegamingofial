@@ -162,11 +162,17 @@ function adminRenderList(){
 
 async function adminLoadOverview(){
  const root=document.getElementById('admin-overview');if(!root)return;
- const targets=[['profiles','Miembros registrados en perfiles'],['member_posts','Publicaciones de comunidad'],['member_comments','Comentarios'],['news','Noticias'],['billboard','Cartelera'],['events','Eventos'],['site_catalog','Catálogo editorial']];
+ const targets=[['profiles','Miembros registrados en perfiles'],['member_posts','Publicaciones de comunidad'],['member_comments','Comentarios'],['community_competitions','Retos y torneos'],['community_competition_entries','Inscripciones a actividades'],['member_reports','Denuncias recibidas'],['news','Noticias'],['billboard','Cartelera'],['events','Eventos'],['site_catalog','Catálogo editorial']];
  const results=await Promise.all(targets.map(async ([table,label])=>{const {count,error}=await sb.from(table).select('*',{count:'exact',head:true});return {label,count,error};}));
+ const extra=[
+  ['Denuncias pendientes',sb.from('member_reports').select('*',{count:'exact',head:true}).eq('status','pending')],
+  ['Pendientes más de 48 horas',sb.from('member_reports').select('*',{count:'exact',head:true}).eq('status','pending').lt('created_at',new Date(Date.now()-48*3600000).toISOString())],
+  ['Torneos publicados',sb.from('community_competitions').select('*',{count:'exact',head:true}).eq('status','published').eq('kind','tournament')]
+ ];
+ const summaryResults=await Promise.all(extra.map(async([label,query])=>{const {count,error}=await query;return {label,count,error};}));
  if(!root.isConnected)return;
  root.replaceChildren();
- for(const result of results){
+ for(const result of [...results,...summaryResults]){
   const tile=document.createElement('div');tile.className='admin-stat';
   const label=document.createElement('span');label.textContent=result.label;
   const number=document.createElement('strong');number.textContent=result.error?'—':String(result.count??0);
@@ -241,8 +247,14 @@ async function adminLoadReports(){
  const filter=document.getElementById('admin-reports-filter');
  const render=()=>{
   root.replaceChildren();
-  const rows=(data||[]).filter(r=>filter.value==='all'||r.status===filter.value);
-  if(!rows.length){root.textContent='No hay reportes en este estado.';return;}
+  const pending=(data||[]).filter(r=>r.status==='pending'),threshold=Date.now()-48*3600000;
+  const urgent=pending.filter(r=>new Date(r.created_at).getTime()<threshold);
+  const banner=document.createElement('p');banner.className='admin-report-priority-banner';
+  banner.textContent='🛡️ '+pending.length+' denuncias pendientes de las últimas 100 consultadas · ⚠️ '+urgent.length+' con más de 48 horas. Revisar una denuncia no elimina el contenido.';
+  root.append(banner);
+  const rows=(data||[]).filter(r=>filter.value==='all'||(filter.value==='overdue'?r.status==='pending'&&new Date(r.created_at).getTime()<threshold:r.status===filter.value))
+   .sort((a,b)=>a.status==='pending'&&b.status==='pending'?new Date(a.created_at)-new Date(b.created_at):new Date(b.created_at)-new Date(a.created_at));
+  if(!rows.length){const empty=document.createElement('p');empty.textContent='No hay reportes en este estado.';root.append(empty);return;}
   for(const report of rows){
    const row=document.createElement('article');row.className='admin-management-row';
    const info=document.createElement('div');const title=document.createElement('strong');
@@ -331,7 +343,7 @@ function adminInitExtended(){
  const welcome=dashboard.querySelector('.admin-welcome');welcome?.after(overview);
  const members=document.createElement('section');members.className='admin-panel';members.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE MIEMBROS</span><h2>Miembros</h2><p>Consulta los perfiles y busca usuarios. Los permisos de acceso no se modifican aquí.</p></div><input id="admin-members-search" type="search" placeholder="Buscar miembro…" aria-label="Buscar miembro"></div><div id="admin-members-list"></div>';
  const moderation=document.createElement('section');moderation.className='admin-panel';moderation.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">MODERACIÓN</span><h2>Publicaciones y comentarios</h2><p>Revisa la actividad reciente y elimina contenido inapropiado.</p></div><select id="admin-moderation-type" aria-label="Tipo de contenido"><option value="all">Todo</option><option value="posts">Publicaciones</option><option value="comments">Comentarios</option></select></div><div id="admin-moderation-list"></div>';
- const reports=document.createElement('section');reports.className='admin-panel';reports.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">REPORTES DE LA COMUNIDAD</span><h2>Denuncias recibidas</h2><p>Revisa los reportes de publicaciones y comentarios. Marcar un reporte como revisado no elimina el contenido.</p></div><select id="admin-reports-filter" aria-label="Filtrar reportes"><option value="pending">Pendientes</option><option value="all">Todos</option><option value="reviewed">Revisados</option><option value="dismissed">Descartados</option></select></div><div id="admin-reports-list"></div>';
+ const reports=document.createElement('section');reports.className='admin-panel';reports.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">REPORTES DE LA COMUNIDAD</span><h2>Denuncias recibidas</h2><p>Revisa los reportes de publicaciones y comentarios. Marcar un reporte como revisado no elimina el contenido.</p></div><select id="admin-reports-filter" aria-label="Filtrar reportes"><option value="pending">Pendientes</option><option value="overdue">⚠️ Pendientes más de 48 h</option><option value="all">Todos</option><option value="reviewed">Revisados</option><option value="dismissed">Descartados</option></select></div><div id="admin-reports-list"></div>';
  dashboard.append(members,moderation,reports);
  document.getElementById('admin-refresh').onclick=()=>{adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();adminUpdateReportAlerts();};
  adminLoadOverview();adminLoadMembers();adminLoadModeration();adminLoadReports();adminInitReportAlerts();
