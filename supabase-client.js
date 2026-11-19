@@ -1195,13 +1195,32 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   moderator.refresh=(ids)=>{kickSelect.replaceChildren();for(const id of ids){if(id===userId)continue;const o=document.createElement('option');o.value=id;o.textContent=profileMap.get(id)?.display_name||profileMap.get(id)?.username||'Miembro';kickSelect.append(o);}};
  }
 
+ const activity=document.createElement('section');activity.className='group-video-activity';
+ const activityTitle=document.createElement('h5');activityTitle.textContent='✋ Participación y chat de la sala';
+ const activityLog=document.createElement('div');activityLog.className='group-video-activity-log';activityLog.setAttribute('role','log');activityLog.setAttribute('aria-live','polite');
+ const hand=document.createElement('button');hand.type='button';hand.textContent='✋ Levantar la mano';
+ let handRaised=false,activityCursor=0;
+ const postActivity=async(kind,body=null,target_id=null)=>{const {error}=await sb.from('member_group_video_activity').insert({room_id:room.id,user_id:userId,kind,body,target_id});if(error)say('No se pudo enviar: '+error.message);return !error;};
+ hand.onclick=async()=>{const next=!handRaised;if(await postActivity('hand',next?'up':'down')){handRaised=next;hand.textContent=next?'✋ Bajar la mano':'✋ Levantar la mano';}};
+ const chatInput=document.createElement('input');chatInput.type='text';chatInput.maxLength=1000;chatInput.placeholder='Escribe un mensaje para la sala';chatInput.setAttribute('aria-label','Mensaje de videollamada');
+ const chatSend=document.createElement('button');chatSend.type='button';chatSend.textContent='💬 Enviar';
+ const sendChat=async()=>{const msg=chatInput.value.trim();if(!msg)return;if(await postActivity('message',msg))chatInput.value='';};
+ chatSend.onclick=sendChat;chatInput.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+ activity.append(activityTitle,hand,activityLog,chatInput,chatSend);
+ if(canModerate){
+  const muteSelect=document.createElement('select');muteSelect.setAttribute('aria-label','Solicitar silencio a participante');
+  const muteRequest=document.createElement('button');muteRequest.type='button';muteRequest.textContent='🎙️ Solicitar silenciar';
+  muteRequest.onclick=async()=>{if(muteSelect.value&&await postActivity('mute_request',null,muteSelect.value))say('Solicitud enviada. El participante decide si silencia su micrófono.');};
+  moderator.append(muteSelect,muteRequest);
+  moderator.refreshMute=ids=>{const selected=muteSelect.value;muteSelect.replaceChildren();for(const id of ids){if(id===userId)continue;const o=document.createElement('option');o.value=id;o.textContent=profileMap.get(id)?.display_name||profileMap.get(id)?.username||'Miembro';muteSelect.append(o);}if([...muteSelect.options].some(o=>o.value===selected))muteSelect.value=selected;};
+ }
  const mic=document.createElement('button');mic.type='button';mic.textContent='🎙️ Silenciar';
  mic.onclick=()=>{const track=stream.getAudioTracks()[0];if(track){track.enabled=!track.enabled;mic.textContent=track.enabled?'🎙️ Silenciar':'🔇 Activar micrófono';}};
  const camera=document.createElement('button');camera.type='button';camera.textContent='📷 Apagar cámara';
  camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
  const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
- actions.append(mic,camera,share,leave);panel.append(title,videos,actions,invites,moderator);thread.prepend(panel);
+ actions.append(mic,camera,share,leave);panel.append(title,videos,actions,invites,moderator,activity);thread.prepend(panel);
  const peers=new Map();let lastSignal=0,busy=false,screenStream=null,originalVideo=null,closed=false;
  const sendSignal=async(to,signal)=>{const {error}=await sb.from('member_group_video_signals').insert({room_id:room.id,sender_id:userId,recipient_id:to,signal});if(error)console.warn('Señal de vídeo:',error.message);};
  const createPeer=(other)=>{
@@ -1244,10 +1263,22 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    const active=new Set((participants||[]).map(p=>p.user_id));
    if(!active.has(userId)){say('Un moderador te ha retirado de la sala.');await leaveRoom();return;}
    inviteSelect.replaceChildren();for(const [id,p] of profileMap){if(id===userId||active.has(id))continue;const o=document.createElement('option');o.value=id;o.textContent=p.display_name||p.username||'Miembro';inviteSelect.append(o);}
-   if(moderator.refresh){moderator.refresh(active);await moderator.refreshBlocked();}
+   if(moderator.refresh){moderator.refresh(active);moderator.refreshMute(active);await moderator.refreshBlocked();}
    for(const [id,peer] of peers)if(!active.has(id)){peer.pc.close();peer.tile.remove();peers.delete(id);}
    // Only the newer participant creates offers, avoiding simultaneous negotiation.
    for(const p of participants||[])if(p.user_id!==userId&&!peers.has(p.user_id)&&userId>p.user_id)await offerPeer(p.user_id);
+   const {data:events,error:eventsError}=await sb.from('member_group_video_activity').select('id,user_id,kind,target_id,body').eq('room_id',room.id).gt('id',activityCursor).order('id').limit(100);
+   if(!eventsError)for(const ev of events||[]){
+    activityCursor=ev.id;
+    const who=profileMap.get(ev.user_id)?.display_name||profileMap.get(ev.user_id)?.username||'Miembro';
+    if(ev.kind==='mute_request'&&ev.target_id===userId){say(who+' te solicita silenciar el micrófono.');}
+    const line=document.createElement('p');
+    if(ev.kind==='message')line.textContent=who+': '+ev.body;
+    else if(ev.kind==='hand')line.textContent=who+(ev.body==='up'?' ✋ ha levantado la mano':' ha bajado la mano');
+    else if(ev.kind==='mute_request')line.textContent=who+' ha solicitado silenciar a '+(profileMap.get(ev.target_id)?.display_name||'un participante');
+    activityLog.append(line);while(activityLog.children.length>60)activityLog.firstElementChild.remove();
+    activityLog.scrollTop=activityLog.scrollHeight;
+   }
    const {data:signals}=await sb.from('member_group_video_signals').select('id,sender_id,signal').eq('room_id',room.id).eq('recipient_id',userId).gt('id',lastSignal).order('id').limit(100);
    for(const row of signals||[]){lastSignal=row.id;try{await handleSignal(row);}catch(e){console.warn('Señal WebRTC:',e.message);}}
   }catch(e){console.warn('Sala de vídeo:',e.message);}finally{busy=false;}
