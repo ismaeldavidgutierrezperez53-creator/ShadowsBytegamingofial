@@ -1405,8 +1405,21 @@ async function loadMemberSocial(memberId,root){
   let previewUrl=null;imageInput.onchange=()=>{if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=null;const file=imageInput.files?.[0];preview.hidden=!file;if(file){previewUrl=URL.createObjectURL(file);preview.src=previewUrl;}};
   const albumLabel=document.createElement('label');albumLabel.textContent='Álbum para la imagen';
   const albumSelect=document.createElement('select');albumSelect.className='social-album-select';for(const album of ['Gaming','Anime','Capturas','Otros']){const option=document.createElement('option');option.value=album;option.textContent=album;albumSelect.append(option);}albumSelect.value='Otros';albumLabel.append(albumSelect);
+  const animeDraft=new URLSearchParams(location.hash.split('?')[1]||'').get('retoAnime')==='1'
+    &&location.hash.split('?')[0]==='#/cuenta';
+  if(animeDraft){
+   label.textContent='🌸 Mi recomendación para el Reto de Anime';
+   textarea.value='🌸 #RetoAnimeSB2026\n🎬 Anime: \n🎭 Género: \n💜 Por qué lo recomiendo: \n👥 Se lo recomiendo a: ';
+   albumSelect.value='Anime';
+   const instructions=document.createElement('p');instructions.className='community-anime-draft-instructions';
+   instructions.textContent='Completa la plantilla con tu opinión original y publícala durante el plazo del reto. Recuerda inscribirte antes en Comunidad y evita los spoilers.';
+   form.append(instructions);
+  }
   const submit=document.createElement('button');submit.className='gradient-btn mini';submit.textContent='Publicar';
   form.append(label,textarea,imageLabel,imageInput,preview,albumLabel,submit);
+  if(animeDraft)requestAnimationFrame(()=>{
+   if(textarea.isConnected){form.scrollIntoView({behavior:'smooth',block:'center'});textarea.focus({preventScroll:true});}
+  });
   form.onsubmit=async e=>{
    e.preventDefault();const content=textarea.value.trim();const file=imageInput.files?.[0];if(!content&&!file){feedback.textContent='Escribe un mensaje o selecciona una imagen.';return;}
    const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
@@ -1565,6 +1578,22 @@ async function loadCommunityCompetitions(root){
     await reload();note.textContent=message;
    };
    card.append(title,state,description,dates,count,signup);
+   // El primer reto anime enlaza con el editor del perfil: desde allí
+   // las publicaciones pasan al muro comunitario y pueden ser evaluadas.
+   if(c.kind==='challenge'&&c.description.includes('#RetoAnimeSB2026')){
+    const action=document.createElement('div');action.className='community-anime-challenge-action';
+    if(own&&now>=start&&now<end){
+     const write=document.createElement('a');write.className='community-anime-challenge-write';
+     write.href='#/cuenta?retoAnime=1';write.textContent='📝 Escribir mi recomendación';
+     action.append(write);
+    }else{
+     const hint=document.createElement('small');hint.textContent=!own
+      ?'Inscríbete para preparar tu participación.'
+      :now<start?'Podrás publicar tu recomendación cuando comience el reto.':'El plazo para publicar ha terminado.';
+     action.append(hint);
+    }
+    card.append(action);
+   }
    const prizeInfo=document.createElement('div');prizeInfo.className='community-contest-prizes';
    const prizeTitle=document.createElement('strong');prizeTitle.textContent=medals.length?'🏆 Podio oficial · premios entregados':'🎁 Premios al finalizar';
    prizeInfo.append(prizeTitle);
