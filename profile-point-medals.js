@@ -224,7 +224,12 @@
         const {data,error}=await sb.rpc('set_my_point_goal_showcase_style',{p_theme:nextTheme});
         if(error||!data?.saved||data.theme!==nextTheme)
           throw error||Error('El estilo no se ha guardado correctamente.');
-        if(active())themeStatus.textContent='✅ Estilo '+themes[nextTheme].label+' guardado en tu perfil.';
+        if(active()){
+          themeStatus.textContent='✅ Estilo '+themes[nextTheme].label+' guardado en tu perfil.';
+          window.dispatchEvent(new CustomEvent('sb:medal-theme-changed',{
+            detail:{theme:themeKey}
+          }));
+        }
       }catch(error){
         themeKey=previous;
         if(active())themeStatus.textContent='No se pudo guardar el estilo: '+
