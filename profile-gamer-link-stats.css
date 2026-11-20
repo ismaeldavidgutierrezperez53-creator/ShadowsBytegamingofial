@@ -1,0 +1,37 @@
+/* Shadows Byte Gaming V2 — estadísticas privadas de enlaces gamer */
+.sbgl-link-analytics{margin:18px 0;padding:18px;min-width:0;border-radius:16px;border:1px solid rgba(172,113,238,.42);background:linear-gradient(135deg,rgba(43,23,82,.83),rgba(21,35,61,.79))}
+.sbgl-link-analytics h2{font:700 clamp(1.24rem,2.5vw,1.57rem) Rajdhani,Arial,sans-serif;color:#f5e5ff;margin:2px 0 8px}
+.sbgl-link-analytics h3{font:700 1.18rem Rajdhani,Arial,sans-serif;color:#ebd5ff;margin:19px 0 10px}
+.sbgl-stats-help,.sbgl-stats-note,.sbgl-stats-message{color:#dbcaea;font-size:.9rem;line-height:1.55}
+.sbgl-stats-note{font-size:.83rem;padding-top:14px;border-top:1px solid rgba(194,143,250,.22);margin-top:19px}
+.sbgl-stats-message{margin:9px 0 15px}
+.sbgl-stats-toolbar{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;margin:15px 0 12px}
+.sbgl-stats-periods{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sbgl-stats-periods button,.sbgl-stats-toolbar>button{min-height:38px;cursor:pointer}
+.sbgl-stats-periods button[aria-pressed="true"]{background:linear-gradient(120deg,#7c38c6,#a668e3);border-color:#e0b5fa;color:white}
+.sbgl-stats-periods button:disabled,.sbgl-stats-toolbar>button:disabled{opacity:.55;cursor:wait}
+.sbgl-stats-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.sbgl-stats-tile{display:flex;flex-direction:column;gap:13px;padding:15px;border:1px solid rgba(189,135,242,.27);border-radius:12px;background:rgba(125,80,182,.19);min-width:0}
+.sbgl-stats-tile span{font:700 .89rem Rajdhani,Arial,sans-serif;color:#d9c7ea}
+.sbgl-stats-tile strong{font:800 clamp(1.35rem,3vw,1.96rem) Rajdhani,Arial,sans-serif;color:#fff0fc;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sbgl-stats-chart-scroll{overflow-x:auto;max-width:100%;overscroll-behavior-inline:contain;scrollbar-color:#a76ada #211834;padding:7px 3px 12px}
+.sbgl-stats-chart{display:grid;grid-template-columns:repeat(var(--sbgl-analytics-days,7),minmax(29px,1fr));gap:7px;min-width:max(430px,calc(var(--sbgl-analytics-days,7)*31px))}
+.sbgl-stats-bar-column{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+.sbgl-stats-bar-column strong{font:700 .82rem Rajdhani,Arial,sans-serif;color:#f3e5ff;font-variant-numeric:tabular-nums}
+.sbgl-stats-bar-column small{font:700 .76rem Rajdhani,Arial,sans-serif;color:#d0bae6}
+.sbgl-stats-bar-track{display:block;width:100%;height:125px;position:relative;border:1px solid rgba(205,157,251,.22);border-radius:6px;overflow:hidden;background:rgba(167,101,224,.12)}
+.sbgl-stats-bar-fill{display:block;position:absolute;left:0;right:0;bottom:0;border-radius:5px 5px 0 0;background:linear-gradient(0deg,#7540c5,#c78bf9);transition:height .2s ease}
+.sbgl-stats-ranking{display:grid;gap:10px}
+.sbgl-stats-rank-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:11px 12px 13px;border:1px solid rgba(180,138,238,.25);border-radius:11px;background:rgba(105,62,151,.16);align-items:center;min-width:0}
+.sbgl-stats-rank-title{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.sbgl-stats-rank-title strong{font:700 .98rem Rajdhani,Arial,sans-serif;color:#f7e8ff}
+.sbgl-stats-rank-number{font:700 .86rem Rajdhani,Arial,sans-serif;color:#fae6ff;background:rgba(169,105,229,.26);border-radius:8px;padding:4px 8px}
+.sbgl-stats-rank-count{font:700 .85rem Rajdhani,Arial,sans-serif;color:#e8d8f6;font-variant-numeric:tabular-nums}
+.sbgl-stats-favorite,.sbgl-stats-hidden{font:700 .76rem Rajdhani,Arial,sans-serif;padding:3px 7px;border:1px solid rgba(233,200,94,.5);border-radius:50px;color:#ffebb2}
+.sbgl-stats-hidden{border-color:rgba(176,177,194,.5);color:#cac5d9}
+.sbgl-stats-rank-track{grid-column:1/-1;height:5px;border-radius:8px;overflow:hidden;background:rgba(155,112,215,.22)}
+.sbgl-stats-rank-fill{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,#7d50d2,#cf9aff)}
+.sbgl-stats-empty{font-size:.91rem;color:#d8c5ed}
+@media(max-width:720px){.sbgl-stats-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.sbgl-link-analytics{padding:13px}.sbgl-stats-rank-row{grid-template-columns:1fr}.sbgl-stats-rank-count{grid-row:2}}
+@media(max-width:430px){.sbgl-stats-summary{grid-template-columns:1fr}.sbgl-stats-periods{flex:1 1 auto}.sbgl-stats-periods button{flex:1 1 auto}.sbgl-stats-toolbar>button{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){.sbgl-stats-bar-fill{transition:none}}
