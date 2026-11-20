@@ -485,24 +485,160 @@ async function adminInitRewardShop(){
  const {data:{user}}=await sb.auth.getUser();
  if(user?.app_metadata?.role!=='admin'){root.textContent='Acceso exclusivo para administradores.';return}
  const [items,sales]=await Promise.all([sb.rpc('admin_shop_items'),sb.rpc('admin_shop_sales')]);
- root.replaceChildren();if(items.error||sales.error){root.textContent='Error al cargar la tienda: '+(items.error?.message||sales.error?.message);return}
- const heading=document.createElement('h2');heading.textContent='🏪 Administración de la tienda';root.append(heading);
- const note=document.createElement('p');note.textContent='Puedes añadir y editar artículos, imágenes, precios y visibilidad. Para conservar las compras, los identificadores y efectos existentes no se modifican.';root.append(note);
- const form=document.createElement('form');form.className='admin-panel';form.style.cssText='padding:16px;display:grid;gap:10px';
- const fields=[['id','ID único (letras, números, guion bajo)','text'],['name','Nombre','text'],['description','Descripción','text'],['price','Precio en puntos','number'],['image_url','URL HTTPS de imagen (opcional)','url'],['sort_order','Orden','number']];
- const controls={};for(const [key,label,type] of fields){const wrap=document.createElement('label');wrap.textContent=label;const input=document.createElement('input');input.type=type;input.name=key;if(key==='id'||key==='name'||key==='price')input.required=true;if(key==='price')input.min='1';if(key==='id')input.pattern='[a-z0-9_-]{3,60}';wrap.append(input);form.append(wrap);controls[key]=input}
- const categories={frame:'Marco',badge:'Insignia',color:'Color',title:'Título'};const categoryLabel=document.createElement('label');categoryLabel.textContent='Categoría';const category=document.createElement('select');for(const [key,label] of Object.entries(categories)){const option=document.createElement('option');option.value=key;option.textContent=label;category.append(option)}categoryLabel.append(category);form.append(categoryLabel);
+ root.replaceChildren();
+ if(items.error||sales.error){root.textContent='Error al cargar la tienda: '+(items.error?.message||sales.error?.message);return}
+ const inventory=items.data||[];
+ const shop=document.createElement('div');shop.className='sb-shop-admin';root.append(shop);
+ const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el};
+ const header=make('header','sb-shop-admin__header');
+ const intro=make('div','');
+ intro.append(make('div','sb-shop-admin__eyebrow','PANEL DE ADMINISTRACIÓN'),make('h2','','🏪 Administración de la tienda'),make('p','','Añade y edita artículos, imágenes, precios y visibilidad. Para conservar las compras, los identificadores y efectos existentes no se modifican.'));
+ const pills=make('div','sb-shop-admin__pills');
+ pills.append(make('span','sb-shop-admin__pill',inventory.length+' artículos'),make('span','sb-shop-admin__pill sb-shop-admin__pill--active',inventory.filter(item=>item.active).length+' visibles'));
+ header.append(intro,pills);shop.append(header);
+
+ const layout=make('div','sb-shop-admin__layout');
+ const form=document.createElement('form');form.className='admin-panel sb-shop-admin__form';
+ const formHeading=make('div','sb-shop-admin__section-heading');
+ const formHeadingText=make('div','');
+ formHeadingText.append(make('h3','','✨ Datos del artículo'),make('p','','Completa los campos para publicar una recompensa.'));
+ formHeading.append(formHeadingText);form.append(formHeading);
+ const fieldsRoot=make('div','sb-shop-admin__fields');
+ const controls={};
+ const fields=[
+  ['id','ID único','text','Ej.: marco_neon',false],
+  ['name','Nombre del artículo','text','Ej.: Marco neón especial',false],
+  ['description','Descripción','textarea','Explica qué recibirá el usuario',true],
+  ['price','Precio en puntos','number','Ej.: 500',false],
+  ['sort_order','Orden de aparición','number','0',false],
+  ['image_url','URL HTTPS de imagen (opcional)','url','https://ejemplo.com/imagen.png',true]
+ ];
+ for(const [key,label,type,placeholder,wide] of fields){
+  const wrap=make('label','sb-shop-admin__field'+(wide?' sb-shop-admin__field--wide':''));
+  const control=type==='textarea'?document.createElement('textarea'):document.createElement('input');
+  if(type==='textarea')control.rows=3;else control.type=type;
+  control.name=key;control.placeholder=placeholder;
+  if(['id','name','price'].includes(key))control.required=true;
+  if(key==='price')control.min='1';
+  if(key==='sort_order')control.min='0';
+  if(key==='id')control.pattern='[a-z0-9_-]{3,60}';
+  wrap.append(make('span','',label),control);
+  if(key==='id')wrap.append(make('small','sb-shop-admin__hint','De 3 a 60 caracteres: letras minúsculas, números, _ o -.'));
+  fieldsRoot.append(wrap);controls[key]=control;
+ }
+ const categories={frame:'Marco',badge:'Insignia',color:'Color',title:'Título'};
+ const categoryLabel=make('label','sb-shop-admin__field');categoryLabel.append(make('span','','Categoría'));
+ const category=document.createElement('select');
+ for(const [key,label] of Object.entries(categories)){const option=document.createElement('option');option.value=key;option.textContent=label;category.append(option)}
+ categoryLabel.append(category);fieldsRoot.append(categoryLabel);
  const effects={frame:[['neon','Marco neón'],['gold','Marco dorado']],badge:[['⭐','Estrella'],['👑','Corona']],color:[['#22d3ee','Cian'],['#f472b6','Rosa']],title:[['Otaku Élite','Otaku Élite'],['Leyenda Byte','Leyenda Byte']]};
- const effectLabel=document.createElement('label');effectLabel.textContent='Efecto visual';const effect=document.createElement('select');effectLabel.append(effect);form.append(effectLabel);
- const refreshEffects=(value)=>{effect.replaceChildren();for(const [key,label] of effects[category.value]){const opt=document.createElement('option');opt.value=key;opt.textContent=label;effect.append(opt)}if(value)effect.value=value};category.onchange=()=>refreshEffects();refreshEffects();
- const activeLabel=document.createElement('label');const active=document.createElement('input');active.type='checkbox';active.checked=true;activeLabel.append(active,document.createTextNode(' Artículo visible en tienda'));form.append(activeLabel);
- const submit=document.createElement('button');submit.type='submit';submit.className='gradient-btn mini';submit.textContent='Guardar artículo';const reset=document.createElement('button');reset.type='button';reset.className='outline-btn mini';reset.textContent='Nuevo artículo';const status=document.createElement('p');status.setAttribute('role','status');form.append(submit,reset,status);root.append(form);
- const resetForm=()=>{form.reset();controls.id.readOnly=false;category.disabled=false;effect.disabled=false;refreshEffects();active.checked=true;status.textContent=''};reset.onclick=resetForm;
- const fill=item=>{for(const [key,input] of Object.entries(controls))input.value=item[key]??'';category.value=item.category;refreshEffects(item.value);active.checked=item.active;controls.id.readOnly=true;category.disabled=true;effect.disabled=true;status.textContent='Editando '+item.name;form.scrollIntoView({behavior:'smooth',block:'start'})};
- form.onsubmit=async event=>{event.preventDefault();submit.disabled=true;status.textContent='Guardando…';const payload={p_id:controls.id.value.trim(),p_category:category.value,p_name:controls.name.value.trim(),p_description:controls.description.value.trim(),p_price:Number(controls.price.value),p_value:effect.value,p_active:active.checked,p_image_url:controls.image_url.value.trim()||null,p_sort_order:Number(controls.sort_order.value||0)};const {error}=await sb.rpc('admin_save_shop_item',payload);submit.disabled=false;if(error){status.textContent='Error: '+error.message;return}await adminInitRewardShop()};
- const list=document.createElement('div');const h=document.createElement('h3');h.textContent='Artículos existentes';list.append(h);
- for(const item of items.data||[]){const row=document.createElement('div');row.style.cssText='padding:10px;border-bottom:1px solid #ffffff22;display:flex;gap:10px;align-items:center;flex-wrap:wrap';if(item.image_url){const img=document.createElement('img');img.src=item.image_url;img.alt='';img.style.cssText='width:50px;height:50px;object-fit:cover;border-radius:8px';row.append(img)}const title=document.createElement('span');title.textContent=item.name+' · '+item.price+' puntos · '+(item.active?'Visible':'Oculto');row.append(title);const button=document.createElement('button');button.type='button';button.className='outline-btn mini';button.textContent='Editar';button.onclick=()=>fill(item);row.append(button);list.append(row)}root.append(list);
- const stats=document.createElement('section');const statsTitle=document.createElement('h3');statsTitle.textContent='📊 Compras por artículo';stats.append(statsTitle);for(const entry of sales.data||[]){const p=document.createElement('p');p.textContent=entry.item_name+' · '+entry.purchases+' compras · '+entry.points_spent+' puntos gastados';stats.append(p)}root.append(stats);
+ const effectLabel=make('label','sb-shop-admin__field');effectLabel.append(make('span','','Efecto visual'));
+ const effect=document.createElement('select');effectLabel.append(effect);fieldsRoot.append(effectLabel);
+ const refreshEffects=(value)=>{effect.replaceChildren();for(const [key,label] of effects[category.value]||[]){const option=document.createElement('option');option.value=key;option.textContent=label;effect.append(option)}if(value)effect.value=value};
+ refreshEffects();
+ const activeLabel=make('label','sb-shop-admin__toggle');
+ const active=document.createElement('input');active.type='checkbox';active.checked=true;
+ activeLabel.append(active,make('span','','✅ Artículo visible en tienda'));fieldsRoot.append(activeLabel);
+ form.append(fieldsRoot);
+ const actions=make('div','sb-shop-admin__actions');
+ const submit=make('button','gradient-btn','💾 Guardar artículo');submit.type='submit';
+ const reset=make('button','outline-btn','＋ Nuevo artículo');reset.type='button';
+ actions.append(submit,reset);
+ const status=make('p','sb-shop-admin__status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+ form.append(actions,status);
+
+ const preview=make('aside','sb-shop-admin__preview');
+ const previewHeading=make('div','sb-shop-admin__section-heading');
+ const previewHeadingText=make('div','');
+ previewHeadingText.append(make('h3','','👁 Vista previa'),make('p','','Así se verá la recompensa.'));
+ previewHeading.append(previewHeadingText);preview.append(previewHeading);
+ const previewArt=make('div','sb-shop-admin__preview-art');
+ const previewImage=document.createElement('img');previewImage.alt='Imagen del artículo';previewImage.hidden=true;
+ const previewPlaceholder=make('span','sb-shop-admin__preview-placeholder','🎁');
+ previewArt.append(previewImage,previewPlaceholder);
+ const previewName=make('div','sb-shop-admin__preview-name');
+ const previewMeta=make('div','sb-shop-admin__preview-meta');
+ const previewPrice=make('span','','0 puntos');const previewCategory=make('span','','Marco');const previewEffect=make('span','','Marco neón');
+ previewMeta.append(previewPrice,previewCategory,previewEffect);
+ const previewDescription=make('p','sb-shop-admin__preview-description');
+ preview.append(previewArt,previewName,previewMeta,previewDescription);
+ layout.append(form,preview);shop.append(layout);
+ const updatePreview=()=>{
+  const url=controls.image_url.value.trim();
+  if(url.startsWith('https://')){previewImage.hidden=false;previewPlaceholder.hidden=true;if(previewImage.src!==url)previewImage.src=url}
+  else {previewImage.hidden=true;previewPlaceholder.hidden=false;previewImage.removeAttribute('src')}
+  previewName.textContent=controls.name.value.trim()||'Nombre del artículo';
+  previewPrice.textContent=(controls.price.value||'0')+' puntos';
+  previewCategory.textContent=categories[category.value]||'Categoría';
+  previewEffect.textContent=effect.selectedOptions[0]?.textContent||'Sin efecto';
+  previewDescription.textContent=controls.description.value.trim()||'La descripción de la recompensa aparecerá aquí.';
+ };
+ previewImage.onerror=()=>{previewImage.hidden=true;previewPlaceholder.hidden=false};
+ category.onchange=()=>{refreshEffects();updatePreview()};
+ fieldsRoot.addEventListener('input',updatePreview);
+ fieldsRoot.addEventListener('change',updatePreview);
+ const resetForm=()=>{
+  form.reset();controls.id.readOnly=false;category.disabled=false;effect.disabled=false;
+  refreshEffects();active.checked=true;submit.textContent='💾 Guardar artículo';status.textContent='';status.removeAttribute('data-type');updatePreview();
+ };
+ reset.onclick=resetForm;
+ const fill=item=>{
+  for(const [key,input] of Object.entries(controls))input.value=item[key]??'';
+  category.value=item.category;refreshEffects(item.value);active.checked=!!item.active;
+  controls.id.readOnly=true;category.disabled=true;effect.disabled=true;
+  submit.textContent='💾 Guardar cambios';status.textContent='Editando: '+item.name;status.removeAttribute('data-type');
+  updatePreview();form.scrollIntoView({behavior:'smooth',block:'start'});
+ };
+ form.onsubmit=async event=>{
+  event.preventDefault();submit.disabled=true;status.textContent='Guardando artículo…';status.removeAttribute('data-type');
+  const payload={p_id:controls.id.value.trim(),p_category:category.value,p_name:controls.name.value.trim(),p_description:controls.description.value.trim(),p_price:Number(controls.price.value),p_value:effect.value,p_active:active.checked,p_image_url:controls.image_url.value.trim()||null,p_sort_order:Number(controls.sort_order.value||0)};
+  try{
+   const {error}=await sb.rpc('admin_save_shop_item',payload);
+   if(error){status.textContent='Error: '+error.message;status.dataset.type='error';return}
+   await adminInitRewardShop();
+   const newStatus=root.querySelector('.sb-shop-admin__status');if(newStatus){newStatus.textContent='✓ Artículo guardado correctamente.';newStatus.dataset.type='success'}
+  }catch(error){status.textContent='No se pudo guardar: '+(error?.message||String(error));status.dataset.type='error'}
+  finally{submit.disabled=false}
+ };
+ updatePreview();
+
+ const list=make('section','sb-shop-admin__section');
+ const listHeading=make('div','sb-shop-admin__section-heading');
+ const listTitle=make('div','');listTitle.append(make('h3','','🛍️ Artículos existentes'),make('p','','Selecciona Editar para actualizar un artículo sin perder compras.'));
+ const search=document.createElement('input');search.className='sb-shop-admin__search';search.type='search';search.placeholder='Buscar artículos…';search.setAttribute('aria-label','Buscar artículos de la tienda');
+ listHeading.append(listTitle,search);list.append(listHeading);
+ const itemsRoot=make('div','sb-shop-admin__items');const rows=[];
+ for(const item of inventory){
+  const row=make('div','sb-shop-admin__item');
+  if(item.image_url){const img=document.createElement('img');img.className='sb-shop-admin__item-image';img.src=item.image_url;img.alt='';img.loading='lazy';row.append(img)}
+  else row.append(make('div','sb-shop-admin__item-image sb-shop-admin__item-fallback','🎁'));
+  const info=make('div','sb-shop-admin__item-info');
+  info.append(make('strong','',item.name),make('small','',item.price+' puntos · '+(categories[item.category]||item.category)),make('span','sb-shop-admin__item-status'+(item.active?'':' sb-shop-admin__item-status--hidden'),item.active?'● Visible':'● Oculto'));
+  const button=make('button','','Editar');button.type='button';button.onclick=()=>fill(item);
+  row.append(info,button);itemsRoot.append(row);
+  rows.push({row,item});
+ }
+ const empty=make('p','sb-shop-admin__empty','No hay artículos que coincidan con la búsqueda.');empty.hidden=true;
+ list.append(itemsRoot,empty);shop.append(list);
+ const filter=()=>{
+  const term=search.value.trim().toLocaleLowerCase('es');let visible=0;
+  for(const {row,item} of rows){const content=[item.name,item.id,categories[item.category]||item.category].join(' ').toLocaleLowerCase('es');row.hidden=!content.includes(term);if(!row.hidden)visible++}
+  empty.hidden=visible>0;
+  if(!inventory.length)empty.textContent='Aún no hay artículos en la tienda.';
+ };
+ search.addEventListener('input',filter);filter();
+
+ const stats=make('section','sb-shop-admin__section');
+ const statsHeading=make('div','sb-shop-admin__section-heading');statsHeading.append(make('h3','','📊 Compras por artículo'));stats.append(statsHeading);
+ const salesRoot=make('div','sb-shop-admin__sales');
+ for(const entry of sales.data||[]){
+  const tile=make('div','sb-shop-admin__sale');
+  tile.append(make('strong','',entry.item_name),make('span','',entry.purchases+' compras'),make('span','',entry.points_spent+' puntos gastados'));
+  salesRoot.append(tile);
+ }
+ if(!(sales.data||[]).length)stats.append(make('p','sb-shop-admin__empty','Todavía no hay compras registradas.'));
+ else stats.append(salesRoot);
+ shop.append(stats);
 }
 
 async function adminInitSurpriseBoxes(){
