@@ -211,6 +211,12 @@ async function renderRewardShop(){
   showcase.append(grid);host.append(showcase);
  }
  const offers=inventory.filter(onSale);
+ if(!offers.length){
+  const offerEmpty=document.createElement('section');offerEmpty.className='shop-v2-panel';
+  const title=document.createElement('h3');title.textContent='🔥 Ofertas especiales';
+  const note=document.createElement('p');note.textContent='No hay descuentos activos en este momento. Pronto podrán aparecer promociones programadas por la administración.';
+  offerEmpty.append(title,note);host.append(offerEmpty);
+ }
  if(offers.length){
   const showcase=document.createElement('section');showcase.className='shop-v2-panel';
   const title=document.createElement('h3');title.textContent='🔥 Ofertas especiales';showcase.append(title);
