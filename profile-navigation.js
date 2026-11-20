@@ -278,6 +278,10 @@
     enhance(host,isOwn);
    });
    sortBox.append(redoFavorite);
+   const exportDetails=node('details','sb-nav-export-details');
+   const exportSummary=node('summary','sb-nav-export-summary','📁 Exportar accesos (7 herramientas)');
+   const exportBox=node('div','sb-nav-export-tools');
+   exportDetails.append(exportSummary,exportBox);
    const buildFavoriteList=()=>{
     const favorites=readFavorites();
     const currentHidden=readHidden();
@@ -316,7 +320,7 @@
      copyFavorites.textContent='No se pudo copiar; revisa permisos';
     }
    });
-   sortBox.append(copyFavorites);
+   exportBox.append(copyFavorites);
    const downloadFavorites=node('button','sb-nav-download-favorites','⬇ Descargar mis accesos favoritos');
    downloadFavorites.type='button';
    downloadFavorites.addEventListener('click',()=>{
@@ -338,7 +342,7 @@
      downloadFavorites.textContent='No se pudo preparar el archivo';
     }
    });
-   sortBox.append(downloadFavorites);
+   exportBox.append(downloadFavorites);
    const downloadCsv=node('button','sb-nav-download-csv','📊 Descargar favoritos CSV');
    downloadCsv.type='button';
    downloadCsv.addEventListener('click',()=>{
@@ -367,7 +371,7 @@
      downloadCsv.textContent='No se pudo preparar el CSV';
     }
    });
-   sortBox.append(downloadCsv);
+   exportBox.append(downloadCsv);
    const downloadAllCsv=node('button','sb-nav-download-all-csv','📑 Descargar todos los accesos CSV');
    downloadAllCsv.type='button';
    downloadAllCsv.addEventListener('click',()=>{
@@ -412,7 +416,7 @@
      downloadAllCsv.textContent='No se pudo preparar el CSV completo';
     }
    });
-   sortBox.append(downloadAllCsv);
+   exportBox.append(downloadAllCsv);
    const downloadFilteredCsv=node('button','sb-nav-download-filtered-csv','🔎 Descargar resultados filtrados CSV');
    downloadFilteredCsv.type='button';
    downloadFilteredCsv.addEventListener('click',()=>{
@@ -447,7 +451,7 @@
      downloadFilteredCsv.textContent='No se pudo preparar el CSV filtrado';
     }
    });
-   sortBox.append(downloadFilteredCsv);
+   exportBox.append(downloadFilteredCsv);
    const copyFiltered=node('button','sb-nav-copy-filtered','📋 Copiar resultados filtrados');
    copyFiltered.type='button';
    copyFiltered.addEventListener('click',async()=>{
@@ -481,7 +485,7 @@
      copyFiltered.textContent='No se pudo copiar; revisa permisos';
     }
    });
-   sortBox.append(copyFiltered);
+   exportBox.append(copyFiltered);
    const downloadFilteredTxt=node('button','sb-nav-download-filtered-txt','⬇ Descargar resultados filtrados TXT');
    downloadFilteredTxt.type='button';
    downloadFilteredTxt.addEventListener('click',()=>{
@@ -512,7 +516,7 @@
      downloadFilteredTxt.textContent='No se pudo preparar el TXT filtrado';
     }
    });
-   sortBox.append(downloadFilteredTxt);
+   exportBox.append(downloadFilteredTxt);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -581,7 +585,7 @@
    };
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
-   details.append(summary,searchBox,layoutBar,sortBox,resultCount,controls);
+   details.append(summary,searchBox,layoutBar,sortBox,exportDetails,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
