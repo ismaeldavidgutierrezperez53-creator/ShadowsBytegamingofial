@@ -3348,7 +3348,7 @@ async function loadPrivateMessages(){
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
- const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,audio_path,deleted_at,reply_to_id,edited_at').order('created_at',{ascending:false}).limit(300);
+ const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,image_paths,audio_path,deleted_at,reply_to_id,edited_at').order('created_at',{ascending:false}).limit(300);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
@@ -3561,7 +3561,26 @@ async function loadPrivateMessages(){
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
    if(m.reply_to_id){const original=conversationById.get(m.reply_to_id);const quote=document.createElement('div');quote.className='private-chat-reply-quote';quote.textContent=!original?'↪ Mensaje anterior':original.deleted_at?'↪ Mensaje eliminado':'↪ '+(original.sender_id===me?'Tú: ':'Miembro: ')+(original.body?.trim()|| (original.image_path?'📷 Imagen':original.audio_path?'🎤 Audio':'Mensaje'));if(original){quote.title='Ir al mensaje original';quote.tabIndex=0;quote.setAttribute('role','button');const jump=()=>{const target=history.querySelector('[data-message-id="'+original.id+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('private-chat-highlight');setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);}};quote.onclick=jump;quote.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();jump();}};}bubble.append(quote);}
    bubble.append(text);
-   if(!m.deleted_at&&m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen del chat');photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};}});}
+   if(!m.deleted_at){
+    const paths=[m.image_path,...(Array.isArray(m.image_paths)?m.image_paths:[])].filter(Boolean);
+    if(paths.length){
+     const gallery=document.createElement('div');gallery.className='private-chat-gallery'+(paths.length>1?' is-multi':'');
+     gallery.setAttribute('aria-label',paths.length+' imagen'+(paths.length===1?'':'es')+' del mensaje');
+     for(const [i,path] of paths.entries()){
+      const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen '+(i+1)+' de '+paths.length;photo.loading='lazy';
+      gallery.append(photo);
+      sb.storage.from('private-chat-images').createSignedUrl(path,3600).then(({data})=>{
+       if(!photo.isConnected)return;
+       if(data?.signedUrl){
+        photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen '+(i+1));
+        photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);
+        photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};
+       }else photo.alt='No se pudo cargar la imagen '+(i+1);
+      }).catch(()=>{photo.alt='No se pudo cargar la imagen '+(i+1);});
+     }
+     bubble.append(gallery);
+    }
+   }
    if(!m.deleted_at&&m.audio_path){
     const voicePlayer=createPrivateVoicePlayer('Mensaje de voz');bubble.append(voicePlayer.root);
     sb.storage.from('private-chat-audio').createSignedUrl(m.audio_path,3600).then(({data,error})=>{
@@ -3597,10 +3616,11 @@ async function loadPrivateMessages(){
     remove.onclick=async()=>{
      if(!confirm('¿Eliminar este mensaje para todos? Esta acción no se puede deshacer.'))return;
      remove.disabled=true;remove.textContent='Eliminando…';
-     const {data:deleted,error:deleteError}=await sb.from('member_direct_messages').update({body:'',image_path:null,audio_path:null,deleted_at:new Date().toISOString()}).eq('id',m.id).eq('sender_id',me).is('deleted_at',null).select('id');
+     const {data:deleted,error:deleteError}=await sb.from('member_direct_messages').update({body:'',image_path:null,image_paths:[],audio_path:null,deleted_at:new Date().toISOString()}).eq('id',m.id).eq('sender_id',me).is('deleted_at',null).select('id');
      if(deleteError||!deleted?.length){alert('No se pudo eliminar el mensaje: '+(deleteError?.message||'No tienes permiso.'));remove.disabled=false;remove.textContent='🗑️ Eliminar';return;}
      const cleanup=[];
-     if(m.image_path)cleanup.push(sb.storage.from('private-chat-images').remove([m.image_path]));
+     const imageFiles=[m.image_path,...(Array.isArray(m.image_paths)?m.image_paths:[])].filter(Boolean);
+     if(imageFiles.length)cleanup.push(sb.storage.from('private-chat-images').remove(imageFiles));
      if(m.audio_path)cleanup.push(sb.storage.from('private-chat-audio').remove([m.audio_path]));
      const results=await Promise.all(cleanup);
      if(results.some(r=>r.error))console.warn('No se pudo borrar algún archivo adjunto del almacenamiento.');
@@ -3685,10 +3705,14 @@ async function loadPrivateMessages(){
    const replyText=document.createElement('span');const cancelReply=document.createElement('button');cancelReply.type='button';cancelReply.textContent='✕ Cancelar';cancelReply.onclick=()=>{replyToId=null;replyPreview.hidden=true;replyText.textContent='';};
    replyPreview.append(replyText,cancelReply);
    selectReply=message=>{replyToId=message.id;replyText.textContent='Respondiendo a '+(message.sender_id===me?'tu mensaje: ':'mensaje de miembro: ')+(message.body?.trim()|| (message.image_path?'📷 Imagen':message.audio_path?'🎤 Audio':'Mensaje'));replyPreview.hidden=false;input.focus();};
-   const imageInput=document.createElement('input');imageInput.type='file';imageInput.accept='image/jpeg,image/png,image/webp,image/gif';imageInput.className='private-chat-image-input';imageInput.setAttribute('aria-label','Seleccionar imagen para enviar');
-   const imageLabel=document.createElement('label');imageLabel.className='private-chat-image-label';imageLabel.textContent='📷 Añadir imagen';imageLabel.append(imageInput);
+   const imageInput=document.createElement('input');imageInput.type='file';imageInput.accept='image/jpeg,image/png,image/webp,image/gif';imageInput.multiple=true;imageInput.className='private-chat-image-input';imageInput.setAttribute('aria-label','Seleccionar hasta cinco imágenes para enviar');
+   const imageLabel=document.createElement('label');imageLabel.className='private-chat-image-label';imageLabel.textContent='📷 Añadir hasta 5 imágenes';imageLabel.append(imageInput);
    const imagePreview=document.createElement('p');imagePreview.className='private-chat-image-preview';
-   imageInput.onchange=()=>{const file=imageInput.files?.[0];imagePreview.textContent=file?file.name+' ('+(file.size/1048576).toFixed(1)+' MB)':'';};
+   imageInput.onchange=()=>{
+    const files=Array.from(imageInput.files||[]);
+    imagePreview.textContent=files.length?files.length+' imagen'+(files.length===1?'':'es')+': '+files.map(f=>f.name).join(' · '):'';
+    if(files.length>5)imagePreview.textContent+=' · ⚠️ Máximo 5 imágenes';
+   };
    const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='private-chat-voice-button';voiceButton.textContent='🎤 Grabar voz';
    const voiceStatus=document.createElement('span');voiceStatus.className='private-chat-voice-status';voiceStatus.setAttribute('role','status');
    const voicePreviewPlayer=createPrivateVoicePlayer('Vista previa de tu grabación');const voicePreviewPanel=voicePreviewPlayer.root;voicePreviewPanel.hidden=true;
@@ -3731,9 +3755,17 @@ async function loadPrivateMessages(){
     };
     quickEmoji.append(shortcut);
    }
+   const quickReplySection=document.createElement('div');quickReplySection.className='private-chat-quick-replies';
+   const quickReplyTitle=document.createElement('small');quickReplyTitle.textContent='💬 Respuestas rápidas';
+   quickReplySection.append(quickReplyTitle);
+   for(const phrase of ['¡Hola! 👋','¿Jugamos? 🎮','¡Gracias! 💜','Ahora vuelvo ⏳','¡Qué bien! ✨']){
+    const preset=document.createElement('button');preset.type='button';preset.textContent=phrase;
+    preset.onclick=()=>{input.value=input.value.trim()?input.value.trimEnd()+' '+phrase:phrase;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();};
+    quickReplySection.append(preset);
+   }
    const keyboardHelp=document.createElement('small');keyboardHelp.className='private-chat-keyboard-hint';
    keyboardHelp.textContent='Enter para enviar · Shift + Enter para una nueva línea';
-   form.append(replyPreview,input,quickEmoji,keyboardHelp,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreviewPanel,discardVoice,button,status);
+   form.append(replyPreview,input,quickReplySection,quickEmoji,keyboardHelp,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreviewPanel,discardVoice,button,status);
    input.addEventListener('input',()=>{privateChatDrafts.set(draftKey,input.value);sendPrivateTyping(me,active);});
    input.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){
@@ -3744,28 +3776,38 @@ async function loadPrivateMessages(){
    form.onsubmit=async e=>{
     e.preventDefault();
     if(button.disabled)return;
-    const body=input.value.trim();const file=imageInput.files?.[0];
+    const body=input.value.trim(),files=Array.from(imageInput.files||[]);
     if(voiceRecorder?.state==='recording'){status.textContent='Detén la grabación antes de enviar.';return;}
-    if(!body&&!file&&!voiceBlob){status.textContent='Escribe un mensaje o selecciona una imagen.';return;}
+    if(!body&&!files.length&&!voiceBlob){status.textContent='Escribe un mensaje o selecciona una imagen.';return;}
     const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
-    if(file&&(!allowed[file.type]||file.size>5242880)){status.textContent='Selecciona JPG, PNG, WebP o GIF de hasta 5 MB.';return;}
-    button.disabled=true;status.textContent=file?'Subiendo imagen…':'Enviando…';
-    let image_path=null;
-    if(file){
-     image_path=me+'/'+active+'/'+crypto.randomUUID()+'.'+allowed[file.type];
-     const {error:uploadError}=await sb.storage.from('private-chat-images').upload(image_path,file,{contentType:file.type,upsert:false});
-     if(uploadError){status.textContent='No se pudo subir la imagen: '+uploadError.message;button.disabled=false;return;}
+    if(files.length>5||files.some(file=>!allowed[file.type]||file.size>5242880)||files.reduce((sum,file)=>sum+file.size,0)>20971520){
+     status.textContent='Máximo 5 imágenes JPG, PNG, WebP o GIF; hasta 5 MB cada una y 20 MB en total.';return;
     }
-    let audio_path=null;
+    button.disabled=true;status.textContent=files.length?'Subiendo imágenes…':'Enviando…';
+    const uploadedImagePaths=[];let audio_path=null;
+    const cleanupUploaded=async()=>{
+     const tasks=[];
+     if(uploadedImagePaths.length)tasks.push(sb.storage.from('private-chat-images').remove(uploadedImagePaths));
+     if(audio_path)tasks.push(sb.storage.from('private-chat-audio').remove([audio_path]));
+     if(tasks.length)await Promise.allSettled(tasks);
+    };
+    for(const [i,file] of files.entries()){
+     status.textContent='Subiendo imagen '+(i+1)+' de '+files.length+'…';
+     const path=me+'/'+active+'/'+crypto.randomUUID()+'.'+allowed[file.type];
+     const {error:uploadError}=await sb.storage.from('private-chat-images').upload(path,file,{contentType:file.type,upsert:false});
+     if(uploadError){await cleanupUploaded();status.textContent='No se pudo subir la imagen: '+uploadError.message;button.disabled=false;return;}
+     uploadedImagePaths.push(path);
+    }
     if(voiceBlob){
      const ext=voiceMime==='audio/mp4'?'mp4':voiceMime==='audio/ogg'?'ogg':'webm';
      audio_path=me+'/'+active+'/'+crypto.randomUUID()+'.'+ext;
      status.textContent='Subiendo mensaje de voz…';
      const {error:audioError}=await sb.storage.from('private-chat-audio').upload(audio_path,voiceBlob,{contentType:voiceMime,upsert:false});
-     if(audioError){status.textContent='No se pudo subir el audio: '+audioError.message;button.disabled=false;return;}
+     if(audioError){await cleanupUploaded();status.textContent='No se pudo subir el audio: '+audioError.message;button.disabled=false;return;}
     }
-    const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path,audio_path,reply_to_id:replyToId});
-    if(sendError){status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}
+    const image_path=uploadedImagePaths[0]||null,image_paths=uploadedImagePaths.slice(1);
+    const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path,image_paths,audio_path,reply_to_id:replyToId});
+    if(sendError){await cleanupUploaded();status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}
     else{privateChatDrafts.delete(draftKey);await loadPrivateMessages();}
    };
    panel.append(form);
