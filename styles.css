@@ -2096,3 +2096,56 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  .chat-view-once-option,.chat-view-once-message{width:100%;box-sizing:border-box}
  .chat-view-once-open{width:100%;white-space:normal}
 }
+
+
+/* Retos y torneos: empty-state helpful to members, polished accessible controls. */
+.community-competitions-section .community-contest-toolbar select,
+.community-competitions-section .community-contest-toolbar button {
+ appearance:auto;
+ border:1px solid rgba(190,143,255,.55);
+ border-radius:11px;
+ padding:10px 14px;
+ background:#211238;
+ color:#f7efff;
+ font:700 1rem Rajdhani,Arial,sans-serif;
+ box-shadow:0 2px 12px rgba(14,6,32,.26);
+ cursor:pointer;
+}
+.community-competitions-section .community-contest-toolbar select option{background:#211238;color:#fff}
+.community-competitions-section .community-contest-toolbar button {
+ background:linear-gradient(110deg,#6324a2,#912ec1);
+}
+.community-competitions-section .community-contest-toolbar button:hover{
+ filter:brightness(1.14);
+}
+.community-competitions-section .community-contest-toolbar :is(select,button):focus-visible,
+.community-contest-create-link:focus-visible{
+ outline:3px solid #f2caff;
+ outline-offset:3px;
+}
+.community-contest-empty {
+ grid-column:1/-1;
+ padding:22px 20px;
+ border:1px dashed rgba(194,151,255,.56);
+ border-radius:14px;
+ background:linear-gradient(145deg,rgba(68,33,109,.48),rgba(17,18,52,.68));
+ text-align:center;
+ color:#f5eaff;
+}
+.community-contest-empty-icon{display:block;font-size:2.25rem;margin-bottom:6px}
+.community-contest-empty h3{margin:0 0 8px;font-size:1.32rem}
+.community-contest-empty p{margin:0 auto;max-width:640px;line-height:1.55;color:#e6d6f7}
+.community-contest-create-link {
+ display:inline-flex;align-items:center;justify-content:center;
+ margin-top:14px;min-height:44px;padding:10px 16px;
+ border:1px solid #d39eff;border-radius:12px;
+ background:linear-gradient(110deg,#6823a7,#9834d2);
+ color:#fff!important;text-decoration:none!important;font-weight:700;
+}
+.community-contest-create-link:hover{filter:brightness(1.15)}
+#admin-competitions-management{scroll-margin-top:88px}
+@media(max-width:620px){
+ .community-contest-empty{padding:17px 12px}
+ .community-competitions-section .community-contest-toolbar :is(select,button){width:100%;max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){.community-competitions-section .community-contest-toolbar button{transition:none}}
