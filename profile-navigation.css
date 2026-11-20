@@ -56,3 +56,12 @@
 .sb-nav-only-favorites[aria-pressed="true"]{background:#59412e;border-color:#f0c878;color:#ffe7a0}
 .sb-nav-only-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-only-favorites{flex:1}}
+
+/* Hasta tres favoritos visibles sin desplegar el organizador */
+.sb-nav-featured{margin:12px 0 4px;padding:12px;border:1px solid #9770b7;border-radius:12px;background:#2b1d3b}
+.sb-nav-featured[hidden]{display:none!important}
+.sb-nav-featured h3{margin:0 0 10px;font-size:18px;color:#ffe3ab}
+.sb-nav-featured-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sb-nav-featured-item{min-width:0}
+.sb-nav-featured-item .sb-nav-link{width:100%;text-align:center;overflow-wrap:anywhere;background:#503064}
+@media(max-width:650px){.sb-nav-featured-links{grid-template-columns:1fr}}
