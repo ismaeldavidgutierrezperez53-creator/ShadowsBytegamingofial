@@ -131,13 +131,62 @@
   const countLabel=el('p','sbp-muted');controls.after(countLabel);
   search.addEventListener('input',refresh);filter.addEventListener('change',refresh);refresh();
  }
+
+ function addIdentityCard(host,own){
+  if(host.querySelector('.sbp-identity-card'))return;
+  const anchor=own?host.querySelector('.sbp-dashboard'):host.querySelector('.sbp-public-tools');
+  if(!anchor)return;
+  const card=el('section','profile-panel sbp-identity-card');
+  card.setAttribute('aria-label',own?'Vista previa de identidad gamer':'Identidad gamer pública');
+  const top=el('div','sbp-identity-top');
+  const avatar=el('div','sbp-identity-avatar','🎮');
+  const detail=el('div','sbp-identity-text');
+  const eyebrow=el('small','','SHADOWS BYTE · GAMER CARD');
+  const heading=el('h2','','Mi identidad gamer');
+  const status=el('p','sbp-identity-status','🎮 Disponible');
+  detail.append(eyebrow,heading,status);top.append(avatar,detail);
+  const details=el('div','sbp-identity-tags');
+  const info=el('p','sbp-muted',own?'Vista previa. Guarda los cambios para que otros vean tu tarjeta cuando tu perfil sea público.':'Información compartida por este miembro.');
+  card.append(top,details,info);anchor.after(card);
+  const form=own?host.querySelector('#profile-form'):null;
+  const get=id=>host.querySelector('#'+id)?.value?.trim()||'';
+  const render=()=>{
+   if(!card.isConnected)return;
+   const name=own?(form?.elements.display_name?.value?.trim()||'Miembro'):(host.querySelector('.public-member-body > h1')?.textContent?.trim()||'Miembro');
+   const anime=own?get('profile-favorite-anime'):host.querySelector('.public-anime-identity .profile-anime-tags')?.textContent||'';
+   const games=own?get('profile-favorite-games'):host.querySelector('.gamer-favorite-games')?.textContent||'';
+   const message=own?get('profile-gaming-message'):host.querySelector('.member-gaming-status')?.textContent||'';
+   const state=own?get('profile-gaming-status'):'';
+   const statusNames={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};
+   heading.textContent=name;
+   status.textContent=own?(statusNames[state]||statusNames.disponible)+(message?' · '+message:''):(message||'🎮 Miembro de la comunidad');
+   const src=own?form?.elements.avatar_url?.value?.trim():host.querySelector('.public-member-avatar img')?.getAttribute('src');
+   avatar.replaceChildren();
+   if(src&&/^https:\/\//i.test(src)){
+    const img=el('img');img.src=src;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>avatar.replaceChildren(document.createTextNode('🎮'));avatar.append(img);
+   }else avatar.textContent=name.slice(0,1).toUpperCase();
+   details.replaceChildren();
+   const chips=[];
+   if(anime)chips.push(['🌸 Anime',anime.replace(/^.*?Anime favorito:\s*/i,'').slice(0,120)]);
+   if(games)chips.push(['🎮 Juegos',games.slice(0,130)]);
+   const badge=own?get('profile-featured-badge'):host.querySelector('.profile-featured-badge:not([hidden])')?.textContent||'';
+   if(badge && !own)chips.push(['🏅 Insignia',badge]);
+   for(const [label,value] of chips){const chip=el('span','sbp-identity-chip',label+': '+value);details.append(chip)}
+   if(!chips.length)details.append(el('span','sbp-identity-chip','✨ Personaliza tu aventura gamer'));
+   card.dataset.theme=own?(get('profile-theme')||'violet'):(host.querySelector('.public-member-cover')?.dataset.theme||'violet');
+   if(own)info.textContent=host.querySelector('#profile-public')?.checked?'Vista previa de tu tarjeta pública. Guarda los cambios para publicarla.':'Vista previa privada: activa «Mostrar mi perfil en Miembros» si deseas compartirla.';
+  };
+  if(form){form.addEventListener('input',render);form.addEventListener('change',render);render();}
+  else {render();const badge=host.querySelector('.profile-featured-badge');if(badge)new MutationObserver(()=>{if(card.isConnected)render()}).observe(badge,{childList:true,attributes:true,attributeFilter:['hidden']});}
+ }
+
  let queued=false;
  function scan(){
   queued=false;
   const account=document.getElementById('account-profile');
-  if(account&&account.querySelector('#profile-form'))enhanceAccount(account);
+  if(account&&account.querySelector('#profile-form')){enhanceAccount(account);addIdentityCard(account,true)}
   const publicRoot=document.getElementById('public-member-profile');
-  if(publicRoot&&publicRoot.querySelector('.public-member-body'))enhancePublic(publicRoot);
+  if(publicRoot&&publicRoot.querySelector('.public-member-body')){enhancePublic(publicRoot);addIdentityCard(publicRoot,false)}
  }
  function schedule(){if(queued)return;queued=true;requestAnimationFrame(scan)}
  const run=()=>{const root=document.getElementById('app');if(!root)return;new MutationObserver(schedule).observe(root,{childList:true,subtree:true});addEventListener('hashchange',schedule);schedule()};
