@@ -1,0 +1,18 @@
+/* Plantillas de organización sin alterar secciones públicas */
+.sb-profile-presets{margin-top:15px;padding:15px;border:1px solid #8a64ad;border-radius:13px;background:#241832}
+.sb-profile-presets h3{margin:0 0 7px;font-size:19px;color:#ffe7bd}
+.sb-presets-help{margin:0 0 12px;color:#decbe9;font-size:14px}
+.sb-presets-choices,.sb-presets-actions{display:flex;flex-wrap:wrap;gap:9px}
+.sb-presets-btn{min-height:42px;padding:9px 12px;border:1px solid #aa82d0;border-radius:10px;background:#3b2652;color:white;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-presets-btn:hover{background:#674185}
+.sb-presets-btn:disabled{opacity:.45;cursor:not-allowed}
+.sb-presets-btn:focus-visible{outline:3px solid #5ed8ff;outline-offset:2px}
+.sb-presets-preview{margin-top:13px;padding:14px;border:1px solid #9f80bd;border-radius:11px;background:#302040}
+.sb-presets-preview[hidden]{display:none!important}
+.sb-presets-preview h4{margin:0 0 6px;font-size:17px}
+.sb-presets-preview-description,.sb-presets-notice{font-size:14px;color:#e1d1ec}
+.sb-presets-notice:empty{display:none}
+.sb-presets-list{padding-left:21px;margin:8px 0 13px}
+.sb-presets-list li{margin:3px 0}
+.sb-presets-apply{background:#5d347c}
+@media(max-width:550px){.sb-presets-choices,.sb-presets-actions{flex-direction:column}.sb-presets-btn{width:100%}}
