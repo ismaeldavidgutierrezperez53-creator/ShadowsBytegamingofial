@@ -2091,7 +2091,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   refreshPremium.disabled=true;
   try{
    const [itemsRes,purchasesRes,balanceRes,xpRes]=await Promise.all([
-    sb.from('reward_shop_items').select('id,name,price,required_level,value,sale_price,sale_starts_at,sale_ends_at').in('id',premiumVideoThemes.map(item=>item.id)).eq('active',true),
+    sb.from('reward_shop_items').select('id,name,price,required_level,value,sale_price,sale_starts_at,sale_ends_at,available_from,available_until').in('id',premiumVideoThemes.map(item=>item.id)).eq('active',true),
     sb.from('member_shop_purchases').select('item_id').eq('user_id',userId).in('item_id',premiumVideoThemes.map(item=>item.id)),
     sb.rpc('reward_shop_balance'),
     sb.rpc('community_member_xp',{target_member:userId})
@@ -2106,7 +2106,11 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    premiumStatus.textContent='⭐ Nivel '+level+' · 💰 '+balance.toLocaleString('es-ES')+' puntos disponibles. Las compras son permanentes.';
    premiumCards.replaceChildren();
    for(const theme of premiumVideoThemes){
-    const product=(itemsRes.data||[]).find(item=>item.id===theme.id);
+    const product=(itemsRes.data||[]).find(item=>
+     item.id===theme.id &&
+     (!item.available_from || Date.now()>=Date.parse(item.available_from)) &&
+     (!item.available_until || Date.now()<Date.parse(item.available_until))
+    );
     const card=document.createElement('article');card.className='group-video-premium-card';card.dataset.theme=theme.value;if(theme.vip)card.classList.add('is-vip');
     const heading=document.createElement('strong');heading.textContent=theme.label;card.append(heading);
     if(!product){const unavailable=document.createElement('small');unavailable.textContent='No disponible por ahora';card.append(unavailable);premiumCards.append(card);continue;}
