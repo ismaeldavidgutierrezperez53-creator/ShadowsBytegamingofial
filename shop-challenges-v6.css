@@ -1,0 +1,50 @@
+/* Shadows Byte Gaming Official V2 — desafíos anime V6 */
+#reward-shop .shop-challenges-v6{scroll-margin-top:115px;margin:25px 0;padding:22px;min-width:0;color:#f5f0ff;border:1px solid #7657a4;border-radius:20px;background:radial-gradient(circle at 95% 0%,#8d52ed29,transparent 40%),linear-gradient(143deg,#241530,#10111f);box-shadow:0 13px 36px #0003}
+#reward-shop .shop-challenges-v6-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:15px}
+#reward-shop .shop-challenges-v6-heading{flex:1 1 280px}
+#reward-shop .shop-challenges-v6-heading h3{font-size:26px;line-height:1.25;margin:0 0 8px;color:#f8e7ff}
+#reward-shop .shop-challenges-v6-heading p{margin:0;color:#d1bfdc;font-size:15px;line-height:1.55}
+#reward-shop .shop-challenges-v6-streak{display:grid;justify-items:center;gap:5px;min-width:142px;padding:13px 20px;border:1px solid #aa683f;border-radius:14px;background:linear-gradient(145deg,#503327,#251b2e)}
+#reward-shop .shop-challenges-v6-streak strong{color:#ffe0a5;font-size:26px;line-height:1.15}
+#reward-shop .shop-challenges-v6-streak span{color:#f7d4b2;font-size:13px}
+#reward-shop .shop-challenges-v6-counters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#reward-shop .shop-challenges-v6-counter{display:grid;gap:5px;text-align:center;border-radius:12px;border:1px solid #644b84;background:#ffffff08;padding:13px 8px;min-width:0}
+#reward-shop .shop-challenges-v6-counter strong{font:700 25px Rajdhani,Arial,sans-serif;color:#bdf5dc;line-height:1.2}
+#reward-shop .shop-challenges-v6-counter span{font-size:13px;color:#d1bfdb;overflow-wrap:anywhere}
+#reward-shop .shop-challenges-v6-group{margin:22px 0 0}
+#reward-shop .shop-challenges-v6-group-heading{margin:0 0 12px}
+#reward-shop .shop-challenges-v6-group-heading h4{font-size:22px;color:#f8e3ff;margin:0 0 5px;line-height:1.25}
+#reward-shop .shop-challenges-v6-group-heading p{font-size:14px;color:#c7b8d9;margin:0;line-height:1.4}
+#reward-shop .shop-challenges-v6-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#reward-shop .shop-challenges-v6-card{display:flex;flex-direction:column;gap:10px;min-width:0;padding:15px;border:1px solid #70548f;border-radius:14px;background:linear-gradient(140deg,#302039,#181427);overflow-wrap:anywhere}
+#reward-shop .shop-challenges-v6-card.is-ready{border-color:#54cba9;box-shadow:inset 0 0 21px #3fd3a615;background:linear-gradient(135deg,#1a3834,#211a32)}
+#reward-shop .shop-challenges-v6-card.is-claimed{border-color:#537969;background:#1a262b}
+#reward-shop .shop-challenges-v6-card.is-anime{border-color:#ae86cc}
+#reward-shop .shop-challenges-v6-card-title{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+#reward-shop .shop-challenges-v6-emoji{display:grid;place-items:center;min-width:34px;height:38px;font-size:26px}
+#reward-shop .shop-challenges-v6-card-title h5{flex:1 1 90px;font-size:17px;color:#f4e3ff;line-height:1.3;margin:0}
+#reward-shop .shop-challenges-v6-special-tag{font-size:10px;font-weight:800;letter-spacing:.03em;padding:5px 8px;border-radius:999px;border:1px solid #ae8950;color:#ffe5b4;background:#4a3220}
+#reward-shop .shop-challenges-v6-description{font-size:14px;line-height:1.5;color:#d2c3e0;margin:0;flex:1}
+#reward-shop .shop-challenges-v6-progress-heading{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;color:#d6c5e4}
+#reward-shop .shop-challenges-v6-progress-heading strong{color:#aaf1d9;font-size:15px}
+#reward-shop .shop-challenges-v6-progress{display:block;appearance:none;width:100%;height:10px;overflow:hidden;border:0;border-radius:999px;background:#14101c}
+#reward-shop .shop-challenges-v6-progress::-webkit-progress-bar{background:#14101c;border-radius:999px}
+#reward-shop .shop-challenges-v6-progress::-webkit-progress-value{background:linear-gradient(90deg,#9e73f5,#3ecfa9);border-radius:999px}
+#reward-shop .shop-challenges-v6-progress::-moz-progress-bar{background:linear-gradient(90deg,#9e73f5,#3ecfa9);border-radius:999px}
+#reward-shop .shop-challenges-v6-reward{display:grid;gap:6px;margin-top:2px;padding:9px 11px;border-radius:10px;border:1px dashed #7f5ca8;background:#ffffff06}
+#reward-shop .shop-challenges-v6-reward strong{color:#b6f7dd;font-size:15px}
+#reward-shop .shop-challenges-v6-reward span{font-size:13px;color:#f1d4ff;line-height:1.35}
+#reward-shop .shop-challenges-v6-reset{display:block;color:#c3b6d4;font-size:12px;line-height:1.35}
+#reward-shop .shop-challenges-v6-action,#reward-shop .shop-challenges-v6-equip{align-self:start;max-width:100%;white-space:normal;padding:9px 12px;min-height:40px;border-radius:10px;cursor:pointer}
+#reward-shop .shop-challenges-v6-action:disabled,#reward-shop .shop-challenges-v6-equip:disabled{opacity:.68;cursor:not-allowed}
+#reward-shop .shop-challenges-v6-equip{border:1px solid #9d7bcc;background:#3b2651;color:#f7eaff;font-weight:700}
+#reward-shop .shop-challenges-v6-status{margin:0;color:#dfcfe7;font-size:13px;line-height:1.4;min-height:16px}
+#reward-shop .shop-challenges-v6-success{background:#173e32;color:#bcf6d8;border:1px solid #58b996;padding:13px;border-radius:11px;font-weight:700;line-height:1.5}
+#reward-shop .shop-challenges-v6-help{font-size:13px;color:#cdbdda;line-height:1.6;margin:16px 0 0}
+#reward-shop .shop-challenges-v6-error{color:#ffcdd5;line-height:1.5}
+#reward-shop .shop-challenges-v6-shortcut{display:inline-flex;align-items:center;justify-content:center;margin:6px 8px 14px 0;padding:10px 16px;min-height:40px;background:#39234c;color:#f7e6ff;border:1px solid #9568c9;border-radius:10px;font-weight:700;cursor:pointer;max-width:100%;white-space:normal}
+#reward-shop .shop-challenges-v6-shortcut:hover{background:#503363}
+@media(max-width:1050px){#reward-shop .shop-challenges-v6-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:660px){#reward-shop .shop-challenges-v6{padding:15px}#reward-shop .shop-challenges-v6-grid{grid-template-columns:minmax(0,1fr)}#reward-shop .shop-challenges-v6-heading h3{font-size:23px}#reward-shop .shop-challenges-v6-streak{width:100%;box-sizing:border-box}#reward-shop .shop-challenges-v6-action,#reward-shop .shop-challenges-v6-equip{align-self:stretch;width:100%}}
+@media(max-width:390px){#reward-shop .shop-challenges-v6-counters{gap:6px}#reward-shop .shop-challenges-v6-counter{padding:9px 5px}#reward-shop .shop-challenges-v6-counter strong{font-size:19px}#reward-shop .shop-challenges-v6-counter span{font-size:11px}}
+@media(prefers-reduced-motion:reduce){#reward-shop .shop-challenges-v6 *,#reward-shop .shop-challenges-v6{transition:none!important;animation:none!important}}
