@@ -62,6 +62,17 @@
     }
     statsPanel.append(statsGrid);
     statsPanel.append(create('p', 'sb-views-stats-explanation', 'Las visitas se cuentan una vez cada 10 minutos por miembro. Las cifras corresponden a visitas registradas con el historial activo y perfiles públicos.'));
+    const weeklyPanel = create('section', 'sb-views-week-chart');
+    weeklyPanel.setAttribute('aria-label', 'Gráfico semanal de visitas a mi perfil');
+    weeklyPanel.append(create('h3', '', '📈 Visitas por día · últimos 7 días'));
+    const chartStatus = create('p', 'sb-views-chart-status', 'Cargando gráfico semanal…');
+    chartStatus.setAttribute('role', 'status');
+    const chartBars = create('div', 'sb-views-chart-bars');
+    chartBars.setAttribute('role', 'list');
+    chartBars.setAttribute('aria-label', 'Visitas diarias durante los últimos siete días');
+    weeklyPanel.append(chartStatus, chartBars);
+    weeklyPanel.append(create('p', 'sb-views-chart-help', 'Cada barra representa visitas registradas en un día (horario de Madrid). De las visitas anteriores a este gráfico solo se conserva la última fecha conocida por miembro.'));
+    statsPanel.append(weeklyPanel);
     statsPanel.append(create('h3', 'sb-views-frequent-title', '🌟 Visitantes frecuentes'));
     const frequentList = create('div', 'sb-views-frequent-list');
     const statsStatus = create('p', 'sb-views-stats-status', 'Cargando estadísticas…');
@@ -87,6 +98,50 @@
       for (const value of metricValues.values()) value.textContent = '—';
       frequentList.replaceChildren();
       statsStatus.textContent = 'Activa el historial para consultar tus estadísticas.';
+      chartBars.replaceChildren();
+      chartStatus.textContent = 'Activa el historial para mostrar el gráfico semanal.';
+    }
+
+    function renderWeeklyChart(data, error) {
+      chartBars.replaceChildren();
+      if (error || !Array.isArray(data) || data.length !== 7) {
+        chartStatus.textContent = 'No se pudo cargar el gráfico. Pulsa Actualizar para reintentarlo.';
+        return;
+      }
+      const days = data.map(entry => ({
+        date: String(entry.visit_day || ''),
+        count: Math.max(0, Math.floor(Number(entry.visits) || 0)),
+        visitors: Math.max(0, Math.floor(Number(entry.visitors) || 0))
+      }));
+      if (days.some(day => !/^\\d{4}-\\d{2}-\\d{2}$/.test(day.date))) {
+        chartStatus.textContent = 'No se pudieron interpretar las fechas del gráfico.';
+        return;
+      }
+      const peak = Math.max(1, ...days.map(day => day.count));
+      const total = days.reduce((sum, day) => sum + day.count, 0);
+      chartStatus.textContent = total
+        ? total.toLocaleString('es-ES') + (total === 1 ? ' visita registrada' : ' visitas registradas') + ' durante los siete días.'
+        : 'Todavía no hay visitas registradas en los últimos siete días.';
+      for (const day of days) {
+        const date = new Date(day.date + 'T12:00:00Z');
+        const shortDate = date.toLocaleDateString('es-ES', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+        const fullDate = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+        const column = create('div', 'sb-views-chart-column');
+        column.setAttribute('role', 'listitem');
+        column.setAttribute('aria-label', fullDate + ': ' + day.count + ' visitas y ' + day.visitors + ' visitantes');
+        const countText = create('strong', 'sb-views-chart-value', day.count.toLocaleString('es-ES'));
+        const track = create('span', 'sb-views-chart-track');
+        track.setAttribute('aria-hidden', 'true');
+        const bar = create('span', 'sb-views-chart-fill');
+        bar.style.height = day.count ? Math.max(8, Math.round(day.count / peak * 100)) + '%' : '0%';
+        if (!day.count) bar.classList.add('is-empty');
+        track.append(bar);
+        const weekday = create('span', 'sb-views-chart-weekday', shortDate);
+        const dayLabel = create('small', 'sb-views-chart-date', fullDate);
+        column.title = fullDate + ': ' + day.count + ' visitas (' + day.visitors + ' visitantes únicos)';
+        column.append(countText, track, weekday, dayLabel);
+        chartBars.append(column);
+      }
     }
 
     function renderStats(data, error) {
@@ -147,13 +202,15 @@
       }
       refresh.disabled = true;
       status.textContent = 'Cargando visitas…';
-      const [visitsResult, statsResult] = await Promise.all([
+      const [visitsResult, statsResult, weeklyResult] = await Promise.all([
         sb.rpc('get_profile_visitors'),
-        sb.rpc('get_profile_visit_stats')
+        sb.rpc('get_profile_visit_stats'),
+        sb.rpc('get_profile_visit_weekly')
       ]);
       if (!card.isConnected || !checkbox.checked) return;
       const { data, error: loadError } = visitsResult;
       renderStats(statsResult.data, statsResult.error);
+      renderWeeklyChart(weeklyResult.data, weeklyResult.error);
       refresh.disabled = false;
       if (loadError) {
         status.textContent = 'No se pudieron cargar las visitas. Inténtalo otra vez.';
