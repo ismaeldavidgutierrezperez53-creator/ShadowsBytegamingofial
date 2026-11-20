@@ -17,7 +17,10 @@
   const status=el('p','sbaf-status','Comparando gustos…');status.setAttribute('role','status');
   const chips=el('div','sbaf-chips');
   const actions=el('div','sbaf-actions');
-  panel.append(head,info,status,chips,actions);anchor.after(panel);
+  panel.append(head,info,status,chips,actions);
+  // Mantener Afinidad delante de Escaparate, aunque los módulos carguen en distinto orden.
+  const showcase=body.querySelector('.sb-showcase');
+  if(showcase)showcase.before(panel);else anchor.after(panel);
   async function load(){
    if(typeof sb==='undefined'||!sb.auth||!sb.from){status.textContent='No se pudo conectar con los perfiles.';return}
    const id=new URLSearchParams(location.hash.split('?')[1]||'').get('id');
@@ -62,7 +65,22 @@
   load();
  }
  let queued=false;
- function scan(){queued=false;const root=document.getElementById('public-member-profile');if(root?.querySelector('.sbp-identity-card'))mount(root)}
+ // Los paneles se insertan de forma asíncrona: corregir únicamente cuando
+ // el orden real cambie, para evitar saltos de scroll y bucles del observer.
+ function stabilizeOrder(root){
+  const body=root.querySelector('.public-member-body');
+  const anchor=body?.querySelector('.sbp-identity-card');
+  const affinity=body?.querySelector('.sbaf-panel');
+  if(!anchor||!affinity)return;
+  if(anchor.nextElementSibling!==affinity)anchor.after(affinity);
+  const showcase=body.querySelector('.sb-showcase');
+  if(showcase&&affinity.nextElementSibling!==showcase)affinity.after(showcase);
+ }
+ function scan(){
+  queued=false;
+  const root=document.getElementById('public-member-profile');
+  if(root?.querySelector('.sbp-identity-card')){mount(root);stabilizeOrder(root)}
+ }
  const schedule=()=>{if(queued)return;queued=true;requestAnimationFrame(scan)};
  const init=()=>{const app=document.getElementById('app');if(!app)return;new MutationObserver(schedule).observe(app,{childList:true,subtree:true});addEventListener('hashchange',schedule);schedule()};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
