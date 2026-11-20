@@ -356,7 +356,7 @@ async function renderRewardShop(){
   const grouped=inventory.filter(x=>x.category===category);if(!grouped.length)continue;
   for(const item of grouped){
    const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:14px;margin:10px 0;border:1px solid #ffffff33;border-radius:12px';
-   card.classList.add('shop-v2-reward');
+   card.classList.add('shop-v2-reward');card.dataset.shopItemId=item.id;
    if(item.featured){const flag=document.createElement('span');flag.className='shop-v2-flag';flag.textContent='🌟 Destacado';card.append(flag)}
    const unavailable=!isAvailable(item);
    if(unavailable){const saved= document.createElement('span');saved.className='shop-v2-flag shop-explorer-expired';saved.textContent='🔒 Edición finalizada · Ya es tuya';card.append(saved)}
