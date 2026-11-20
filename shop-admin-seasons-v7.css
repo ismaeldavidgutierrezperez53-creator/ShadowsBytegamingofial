@@ -1,0 +1,32 @@
+/* Administración de eventos anime V7 */
+#admin-shop-root .shop-season-admin-v7{margin-top:24px;scroll-margin-top:110px;background:linear-gradient(135deg,#20152d,#12121f);border:1px solid #77549a;border-radius:18px;padding:20px;color:#f1e9fb;min-width:0}
+#admin-shop-root .shop-season-admin-v7>div:first-child h3{font-size:23px;color:#f7e2ff;margin:0 0 8px}
+#admin-shop-root .shop-season-admin-v7>div:first-child p{color:#d3c1e1;font-size:15px;line-height:1.5;margin:0}
+#admin-shop-root .shop-season-admin-v7-editor{border:1px solid #654b83;background:#ffffff06;border-radius:14px;padding:17px;margin:18px 0}
+#admin-shop-root .shop-season-admin-v7-editor>h4{font-size:20px;color:#eecfff;margin:0 0 12px}
+#admin-shop-root .shop-season-admin-v7-help{color:#d4c4df;font-size:14px;line-height:1.5}
+#admin-shop-root .shop-season-admin-v7-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 15px}
+#admin-shop-root .shop-season-admin-v7-field{display:grid;gap:6px;min-width:0;font-size:14px;font-weight:700;color:#e7dafa}
+#admin-shop-root .shop-season-admin-v7-field input,#admin-shop-root .shop-season-admin-v7-field select,#admin-shop-root .shop-season-admin-v7-field textarea{width:100%;min-width:0;box-sizing:border-box;min-height:43px;padding:10px 12px;border:1px solid #73558c;border-radius:10px;background:#130f22;color:#f9f1ff;font:600 15px Rajdhani,Arial,sans-serif;outline-offset:3px}
+#admin-shop-root .shop-season-admin-v7-field input[readonly]{opacity:.72}
+#admin-shop-root .shop-season-admin-v7-field input::placeholder,#admin-shop-root .shop-season-admin-v7-field textarea::placeholder{color:#ae9bbb}
+#admin-shop-root .shop-season-admin-v7-field input:focus-visible,#admin-shop-root .shop-season-admin-v7-field select:focus-visible,#admin-shop-root .shop-season-admin-v7-field textarea:focus-visible{outline:2px solid #bf92e7}
+#admin-shop-root .shop-season-admin-v7-field textarea{min-height:85px;resize:vertical}
+#admin-shop-root .shop-season-admin-v7-toggle,#admin-shop-root .shop-season-admin-v7-buttons,#admin-shop-root .shop-season-admin-v7-status{grid-column:1/-1}
+#admin-shop-root .shop-season-admin-v7-toggle{display:flex;align-items:center;gap:9px;color:#ebd9f9;font-size:15px;cursor:pointer}
+#admin-shop-root .shop-season-admin-v7-toggle input{accent-color:#9e7bd4;min-width:20px;min-height:20px}
+#admin-shop-root .shop-season-admin-v7-buttons{display:flex;gap:9px;flex-wrap:wrap}
+#admin-shop-root .shop-season-admin-v7-buttons button{border-radius:10px;padding:10px 16px;min-height:42px;max-width:100%;cursor:pointer;white-space:normal}
+#admin-shop-root .shop-season-admin-v7-buttons button:disabled{opacity:.6;cursor:wait}
+#admin-shop-root .shop-season-admin-v7-status{min-height:20px;margin:0;font-size:14px;line-height:1.4;color:#d2c0e3}
+#admin-shop-root .shop-season-admin-v7-status[data-status="error"],#admin-shop-root .shop-season-admin-v7-error{color:#ffbcc6}
+#admin-shop-root .shop-season-admin-v7-status[data-status="success"]{color:#b7f9d4}
+#admin-shop-root .shop-season-admin-v7-event-list{display:grid;gap:10px;margin-top:15px}
+#admin-shop-root .shop-season-admin-v7-event-list h4{margin:0 0 3px;font-size:20px;color:#f1ddff}
+#admin-shop-root .shop-season-admin-v7-event-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;background:#271a35;border:1px solid #6c5083;border-radius:12px;padding:13px}
+#admin-shop-root .shop-season-admin-v7-event-row>div{display:grid;gap:5px;min-width:0;flex:1}
+#admin-shop-root .shop-season-admin-v7-event-row strong{font-size:16px;color:#f0dfff;overflow-wrap:anywhere}
+#admin-shop-root .shop-season-admin-v7-event-row span{font-size:14px;color:#b8ecd0}
+#admin-shop-root .shop-season-admin-v7-event-row small{font-size:13px;color:#cfbadc}
+#admin-shop-root .shop-season-admin-v7-event-row button{padding:9px 13px;border-radius:9px;cursor:pointer}
+@media(max-width:720px){#admin-shop-root .shop-season-admin-v7{padding:13px}#admin-shop-root .shop-season-admin-v7-editor{padding:13px}#admin-shop-root .shop-season-admin-v7-form{grid-template-columns:minmax(0,1fr)}#admin-shop-root .shop-season-admin-v7-buttons button{flex:1}}
