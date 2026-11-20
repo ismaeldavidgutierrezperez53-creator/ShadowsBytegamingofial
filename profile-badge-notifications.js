@@ -172,6 +172,7 @@
   }
 
   async function addBadge(key,button){
+    if(button.dataset.showcaseFull==='true'){navigateShowcase();return;}
     if(opBusy||!loggedIn()||!badges[key]||!validClient())return;
     opBusy=true;
     const currentUser=userId;
@@ -183,12 +184,9 @@
       if(error)throw error;
       if(currentUser!==userId)return;
       if(result?.status==='full'){
+        button.dataset.showcaseFull='true';
         setButtonLabel(button,'Vitrina llena · Gestionar');
         button.disabled=false;
-        button.onclick=()=>{
-          button.onclick=null;
-          navigateShowcase();
-        };
         return;
       }
       if(result?.status!=='added'&&result?.status!=='already'){
