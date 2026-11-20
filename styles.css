@@ -1789,3 +1789,81 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  #private-messages .private-direct-incoming{animation:none}
 }
+
+
+/* Private chats V5: favorites and expanded call controls */
+#private-messages .private-chat-favorite-action{
+ border:1px solid rgba(212,176,251,.52);border-radius:11px;
+ background:rgba(88,64,135,.16);color:#e9d3ff;
+ font-size:1.32rem;min-width:37px;min-height:37px;
+ cursor:pointer;flex:0 0 37px;line-height:1;
+}
+#private-messages .private-chat-favorite-action.is-favorite{
+ color:#ffe58c;background:rgba(245,190,67,.14);border-color:rgba(255,214,107,.65);
+ text-shadow:0 0 12px rgba(255,214,107,.35);
+}
+#private-messages .private-chat-favorite-action:hover{background:rgba(137,91,189,.36)}
+#private-messages .private-chat-favorite-action:focus-visible{
+ outline:2px solid #cdeeff;outline-offset:2px;
+}
+#private-messages .private-direct-history{
+ grid-column:1/-1;min-width:0;
+ border:1px solid rgba(179,146,234,.4);border-radius:14px;
+ background:rgba(47,34,82,.22);
+}
+#private-messages .private-direct-history-toggle{
+ display:block;width:100%;padding:12px 15px;text-align:left;
+ border:0;border-radius:14px;cursor:pointer;
+ background:rgba(98,69,148,.17);color:inherit;font:inherit;font-weight:700;font-size:.89rem;
+}
+#private-messages .private-direct-history-toggle::after{
+ content:'▾';float:right;transition:transform .18s ease;
+}
+#private-messages .private-direct-history-toggle[aria-expanded="true"]::after{transform:rotate(180deg)}
+#private-messages .private-direct-history-list{
+ max-height:290px;overflow:auto;padding:8px;display:grid;gap:6px;
+}
+#private-messages .private-direct-history-list[hidden]{display:none!important}
+#private-messages .private-direct-history-list>p{margin:8px;color:#dfcbea;font-size:.83rem}
+#private-messages .private-direct-history-row{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;
+ padding:9px 11px;border-radius:10px;
+ background:rgba(124,93,178,.12);border:1px solid rgba(180,149,233,.22);
+}
+#private-messages .private-direct-history-row>span{font-weight:600;font-size:.83rem;overflow-wrap:anywhere}
+#private-messages .private-direct-history-row>small{font-size:.73rem;color:#d2c0e5}
+#private-messages .private-direct-history-row>small:last-child{grid-column:1/-1}
+#private-messages .private-direct-history-row.is-missed{border-color:rgba(250,131,156,.58);background:rgba(181,72,109,.13)}
+#private-messages .private-direct-history-row.is-missed>small:last-child{color:#ffaabb}
+.private-direct-call-overlay .private-direct-anime-filter{
+ flex:1 1 180px;display:flex;flex-direction:column;gap:4px;
+ color:#f5dfff;font-size:.77rem;font-weight:700;
+}
+.private-direct-call-overlay .private-direct-anime-filter[hidden]{display:none!important}
+.private-direct-call-overlay .private-direct-anime-filter select{
+ min-height:40px;min-width:0;width:100%;padding:8px;border-radius:9px;
+ border:1px solid rgba(194,161,252,.7);background:#29234b;color:#fff;font:inherit;
+}
+.private-direct-call-overlay .private-direct-call-actions .private-direct-screen-share{
+ background:rgba(51,100,162,.85);border-color:rgba(144,197,255,.8);
+}
+.private-direct-call-overlay .private-direct-call-actions .private-direct-screen-share:disabled{opacity:.6;cursor:wait}
+.private-direct-call-overlay.is-sharing-screen .private-direct-call-videos{
+ display:grid;grid-template-columns:1fr;gap:8px;
+}
+.private-direct-call-overlay.is-sharing-screen .private-direct-call-videos video[aria-label="Tu cámara"]:not([hidden]){
+ position:static;width:100%;height:auto;min-height:140px;max-height:260px;
+ box-sizing:border-box;border-radius:9px;border:1px solid rgba(165,206,255,.8);
+ object-fit:contain;
+}
+.private-direct-call-overlay.is-sharing-screen .private-direct-call-videos video:not([hidden]){
+ max-height:260px;
+}
+@media(max-width:640px){
+ #private-messages .private-chat-favorite-action{min-width:33px;min-height:33px;flex-basis:33px;font-size:1.18rem}
+ #private-messages .private-direct-history-row{grid-template-columns:1fr;gap:4px}
+ .private-direct-call-overlay .private-direct-anime-filter{flex-basis:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ #private-messages .private-direct-history-toggle::after{transition:none}
+}
