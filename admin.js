@@ -519,8 +519,8 @@ async function adminInitRewardShop(){
   if(type==='textarea')control.rows=3;else control.type=type;
   control.name=key;control.placeholder=placeholder;
   if(['id','name','price'].includes(key))control.required=true;
-  if(key==='price')control.min='1';
-  if(key==='sort_order')control.min='0';
+  if(key==='price'){control.min='1';control.max='100000';control.step='1'}
+  if(key==='sort_order'){control.min='0';control.step='1'}
   if(key==='id')control.pattern='[a-z0-9_-]{3,60}';
   wrap.append(make('span','',label),control);
   if(key==='id')wrap.append(make('small','sb-shop-admin__hint','De 3 a 60 caracteres: letras minúsculas, números, _ o -.'));
@@ -561,17 +561,20 @@ async function adminInitRewardShop(){
  const previewPrice=make('span','','0 puntos');const previewCategory=make('span','','Marco');const previewEffect=make('span','','Marco neón');
  previewMeta.append(previewPrice,previewCategory,previewEffect);
  const previewDescription=make('p','sb-shop-admin__preview-description');
- preview.append(previewArt,previewName,previewMeta,previewDescription);
+ const previewVisibility=make('p','sb-shop-admin__preview-visibility','● Visible en tienda');
+ preview.append(previewArt,previewName,previewMeta,previewDescription,previewVisibility);
  layout.append(form,preview);shop.append(layout);
  const updatePreview=()=>{
   const url=controls.image_url.value.trim();
-  if(url.startsWith('https://')){previewImage.hidden=false;previewPlaceholder.hidden=true;if(previewImage.src!==url)previewImage.src=url}
+  if(url.startsWith('https://')){previewImage.hidden=false;previewPlaceholder.hidden=true;if(previewImage.getAttribute('src')!==url)previewImage.src=url}
   else {previewImage.hidden=true;previewPlaceholder.hidden=false;previewImage.removeAttribute('src')}
   previewName.textContent=controls.name.value.trim()||'Nombre del artículo';
   previewPrice.textContent=(controls.price.value||'0')+' puntos';
   previewCategory.textContent=categories[category.value]||'Categoría';
   previewEffect.textContent=effect.selectedOptions[0]?.textContent||'Sin efecto';
   previewDescription.textContent=controls.description.value.trim()||'La descripción de la recompensa aparecerá aquí.';
+  previewVisibility.textContent=active.checked?'● Visible en tienda':'● Oculto en tienda';
+  previewVisibility.classList.toggle('sb-shop-admin__preview-visibility--hidden',!active.checked);
  };
  previewImage.onerror=()=>{previewImage.hidden=true;previewPlaceholder.hidden=false};
  category.onchange=()=>{refreshEffects();updatePreview()};
@@ -589,8 +592,34 @@ async function adminInitRewardShop(){
   submit.textContent='💾 Guardar cambios';status.textContent='Editando: '+item.name;status.removeAttribute('data-type');
   updatePreview();form.scrollIntoView({behavior:'smooth',block:'start'});
  };
+ const duplicate=item=>{
+  resetForm();
+  controls.name.value=(item.name||'Artículo')+' (copia)';
+  controls.description.value=item.description||'';
+  controls.price.value=item.price??'';
+  controls.image_url.value=item.image_url||'';
+  controls.sort_order.value=item.sort_order??'0';
+  category.value=item.category;refreshEffects(item.value);active.checked=false;
+  const safeId=String(item.id||'articulo').toLowerCase().replace(/[^a-z0-9_-]/g,'_').slice(0,40)||'articulo';
+  let next=safeId+'_copia',counter=2;
+  while(inventory.some(existing=>existing.id===next)){next=safeId+'_copia_'+counter++}
+  controls.id.value=next;
+  status.textContent='Copia preparada. Revisa los datos y pulsa Guardar artículo.';
+  updatePreview();form.scrollIntoView({behavior:'smooth',block:'start'});
+ };
  form.onsubmit=async event=>{
-  event.preventDefault();submit.disabled=true;status.textContent='Guardando artículo…';status.removeAttribute('data-type');
+  event.preventDefault();
+  const imageUrl=controls.image_url.value.trim();
+  if(imageUrl){
+   let valid=false;
+   try{const parsed=new URL(imageUrl);valid=parsed.protocol==='https:'&&!!parsed.hostname&&!(parsed.username||parsed.password)}catch(error){}
+   if(!valid){status.textContent='La imagen debe utilizar una URL HTTPS válida.';status.dataset.type='error';controls.image_url.focus();return}
+  }
+  const price=Number(controls.price.value);
+  if(!Number.isInteger(price)||price<1||price>100000){
+   status.textContent='Introduce un precio entero entre 1 y 100.000 puntos.';status.dataset.type='error';controls.price.focus();return;
+  }
+  submit.disabled=true;status.textContent='Guardando artículo…';status.removeAttribute('data-type');
   const payload={p_id:controls.id.value.trim(),p_category:category.value,p_name:controls.name.value.trim(),p_description:controls.description.value.trim(),p_price:Number(controls.price.value),p_value:effect.value,p_active:active.checked,p_image_url:controls.image_url.value.trim()||null,p_sort_order:Number(controls.sort_order.value||0)};
   try{
    const {error}=await sb.rpc('admin_save_shop_item',payload);
