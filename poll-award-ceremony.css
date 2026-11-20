@@ -1,0 +1,155 @@
+/* Pantalla personalizada anime de premiación. Accesible y adaptable. */
+body.poll-ceremony-open{overflow:hidden}
+.poll-ceremony-overlay{
+ position:fixed;inset:0;z-index:250000;display:flex;
+ align-items:center;justify-content:center;overflow-y:auto;
+ padding:clamp(10px,4vw,32px);background:rgba(4,6,19,.84);
+ -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+.poll-ceremony-panel{
+ position:relative;isolation:isolate;overflow:hidden;width:min(100%,680px);
+ margin:auto;padding:clamp(22px,4vw,48px) clamp(15px,4vw,35px);
+ text-align:center;border:2px solid var(--ceremony-border,#eed09c);
+ border-radius:24px;color:#fcf8ff;background:
+ radial-gradient(ellipse at 50% 0%,var(--ceremony-halo,rgba(250,174,74,.38)),transparent 65%),
+ linear-gradient(135deg,#241b44,#121936 65%,#281d42);
+ box-shadow:0 0 60px var(--ceremony-shadow,rgba(255,209,110,.2)),0 20px 75px rgba(0,0,0,.45);
+}
+.poll-ceremony-gold{--ceremony-border:#ffcf77;--ceremony-halo:rgba(241,173,64,.32);--ceremony-shadow:rgba(237,175,65,.31);--ceremony-accent:#ffdc88}
+.poll-ceremony-silver{--ceremony-border:#9fe5fb;--ceremony-halo:rgba(94,169,245,.36);--ceremony-shadow:rgba(84,184,245,.31);--ceremony-accent:#bbf1ff}
+.poll-ceremony-bronze{--ceremony-border:#f9a48b;--ceremony-halo:rgba(239,116,99,.33);--ceremony-shadow:rgba(234,113,93,.27);--ceremony-accent:#ffc2a9}
+.poll-ceremony-panel>*:not(.poll-ceremony-particles){position:relative;z-index:2}
+.poll-ceremony-close{
+ position:absolute!important;z-index:6!important;right:13px;top:12px;
+ width:42px;height:42px;display:grid;place-items:center;cursor:pointer;
+ border:1px solid rgba(255,255,255,.44);border-radius:50%;
+ background:rgba(24,21,50,.9);color:white;font:900 20px Arial,sans-serif;
+}
+.poll-ceremony-close:hover{background:rgba(112,73,160,.8)}
+.poll-ceremony-kicker{
+ display:block;margin:10px auto 16px;max-width:92%;font-weight:900;
+ font-size:11px;line-height:1.6;color:var(--ceremony-accent);
+ text-transform:uppercase;letter-spacing:2px;
+}
+.poll-ceremony-icon{
+ display:block;font-size:clamp(72px,18vw,112px);line-height:1.2;
+ filter:drop-shadow(0 0 25px var(--ceremony-shadow));
+ animation:poll-ceremony-float 3s ease-in-out infinite;
+}
+.poll-ceremony-heading{
+ font:900 clamp(24px,5vw,39px)/1.2 Rajdhani,Arial,sans-serif!important;
+ color:#fff!important;margin:14px 0 7px!important;
+ text-shadow:0 0 17px var(--ceremony-shadow);
+ overflow-wrap:anywhere;
+}
+.poll-ceremony-phrase{
+ font-size:clamp(15px,3vw,19px);line-height:1.45;
+ color:#e7e1fa;margin:0 0 18px;
+}
+.poll-ceremony-badge{
+ display:inline-block;border:1px solid var(--ceremony-border);
+ border-radius:100px;color:#17142c;background:var(--ceremony-accent);
+ padding:11px 20px;font-size:clamp(18px,3.5vw,23px);
+ font-weight:900;line-height:1.2;box-shadow:0 0 25px var(--ceremony-shadow);
+}
+.poll-ceremony-month{
+ display:block;color:#e2d9f3;font-size:16px;margin:15px 0 5px;
+}
+.poll-ceremony-votes{
+ color:#bfe8fa;font-size:15px;margin:7px 0 12px;line-height:1.4;
+}
+.poll-ceremony-points{
+ display:block;font:900 clamp(23px,4vw,32px)/1.2 Rajdhani,Arial,sans-serif;
+ color:#a6f5c7;text-shadow:0 0 13px rgba(90,252,180,.24);
+}
+.poll-ceremony-actions{
+ display:flex;gap:10px;justify-content:center;align-items:center;
+ flex-wrap:wrap;margin:20px auto 0;
+}
+.poll-ceremony-actions :is(a,button),.poll-ceremony-rank-choice{
+ display:inline-flex;align-items:center;justify-content:center;min-height:43px;
+ padding:10px 15px;border-radius:12px;cursor:pointer;
+ font:800 15px Rajdhani,Arial,sans-serif;text-decoration:none;
+}
+.poll-ceremony-link,.poll-ceremony-share{
+ border:1px solid var(--ceremony-border);background:rgba(88,54,124,.7);color:#fff;
+}
+.poll-ceremony-link:hover,.poll-ceremony-share:hover{background:rgba(121,74,171,.8)}
+.poll-ceremony-done{
+ color:#f9ecff;border:1px solid #8e75ac;background:#2a2444;
+}
+.poll-ceremony-feedback,.poll-ceremony-private{
+ flex-basis:100%;font-size:14px;color:#b6f3db;line-height:1.5;
+ margin:0;
+}
+.poll-ceremony-private{color:#f3d6b2}
+.poll-ceremony-rank-choices{
+ display:flex;justify-content:center;align-items:center;gap:10px;
+ flex-wrap:wrap;margin:19px 0;
+}
+.poll-ceremony-rank-choices>p{
+ width:100%;color:#dccef0;font-size:14px;margin:0;
+}
+.poll-ceremony-rank-choice{
+ background:#34284e;color:#fff;border:1px solid #8366ad;
+}
+.poll-ceremony-rank-choice[aria-pressed=true]{
+ border-color:var(--ceremony-border);background:#645091;
+}
+.poll-ceremony-disclaimer{
+ color:#b8e7f5;font-size:13px;margin:10px 0;line-height:1.5;
+}
+.poll-ceremony-particles{
+ position:absolute;inset:0;z-index:0;overflow:hidden;
+ pointer-events:none;
+}
+.poll-ceremony-particle{
+ position:absolute;top:-30px;left:var(--left);
+ font-size:25px;color:var(--ceremony-accent);
+ opacity:0;text-shadow:0 0 10px var(--ceremony-shadow);
+ animation:poll-ceremony-rain var(--duration) ease-in var(--delay) both;
+}
+.poll-month-trophy-buttons{
+ display:flex;align-items:center;justify-content:center;gap:8px;
+ flex-wrap:wrap;margin:8px 0 0;
+}
+.poll-month-trophy-buttons button{
+ background:rgba(35,31,70,.82);color:#fff;
+ border:1px solid #a88bdb;padding:9px 12px;
+ min-height:41px;border-radius:11px;cursor:pointer;
+ font:800 14px Rajdhani,Arial,sans-serif;
+}
+.poll-month-trophy-buttons button:hover{background:rgba(75,56,130,.95)}
+.poll-month-trophy-share-feedback{
+ font-size:13px;line-height:1.4;color:#c7f4dc;
+ width:100%;margin:0;
+}
+.poll-month-trophy-highlight{
+ outline:3px solid #8ce6f6;outline-offset:3px;
+ box-shadow:0 0 22px rgba(107,231,255,.45)!important;
+}
+.poll-month-trophy-card:target{outline:3px solid #a5eaff}
+@keyframes poll-ceremony-float{
+ 0%,100%{transform:translateY(0) scale(1)}
+ 50%{transform:translateY(-10px) scale(1.04)}
+}
+@keyframes poll-ceremony-rain{
+ 0%{opacity:0;transform:translate3d(0,-20px,0) rotate(-20deg)}
+ 12%{opacity:.85}
+ 85%{opacity:.85}
+ 100%{opacity:0;transform:translate3d(var(--drift),680px,0) rotate(620deg)}
+}
+@media(max-width:520px){
+ .poll-ceremony-panel{border-radius:18px;padding:23px 12px}
+ .poll-ceremony-close{width:39px;height:39px}
+ .poll-ceremony-kicker{letter-spacing:1px;font-size:10px}
+ .poll-ceremony-badge{padding:10px 15px}
+ .poll-ceremony-actions{gap:8px}
+ .poll-ceremony-actions :is(a,button){flex:1 1 180px}
+}
+@media(prefers-reduced-motion:reduce){
+ .poll-ceremony-icon,.poll-ceremony-particle{
+ animation:none!important;transition:none!important;
+ }
+ .poll-ceremony-particles{display:none!important}
+}
