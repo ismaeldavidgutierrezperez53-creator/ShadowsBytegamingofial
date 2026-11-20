@@ -2060,3 +2060,39 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  #private-messages .private-chat-birthday-card{animation:none}
 }
+
+
+/* Fotos de una sola vista: chat individual y grupal */
+.chat-view-once-option{
+ display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;
+ padding:.65rem .85rem;border:1px solid rgba(170,125,255,.38);
+ border-radius:12px;background:rgba(100,60,166,.12);
+ color:inherit;font-size:.92rem;cursor:pointer;
+}
+.chat-view-once-option input[type="checkbox"]{
+ width:1.05rem;height:1.05rem;accent-color:#b889ff;cursor:pointer;
+}
+.chat-view-once-option:has(input:disabled){opacity:.7}
+.chat-view-once-hint{
+ display:block;flex-basis:100%;font-size:.75rem;
+ opacity:.85;line-height:1.4;margin-left:1.6rem;
+}
+.chat-view-once-message{
+ display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;
+ margin:.45rem 0;padding:.65rem .8rem;
+ border:1px dashed rgba(181,137,255,.6);
+ border-radius:12px;background:rgba(72,45,125,.2);
+ font-size:.88rem;
+}
+.chat-view-once-open{
+ border:1px solid rgba(187,142,255,.65);border-radius:10px;
+ background:linear-gradient(120deg,rgba(106,55,181,.85),rgba(56,94,166,.85));
+ color:#fff;padding:.6rem .9rem;font:inherit;font-weight:650;
+ cursor:pointer;min-height:42px;
+}
+.chat-view-once-open:hover:not(:disabled){filter:brightness(1.15)}
+.chat-view-once-open:disabled{opacity:.7;cursor:default}
+@media(max-width:620px){
+ .chat-view-once-option,.chat-view-once-message{width:100%;box-sizing:border-box}
+ .chat-view-once-open{width:100%;white-space:normal}
+}
