@@ -965,3 +965,19 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  .group-multi-video .group-video-tile::before{animation:none}
 }
+
+/* Clear explicit voice-detector activation on browsers that suspend AudioContext. */
+.group-multi-video .group-video-voice-controls{
+ display:flex;flex:1 1 100%;align-items:center;flex-wrap:wrap;gap:9px;
+ padding:7px;border-radius:12px;background:rgba(13,28,51,.7);
+}
+.group-multi-video .group-video-voice-controls button{
+ flex:0 1 auto;min-width:min(100%,210px);
+}
+.group-multi-video .group-video-voice-controls small{
+ flex:1 1 180px;color:#e6ddff;line-height:1.4;
+}
+@media(max-width:650px){
+ .group-multi-video .group-video-voice-controls{grid-column:1/-1}
+ .group-multi-video .group-video-voice-controls button{width:100%;flex:1 1 100%}
+}
