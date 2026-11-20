@@ -27,3 +27,35 @@
 #admin-shop-root .sb-shop-v3-coupon span,#admin-shop-root .sb-shop-v3-coupon small{font-size:14px;color:#bfb3ce}
 @media(max-width:690px){#reward-shop .shop-v3-panel{padding:16px}#admin-shop-root .sb-shop-v3-fields{grid-template-columns:1fr}#admin-shop-root .sb-shop-v3-fields .sb-shop-admin__toggle{grid-column:1}#admin-shop-root .sb-shop-v3-actions button{flex:1}}
 @media(prefers-reduced-motion:reduce){#reward-shop .shop-v3-panel *,#admin-shop-root .sb-shop-v3-panel *{transition:none!important}}
+
+
+/* Catálogo público: búsqueda, filtro por colección, precio y estados */
+#reward-shop .shop-explorer-shortcut{display:inline-flex;align-items:center;justify-content:center;margin:6px 0 14px;padding:10px 18px;border-radius:10px;cursor:pointer;color:#f3e5ff;border:1px solid #9163c2;background:#241931;font-weight:700;max-width:100%;white-space:normal}
+#reward-shop .shop-explorer-shortcut:hover{background:#38234e;border-color:#d6a6ff}
+#reward-shop .shop-explorer-panel{scroll-margin-top:115px;background:linear-gradient(140deg,#241636,#121024);border:1px solid #72508f;border-radius:19px;padding:22px;margin:25px 0 12px;box-shadow:0 13px 38px #0004;min-width:0}
+#reward-shop .shop-explorer-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+#reward-shop .shop-explorer-heading h3{font-size:25px;color:#f5d9ff;line-height:1.2;margin:0 0 6px}
+#reward-shop .shop-explorer-heading p{color:#c6b6d3;margin:4px 0 14px;font-size:15px}
+#reward-shop .shop-explorer-counts{display:grid;grid-template-columns:repeat(3,minmax(94px,1fr));gap:8px;flex:1 1 330px;max-width:445px}
+#reward-shop .shop-explorer-count{display:grid;gap:2px;text-align:center;padding:11px 8px;background:#ffffff09;border:1px solid #5c4570;border-radius:11px;min-width:0}
+#reward-shop .shop-explorer-count strong{font:700 25px Rajdhani,Arial,sans-serif;color:#e2b3ff;line-height:1.1}
+#reward-shop .shop-explorer-count span{font-size:13px;color:#c7b8d5;overflow-wrap:anywhere}
+#reward-shop .shop-explorer-controls{display:grid;grid-template-columns:minmax(170px,1.4fr) repeat(3,minmax(125px,1fr));gap:12px;align-items:end;margin:15px 0}
+#reward-shop .shop-explorer-field{display:grid;gap:7px;min-width:0;color:#e6daee;font-weight:700;font-size:15px}
+#reward-shop .shop-explorer-field input,#reward-shop .shop-explorer-field select{display:block;width:100%;min-width:0;max-width:none;min-height:46px;padding:10px 12px;border-radius:10px;border:1px solid #76578c;background:#151022;color:#f5efff;font:600 16px Rajdhani,Arial,sans-serif;outline-offset:2px}
+#reward-shop .shop-explorer-field input::placeholder{color:#ada1bb;opacity:1}
+#reward-shop .shop-explorer-field input:focus-visible,#reward-shop .shop-explorer-field select:focus-visible{outline:3px solid #ba82ed}
+#reward-shop .shop-explorer-reset{grid-column:1/-1;justify-self:end;max-width:100%;padding:10px 15px;cursor:pointer;background:#392643;border:1px solid #79538e;border-radius:9px;color:#f0e5f5}
+#reward-shop .shop-explorer-reset:hover{border-color:#d0a3eb;background:#51315e}
+#reward-shop .shop-explorer-results{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;color:#cdbbde;font-size:15px;padding:12px 0 0;border-top:1px solid #614576}
+#reward-shop .shop-explorer-results strong{color:#a6f1d9;font-size:16px}
+#reward-shop .shop-explorer-empty{text-align:center;padding:22px 12px;border:1px dashed #856ba0;border-radius:10px;color:#d3c5df}
+#reward-shop .shop-explorer-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;scroll-margin-top:120px}
+#reward-shop .shop-explorer-group>h3{grid-column:1/-1;margin:12px 0 0;font-size:23px;color:#f0d7ff}
+#reward-shop .shop-explorer-group>.shop-v2-reward{margin:0!important;height:100%;box-sizing:border-box;min-width:0}
+#reward-shop .shop-explorer-group>.shop-v2-reward button{max-width:100%;white-space:normal}
+#reward-shop .shop-explorer-expired{background:#29253d;border-color:#928eaa;color:#e5dcfa}
+#reward-shop [hidden]{display:none!important}
+@media(max-width:1080px){#reward-shop .shop-explorer-controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:730px){#reward-shop .shop-explorer-group{grid-template-columns:minmax(0,1fr)}#reward-shop .shop-explorer-controls{grid-template-columns:minmax(0,1fr)}#reward-shop .shop-explorer-reset{justify-self:stretch}#reward-shop .shop-explorer-panel{padding:16px}#reward-shop .shop-explorer-counts{max-width:none;flex-basis:100%}#reward-shop .shop-explorer-results{display:grid}}
+@media(max-width:400px){#reward-shop .shop-explorer-counts{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}#reward-shop .shop-explorer-count{padding:10px 3px}#reward-shop .shop-explorer-count strong{font-size:21px}#reward-shop .shop-explorer-count span{font-size:12px}}
