@@ -1,0 +1,47 @@
+/* Shadows Byte V2: cuatro mejoras incrementales, móviles y accesibles */
+.sb-energy-setting{margin-top:14px;padding:13px;border:1px solid #71519b;border-radius:13px;background:#23143c}
+.sb-energy-setting label{display:block;margin:0 0 5px!important;font-weight:800}
+.sb-energy-setting p{margin:5px 0 0;color:#d7c5ea;font-size:13px}
+.sb-energy-setting select{width:100%;min-height:42px}
+html[data-sb-energy="soft"] .sb-anime-sparkles{opacity:.33}
+html[data-sb-energy="soft"] .sb-v3-route-streak{display:none!important}
+html[data-sb-energy="soft"] body :is(.news-card,.anime-card,.gaming-card,.social-post):hover{box-shadow:none}
+html[data-sb-energy="intense"] .sb-anime-sparkles{filter:brightness(1.28)}
+html[data-sb-energy="intense"] body :is(.social-post,.sbp-identity-card,.news-card){box-shadow:0 8px 30px rgba(151,73,223,.2),0 0 0 1px rgba(187,106,255,.16)}
+html[data-sb-energy="intense"] .sbp-identity-chip{border-color:#b479e8;box-shadow:0 0 12px rgba(167,73,240,.26)}
+/* Plantillas de presentación: solo actualizan el formulario hasta guardar manualmente. */
+.sb-bio-templates{padding:12px;margin:11px 0 16px;border:1px solid #8453a6;border-radius:13px;background:linear-gradient(125deg,#24143b,#15112a)}
+.sb-bio-templates h4{margin:0 0 6px;font-size:18px;color:#f3ddff}
+.sb-bio-templates p{margin:4px 0 8px;color:#d9c7ec;font-size:14px}
+.sb-bio-template-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sb-bio-template-actions button,.sb-community-filters button{font:700 15px Rajdhani,Arial,sans-serif;border:1px solid #985ed0;border-radius:10px;color:#f5e8ff;background:#3b2256;cursor:pointer;min-height:44px;padding:9px 12px}
+.sb-bio-template-actions button:hover,.sb-community-filters button:hover{background:#603583}
+.sb-bio-templates [role=status],.sb-community-filter-count{display:block;color:#d9f5ff;font-size:14px;min-height:18px}
+.sb-bio-templates :focus-visible,.sb-community-filters :focus-visible{outline:3px solid #65deff;outline-offset:2px}
+.sb-community-filters{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:9px;align-items:center;margin:12px 0;padding:12px;border:1px solid #7846a5;border-radius:14px;background:#211334}
+.sb-community-filters input[type=search]{width:100%;min-width:0;min-height:44px;border-radius:10px;padding:9px 12px;border:1px solid #9a6ac5;color:#fff;background:#100a20;font:600 16px Rajdhani,Arial,sans-serif}
+.sb-community-filters input[type=search]::placeholder{color:#c6addc}
+.sb-community-filter-images{display:flex;align-items:center;gap:7px;color:#f4e8ff;font-size:16px;white-space:nowrap;cursor:pointer}
+.sb-community-filter-images input{width:18px;height:18px;accent-color:#a25ad4}
+.sb-community-filter-count{grid-column:1/-1;margin:0}
+.sb-community-no-results{padding:15px;border:1px dashed #8255b3;border-radius:10px;color:#e2cff5}
+.sb-community-no-results[hidden]{display:none!important}
+.community-bookmark-feed .social-post[hidden]{display:none!important}
+@media(max-width:600px){
+ .sb-community-filters{grid-template-columns:minmax(0,1fr) auto;padding:10px}
+ .sb-community-filters>input[type=search]{grid-column:1/-1}
+ .sb-community-filter-images{white-space:normal}
+ .sb-community-filters>button{min-width:92px}
+ .sb-bio-template-actions button{flex:1 1 130px}
+}
+/* Animaciones nuevas sin ocultar contenido antes de cargar, respetando ajustes. */
+@keyframes sb-four-soft-enter{0%{transform:translateY(7px);filter:brightness(1.12)}100%{transform:translateY(0);filter:none}}
+@keyframes sb-four-chip-gleam{0%{box-shadow:0 0 0 transparent}50%{box-shadow:0 0 15px rgba(181,107,246,.2)}100%{box-shadow:0 0 0 transparent}}
+html:not([data-sb-motion="off"]) .community-bookmark-feed .social-post{animation:sb-four-soft-enter .42s ease-out 1}
+html:not([data-sb-motion="off"]) .sbp-identity-chip{animation:sb-four-chip-gleam 1.3s ease-out 1}
+@media(prefers-reduced-motion:reduce){
+ .community-bookmark-feed .social-post,.sbp-identity-chip{animation:none!important;transition:none!important}
+ html[data-sb-energy="intense"] .sb-anime-sparkles{filter:none}
+}
+html[data-sb-motion="off"] .community-bookmark-feed .social-post,
+html[data-sb-motion="off"] .sbp-identity-chip{animation:none!important;transition:none!important}
