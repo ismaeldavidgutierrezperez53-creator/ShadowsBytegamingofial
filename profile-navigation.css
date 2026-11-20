@@ -146,3 +146,11 @@
 .sb-nav-undo-favorite:disabled{opacity:.45;cursor:default}
 .sb-nav-undo-favorite:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-undo-favorite{width:100%}}
+
+/* Rehacer el último cambio deshecho, por separado para favoritos y visibilidad */
+.sb-nav-redo-favorite,.sb-nav-redo-visibility{min-height:42px;padding:9px 13px;border:1px solid #87b6a4;border-radius:10px;background:#27473d;color:#e9fff5;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-redo-favorite:hover:not(:disabled),.sb-nav-redo-visibility:hover:not(:disabled){background:#386c59}
+.sb-nav-redo-favorite:disabled,.sb-nav-redo-visibility:disabled{opacity:.45;cursor:default}
+.sb-nav-redo-favorite:focus-visible,.sb-nav-redo-visibility:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+.sb-nav-redo-visibility[hidden]{display:none!important}
+@media(max-width:550px){.sb-nav-redo-favorite,.sb-nav-redo-visibility{width:100%}}
