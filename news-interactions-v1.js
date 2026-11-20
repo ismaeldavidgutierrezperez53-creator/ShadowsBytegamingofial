@@ -71,11 +71,12 @@
     if(!host)return;
     try{
       const {data:comments,error}=await sb.from('news_comments')
-        .select('id,author_id,content,created_at').eq('news_id',articleId)
-        .order('created_at',{ascending:false}).limit(50);
+        .select('id,author_id,parent_id,content,created_at').eq('news_id',articleId)
+        .order('created_at',{ascending:false}).limit(150);
       if(error)throw error;
       if(!current(articleId))return;
-      const authorIds=[...new Set((comments||[]).map(c=>c.author_id))];
+      const all=comments||[];
+      const authorIds=[...new Set(all.map(c=>c.author_id))];
       const names=new Map();
       if(authorIds.length){
         const {data:profiles,error:profileError}=await sb.from('profiles')
@@ -84,25 +85,89 @@
       }
       if(!current(articleId))return;
       const total=document.getElementById('sb-news-comments-total');
-      if(total)total.textContent=(comments||[]).length+' comentario'+((comments||[]).length===1?'':'s')+((comments||[]).length===50?' (mostrando los últimos 50)':'');
-      if(!comments?.length){host.innerHTML='<p class="sb-news-no-comments">Todavía no hay comentarios. ¡Sé el primero!</p>';return;}
+      if(total)total.textContent=all.length+' comentario'+(all.length===1?'':'s')+(all.length===150?' (mostrando los últimos 150)':'');
+      if(!all.length){host.innerHTML='<p class="sb-news-no-comments">Todavía no hay comentarios. ¡Sé el primero!</p>';return;}
       const isAdmin=user?.app_metadata?.role==='admin';
-      host.innerHTML=comments.map(c=>{
+      const byId=new Map(all.map(c=>[c.id,c]));
+      const children=new Map();
+      const roots=[];
+      for(const c of all){
+        if(c.parent_id&&byId.has(c.parent_id)){
+          if(!children.has(c.parent_id))children.set(c.parent_id,[]);
+          children.get(c.parent_id).push(c);
+        }else roots.push(c);
+      }
+      // Si la respuesta original no figura entre los 150 últimos, se muestra como hilo independiente.
+      for(const list of children.values())list.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      const renderComment=(c,depth=0)=>{
         const name=user?.id===c.author_id?'Tú':names.get(c.author_id)||'Miembro';
         const canDelete=user&&(user.id===c.author_id||isAdmin);
-        return '<article class="sb-news-comment"><div class="sb-news-comment-head"><strong>'+esc(name)+'</strong><time datetime="'+esc(c.created_at)+'">'+esc(date(c.created_at))+'</time></div>'+
-          '<p>'+esc(c.content).replace(/\n/g,'<br>')+'</p>'+
+        const childHtml=(children.get(c.id)||[]).map(reply=>renderComment(reply,depth+1)).join('');
+        return '<article class="sb-news-comment'+(depth?' sb-news-comment-reply':'')+'" id="news-comment-'+esc(c.id)+'" tabindex="-1" data-depth="'+Math.min(depth,5)+'">'+
+          '<div class="sb-news-comment-head"><strong>'+esc(name)+'</strong><time datetime="'+esc(c.created_at)+'">'+esc(date(c.created_at))+'</time></div>'+
+          '<p>'+esc(c.content).replace(/\\n/g,'<br>')+'</p>'+
+          '<div class="sb-news-comment-actions">'+
+          (user?'<button type="button" class="sb-news-reply-btn" data-reply-id="'+esc(c.id)+'" data-reply-name="'+esc(name)+'">↩ Responder</button>':'')+
           (canDelete?'<button type="button" class="sb-news-delete-comment" data-comment-id="'+esc(c.id)+'" aria-label="Eliminar comentario">Eliminar</button>':'')+
-          '</article>';
-      }).join('');
+          '</div><div class="sb-news-reply-form-slot" data-reply-slot="'+esc(c.id)+'"></div>'+
+          (childHtml?'<div class="sb-news-reply-thread">'+childHtml+'</div>':'')+'</article>';
+      };
+      host.innerHTML=roots.map(c=>renderComment(c)).join('');
       host.querySelectorAll('[data-comment-id]').forEach(btn=>btn.addEventListener('click',async()=>{
-        if(!window.confirm('¿Eliminar este comentario?'))return;
+        if(!window.confirm('¿Eliminar este comentario y sus respuestas?'))return;
         btn.disabled=true;
         const {error:deleteError}=await sb.from('news_comments').delete().eq('id',btn.dataset.commentId).eq('news_id',articleId);
         if(deleteError){setStatus('sb-news-comments-status','No se pudo eliminar el comentario.');btn.disabled=false;return;}
         setStatus('sb-news-comments-status','Comentario eliminado.');
         await loadComments(articleId,user);
       }));
+      host.querySelectorAll('[data-reply-id]').forEach(btn=>btn.addEventListener('click',()=>{
+        const slot=host.querySelector('[data-reply-slot="'+btn.dataset.replyId+'"]');
+        if(!slot)return;
+        host.querySelectorAll('.sb-news-reply-form-slot').forEach(other=>{if(other!==slot)other.replaceChildren();});
+        if(slot.hasChildNodes()){slot.replaceChildren();return;}
+        const form=document.createElement('form');
+        form.className='sb-news-inline-reply-form';
+        const label=document.createElement('label');label.textContent='Responder a '+btn.dataset.replyName;
+        const textarea=document.createElement('textarea');textarea.rows=3;textarea.maxLength=1500;
+        textarea.required=true;textarea.placeholder='Escribe tu respuesta…';
+        const controls=document.createElement('div');controls.className='sb-news-reply-controls';
+        const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancelar';cancel.className='sb-news-reply-cancel';
+        cancel.onclick=()=>form.remove();
+        const send=document.createElement('button');send.type='submit';send.textContent='Enviar respuesta';send.className='sb-news-submit';
+        controls.append(cancel,send);form.append(label,textarea,controls);slot.append(form);textarea.focus();
+        form.onsubmit=async event=>{
+          event.preventDefault();
+          const content=textarea.value.trim();
+          if(!content||content.length>1500){setStatus('sb-news-comments-status','Escribe entre 1 y 1500 caracteres.');return;}
+          send.disabled=true;setStatus('sb-news-comments-status','Enviando respuesta…');
+          try{
+            const {error:replyError}=await sb.from('news_comments').insert({
+              news_id:articleId,author_id:user.id,parent_id:btn.dataset.replyId,content
+            });
+            if(replyError)throw replyError;
+            if(!current(articleId))return;
+            setStatus('sb-news-comments-status','Respuesta publicada. El autor recibirá una notificación.');
+            await loadComments(articleId,user);
+          }catch(error){
+            console.error('Responder comentario:',error);
+            if(current(articleId))setStatus('sb-news-comments-status','No se pudo publicar la respuesta.');
+            if(form.isConnected)send.disabled=false;
+          }
+        };
+      }));
+      const requestedId=new URLSearchParams(location.hash.split('?').slice(1).join('?')).get('comment');
+      if(requestedId&&/^[0-9a-f-]{36}$/i.test(requestedId)){
+        const destination=document.getElementById('news-comment-'+requestedId);
+        if(destination){
+          requestAnimationFrame(()=>{
+            if(destination.isConnected&&current(articleId)){
+              destination.scrollIntoView({behavior:'smooth',block:'center'});
+              destination.focus({preventScroll:true});
+            }
+          });
+        }
+      }
     }catch(error){
       console.error('Comentarios de noticia:',error);
       if(current(articleId))host.innerHTML='<p>No se pudieron cargar los comentarios. Vuelve a abrir la noticia para reintentar.</p>';
