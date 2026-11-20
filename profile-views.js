@@ -62,17 +62,57 @@
     }
     statsPanel.append(statsGrid);
     statsPanel.append(create('p', 'sb-views-stats-explanation', 'Las visitas se cuentan una vez cada 10 minutos por miembro. Las cifras corresponden a visitas registradas con el historial activo y perfiles públicos.'));
-    const weeklyPanel = create('section', 'sb-views-week-chart');
-    weeklyPanel.setAttribute('aria-label', 'Gráfico semanal de visitas a mi perfil');
-    weeklyPanel.append(create('h3', '', '📈 Visitas por día · últimos 7 días'));
-    const chartStatus = create('p', 'sb-views-chart-status', 'Cargando gráfico semanal…');
+    const advancedPanel = create('section', 'sb-views-week-chart sb-views-advanced-panel');
+    advancedPanel.setAttribute('aria-label', 'Panel avanzado de visitas de mi perfil');
+    advancedPanel.append(create('h3', '', '📈 Evolución y comparación de visitas'));
+    const periodTools = create('div', 'sb-views-period-tools');
+    periodTools.append(create('strong', '', 'Mostrar período:'));
+    const periodButtons = new Map();
+    let selectedPeriod = 7;
+    let allDayData = null;
+    for (const [days, caption] of [[7, '7 días'], [30, '30 días']]) {
+      const button = create('button', 'outline-btn mini sb-views-period-btn', caption);
+      button.type = 'button';
+      button.disabled = true;
+      button.setAttribute('aria-pressed', String(days === selectedPeriod));
+      button.addEventListener('click', () => {
+        if (!allDayData) return;
+        selectedPeriod = days;
+        for (const [option, control] of periodButtons) {
+          control.setAttribute('aria-pressed', String(option === selectedPeriod));
+        }
+        renderAdvancedChart();
+      });
+      periodButtons.set(days, button);
+      periodTools.append(button);
+    }
+    advancedPanel.append(periodTools);
+    const comparisonGrid = create('div', 'sb-views-comparison-grid');
+    const comparisonValues = new Map();
+    for (const [key, title] of [
+      ['current', 'Visitas del período'],
+      ['previous', 'Período anterior'],
+      ['change', 'Comparación'],
+      ['peak', 'Día más activo']
+    ]) {
+      const box = create('div', 'sb-views-comparison-tile');
+      box.append(create('small', '', title));
+      const value = create('strong', 'sb-views-comparison-value', '—');
+      box.append(value);
+      comparisonGrid.append(box);
+      comparisonValues.set(key, value);
+    }
+    advancedPanel.append(comparisonGrid);
+    const chartStatus = create('p', 'sb-views-chart-status', 'Cargando estadísticas avanzadas…');
     chartStatus.setAttribute('role', 'status');
+    const chartViewport = create('div', 'sb-views-chart-viewport');
     const chartBars = create('div', 'sb-views-chart-bars');
     chartBars.setAttribute('role', 'list');
-    chartBars.setAttribute('aria-label', 'Visitas diarias durante los últimos siete días');
-    weeklyPanel.append(chartStatus, chartBars);
-    weeklyPanel.append(create('p', 'sb-views-chart-help', 'Cada barra representa visitas registradas en un día (horario de Madrid). De las visitas anteriores a este gráfico solo se conserva la última fecha conocida por miembro.'));
-    statsPanel.append(weeklyPanel);
+    chartBars.setAttribute('aria-label', 'Visitas diarias del período elegido');
+    chartViewport.append(chartBars);
+    advancedPanel.append(chartStatus, chartViewport);
+    advancedPanel.append(create('p', 'sb-views-chart-help', 'Comparación con los 7 o 30 días anteriores, contando hoy. Horario de Madrid. Solo se muestran visitas registradas: los períodos anteriores a la activación del historial pueden aparecer vacíos.'));
+    statsPanel.append(advancedPanel);
     statsPanel.append(create('h3', 'sb-views-frequent-title', '🌟 Visitantes frecuentes'));
     const frequentList = create('div', 'sb-views-frequent-list');
     const statsStatus = create('p', 'sb-views-stats-status', 'Cargando estadísticas…');
@@ -98,48 +138,83 @@
       for (const value of metricValues.values()) value.textContent = '—';
       frequentList.replaceChildren();
       statsStatus.textContent = 'Activa el historial para consultar tus estadísticas.';
+      allDayData = null;
       chartBars.replaceChildren();
-      chartStatus.textContent = 'Activa el historial para mostrar el gráfico semanal.';
+      chartStatus.textContent = 'Activa el historial para consultar los gráficos.';
+      for (const button of periodButtons.values()) button.disabled = true;
+      for (const value of comparisonValues.values()) value.textContent = '—';
     }
 
-    function renderWeeklyChart(data, error) {
+    function renderAdvancedChart(data, error) {
+      if (Array.isArray(data) && data.length === 60 && !error) {
+        const parsed = data.map(entry => ({
+          date: String(entry.visit_day || ''),
+          count: Math.max(0, Math.floor(Number(entry.visits) || 0)),
+          visitors: Math.max(0, Math.floor(Number(entry.visitors) || 0))
+        }));
+        if (parsed.every(day => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day.date))) {
+          allDayData = parsed;
+        } else {
+          allDayData = null;
+        }
+      } else if (error || data !== undefined) {
+        allDayData = null;
+      }
       chartBars.replaceChildren();
-      if (error || !Array.isArray(data) || data.length !== 7) {
-        chartStatus.textContent = 'No se pudo cargar el gráfico. Pulsa Actualizar para reintentarlo.';
+      if (!allDayData) {
+        for (const value of comparisonValues.values()) value.textContent = '—';
+        chartStatus.textContent = 'No se pudieron cargar los gráficos. Pulsa Actualizar para reintentarlo.';
+        for (const button of periodButtons.values()) button.disabled = true;
         return;
       }
-      const days = data.map(entry => ({
-        date: String(entry.visit_day || ''),
-        count: Math.max(0, Math.floor(Number(entry.visits) || 0)),
-        visitors: Math.max(0, Math.floor(Number(entry.visitors) || 0))
-      }));
-      if (days.some(day => !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day.date))) {
-        chartStatus.textContent = 'No se pudieron interpretar las fechas del gráfico.';
-        return;
-      }
+      for (const button of periodButtons.values()) button.disabled = false;
+      const period = selectedPeriod;
+      const days = allDayData.slice(-period);
+      const previousDays = allDayData.slice(-period * 2, -period);
+      const sum = entries => entries.reduce((total, item) => total + item.count, 0);
+      const current = sum(days);
+      const previous = sum(previousDays);
+      const delta = current - previous;
+      const change = previous
+        ? (delta > 0 ? '+' : '') + Math.round(delta / previous * 100).toLocaleString('es-ES') + ' %'
+        : current ? 'Nuevas visitas' : 'Sin cambios';
+      const fmt = value => value.toLocaleString('es-ES');
+      comparisonValues.get('current').textContent = fmt(current);
+      comparisonValues.get('previous').textContent = fmt(previous);
+      comparisonValues.get('change').textContent = change;
+      const changeBox = comparisonValues.get('change');
+      changeBox.classList.toggle('sb-views-is-up', delta > 0);
+      changeBox.classList.toggle('sb-views-is-down', delta < 0);
+      const mostActive = days.reduce((best, day) => day.count > best.count ? day : best, days[0]);
+      const peakDate = new Date(mostActive.date + 'T12:00:00Z');
+      comparisonValues.get('peak').textContent = mostActive.count
+        ? peakDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' }) + ' · ' + fmt(mostActive.count)
+        : 'Sin visitas';
+      chartStatus.textContent = fmt(current) + (current === 1 ? ' visita en ' : ' visitas en ') + period + ' días · Comparación con los ' + period + ' días previos.';
+      chartBars.dataset.period = String(period);
+      chartBars.setAttribute('aria-label', 'Visitas diarias de los últimos ' + period + ' días');
       const peak = Math.max(1, ...days.map(day => day.count));
-      const total = days.reduce((sum, day) => sum + day.count, 0);
-      chartStatus.textContent = total
-        ? total.toLocaleString('es-ES') + (total === 1 ? ' visita registrada' : ' visitas registradas') + ' durante los siete días.'
-        : 'Todavía no hay visitas registradas en los últimos siete días.';
       for (const day of days) {
         const date = new Date(day.date + 'T12:00:00Z');
-        const shortDate = date.toLocaleDateString('es-ES', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
-        const fullDate = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+        const full = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', timeZone: 'UTC' });
         const column = create('div', 'sb-views-chart-column');
         column.setAttribute('role', 'listitem');
-        column.setAttribute('aria-label', fullDate + ': ' + day.count + ' visitas y ' + day.visitors + ' visitantes');
-        const countText = create('strong', 'sb-views-chart-value', day.count.toLocaleString('es-ES'));
+        column.setAttribute('aria-label', full + ': ' + fmt(day.count) + ' visitas y ' + fmt(day.visitors) + ' visitantes');
+        const value = create('strong', 'sb-views-chart-value', fmt(day.count));
         const track = create('span', 'sb-views-chart-track');
         track.setAttribute('aria-hidden', 'true');
         const bar = create('span', 'sb-views-chart-fill');
         bar.style.height = day.count ? Math.max(8, Math.round(day.count / peak * 100)) + '%' : '0%';
         if (!day.count) bar.classList.add('is-empty');
         track.append(bar);
-        const weekday = create('span', 'sb-views-chart-weekday', shortDate);
-        const dayLabel = create('small', 'sb-views-chart-date', fullDate);
-        column.title = fullDate + ': ' + day.count + ' visitas (' + day.visitors + ' visitantes únicos)';
-        column.append(countText, track, weekday, dayLabel);
+        const weekday = create('span', 'sb-views-chart-weekday', period === 7
+          ? date.toLocaleDateString('es-ES', { weekday: 'short', timeZone: 'UTC' }).replace('.', '')
+          : date.toLocaleDateString('es-ES', { day: '2-digit', timeZone: 'UTC' }));
+        const dayLabel = create('small', 'sb-views-chart-date', period === 7
+          ? date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+          : date.toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' }));
+        column.title = full + ': ' + day.count + ' visitas (' + day.visitors + ' visitantes)';
+        column.append(value, track, weekday, dayLabel);
         chartBars.append(column);
       }
     }
@@ -202,15 +277,15 @@
       }
       refresh.disabled = true;
       status.textContent = 'Cargando visitas…';
-      const [visitsResult, statsResult, weeklyResult] = await Promise.all([
+      const [visitsResult, statsResult, advancedResult] = await Promise.all([
         sb.rpc('get_profile_visitors'),
         sb.rpc('get_profile_visit_stats'),
-        sb.rpc('get_profile_visit_weekly')
+        sb.rpc('get_profile_visit_advanced')
       ]);
       if (!card.isConnected || !checkbox.checked) return;
       const { data, error: loadError } = visitsResult;
       renderStats(statsResult.data, statsResult.error);
-      renderWeeklyChart(weeklyResult.data, weeklyResult.error);
+      renderAdvancedChart(advancedResult.data, advancedResult.error);
       refresh.disabled = false;
       if (loadError) {
         status.textContent = 'No se pudieron cargar las visitas. Inténtalo otra vez.';
