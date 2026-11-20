@@ -78,8 +78,8 @@
    search.placeholder='Buscar biblioteca, retos, estadísticas…';
    search.setAttribute('aria-label','Buscar secciones del perfil');
    search.autocomplete='off';
-   search.title='Atajos: / buscar · ↑ ↓ seleccionar · Enter abrir · Esc limpiar';
-   const shortcutHint=node('span','sb-nav-shortcut-hint','⌨️ / buscar · ↑ ↓ elegir · Enter abrir · Esc limpiar');
+   search.title='Atajos: / buscar · ↑ ↓ seleccionar · Alt+↑ primero · Alt+↓ último · Enter abrir · Esc limpiar';
+   const shortcutHint=node('span','sb-nav-shortcut-hint','⌨️ / buscar · ↑ ↓ elegir · Alt+↑/↓ extremos · Enter abrir · Esc limpiar');
    shortcutHint.title='Pulsa / fuera de los campos de texto para enfocar este buscador';
    const searchFiltersKey='sb-profile-search-filters-'+(isOwn?'own':'public')+'-v1';
    try{
@@ -686,12 +686,18 @@
    const controls=node('div','sb-nav-links');
    controls.id='sb-nav-results-'+(isOwn?'own':'public');
    search.setAttribute('aria-controls',controls.id);
+   const selectionStatus=node('p','sb-nav-selection-status');
+   selectionStatus.setAttribute('role','status');
+   selectionStatus.setAttribute('aria-live','polite');
    let selectedShortcut=null;
    const matchingShortcuts=()=>[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector);
    const markShortcut=selector=>{
     const matches=matchingShortcuts();
     const selected=matches.find(item=>item.dataset.shortcutSelector===selector);
     selectedShortcut=selected?selector:null;
+    const position=matches.indexOf(selected);
+    const status=selected?'Resultado '+(position+1)+' de '+matches.length+': '+(selected.dataset.searchLabel||''):'';
+    if(selectionStatus.textContent!==status)selectionStatus.textContent=status;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const highlighted=item===selected;
      if(item.classList.contains('sb-nav-keyboard-selected')!==highlighted)item.classList.toggle('sb-nav-keyboard-selected',highlighted);
@@ -742,7 +748,15 @@
       else restorable++;
      }
     }
-    if(selectedShortcut&&!matchingShortcuts().some(item=>item.dataset.shortcutSelector===selectedShortcut))markShortcut(null);
+    if(selectedShortcut){
+     const matches=matchingShortcuts();
+     if(!matches.some(item=>item.dataset.shortcutSelector===selectedShortcut))markShortcut(null);
+     else{
+      const item=matches.find(row=>row.dataset.shortcutSelector===selectedShortcut);
+      const status='Resultado '+(matches.indexOf(item)+1)+' de '+matches.length+': '+(item.dataset.searchLabel||'');
+      if(selectionStatus.textContent!==status)selectionStatus.textContent=status;
+     }
+    }
     const message=query||enabled||unstarredOnly||hiddenOnly||visibleOnly?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
     if(resultCount.textContent!==message)resultCount.textContent=message;
     const bulkLabel=addable?'⭐ Añadir resultados a favoritos ('+addable+')':'⭐ No hay resultados sin estrella';
@@ -839,7 +853,8 @@
      if(!matches.length)return;
      event.preventDefault();
      const current=matches.findIndex(item=>item.dataset.shortcutSelector===selectedShortcut);
-     const next=event.key==='ArrowDown'?(current+1)%matches.length:(current<0?matches.length-1:(current-1+matches.length)%matches.length);
+     const next=event.altKey?(event.key==='ArrowUp'?0:matches.length-1):
+      event.key==='ArrowDown'?(current+1)%matches.length:(current<0?matches.length-1:(current-1+matches.length)%matches.length);
      markShortcut(matches[next].dataset.shortcutSelector);
      return;
     }
@@ -866,7 +881,7 @@
    });
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
    searchBox.append(shortcutHint);
-   details.append(summary,searchBox,filterStatus,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
+   details.append(summary,searchBox,filterStatus,selectionStatus,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
