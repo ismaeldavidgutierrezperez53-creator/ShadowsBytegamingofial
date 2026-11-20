@@ -123,3 +123,11 @@
 .sb-nav-restore-all:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 .sb-nav-restore-all[hidden]{display:none!important}
 @media(max-width:550px){.sb-nav-restore-all{width:100%}}
+
+/* Ocultar en bloque accesos sin estrella, conservando favoritos visibles */
+.sb-nav-hide-nonfavorites{min-height:42px;padding:9px 13px;border:1px solid #a989ce;border-radius:10px;background:#3e2b55;color:#f5eaff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-hide-nonfavorites:hover:not(:disabled){background:#614181}
+.sb-nav-hide-nonfavorites:disabled{opacity:.5;cursor:not-allowed}
+.sb-nav-hide-nonfavorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+.sb-nav-hide-nonfavorites[hidden]{display:none!important}
+@media(max-width:550px){.sb-nav-hide-nonfavorites{width:100%}}
