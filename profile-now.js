@@ -23,23 +23,71 @@ const sanitize=value=>String(value||'').trim().slice(0,90);
 function display(parent,data,{preview=false,own=false}={}){
  parent.replaceChildren();
  const filled=fields.filter(f=>sanitize(data[f.key]));
- const mood=moods[data.mood]||moods.relax;
- const info=create('div','profile-now-mood',mood.icon+' '+mood.name);
- parent.append(info);
- const grid=create('div','profile-now-grid');
- for(const f of filled){
-  const item=create('article','profile-now-tile');
-  item.append(create('span','profile-now-icon',f.icon));
-  const detail=create('div','profile-now-tile-detail');
-  detail.append(create('strong','profile-now-tile-heading',f.label));
-  detail.append(create('p','profile-now-tile-value',sanitize(data[f.key])));
-  item.append(detail);grid.append(item);
+ const moodCode=Object.hasOwn(moods,data.mood)?data.mood:'relax';
+ const mood=moods[moodCode];
+ const card=create('div','profile-now-anime-card');
+ card.dataset.mood=moodCode;
+
+ // Purely decorative elements never contain user content or interfere with controls.
+ const backdrop=create('div','profile-now-anime-backdrop');
+ backdrop.setAttribute('aria-hidden','true');
+ for(let i=0;i<5;i++){
+  const sparkle=create('span','profile-now-anime-sparkle');
+  sparkle.classList.add('profile-now-anime-sparkle-'+(i+1));
+  sparkle.textContent=i%2===0?'✦':'✧';
+  backdrop.append(sparkle);
  }
- if(!filled.length){
-  parent.append(create('p','profile-now-empty',own?'Escribe un anime, un manga o un juego para completar tu tarjeta.':'Este miembro todavía no ha añadido títulos.'));
- }else parent.append(grid);
+ card.append(backdrop);
+
+ const heading=create('div','profile-now-anime-card-head');
+ const title=create('div','profile-now-anime-heading');
+ title.append(create('span','profile-now-anime-eyebrow','SHADOWS BYTE · TARJETA ANIME'));
+ title.append(create('h3','profile-now-anime-title','✨ Mi momento especial'));
+ title.append(create('p','profile-now-anime-subtitle',
+  preview?'Vista previa de tu tarjeta animada':'Anime, manga y gaming que quiero compartir'));
+ const moodPill=create('span','profile-now-anime-mood',mood.icon+' '+mood.name);
+ heading.append(title,moodPill);
+ card.append(heading);
+
+ if(filled.length){
+  const grid=create('div','profile-now-grid profile-now-anime-grid');
+  for(const [index,f] of filled.entries()){
+   const item=create('article','profile-now-tile profile-now-anime-tile');
+   item.style.setProperty('--profile-now-order',String(index));
+   item.append(create('span','profile-now-icon profile-now-anime-icon',f.icon));
+   const detail=create('div','profile-now-tile-detail');
+   detail.append(create('strong','profile-now-tile-heading',f.label));
+   detail.append(create('p','profile-now-tile-value',sanitize(data[f.key])));
+   item.append(detail);
+   grid.append(item);
+  }
+  card.append(grid);
+ }else{
+  card.append(create('p','profile-now-empty',
+   own?'Escribe un anime, un manga o un juego para completar tu tarjeta.':
+   'Este miembro todavía no ha añadido títulos.'));
+ }
+ const footer=create('div','profile-now-anime-footer');
+ footer.append(create('span','profile-now-anime-signature','✧ Tu mundo anime, a tu manera ✧'));
+ const prefersReducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
+ if(!prefersReducedMotion&&filled.length){
+  const pause=create('button','profile-now-anime-pause','⏸ Pausar efectos');
+  pause.type='button';
+  pause.setAttribute('aria-pressed','false');
+  pause.setAttribute('aria-label','Pausar animaciones de la tarjeta anime');
+  pause.onclick=()=>{
+   const paused=card.classList.toggle('is-paused');
+   pause.textContent=paused?'▶ Reanudar efectos':'⏸ Pausar efectos';
+   pause.setAttribute('aria-pressed',String(paused));
+   pause.setAttribute('aria-label',paused?'Reanudar animaciones de la tarjeta anime':'Pausar animaciones de la tarjeta anime');
+  };
+  footer.append(pause);
+ }
+ card.append(footer);
+ parent.append(card);
  if(preview){
-  parent.append(create('p','profile-now-preview-note','👁️ VISTA PREVIA LOCAL · No se publica ni se guarda hasta pulsar «Guardar».'));
+  parent.append(create('p','profile-now-preview-note',
+   '👁️ VISTA PREVIA LOCAL · No se publica ni se guarda hasta pulsar «Guardar».'));
  }
 }
 function mount(host,memberId,{own=false}={}){
