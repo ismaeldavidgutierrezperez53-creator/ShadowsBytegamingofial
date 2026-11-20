@@ -175,8 +175,8 @@ async function renderRewardShop(){
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
  if(!user){host.textContent='Inicia sesión para comprar recompensas.';return}
  const [catalog,owned,equipped,balance,members,gifts]=await Promise.all([
-  sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order,image_url').eq('active',true).order('sort_order'),
-  sb.from('member_shop_purchases').select('item_id,price_paid').eq('user_id',user.id),
+  sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order,image_url,required_level,featured,sale_price,sale_starts_at,sale_ends_at').eq('active',true).order('sort_order'),
+  sb.from('member_shop_purchases').select('item_id,price_paid,purchased_at').eq('user_id',user.id).order('purchased_at',{ascending:false}),
   sb.from('member_shop_equipped').select('category,item_id').eq('user_id',user.id),
   sb.rpc('reward_shop_balance'),
   sb.from('profiles').select('id,display_name,username').eq('is_public',true).neq('id',user.id).order('display_name').limit(100),
@@ -189,22 +189,95 @@ async function renderRewardShop(){
  const recipientLabel=document.createElement('label');recipientLabel.textContent='🎁 Enviar regalo a un miembro público: ';const recipient=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='Selecciona un miembro';recipient.append(blank);for(const member of members.data||[]){const option=document.createElement('option');option.value=member.id;option.textContent=member.display_name||member.username||'Miembro';recipient.append(option)}recipientLabel.append(recipient);host.append(recipientLabel);const giftHelp=document.createElement('p');giftHelp.textContent='El regalo consume tus puntos y desbloquea el artículo para el destinatario. No se pueden regalar artículos que ya posee.';host.append(giftHelp);
  const mystery=document.createElement('section');mystery.className='profile-panel';mystery.style.cssText='padding:18px;margin:18px 0;border:1px solid #ffffff44;border-radius:14px';const mysteryTitle=document.createElement('h3');mysteryTitle.textContent='🎁 Caja misteriosa · 150 puntos';mystery.append(mysteryTitle);const mysteryInfo=document.createElement('p');mysteryInfo.textContent='Envía una recompensa aleatoria que el destinatario aún no tenga. La sorpresa aparecerá en su buzón de regalos y recibirá una notificación.';mystery.append(mysteryInfo);const mysteryButton=document.createElement('button');mysteryButton.type='button';mysteryButton.className='gradient-btn mini';mysteryButton.textContent='🎲 Enviar regalo sorpresa · 150 puntos';mysteryButton.disabled=Number(balance.data||0)<150||!(members.data||[]).length;const mysteryStatus=document.createElement('p');mysteryStatus.setAttribute('role','status');mysteryButton.onclick=async()=>{if(!recipient.value){mysteryStatus.textContent='Selecciona primero un miembro en el selector de arriba.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar una caja misteriosa a '+who+' por 150 puntos?'))return;mysteryButton.disabled=true;mysteryStatus.textContent='Enviando regalo sorpresa…';const {data,error}=await sb.rpc('send_surprise_reward_gift',{target_member:recipient.value});if(error){mysteryStatus.textContent=error.message;mysteryButton.disabled=false;return}mysteryStatus.textContent='🎉 ¡Regalo sorpresa enviado!';await renderRewardShop()};mystery.append(mysteryButton,mysteryStatus);host.append(mystery);
  const {data:boxTiers,error:boxError}=await sb.from('surprise_box_tiers').select('tier,name,price,active').eq('active',true);if(!boxError){const section=document.createElement('section');section.className='profile-panel';section.style.cssText='padding:16px;margin:18px 0';const h=document.createElement('h3');h.textContent='🎁 Cajas misteriosas por niveles';section.append(h);const intro=document.createElement('p');intro.textContent='Selecciona un miembro arriba y elige una caja. Recibirá una recompensa aleatoria de ese nivel que todavía no tenga.';section.append(intro);for(const tier of boxTiers||[]){const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0';const label=document.createElement('span');label.textContent=tier.name+' · '+tier.price+' puntos';const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';button.textContent='🎲 Enviar '+tier.name;button.disabled=Number(balance.data||0)<tier.price||!(members.data||[]).length;const status=document.createElement('span');status.setAttribute('role','status');button.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona un miembro primero.';return}if(!confirm('¿Enviar '+tier.name+' por '+tier.price+' puntos?'))return;button.disabled=true;status.textContent='Enviando…';const {data,error}=await sb.rpc('send_tier_surprise_gift',{p_tier:tier.tier,target_member:recipient.value});if(error){status.textContent=error.message;button.disabled=false;return}status.textContent='🎉 Regalo enviado';await renderRewardShop()};row.append(label,button,status);section.append(row)}host.append(section)}
+
+ const nowMs=Date.now();
+ const onSale=item=>item.sale_price!=null && item.sale_starts_at && item.sale_ends_at &&
+  Date.parse(item.sale_starts_at)<=nowMs && nowMs<Date.parse(item.sale_ends_at) && Number(item.sale_price)<Number(item.price);
+ const actualPrice=item=>onSale(item)?Number(item.sale_price):Number(item.price);
+ const formatPts=value=>Number(value).toLocaleString('es-ES')+' puntos';
+ const inventory=catalog.data||[];
+ const featured=inventory.filter(item=>item.featured);
+ if(featured.length){
+  const showcase=document.createElement('section');showcase.className='shop-v2-panel';
+  const title=document.createElement('h3');title.textContent='🌟 Recompensas destacadas';showcase.append(title);
+  const grid=document.createElement('div');grid.className='shop-v2-showcase';
+  for(const item of featured){
+   const card=document.createElement('article');card.className='shop-v2-promo-card';
+   const tag=document.createElement('strong');tag.textContent='✨ Destacado';
+   const name=document.createElement('div');name.textContent=item.name;
+   const detail=document.createElement('small');detail.textContent=formatPts(actualPrice(item))+(onSale(item)?' · Oferta activa':'');
+   card.append(tag,name,detail);grid.append(card);
+  }
+  showcase.append(grid);host.append(showcase);
+ }
+ const offers=inventory.filter(onSale);
+ if(offers.length){
+  const showcase=document.createElement('section');showcase.className='shop-v2-panel';
+  const title=document.createElement('h3');title.textContent='🔥 Ofertas especiales';showcase.append(title);
+  const grid=document.createElement('div');grid.className='shop-v2-showcase';
+  for(const item of offers){
+   const card=document.createElement('article');card.className='shop-v2-promo-card';
+   card.append(document.createTextNode(item.name+' · '));
+   const oldPrice=document.createElement('s');oldPrice.textContent=formatPts(item.price);
+   const newPrice=document.createElement('strong');newPrice.textContent=' '+formatPts(actualPrice(item));
+   const until=document.createElement('small');until.textContent='Hasta '+new Date(item.sale_ends_at).toLocaleString('es-ES');
+   card.append(oldPrice,newPrice,until);grid.append(card);
+  }
+  showcase.append(grid);host.append(showcase);
+ }
+
  const ownedIds=new Set((owned.data||[]).map(p=>p.item_id));const active=new Map((equipped.data||[]).map(e=>[e.category,e.item_id]));
- const categories={frame:'🖼️ Marcos para avatares',badge:'🏷️ Insignias',color:'🌈 Colores de nombre',title:'👑 Títulos especiales'};
+ const categories={anime_theme:'🌸 Recompensas anime exclusivas',frame:'🖼️ Marcos para avatares',badge:'🏷️ Insignias',color:'🌈 Colores de nombre',title:'👑 Títulos especiales'};
  for(const [category,label] of Object.entries(categories)){
   const group=document.createElement('section');group.style.margin='20px 0';const heading=document.createElement('h3');heading.textContent=label;group.append(heading);
-  for(const item of (catalog.data||[]).filter(x=>x.category===category)){
+  const grouped=inventory.filter(x=>x.category===category);if(!grouped.length)continue;
+  for(const item of grouped){
    const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:14px;margin:10px 0;border:1px solid #ffffff33;border-radius:12px';
-   const name=document.createElement('h4');name.textContent=item.name+' · '+item.price+' puntos';card.append(name);
+   card.classList.add('shop-v2-reward');
+   if(item.featured){const flag=document.createElement('span');flag.className='shop-v2-flag';flag.textContent='🌟 Destacado';card.append(flag)}
+   const name=document.createElement('h4');name.textContent=item.name+' · '+formatPts(actualPrice(item));card.append(name);
+   if(onSale(item)){
+    const sale=document.createElement('p');sale.className='shop-v2-sale';
+    sale.textContent='🔥 Oferta especial · Antes: '+formatPts(item.price)+' · Ahorra '+formatPts(Number(item.price)-actualPrice(item));
+    card.append(sale);
+   }
+   if(category==='anime_theme'){
+    const level=document.createElement('p');level.className='shop-v2-level';level.textContent='🎮 Tema anime para videollamadas · Nivel mínimo: '+Number(item.required_level||1);card.append(level)
+   }
    const description=document.createElement('p');description.textContent=item.description;card.append(description);if(item.image_url&&/^https:\/\//.test(item.image_url)){const img=document.createElement('img');img.src=item.image_url;img.alt='Imagen de '+item.name;img.loading='lazy';img.style.cssText='width:100px;height:100px;object-fit:cover;border-radius:12px;display:block;margin:8px 0';card.append(img)}
    const bought=ownedIds.has(item.id),isEquipped=active.get(category)===item.id;
-   const button=document.createElement('button');button.className='gradient-btn mini';button.textContent=bought?(isEquipped?'✓ Equipado':'Equipar'):'Comprar · '+item.price+' puntos';button.disabled=isEquipped||(!bought&&Number(balance.data||0)<item.price);
+   const priceNow=actualPrice(item);
+   const animeTheme=category==='anime_theme';
+   const button=document.createElement('button');button.className='gradient-btn mini';
+   button.textContent=bought?(animeTheme?'✓ Desbloqueado':isEquipped?'✓ Equipado':'Equipar'):'Comprar · '+formatPts(priceNow);
+   button.disabled=(animeTheme&&bought)||isEquipped||(!bought&&Number(balance.data||0)<priceNow);
    const status=document.createElement('p');status.setAttribute('role','status');
-   button.onclick=async()=>{button.disabled=true;const {data:ok,error}=bought?await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):await sb.rpc('buy_reward_shop_item',{requested_item:item.id});if(error){status.textContent=error.message;button.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}};
-   card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent='🎁 Regalar · '+item.price+' puntos';gift.disabled=Number(balance.data||0)<item.price||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+item.price+' puntos?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);group.append(card);
+   button.onclick=async()=>{button.disabled=true;const {data:ok,error}=bought&&!animeTheme?await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):await sb.rpc('buy_reward_shop_item',{requested_item:item.id});if(error){status.textContent=error.message;button.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}};
+   card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent='🎁 Regalar · '+formatPts(priceNow);gift.disabled=Number(balance.data||0)<priceNow||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+formatPts(priceNow)+'?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);group.append(card);
   }
+
   host.append(group);
  }
+ const purchaseHistory=document.createElement('section');purchaseHistory.className='shop-v2-panel';
+ const purchaseTitle=document.createElement('h3');purchaseTitle.textContent='🧾 Mi historial de compras';purchaseHistory.append(purchaseTitle);
+ const purchaseRows=owned.data||[];
+ const purchaseTotal=purchaseRows.reduce((sum,row)=>sum+Number(row.price_paid||0),0);
+ const summary=document.createElement('p');summary.textContent=purchaseRows.length+' compras · '+formatPts(purchaseTotal)+' gastados';purchaseHistory.append(summary);
+ const purchasedItems=new Map(inventory.map(item=>[item.id,item]));
+ const historyList=document.createElement('div');historyList.className='shop-v2-purchases';
+ if(!purchaseRows.length){
+  const empty=document.createElement('p');empty.textContent='Todavía no has comprado artículos.';historyList.append(empty)
+ }else{
+  for(const entry of purchaseRows.slice(0,100)){
+   const row=document.createElement('div');row.className='shop-v2-purchase-row';
+   const item=purchasedItems.get(entry.item_id);
+   const detail=document.createElement('strong');detail.textContent=item?.name||entry.item_id;
+   const date=document.createElement('span');date.textContent=new Date(entry.purchased_at).toLocaleString('es-ES');
+   const paid=document.createElement('span');paid.textContent=entry.price_paid===0?'🎁 Regalo recibido':formatPts(entry.price_paid);
+   row.append(detail,date,paid);historyList.append(row);
+  }
+ }
+ purchaseHistory.append(historyList);host.append(purchaseHistory);
  const history=document.createElement('section');history.className='profile-panel';history.style.cssText='padding:16px;margin:20px 0';const historyTitle=document.createElement('h3');historyTitle.textContent='📜 Historial de regalos';history.append(historyTitle);const names=new Map((members.data||[]).map(m=>[m.id,m.display_name||m.username||'Miembro']));const itemNames=new Map((catalog.data||[]).map(i=>[i.id,i.name]));if(!(gifts.data||[]).length){const p=document.createElement('p');p.textContent='Todavía no hay regalos enviados o recibidos.';history.append(p)}for(const entry of gifts.data||[]){const p=document.createElement('p');const sent=entry.sender_id===user.id;p.textContent=(sent?'📤 Enviado a '+(names.get(entry.recipient_id)||'Miembro'):'📥 Recibido')+' · '+(itemNames.get(entry.item_id)||entry.item_id)+' · '+new Date(entry.created_at).toLocaleDateString('es-ES')+(sent?' · '+entry.price_paid+' puntos':'');history.append(p)}host.append(history);
 }
 
