@@ -174,18 +174,40 @@ async function renderRewardShop(){
  const host=document.getElementById('reward-shop');if(!host)return;
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
  if(!user){host.textContent='Inicia sesión para comprar recompensas.';return}
- const [catalog,owned,equipped,balance,members,gifts]=await Promise.all([
-  sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order,image_url,required_level,featured,sale_price,sale_starts_at,sale_ends_at').eq('active',true).order('sort_order'),
+ const [catalog,owned,equipped,balance,members,gifts,wishes,daily]=await Promise.all([
+  sb.from('reward_shop_items').select('id,category,name,description,price,value,sort_order,image_url,required_level,featured,sale_price,sale_starts_at,sale_ends_at,available_from,available_until').eq('active',true).order('sort_order'),
   sb.from('member_shop_purchases').select('item_id,price_paid,purchased_at').eq('user_id',user.id).order('purchased_at',{ascending:false}),
   sb.from('member_shop_equipped').select('category,item_id').eq('user_id',user.id),
   sb.rpc('reward_shop_balance'),
   sb.from('profiles').select('id,display_name,username').eq('is_public',true).neq('id',user.id).order('display_name').limit(100),
-  sb.from('member_shop_gifts').select('sender_id,recipient_id,item_id,price_paid,created_at').order('created_at',{ascending:false}).limit(50)
+  sb.from('member_shop_gifts').select('sender_id,recipient_id,item_id,price_paid,created_at').order('created_at',{ascending:false}).limit(50),
+  sb.from('member_shop_wishlist').select('item_id').eq('user_id',user.id),
+  sb.from('member_shop_daily_bonuses').select('claimed_on,points').eq('user_id',user.id).order('claimed_on',{ascending:false}).limit(1)
  ]);
  if(!host.isConnected)return;host.replaceChildren();
- if([catalog,owned,equipped,balance,members,gifts].some(r=>r.error)){host.textContent='No se pudo cargar la tienda. Inténtalo de nuevo.';return}
+ if([catalog,owned,equipped,balance,members,gifts,wishes,daily].some(r=>r.error)){host.textContent='No se pudo cargar la tienda. Inténtalo de nuevo.';return}
  const points=document.createElement('h3');points.textContent='🪙 Saldo disponible: '+Number(balance.data||0)+' puntos';host.append(points);
  const note=document.createElement('p');note.textContent='Los puntos disponibles se obtienen de tu XP ganado menos las compras. Comprar no reduce tu nivel ni tu XP acumulado. Cada artículo se compra una sola vez.';host.append(note);
+ const dailyPanel=document.createElement('section');dailyPanel.className='shop-v3-panel shop-v3-daily';
+ const todayUTC=new Date().toISOString().slice(0,10);
+ const claimed=(daily.data||[]).some(entry=>entry.claimed_on===todayUTC);
+ const dailyTitle=document.createElement('h3');dailyTitle.textContent='🎁 Recompensa diaria de la tienda';
+ const dailyInfo=document.createElement('p');dailyInfo.textContent=claimed?'Ya reclamaste los 15 puntos de hoy. Vuelve mañana (UTC).':'Recibe 15 puntos adicionales una vez al día (UTC) para gastar en artículos.';
+ const dailyButton=document.createElement('button');dailyButton.type='button';dailyButton.className='gradient-btn mini';
+ dailyButton.textContent=claimed?'✓ Recompensa reclamada':'🪙 Reclamar +15 puntos';dailyButton.disabled=claimed;
+ const dailyStatus=document.createElement('p');dailyStatus.setAttribute('role','status');
+ dailyButton.onclick=async()=>{
+  dailyButton.disabled=true;dailyStatus.textContent='Reclamando recompensa…';
+  const {data:ok,error}=await sb.rpc('claim_shop_daily_bonus');
+  if(error){dailyStatus.textContent='No se pudo reclamar: '+error.message;dailyButton.disabled=false;return}
+  if(ok){await renderRewardShop()}else{dailyInfo.textContent='Ya reclamaste la recompensa de hoy. Vuelve mañana (UTC).';dailyStatus.textContent='Sin puntos duplicados.';dailyButton.textContent='✓ Recompensa reclamada'}
+ };
+ dailyPanel.append(dailyTitle,dailyInfo,dailyButton,dailyStatus);host.append(dailyPanel);
+ const couponPanel=document.createElement('section');couponPanel.className='shop-v3-panel';
+ const couponTitle=document.createElement('h3');couponTitle.textContent='🎟️ Cupón de descuento';
+ const couponHelp=document.createElement('p');couponHelp.textContent='Introduce tu cupón y pulsa Comprar en el artículo que quieras. Antes de confirmar verás el precio final. Cada cupón se puede usar una vez por miembro; no se aplica a regalos ni cajas.';
+ const couponInput=document.createElement('input');couponInput.type='text';couponInput.maxLength=30;couponInput.placeholder='CÓDIGO DEL CUPÓN';couponInput.autocomplete='off';couponInput.setAttribute('aria-label','Código de cupón de la tienda');
+ couponPanel.append(couponTitle,couponHelp,couponInput);host.append(couponPanel);
  const recipientLabel=document.createElement('label');recipientLabel.textContent='🎁 Enviar regalo a un miembro público: ';const recipient=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='Selecciona un miembro';recipient.append(blank);for(const member of members.data||[]){const option=document.createElement('option');option.value=member.id;option.textContent=member.display_name||member.username||'Miembro';recipient.append(option)}recipientLabel.append(recipient);host.append(recipientLabel);const giftHelp=document.createElement('p');giftHelp.textContent='El regalo consume tus puntos y desbloquea el artículo para el destinatario. No se pueden regalar artículos que ya posee.';host.append(giftHelp);
  const mystery=document.createElement('section');mystery.className='profile-panel';mystery.style.cssText='padding:18px;margin:18px 0;border:1px solid #ffffff44;border-radius:14px';const mysteryTitle=document.createElement('h3');mysteryTitle.textContent='🎁 Caja misteriosa · 150 puntos';mystery.append(mysteryTitle);const mysteryInfo=document.createElement('p');mysteryInfo.textContent='Envía una recompensa aleatoria que el destinatario aún no tenga. La sorpresa aparecerá en su buzón de regalos y recibirá una notificación.';mystery.append(mysteryInfo);const mysteryButton=document.createElement('button');mysteryButton.type='button';mysteryButton.className='gradient-btn mini';mysteryButton.textContent='🎲 Enviar regalo sorpresa · 150 puntos';mysteryButton.disabled=Number(balance.data||0)<150||!(members.data||[]).length;const mysteryStatus=document.createElement('p');mysteryStatus.setAttribute('role','status');mysteryButton.onclick=async()=>{if(!recipient.value){mysteryStatus.textContent='Selecciona primero un miembro en el selector de arriba.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar una caja misteriosa a '+who+' por 150 puntos?'))return;mysteryButton.disabled=true;mysteryStatus.textContent='Enviando regalo sorpresa…';const {data,error}=await sb.rpc('send_surprise_reward_gift',{target_member:recipient.value});if(error){mysteryStatus.textContent=error.message;mysteryButton.disabled=false;return}mysteryStatus.textContent='🎉 ¡Regalo sorpresa enviado!';await renderRewardShop()};mystery.append(mysteryButton,mysteryStatus);host.append(mystery);
  const {data:boxTiers,error:boxError}=await sb.from('surprise_box_tiers').select('tier,name,price,active').eq('active',true);if(!boxError){const section=document.createElement('section');section.className='profile-panel';section.style.cssText='padding:16px;margin:18px 0';const h=document.createElement('h3');h.textContent='🎁 Cajas misteriosas por niveles';section.append(h);const intro=document.createElement('p');intro.textContent='Selecciona un miembro arriba y elige una caja. Recibirá una recompensa aleatoria de ese nivel que todavía no tenga.';section.append(intro);for(const tier of boxTiers||[]){const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0';const label=document.createElement('span');label.textContent=tier.name+' · '+tier.price+' puntos';const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';button.textContent='🎲 Enviar '+tier.name;button.disabled=Number(balance.data||0)<tier.price||!(members.data||[]).length;const status=document.createElement('span');status.setAttribute('role','status');button.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona un miembro primero.';return}if(!confirm('¿Enviar '+tier.name+' por '+tier.price+' puntos?'))return;button.disabled=true;status.textContent='Enviando…';const {data,error}=await sb.rpc('send_tier_surprise_gift',{p_tier:tier.tier,target_member:recipient.value});if(error){status.textContent=error.message;button.disabled=false;return}status.textContent='🎉 Regalo enviado';await renderRewardShop()};row.append(label,button,status);section.append(row)}host.append(section)}
@@ -195,7 +217,24 @@ async function renderRewardShop(){
   Date.parse(item.sale_starts_at)<=nowMs && nowMs<Date.parse(item.sale_ends_at) && Number(item.sale_price)<Number(item.price);
  const actualPrice=item=>onSale(item)?Number(item.sale_price):Number(item.price);
  const formatPts=value=>Number(value).toLocaleString('es-ES')+' puntos';
- const inventory=catalog.data||[];
+ const isAvailable=item=>(!item.available_from||Date.parse(item.available_from)<=nowMs)&&
+  (!item.available_until||Date.parse(item.available_until)>nowMs);
+ const inventory=(catalog.data||[]).filter(isAvailable);
+ const wishlistIds=new Set((wishes.data||[]).map(entry=>entry.item_id));
+ const limited=inventory.filter(item=>!!item.available_until);
+ if(limited.length){
+  const panel=document.createElement('section');panel.className='shop-v3-panel';
+  const heading=document.createElement('h3');heading.textContent='⏳ Artículos por tiempo limitado';panel.append(heading);
+  const cards=document.createElement('div');cards.className='shop-v2-showcase';
+  for(const item of limited){
+   const card=document.createElement('article');card.className='shop-v2-promo-card';
+   const label=document.createElement('strong');label.textContent='⏰ Edición limitada';
+   const title=document.createElement('span');title.textContent=item.name+' · '+formatPts(actualPrice(item));
+   const until=document.createElement('small');until.textContent='Disponible hasta: '+new Date(item.available_until).toLocaleString('es-ES');
+   card.append(label,title,until);cards.append(card);
+  }
+  panel.append(cards);host.append(panel);
+ }
  const featured=inventory.filter(item=>item.featured);
  if(featured.length){
   const showcase=document.createElement('section');showcase.className='shop-v2-panel';
@@ -232,6 +271,20 @@ async function renderRewardShop(){
   showcase.append(grid);host.append(showcase);
  }
 
+ const wishesPanel=document.createElement('section');wishesPanel.className='shop-v3-panel';
+ const wishesTitle=document.createElement('h3');wishesTitle.textContent='💜 Mi lista de deseos';wishesPanel.append(wishesTitle);
+ const wishlistEntries=inventory.filter(item=>wishlistIds.has(item.id));
+ if(!wishlistEntries.length){const empty=document.createElement('p');empty.textContent='Guarda con ♡ los artículos que quieras comprar más adelante.';wishesPanel.append(empty)}
+ else{
+  const grid=document.createElement('div');grid.className='shop-v2-showcase';
+  for(const item of wishlistEntries){
+   const tile=document.createElement('article');tile.className='shop-v2-promo-card';
+   tile.append(document.createTextNode('💜 '+item.name+' · '+formatPts(actualPrice(item))));
+   grid.append(tile);
+  }
+  wishesPanel.append(grid);
+ }
+ host.append(wishesPanel);
  const ownedIds=new Set((owned.data||[]).map(p=>p.item_id));const active=new Map((equipped.data||[]).map(e=>[e.category,e.item_id]));
  const categories={anime_theme:'🌸 Recompensas anime exclusivas',frame:'🖼️ Marcos para avatares',badge:'🏷️ Insignias',color:'🌈 Colores de nombre',title:'👑 Títulos especiales'};
  for(const [category,label] of Object.entries(categories)){
@@ -241,6 +294,7 @@ async function renderRewardShop(){
    const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:14px;margin:10px 0;border:1px solid #ffffff33;border-radius:12px';
    card.classList.add('shop-v2-reward');
    if(item.featured){const flag=document.createElement('span');flag.className='shop-v2-flag';flag.textContent='🌟 Destacado';card.append(flag)}
+   if(item.available_until){const limitedTag=document.createElement('span');limitedTag.className='shop-v2-flag shop-v3-limited-tag';limitedTag.textContent='⏳ Hasta '+new Date(item.available_until).toLocaleDateString('es-ES');card.append(limitedTag)}
    const name=document.createElement('h4');name.textContent=item.name+' · '+formatPts(actualPrice(item));card.append(name);
    if(onSale(item)){
     const sale=document.createElement('p');sale.className='shop-v2-sale';
@@ -258,8 +312,40 @@ async function renderRewardShop(){
    button.textContent=bought?(animeTheme?'✓ Desbloqueado':isEquipped?'✓ Equipado':'Equipar'):'Comprar · '+formatPts(priceNow);
    button.disabled=(animeTheme&&bought)||isEquipped||(!bought&&Number(balance.data||0)<priceNow);
    const status=document.createElement('p');status.setAttribute('role','status');
-   button.onclick=async()=>{button.disabled=true;const {data:ok,error}=bought&&!animeTheme?await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):await sb.rpc('buy_reward_shop_item',{requested_item:item.id});if(error){status.textContent=error.message;button.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}};
-   card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent='🎁 Regalar · '+formatPts(priceNow);gift.disabled=Number(balance.data||0)<priceNow||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+formatPts(priceNow)+'?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);group.append(card);
+   button.onclick=async()=>{
+    if(button.disabled)return;
+    const couponCode=couponInput.value.trim().toUpperCase();
+    if(!bought&&couponCode){
+     button.disabled=true;status.textContent='Validando cupón…';
+     const {data:quote,error:previewError}=await sb.rpc('preview_shop_coupon',{requested_item:item.id,coupon_code:couponCode});
+     if(previewError){status.textContent='Cupón: '+previewError.message;button.disabled=false;return}
+     if(!confirm('¿Comprar '+item.name+' con '+couponCode+' por '+Number(quote.price).toLocaleString('es-ES')+' puntos? (Ahorro: '+Number(quote.discount).toLocaleString('es-ES')+' puntos)')){
+      status.textContent='Compra cancelada';button.disabled=false;return
+     }
+     const {data:ok,error}=await sb.rpc('buy_reward_shop_item_with_coupon',{requested_item:item.id,coupon_code:couponCode});
+     if(error){status.textContent='No se pudo canjear: '+error.message;button.disabled=false;return}
+     if(ok){await renderRewardShop()}else{status.textContent='Ya posees este artículo.';button.disabled=false}
+     return;
+    }
+    button.disabled=true;
+    const {data:ok,error}=bought&&!animeTheme?await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):await sb.rpc('buy_reward_shop_item',{requested_item:item.id});
+    if(error){status.textContent=error.message;button.disabled=false;return}
+    if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}
+   };
+   card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent='🎁 Regalar · '+formatPts(priceNow);gift.disabled=Number(balance.data||0)<priceNow||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+formatPts(priceNow)+'?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);
+   const wishButton=document.createElement('button');wishButton.type='button';wishButton.className='outline-btn mini shop-v3-wish';
+   wishButton.textContent=wishlistIds.has(item.id)?'💜 En mi lista':'♡ Añadir a deseos';
+   wishButton.setAttribute('aria-pressed',String(wishlistIds.has(item.id)));
+   wishButton.onclick=async()=>{
+    wishButton.disabled=true;
+    const present=wishlistIds.has(item.id);
+    const operation=present?sb.from('member_shop_wishlist').delete().eq('user_id',user.id).eq('item_id',item.id):
+     sb.from('member_shop_wishlist').insert({user_id:user.id,item_id:item.id});
+    const {error}=await operation;
+    if(error){status.textContent='No se pudo actualizar la lista: '+error.message;wishButton.disabled=false;return}
+    await renderRewardShop();
+   };
+   card.append(wishButton);group.append(card);
   }
 
   host.append(group);
