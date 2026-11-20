@@ -8,13 +8,16 @@
   style.textContent = `
     #sb-anime-scroll-progress {
       position: fixed;
-      top: 0;
+      top: 64px;
       left: 0;
       width: 100%;
-      height: 4px;
+      height: 7px;
       z-index: 10005;
       pointer-events: none;
-      background: transparent;
+      background: linear-gradient(90deg, #4c236e, #3a2755, #4c236e);
+      border-top: 1px solid #d597ff99;
+      border-bottom: 1px solid #ac65ea88;
+      box-shadow: 0 0 12px #ad56ee99;
       overflow: hidden;
     }
     #sb-anime-scroll-progress-fill {
@@ -25,7 +28,22 @@
       box-shadow: 0 0 11px var(--sb-user-glow, #ba6bff66);
       transform-origin: left center;
       transform: scaleX(0);
+      position: relative;
+      z-index: 1;
       will-change: transform;
+    }
+    #sb-anime-scroll-progress::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 100%;
+      background: #f5bbff;
+      box-shadow: 0 0 12px #f5bbff;
+    }
+    @media (max-width: 600px) {
+      #sb-anime-scroll-progress { height: 6px; }
     }
     @media (prefers-reduced-motion: reduce) {
       #sb-anime-scroll-progress-fill { will-change: auto; }
@@ -45,6 +63,12 @@
   let scheduled = false;
   const update = () => {
     scheduled = false;
+    // Situar la barra debajo de la cabecera fija, también en móvil.
+    const header = document.querySelector('.topbar');
+    if (header) {
+      const bottom = header.getBoundingClientRect().bottom;
+      track.style.top = Math.max(0, Math.round(bottom)) + 'px';
+    }
     const documentHeight = Math.max(
       document.documentElement.scrollHeight,
       document.body.scrollHeight
