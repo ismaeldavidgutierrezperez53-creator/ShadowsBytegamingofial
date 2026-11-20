@@ -45,11 +45,13 @@ async function mountStyles(root,memberId,{own=false}={}){
  if(body)root.insertBefore(panel,body);
  else root.append(panel);
  let busy=false;
+ let previewTimer=null;
  async function draw(){
   if(!panel.isConnected)return;
   try{
    const settings=await getSettings(memberId);
    if(!panel.isConnected)return;
+   root.dataset.previewStyle='';
    applyTheme(root,settings.showcase_style,settings.effects_enabled!==false);
    if(!own){
     grid.replaceChildren();
@@ -92,6 +94,8 @@ async function mountStyles(root,memberId,{own=false}={}){
      const actionText=!unlocked?'Desbloquear '+item.name+' por '+product.price+' puntos. Esta compra no se reembolsa. ¿Continuar?':null;
      if(actionText&&!window.confirm(actionText))return;
      busy=true;button.disabled=true;
+     if(previewTimer!==null){clearTimeout(previewTimer);previewTimer=null;}
+     root.dataset.previewStyle='';
      state.textContent='Guardando cambios…';
      try{
       if(!unlocked){
@@ -111,6 +115,27 @@ async function mountStyles(root,memberId,{own=false}={}){
      }finally{busy=false;button.disabled=false;}
     };
     card.append(button);
+    const tryButton=create('button','poll-museum-shop-try','👁️ Probar efecto');
+    tryButton.type='button';
+    tryButton.onclick=()=>{
+     if(busy)return;
+     if(previewTimer!==null)clearTimeout(previewTimer);
+     root.dataset.previewStyle='yes';
+     applyTheme(root,item.id,true);
+     const sample=root.querySelector('.poll-museum-preview-wrap');
+     if(sample&&!sample.children.length){
+      root.querySelector('.poll-museum-preview-button')?.click();
+     }
+     state.textContent='👁️ Vista previa de '+item.name+'. No se gastarán puntos.';
+     previewTimer=setTimeout(()=>{
+      previewTimer=null;
+      if(root.dataset.previewStyle!=='yes'||!root.isConnected)return;
+      root.dataset.previewStyle='';
+      applyTheme(root,settings.showcase_style,settings.effects_enabled!==false);
+      state.textContent='Vista previa finalizada · Vitrina equipada: '+styleName(settings.showcase_style);
+     },9000);
+    };
+    card.append(tryButton);
     grid.append(card);
    }
    const controls=create('div','poll-museum-shop-controls');
