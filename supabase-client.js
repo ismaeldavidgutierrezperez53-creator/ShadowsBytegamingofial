@@ -3771,6 +3771,62 @@ async function loadPrivateMessages(){
  const shareStatusInfo=document.createElement('small');shareStatusInfo.className='private-chat-sharing-info';
  shareStatusInfo.textContent='Tu actividad está oculta hasta que lo actives.';
  sidebar.append(shareStatusLabel,shareStatusInfo);
+ const birthdayPrefs=document.createElement('section');birthdayPrefs.className='private-chat-birthday-preferences';
+ const birthdayTitle=document.createElement('strong');birthdayTitle.textContent='🎂 Mi cumpleaños';
+ const birthdayInfo=document.createElement('small');birthdayInfo.textContent='Guarda solo día y mes. Por defecto es privado; si lo compartes, tus contactos podrán felicitarte ese día.';
+ const birthdayMonth=document.createElement('select');birthdayMonth.setAttribute('aria-label','Mes de cumpleaños');
+ const monthPlaceholder=document.createElement('option');monthPlaceholder.value='';monthPlaceholder.textContent='Mes';birthdayMonth.append(monthPlaceholder);
+ const monthNames=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+ monthNames.forEach((month,index)=>{const option=document.createElement('option');option.value=String(index+1);option.textContent=month[0].toUpperCase()+month.slice(1);birthdayMonth.append(option);});
+ const birthdayDay=document.createElement('select');birthdayDay.setAttribute('aria-label','Día de cumpleaños');
+ const populateBirthdayDays=()=>{
+  const previous=birthdayDay.value;
+  birthdayDay.replaceChildren();
+  const option=document.createElement('option');option.value='';option.textContent='Día';birthdayDay.append(option);
+  const month=Number(birthdayMonth.value);
+  const max=month===2?29:[4,6,9,11].includes(month)?30:month?31:0;
+  for(let day=1;day<=max;day++){const choice=document.createElement('option');choice.value=String(day);choice.textContent=String(day);birthdayDay.append(choice);}
+  birthdayDay.value=Number(previous)<=max?previous:'';
+ };
+ birthdayMonth.onchange=populateBirthdayDays;populateBirthdayDays();
+ const birthdaySharingLabel=document.createElement('label');birthdaySharingLabel.className='private-chat-birthday-sharing';
+ const birthdaySharing=document.createElement('input');birthdaySharing.type='checkbox';
+ birthdaySharingLabel.append(birthdaySharing,document.createTextNode(' Compartir con mis contactos de Mensajes'));
+ const birthdaySave=document.createElement('button');birthdaySave.type='button';birthdaySave.textContent='Guardar cumpleaños';
+ const birthdayRemove=document.createElement('button');birthdayRemove.type='button';birthdayRemove.textContent='Borrar mi fecha';
+ const birthdayFeedback=document.createElement('small');birthdayFeedback.setAttribute('role','status');
+ const birthdayFields=document.createElement('div');birthdayFields.className='private-chat-birthday-fields';
+ birthdayFields.append(birthdayDay,birthdayMonth);
+ birthdayPrefs.append(birthdayTitle,birthdayInfo,birthdayFields,birthdaySharingLabel,birthdaySave,birthdayRemove,birthdayFeedback);
+ sidebar.append(birthdayPrefs);
+ const loadMyBirthday=async()=>{
+  const {data,error}=await sb.from('member_chat_birthday_preferences')
+   .select('birth_day,birth_month,share_birthday').eq('user_id',me).maybeSingle();
+  if(error){birthdayFeedback.textContent='No se pudo consultar tu cumpleaños: '+error.message;return;}
+  if(!birthdayPrefs.isConnected)return;
+  birthdayMonth.value=data?.birth_month?String(data.birth_month):'';
+  populateBirthdayDays();birthdayDay.value=data?.birth_day?String(data.birth_day):'';
+  birthdaySharing.checked=data?.share_birthday===true;
+ };
+ birthdaySave.onclick=async()=>{
+  const month=Number(birthdayMonth.value),day=Number(birthdayDay.value);
+  if(!month||!day){birthdayFeedback.textContent='Selecciona el día y el mes antes de guardar.';return;}
+  birthdaySave.disabled=true;birthdayFeedback.textContent='Guardando…';
+  const {error}=await sb.from('member_chat_birthday_preferences').upsert({
+   user_id:me,birth_month:month,birth_day:day,
+   share_birthday:birthdaySharing.checked,updated_at:new Date().toISOString()
+  },{onConflict:'user_id'});
+  birthdaySave.disabled=false;
+  birthdayFeedback.textContent=error?'No se pudo guardar: '+error.message:'✅ Cumpleaños guardado '+(birthdaySharing.checked?'y compartido con tus contactos.':'de forma privada.');
+ };
+ birthdayRemove.onclick=async()=>{
+  birthdayRemove.disabled=true;
+  const {error}=await sb.from('member_chat_birthday_preferences').delete().eq('user_id',me);
+  birthdayRemove.disabled=false;
+  if(error){birthdayFeedback.textContent='No se pudo borrar: '+error.message;return;}
+  birthdayMonth.value='';populateBirthdayDays();birthdaySharing.checked=false;
+  birthdayFeedback.textContent='✅ Tu fecha de cumpleaños ya no está guardada.';
+ };
  const updateMyChatActivity=async()=>{
   if(!root.isConnected||!location.hash.startsWith('#/mensajes')||!shareStatusBox.checked||document.visibilityState!=='visible')return;
   const {error}=await sb.from('member_private_chat_activity').upsert({user_id:me,share_status:true},{onConflict:'user_id'});
@@ -4449,6 +4505,7 @@ async function loadPrivateMessages(){
  }
  wrapper.append(sidebar,panel);root.append(wrapper);
  loadMyChatActivity().catch(console.warn);
+ loadMyBirthday().catch(console.warn);
  loadChatTheme?.().catch(console.warn);
  refreshPartnerActivity?.().catch(console.warn);
  loadPrivateChatNotifications?.().catch(console.warn);
