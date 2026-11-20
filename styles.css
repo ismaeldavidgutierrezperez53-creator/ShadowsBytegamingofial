@@ -372,7 +372,10 @@ body{background:linear-gradient(rgba(6,3,13,.64),rgba(6,3,13,.78)),url('gaming-b
 .notification-preference-label input{width:20px;height:20px;accent-color:#9145e8}
 #report-email-preference-message{font-size:.9rem;opacity:.85}
 
-.security-center{margin:16px 0}.security-center-links{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.security-preferences{display:flex;flex-direction:column;gap:10px;margin-top:14px}.security-preferences h4,.security-preferences p{margin:0}.security-preferences button{align-self:flex-start}
+.security-center{margin:16px 0}
+.security-center-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;margin-top:4px;cursor:pointer}
+.security-center-content{display:grid;gap:14px;margin-top:14px}
+.security-center-content[hidden]{display:none!important}.security-center-links{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}.security-preferences{display:flex;flex-direction:column;gap:10px;margin-top:14px}.security-preferences h4,.security-preferences p{margin:0}.security-preferences button{align-self:flex-start}
 
 .member-live-alert{position:fixed;right:16px;bottom:18px;z-index:9999;max-width:min(420px,calc(100vw - 32px));display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px;border:1px solid rgba(165,145,200,.55);border-radius:12px;background:#19172c;color:#fff;box-shadow:0 12px 32px rgba(0,0,0,.4)}.member-live-alert button{cursor:pointer;background:transparent;border:0;color:inherit}
 
