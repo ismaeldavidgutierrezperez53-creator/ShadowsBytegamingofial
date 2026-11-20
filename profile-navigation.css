@@ -192,3 +192,10 @@
 .sb-nav-restore-visible-results:disabled{opacity:.45;cursor:default}
 .sb-nav-restore-visible-results:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-restore-visible-results{width:100%}}
+
+/* Copiar al portapapeles la lista ordenada de accesos favoritos */
+.sb-nav-copy-favorites{min-height:42px;padding:9px 13px;border:1px solid #8fbac7;border-radius:10px;background:#294652;color:#eafaff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-copy-favorites:hover:not(:disabled){background:#3c6474}
+.sb-nav-copy-favorites:disabled{opacity:.45;cursor:default}
+.sb-nav-copy-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-copy-favorites{width:100%}}
