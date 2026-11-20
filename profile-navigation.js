@@ -7,6 +7,7 @@
   if(content!==undefined)item.textContent=content;
   return item;
  };
+ const visibilityUndo=new Map();
  const modules=[
   ['✨ Mi centro de perfil','.sbp-dashboard',true],
   ['🎴 Identidad gamer','.sbp-identity-card',true],
@@ -209,6 +210,16 @@
     return Array.isArray(saved)?saved.filter(x=>typeof x==='string'&&modules.some(m=>m[1]===x)).slice(0,25):[];
    }catch(_){return []}
   };
+  const writeHidden=(next)=>{
+   const before=readHidden();
+   const normalized=[...new Set(next)].slice(0,25);
+   if(before.join('|')===normalized.join('|'))return false;
+   try{
+    localStorage.setItem(hiddenKey,JSON.stringify(normalized));
+    visibilityUndo.set(hiddenKey,{before,after:normalized});
+    return true;
+   }catch(_){return false}
+  };
   let showHidden=nav.dataset.showHidden==='yes';
   const settings=nav.querySelector('.sb-nav-visibility-settings')||node('div','sb-nav-visibility-settings');
   if(!settings.isConnected){
@@ -226,7 +237,7 @@
     const current=readHidden();
     if(!current.length)return;
     if(!window.confirm('¿Restaurar los '+current.length+' accesos ocultos de '+(isOwn?'Mi cuenta':'los perfiles públicos')+'? Tus favoritos y su orden se conservarán.'))return;
-    try{localStorage.removeItem(hiddenKey)}catch(_){return}
+    if(!writeHidden([]))return;
     links.dataset.signature='';
     enhance(host,isOwn);
    });
@@ -241,11 +252,28 @@
     const toHide=actual.filter(selector=>!currentFavorites.includes(selector)&&!currentHidden.includes(selector));
     if(!visibleFavorites.length||!toHide.length)return;
     if(!window.confirm('¿Ocultar '+toHide.length+' accesos sin estrella? Tus '+visibleFavorites.length+' favoritos visibles permanecerán disponibles. Puedes deshacerlo desde Restaurar todos.'))return;
-    try{localStorage.setItem(hiddenKey,JSON.stringify([...new Set([...currentHidden,...toHide])].slice(0,25)))}catch(_){return}
+    if(!writeHidden([...currentHidden,...toHide]))return;
     links.dataset.signature='';
     enhance(host,isOwn);
    });
    settings.append(hideNonFavorites);
+   const undo=node('button','sb-nav-undo-visibility','↶ Deshacer último cambio');
+   undo.type='button';
+   undo.addEventListener('click',()=>{
+    const last=visibilityUndo.get(hiddenKey);
+    if(!last)return;
+    const current=readHidden();
+    if(current.join('|')!==last.after.join('|')){
+     visibilityUndo.delete(hiddenKey);
+     enhance(host,isOwn);
+     return;
+    }
+    try{localStorage.setItem(hiddenKey,JSON.stringify(last.before))}catch(_){return}
+    visibilityUndo.delete(hiddenKey);
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
+   settings.append(undo);
    const details=nav.querySelector('.sb-nav-details');
    details.after(settings);
   }
@@ -256,6 +284,14 @@
    if(restoreAll.hidden===showRestore)restoreAll.hidden=!showRestore;
    const restoreLabel='↺ Restaurar todos los accesos ocultos ('+hidden.length+')';
    if(restoreAll.textContent!==restoreLabel)restoreAll.textContent=restoreLabel;
+  }
+  const undoVisibility=settings.querySelector('.sb-nav-undo-visibility');
+  if(undoVisibility){
+   const last=visibilityUndo.get(hiddenKey);
+   const valid=!!last&&readHidden().join('|')===last.after.join('|');
+   if(last&&!valid)visibilityUndo.delete(hiddenKey);
+   if(undoVisibility.hidden===showHidden)undoVisibility.hidden=!showHidden;
+   if(undoVisibility.disabled===valid)undoVisibility.disabled=!valid;
   }
   const visibilityToggle=settings.querySelector('.sb-nav-visibility-toggle');
   const visibilityLabel=showHidden?'Ocultar ajustes de accesos':'Gestionar accesos ocultos';
@@ -460,7 +496,7 @@
     toggle.onclick=()=>{
      const current=readHidden();
      const next=isHidden?current.filter(x=>x!==selector):[...current,selector];
-     try{localStorage.setItem(hiddenKey,JSON.stringify(next))}catch(_){}
+     if(!writeHidden(next))return;
      links.dataset.signature='';
      enhance(host,isOwn);
     };
