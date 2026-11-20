@@ -39,7 +39,14 @@
   // Solo crear accesos para las secciones que se hayan mostrado en un perfil público.
   for(const [key,selector,label] of sections){
    const target=root.querySelector(selector);
-   if(!target||target.querySelector(':scope > .sb-share-section'))continue;
+   if(!target)continue;
+   const existing=[...target.querySelectorAll('.sb-share-section')];
+   // Algunos títulos están dentro de contenedores anidados: la búsqueda
+   // :scope > no detectaba los botones y se añadían sin fin.
+   if(existing.length){
+    for(const duplicate of existing.slice(1))duplicate.remove();
+    continue;
+   }
    const heading=target.querySelector('h2');
    if(!heading)continue;
    const group=el('div','sb-share-section');
