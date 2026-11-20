@@ -67,6 +67,9 @@
     try{localStorage.setItem(detailsOpenKey,String(details.open))}catch(_){}
    });
    const summary=node('summary','sb-nav-summary','Ver accesos rápidos');
+   const filterStatus=node('p','sb-nav-active-filters');
+   filterStatus.setAttribute('role','status');
+   filterStatus.setAttribute('aria-live','polite');
    const searchBox=node('div','sb-nav-searchbox');
    const search=node('input','sb-nav-search');
    search.type='search';
@@ -742,6 +745,16 @@
     if(downloadFilteredTxt.textContent!==filteredTxtLabel)downloadFilteredTxt.textContent=filteredTxtLabel;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
+    const activeLabels=[];
+    if(query)activeLabels.push('🔎 «'+search.value.trim().slice(0,60)+'»');
+    if(enabled)activeLabels.push('⭐ Solo favoritos');
+    if(unstarredOnly)activeLabels.push('☆ Sin favoritos');
+    if(hiddenOnly)activeLabels.push('🙈 Solo ocultos');
+    if(visibleOnly)activeLabels.push('👁️ Solo visibles');
+    if(nav.dataset.sortMode==='az')activeLabels.push('🔤 A → Z');
+    if(nav.dataset.sortMode==='za')activeLabels.push('🔤 Z → A');
+    const filterText=activeLabels.length?'Filtros activos ('+activeLabels.length+'): '+activeLabels.join(' · '):'Sin filtros activos · Orden: favoritos primero';
+    if(filterStatus.textContent!==filterText)filterStatus.textContent=filterText;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||visibleOnly||nav.dataset.sortMode!=='favorites';
     if(resetFilters.disabled===hasActiveFilters)resetFilters.disabled=!hasActiveFilters;
     // Escribir solo cuando cambia un filtro: evita bucles con MutationObserver.
@@ -756,7 +769,7 @@
    };
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
-   details.append(summary,searchBox,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
+   details.append(summary,searchBox,filterStatus,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
