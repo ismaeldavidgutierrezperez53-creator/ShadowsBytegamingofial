@@ -1,0 +1,29 @@
+/* Shadows Byte Gaming Official V2 — tienda: bonus diario, cupones, lista de deseos y artículos temporales */
+#reward-shop .shop-v3-panel{margin:20px 0;padding:21px;border:1px solid #584071;border-radius:18px;background:radial-gradient(circle at 95% 0%,#55278d25,transparent 45%),linear-gradient(120deg,#191128,#100e1c);box-shadow:0 14px 36px #0002;min-width:0}
+#reward-shop .shop-v3-panel h3{color:#f6eaff;font-size:24px;margin:0 0 10px}
+#reward-shop .shop-v3-panel p{color:#c5b8d6;line-height:1.5;margin:9px 0}
+#reward-shop .shop-v3-daily{border-color:#538b75;background:radial-gradient(circle at 95% 0%,#2a9a6c20,transparent 45%),linear-gradient(120deg,#172a26,#131220)}
+#reward-shop .shop-v3-panel input[type=text]{display:block;max-width:360px;width:100%;padding:12px 14px;border:1px solid #7453a2;border-radius:11px;background:#0c0b19;color:#fff;font:600 17px Rajdhani,Arial,sans-serif}
+#reward-shop .shop-v3-panel input[type=text]:focus-visible{outline:3px solid #8346b88a;outline-offset:2px}
+#reward-shop .shop-v3-daily button:disabled{opacity:.72;cursor:not-allowed}
+#reward-shop .shop-v3-wish{background:#291734;color:#f5dcff;border-color:#9062b6;cursor:pointer}
+#reward-shop .shop-v3-wish[aria-pressed=true]{background:#4e285e;border-color:#d38beb}
+#reward-shop .shop-v3-limited-tag{margin-left:7px;border-color:#638dca;background:#182b43;color:#aaddff}
+#admin-shop-root .sb-shop-v3-panel{margin-top:14px}
+#admin-shop-root .sb-shop-v3-panel>.sb-shop-admin__section-heading{display:block}
+#admin-shop-root .sb-shop-v3-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 17px}
+#admin-shop-root .sb-shop-v3-fields .sb-shop-admin__field{min-width:0}
+#admin-shop-root .sb-shop-v3-fields select,#admin-shop-root .sb-shop-v3-fields input:not([type=checkbox]){width:100%;min-width:0;min-height:46px;border:1px solid #59436c;background:#0c0a19;color:#fff;border-radius:11px;padding:10px 12px;font:600 17px Rajdhani,Arial,sans-serif}
+#admin-shop-root .sb-shop-v3-fields select:focus-visible,#admin-shop-root .sb-shop-v3-fields input:focus-visible{outline:3px solid #9a59d978;outline-offset:2px}
+#admin-shop-root .sb-shop-v3-fields input:read-only{opacity:.72;background:#1e162a}
+#admin-shop-root .sb-shop-v3-fields .sb-shop-admin__toggle{grid-column:1/-1}
+#admin-shop-root .sb-shop-v3-actions{display:flex;gap:11px;flex-wrap:wrap;margin:17px 0}
+#admin-shop-root .sb-shop-v3-actions button{min-height:46px;padding:10px 17px;border-radius:10px;font:700 16px Rajdhani,Arial,sans-serif;cursor:pointer}
+#admin-shop-root .sb-shop-v3-actions .outline-btn{background:#281936;color:#fff;border:1px solid #825ca6}
+#admin-shop-root .sb-shop-v3-actions button:disabled{opacity:.5;cursor:wait}
+#admin-shop-root .sb-shop-v3-coupon-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;margin:14px 0}
+#admin-shop-root .sb-shop-v3-coupon{display:grid;gap:5px;min-width:0;padding:14px;border-radius:12px;background:#1e172b;border:1px solid #59416a}
+#admin-shop-root .sb-shop-v3-coupon strong{overflow-wrap:anywhere;font-size:18px;color:#eed5ff}
+#admin-shop-root .sb-shop-v3-coupon span,#admin-shop-root .sb-shop-v3-coupon small{font-size:14px;color:#bfb3ce}
+@media(max-width:690px){#reward-shop .shop-v3-panel{padding:16px}#admin-shop-root .sb-shop-v3-fields{grid-template-columns:1fr}#admin-shop-root .sb-shop-v3-fields .sb-shop-admin__toggle{grid-column:1}#admin-shop-root .sb-shop-v3-actions button{flex:1}}
+@media(prefers-reduced-motion:reduce){#reward-shop .shop-v3-panel *,#admin-shop-root .sb-shop-v3-panel *{transition:none!important}}
