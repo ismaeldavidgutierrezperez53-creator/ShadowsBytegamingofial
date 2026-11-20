@@ -51,7 +51,16 @@ function mount(host){
  refresh.type='button';
  const exportBtn=node('button','gradient-btn mini','📥 Descargar estadísticas CSV');
  exportBtn.type='button';exportBtn.disabled=true;
- toolbar.append(range,refresh,exportBtn);
+ const goalsButton=node('button','outline-btn mini sbrs-goals-link','🏆 Mis metas de puntos');
+ goalsButton.type='button';
+ goalsButton.addEventListener('click',()=>{
+  const goals=document.querySelector('#account-profile .sbpg-panel');
+  if(goals){
+   window.dispatchEvent(new Event('sb:open-point-goals'));
+   goals.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+ });
+ toolbar.append(range,refresh,exportBtn,goalsButton);
  const status=node('p','sbrs-status','Cargando estadísticas…');
  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const totals=node('div','sbrs-totals'),totalEls={};
