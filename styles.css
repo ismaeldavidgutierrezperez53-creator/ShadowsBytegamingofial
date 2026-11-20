@@ -1138,3 +1138,75 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  .group-multi-video .group-video-theme-chip,
  .group-multi-video .group-video-theme-tag{font-size:.73rem}
 }
+
+
+/* Premium anime video styles: members unlock the right to select these themes in Supabase. */
+.group-multi-video .group-video-premium-themes{
+ margin:8px 0 12px;
+ padding:13px;
+ border:1px solid rgba(250,204,96,.48);
+ border-radius:14px;
+ background:linear-gradient(135deg,rgba(41,27,74,.92),rgba(24,33,69,.85));
+}
+.group-multi-video .group-video-premium-themes h5{margin:0 0 7px;color:#ffedbb}
+.group-multi-video .group-video-premium-themes>p{font-size:.92rem;margin:4px 0 11px}
+.group-multi-video .group-video-premium-grid{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));
+ gap:10px;margin-bottom:10px;
+}
+.group-multi-video .group-video-premium-card{
+ display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;
+ padding:13px;border:1px solid rgba(172,143,255,.5);
+ border-radius:13px;background:rgba(25,19,57,.74);
+}
+.group-multi-video .group-video-premium-card strong{font-size:.94rem;color:#f6eaff}
+.group-multi-video .group-video-premium-card small{line-height:1.4;color:#e7dcff}
+.group-multi-video .group-video-premium-card button,
+.group-multi-video .group-video-premium-themes>button{
+ border:1px solid rgba(191,151,255,.63);
+ border-radius:10px;min-height:44px;padding:8px 10px;
+ color:#fff;background:linear-gradient(135deg,#54247a,#155b7d);
+ font-weight:700;cursor:pointer;max-width:100%;
+}
+.group-multi-video .group-video-premium-card button:disabled{
+ opacity:.65;cursor:not-allowed;background:rgba(52,48,81,.76);
+}
+.group-multi-video .group-video-premium-card button:focus-visible,
+.group-multi-video .group-video-premium-themes>button:focus-visible{
+ outline:3px solid #8ceaff;outline-offset:2px;
+}
+.group-multi-video .group-video-tile:is(.video-bg-aurora,.video-bg-ember,.video-bg-celestial){
+ position:relative;border-width:3px!important;background-size:200% 200%!important;
+ animation:sb-premium-video-glow 5.5s ease-in-out infinite;
+}
+.group-multi-video .group-video-tile.video-bg-aurora{
+ border-color:#91fff6!important;
+ background:linear-gradient(125deg,#0a6075,#713bba,#e27cbb,#1e9a8c)!important;
+ box-shadow:0 0 24px rgba(102,255,222,.55),0 0 18px rgba(205,126,255,.35)!important;
+}
+.group-multi-video .group-video-tile.video-bg-ember{
+ border-color:#ffbf62!important;
+ background:linear-gradient(125deg,#4b0a16,#9c2419,#ff8e2e,#56163c)!important;
+ box-shadow:0 0 26px rgba(255,121,43,.56),0 0 15px rgba(253,194,81,.32)!important;
+}
+.group-multi-video .group-video-tile.video-bg-celestial{
+ border-color:#d5baff!important;
+ background:linear-gradient(125deg,#181c69,#4a35b2,#a45bdf,#1c73ad,#241760)!important;
+ box-shadow:0 0 28px rgba(171,143,255,.62),0 0 14px rgba(98,229,255,.3)!important;
+}
+.group-multi-video .group-video-tile.video-bg-aurora::before{content:"🌈 ✧ ✦ ✧";}
+.group-multi-video .group-video-tile.video-bg-ember::before{content:"🐉 🔥 ✦";}
+.group-multi-video .group-video-tile.video-bg-celestial::before{content:"👑 ✦ ✨ ✦";}
+@keyframes sb-premium-video-glow{
+ 0%,100%{background-position:0% 50%}
+ 50%{background-position:100% 50%}
+}
+@media(max-width:540px){
+ .group-multi-video .group-video-premium-grid{grid-template-columns:1fr}
+ .group-multi-video .group-video-premium-themes{padding:10px}
+ .group-multi-video .group-video-premium-card{padding:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ .group-multi-video .group-video-tile:is(.video-bg-aurora,.video-bg-ember,.video-bg-celestial){animation:none}
+}
