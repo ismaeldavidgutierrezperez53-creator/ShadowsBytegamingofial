@@ -85,7 +85,13 @@
   const previewCeremony=make('button','poll-season-preview-action','👑 Probar ceremonia');
   previewCeremony.type='button';
   previewCeremony.onclick=()=>window.SBPollAwardCeremony?.preview();
-  header.append(heading,preview,previewCeremony,refresh);root.append(header);
+  const fame=make('button','poll-season-preview-action','🏛️ Salón de la Fama');
+  fame.type='button';
+  fame.onclick=()=>{
+   const target=root.querySelector('#poll-hall-of-fame');
+   if(target)target.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  };
+  header.append(heading,preview,previewCeremony,fame,refresh);root.append(header);
   const note=make('p','poll-season-deadline','📅 Finaliza el '+lastDay(currentMonth)+'. Los premios se asignan automáticamente después del cierre.');
   root.append(note);
   const countdown=make('div','poll-anime-countdown-host');
@@ -116,6 +122,7 @@
   root.append(archive);
   const ownAwards=make('div','poll-season-own-awards');
   root.append(ownAwards);
+  window.SBPollHallOfFame?.mount(root);
   try{
    const [rankingResult,authResult,seasonResult]=await Promise.all([
     sb.from('community_poll_monthly_leaderboard')
