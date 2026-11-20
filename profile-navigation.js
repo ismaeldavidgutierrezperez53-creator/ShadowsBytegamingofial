@@ -109,9 +109,22 @@
     links.dataset.signature='';
     enhance(host,isOwn);
    });
+   const removeVisibleFavorites=node('button','sb-nav-remove-visible-favorites','☆ Quitar resultados de favoritos');
+   removeVisibleFavorites.type='button';
+   removeVisibleFavorites.addEventListener('click',()=>{
+    const items=[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector);
+    const selected=new Set(items.map(item=>item.dataset.shortcutSelector));
+    const current=readFavorites();
+    const toRemove=current.filter(selector=>selected.has(selector));
+    if(!toRemove.length)return;
+    if(!window.confirm('¿Quitar de favoritos los '+toRemove.length+' accesos mostrados? Podrás deshacer este cambio.'))return;
+    if(!writeFavorites(current.filter(selector=>!selected.has(selector))))return;
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
    const resultCount=node('p','sb-nav-search-count');
    resultCount.setAttribute('role','status');
-   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites);
+   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites);
    const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
    let chosenLayout='grid';
    try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
@@ -241,6 +254,7 @@
     if(onlyHidden.getAttribute('aria-pressed')!==String(hiddenOnly))onlyHidden.setAttribute('aria-pressed',String(hiddenOnly));
     let visible=0;
     let addable=0;
+    let removable=0;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const matchesText=normalize(item.dataset.searchLabel).includes(query);
      // Leer el estado actual de la estrella, incluso después de reordenar favoritos.
@@ -252,6 +266,7 @@
      if(matched){
       visible++;
       if(!isFavorite)addable++;
+      else removable++;
      }
     }
     const message=query||enabled||unstarredOnly||hiddenOnly?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
@@ -259,6 +274,9 @@
     const bulkLabel=addable?'⭐ Añadir resultados a favoritos ('+addable+')':'⭐ No hay resultados sin estrella';
     if(addVisibleFavorites.textContent!==bulkLabel)addVisibleFavorites.textContent=bulkLabel;
     if(addVisibleFavorites.disabled!==(addable===0))addVisibleFavorites.disabled=addable===0;
+    const removeLabel=removable?'☆ Quitar resultados de favoritos ('+removable+')':'☆ No hay favoritos en los resultados';
+    if(removeVisibleFavorites.textContent!==removeLabel)removeVisibleFavorites.textContent=removeLabel;
+    if(removeVisibleFavorites.disabled!==(removable===0))removeVisibleFavorites.disabled=removable===0;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||nav.dataset.sortMode!=='favorites';
