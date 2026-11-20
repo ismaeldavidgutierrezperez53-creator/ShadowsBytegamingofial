@@ -173,6 +173,11 @@
    const bulkTools=node('div','sb-nav-bulk-tools');
    bulkTools.append(addVisibleFavorites,removeVisibleFavorites,hideVisibleResults,restoreVisibleResults);
    bulkDetails.append(bulkSummary,bulkTools,bulkFeedback);
+   const bulkOpenKey='sb-profile-bulk-menu-open-'+(isOwn?'own':'public')+'-v1';
+   try{bulkDetails.open=localStorage.getItem(bulkOpenKey)==='true'}catch(_){}
+   bulkDetails.addEventListener('toggle',()=>{
+    try{localStorage.setItem(bulkOpenKey,String(bulkDetails.open))}catch(_){}
+   });
    const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
    let chosenLayout='grid';
    try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
@@ -288,6 +293,11 @@
    const exportSummary=node('summary','sb-nav-export-summary','📁 Exportar accesos (7 herramientas)');
    const exportBox=node('div','sb-nav-export-tools');
    exportDetails.append(exportSummary,exportBox);
+   const exportOpenKey='sb-profile-export-menu-open-'+(isOwn?'own':'public')+'-v1';
+   try{exportDetails.open=localStorage.getItem(exportOpenKey)==='true'}catch(_){}
+   exportDetails.addEventListener('toggle',()=>{
+    try{localStorage.setItem(exportOpenKey,String(exportDetails.open))}catch(_){}
+   });
    const buildFavoriteList=()=>{
     const favorites=readFavorites();
     const currentHidden=readHidden();
