@@ -313,3 +313,8 @@
 .sb-nav-selection-controls button:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 .sb-nav-selection-controls button:disabled{opacity:.45;cursor:default}
 @media(max-width:550px){.sb-nav-selection-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sb-nav-selection-controls button{min-width:0}}
+
+/* Acción táctil para abrir el resultado actualmente seleccionado */
+.sb-nav-selection-controls .sb-nav-open-selected{background:#3d315f;border-color:#b39bd8}
+.sb-nav-selection-controls .sb-nav-open-selected:hover:not(:disabled){background:#59457f}
+@media(max-width:550px){.sb-nav-selection-controls .sb-nav-open-selected{grid-column:1/-1}}
