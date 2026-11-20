@@ -368,7 +368,7 @@ async function adminLoadReportAudit(){
 
 async function adminInitCompetitions(){
  const dashboard=document.querySelector('#admin-root .admin-dashboard');if(!dashboard)return;
- const panel=document.createElement('section');panel.className='admin-panel admin-competitions-panel';
+ const panel=document.createElement('section');panel.className='admin-panel admin-competitions-panel';panel.id='admin-competitions-management';
  panel.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">RETOS Y TORNEOS</span><h2>🏆 Gestión de competiciones</h2><p>Publica desafíos, gestiona inscripciones y registra puntuaciones. Estas puntuaciones no otorgan XP.</p></div><button type="button" class="admin-secondary" id="admin-competition-refresh">🔄 Actualizar</button></div><form class="admin-competition-create" id="admin-competition-create"><label>Tipo<select name="kind" required><option value="challenge">🎯 Reto</option><option value="tournament">🏆 Torneo</option></select></label><label>Título<input name="title" required minlength="3" maxlength="120" placeholder="Ej.: Torneo Pokémon del mes"></label><label>Descripción<textarea name="description" maxlength="2000" rows="3" placeholder="Reglas y condiciones de participación"></textarea></label><label>Inicio<input type="datetime-local" name="starts_at" required></label><label>Fin<input type="datetime-local" name="ends_at" required></label><label>Estado<select name="status"><option value="draft">Borrador</option><option value="published">Publicado</option></select></label><button type="submit" class="gradient-btn">➕ Crear reto o torneo</button></form><p role="status" id="admin-competition-status"></p><div id="admin-competition-list" class="admin-competition-list">Cargando competiciones…</div>';
  dashboard.append(panel);
  const form=panel.querySelector('#admin-competition-create');
@@ -445,10 +445,13 @@ async function adminInitCompetitions(){
   const {error}=await sb.from('community_competitions').insert(payload);
   button.disabled=false;
   if(error){note.textContent='No se pudo crear la competición: '+error.message;return;}
-  form.reset();note.textContent='🏆 Competición creada. Puedes gestionarla aquí.';await reload();adminLoadOverview();
+  form.reset();note.textContent=payload.status==='published'?'✅ Competición publicada: ya aparece en la comunidad.':'📝 Competición guardada como borrador. Pulsa «Publicar» en su tarjeta para mostrarla a los miembros.';await reload();adminLoadOverview();
  };
  panel.querySelector('#admin-competition-refresh').onclick=reload;
  await reload();
+ if(location.hash.startsWith('#/admin')&&new URLSearchParams(location.hash.split('?')[1]||'').get('focus')==='competitions'){
+  panel.scrollIntoView({block:'start',behavior:'smooth'});
+ }
 }
 
 async function initAdmin(){
