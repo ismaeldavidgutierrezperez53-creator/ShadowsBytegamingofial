@@ -1,0 +1,8 @@
+.sbaf-panel{padding:22px;border:1px solid #9e5ac6;border-radius:20px;margin:18px 0;background:linear-gradient(140deg,#26112e,#121728);min-width:0}
+.sbaf-panel h2{font-size:clamp(21px,3vw,27px);margin:0 0 8px}
+.sbaf-sub,.sbaf-status{color:#dac8e8;font-size:15px;margin:10px 0}
+.sbaf-chips,.sbaf-actions{display:flex;gap:10px;flex-wrap:wrap;margin:13px 0}
+.sbaf-chip{border:1px solid #a86ad2;background:#412553;border-radius:999px;color:#fbeeff;padding:8px 13px;font-weight:600;overflow-wrap:anywhere;max-width:100%}
+.sbaf-action{min-height:42px;display:inline-flex;align-items:center;justify-content:center;padding:10px 15px;border:1px solid #a679c8;border-radius:11px;background:#2c1d42;color:#fff;text-decoration:none;font-weight:700}
+.sbaf-action:hover{background:#5b2a78}.sbaf-action:focus-visible{outline:3px solid #57d9ff;outline-offset:3px}
+@media(max-width:600px){.sbaf-panel{padding:15px}.sbaf-actions{flex-direction:column}}
