@@ -199,3 +199,10 @@
 .sb-nav-copy-favorites:disabled{opacity:.45;cursor:default}
 .sb-nav-copy-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-copy-favorites{width:100%}}
+
+/* Descargar lista de favoritos sin modificar las preferencias */
+.sb-nav-download-favorites{min-height:42px;padding:9px 13px;border:1px solid #8fbac7;border-radius:10px;background:#294652;color:#eafaff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-download-favorites:hover:not(:disabled){background:#3c6474}
+.sb-nav-download-favorites:disabled{opacity:.45;cursor:default}
+.sb-nav-download-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-download-favorites{width:100%}}
