@@ -99,6 +99,12 @@
    onlyHidden.addEventListener('click',()=>{
     const next=nav.dataset.onlyHidden!=='true';
     if(next){
+     // Terminar Solo visibles antes de guardar la visibilidad previa de Solo ocultos.
+     if(nav.dataset.onlyVisible==='true'){
+      nav.dataset.onlyVisible='false';
+      nav.dataset.showHidden=nav.dataset.visibleFilterPriorVisibility==='yes'?'yes':'no';
+      delete nav.dataset.visibleFilterPriorVisibility;
+     }
      nav.dataset.hiddenFilterPriorVisibility=nav.dataset.showHidden==='yes'?'yes':'no';
      nav.dataset.showHidden='yes';
     }else{
@@ -106,7 +112,6 @@
      delete nav.dataset.hiddenFilterPriorVisibility;
     }
     nav.dataset.onlyHidden=String(next);
-    if(next)nav.dataset.onlyVisible='false';
     links.dataset.signature='';
     enhance(host,isOwn);
    });
@@ -115,14 +120,22 @@
    onlyVisible.setAttribute('aria-pressed','false');
    onlyVisible.addEventListener('click',()=>{
     const next=nav.dataset.onlyVisible!=='true';
+    if(next){
+     if(nav.dataset.onlyHidden==='true'){
+      nav.dataset.onlyHidden='false';
+      nav.dataset.showHidden=nav.dataset.hiddenFilterPriorVisibility==='yes'?'yes':'no';
+      delete nav.dataset.hiddenFilterPriorVisibility;
+     }
+     nav.dataset.visibleFilterPriorVisibility=nav.dataset.showHidden==='yes'?'yes':'no';
+     // Construir las filas ocultas para poder filtrarlas con precisión.
+     nav.dataset.showHidden='yes';
+    }else{
+     nav.dataset.showHidden=nav.dataset.visibleFilterPriorVisibility==='yes'?'yes':'no';
+     delete nav.dataset.visibleFilterPriorVisibility;
+    }
     nav.dataset.onlyVisible=String(next);
-    if(next&&nav.dataset.onlyHidden==='true'){
-     nav.dataset.onlyHidden='false';
-     nav.dataset.showHidden=nav.dataset.hiddenFilterPriorVisibility==='yes'?'yes':'no';
-     delete nav.dataset.hiddenFilterPriorVisibility;
-     links.dataset.signature='';
-     enhance(host,isOwn);
-    }else applyFilter();
+    links.dataset.signature='';
+    enhance(host,isOwn);
    });
    const addVisibleFavorites=node('button','sb-nav-add-visible-favorites','⭐ Añadir resultados a favoritos');
    addVisibleFavorites.type='button';
@@ -263,6 +276,11 @@
     nav.dataset.onlyFavorites='false';
     nav.dataset.onlyUnstarred='false';
     nav.dataset.onlyVisible='false';
+    if(hadVisible){
+     nav.dataset.showHidden=nav.dataset.visibleFilterPriorVisibility==='yes'?'yes':'no';
+     delete nav.dataset.visibleFilterPriorVisibility;
+     links.dataset.signature='';
+    }
     if(hadHidden){
      nav.dataset.onlyHidden='false';
      nav.dataset.showHidden=nav.dataset.hiddenFilterPriorVisibility==='yes'?'yes':'no';
@@ -275,7 +293,7 @@
      try{localStorage.setItem(sortKey,'favorites')}catch(_){}
      links.dataset.signature='';
     }
-    if(hadSort||hadHidden)enhance(host,isOwn);
+    if(hadSort||hadHidden||hadVisible)enhance(host,isOwn);
     else applyFilter();
    };
    sortBox.append(sortLabel,sortSelect,resetFilters);
@@ -641,7 +659,7 @@
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
-    const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
+    const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
     const query=normalize(search.value);
     const enabled=nav.dataset.onlyFavorites==='true';
     const unstarredOnly=nav.dataset.onlyUnstarred==='true';
