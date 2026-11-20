@@ -96,3 +96,10 @@
 .sb-nav-sort-label{font-size:14px;color:#dcc9e9;font-weight:700}
 .sb-nav-sort-select{min-height:42px;max-width:100%;flex:1;min-width:165px;border:1px solid #9b7bb5;border-radius:10px;padding:8px 12px;background:#261935;color:#fff;font:700 15px Rajdhani,Arial,sans-serif}
 .sb-nav-sort-select:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+
+/* Restablecimiento de filtros sin borrar favoritos ni ajustes del perfil */
+.sb-nav-reset-filters{min-height:42px;padding:8px 12px;border:1px solid #a988c7;border-radius:10px;background:#413057;color:#fff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-reset-filters:hover:not(:disabled){background:#644482}
+.sb-nav-reset-filters:disabled{opacity:.45;cursor:default}
+.sb-nav-reset-filters:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-reset-filters{width:100%}}
