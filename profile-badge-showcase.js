@@ -158,6 +158,7 @@
         if(!active())return;
         selected=next.slice();
         drawStrip();drawEditor();
+        window.dispatchEvent(new Event('sb:badge-showcase-updated'));
         output.textContent=message;
       }catch(error){
         if(active()){
@@ -215,11 +216,13 @@
       refresh.addEventListener('click',()=>{if(!busy)load();});
       const sync=()=>{if(!busy&&active())load();};
       window.addEventListener('sb:gamer-links-updated',sync);
+      window.addEventListener('sb:badge-showcase-updated',sync);
       const app=document.getElementById('app');
       if(app){
         const observer=new MutationObserver(()=>{
           if(root.isConnected&&strip.isConnected)return;
           window.removeEventListener('sb:gamer-links-updated',sync);
+          window.removeEventListener('sb:badge-showcase-updated',sync);
           observer.disconnect();
         });
         observer.observe(app,{childList:true,subtree:true});
