@@ -3889,7 +3889,30 @@ async function loadPrivateMessages(){
   for(const [value,label] of [['default','🌙 Clásico'],['sakura','🌸 Sakura'],['neon','💜 Cyber neón'],['galaxy','🌌 Galaxia'],['sunset','🌅 Atardecer anime']]){
    const option=document.createElement('option');option.value=value;option.textContent=label;themeSelect.append(option);
   }
-  themeLabel.append(themeSelect);chatHeader.append(headingText,themeLabel);
+  themeLabel.append(themeSelect);
+  const backgroundLabel=document.createElement('label');backgroundLabel.className='private-chat-theme-picker private-chat-background-picker';
+  backgroundLabel.textContent='🏞️ Fondo anime';
+  const backgroundSelect=document.createElement('select');backgroundSelect.setAttribute('aria-label','Fondo anime de esta conversación');
+  for(const [value,label] of [
+   ['none','🌙 Sin fondo'],['sakura-moon','🌸 Luna Sakura'],['neon-city','💜 Ciudad neón'],
+   ['galaxy-sky','🌌 Cielo galáctico'],['manga-ink','🖋️ Viñetas manga'],['ocean-anime','🌊 Mar anime']
+  ]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;backgroundSelect.append(option);
+  }
+  backgroundLabel.append(backgroundSelect);chatHeader.append(headingText,themeLabel,backgroundLabel);
+  const backgroundClasses=['private-chat-bg-sakura-moon','private-chat-bg-neon-city','private-chat-bg-galaxy-sky','private-chat-bg-manga-ink','private-chat-bg-ocean-anime'];
+  const applyBackground=value=>{
+   panel.classList.remove(...backgroundClasses);
+   if(value!=='none')panel.classList.add('private-chat-bg-'+value);
+  };
+  let backgroundTouched=false;
+  backgroundSelect.onchange=async()=>{
+   backgroundTouched=true;
+   const chosen=backgroundSelect.value;applyBackground(chosen);
+   const {error}=await sb.from('member_private_chat_themes')
+    .upsert({user_id:me,partner_id:active,background:chosen},{onConflict:'user_id,partner_id'});
+   if(error){console.warn('Fondo anime:',error.message);alert('No se pudo guardar el fondo: '+error.message);}
+  };
   const chatThemeClasses=['private-chat-theme-sakura','private-chat-theme-neon','private-chat-theme-galaxy','private-chat-theme-sunset'];
   const applyChatTheme=value=>{panel.classList.remove(...chatThemeClasses);if(value!=='default')panel.classList.add('private-chat-theme-'+value);};
   let themeTouched=false;
@@ -3900,10 +3923,11 @@ async function loadPrivateMessages(){
    if(error){console.warn('Tema de chat:',error.message);alert('No se pudo guardar el tema: '+error.message);}
   };
   loadChatTheme=async()=>{
-   const {data,error}=await sb.from('member_private_chat_themes').select('theme').eq('user_id',me).eq('partner_id',active).maybeSingle();
-   if(error){console.warn('Tema de chat:',error.message);return;}
-   if(!panel.isConnected||themeTouched)return;
-   themeSelect.value=data?.theme||'default';applyChatTheme(themeSelect.value);
+   const {data,error}=await sb.from('member_private_chat_themes').select('theme,background').eq('user_id',me).eq('partner_id',active).maybeSingle();
+   if(error){console.warn('Aspecto del chat:',error.message);return;}
+   if(!panel.isConnected)return;
+   if(!themeTouched){themeSelect.value=data?.theme||'default';applyChatTheme(themeSelect.value);}
+   if(!backgroundTouched){backgroundSelect.value=data?.background||'none';applyBackground(backgroundSelect.value);}
   };
   refreshPartnerActivity=async()=>{
    if(!panel.isConnected)return;
