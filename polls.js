@@ -59,6 +59,7 @@ async function initPollAdmin(){
   '</div>'
  ].join('');
  dashboard.append(panel);
+ window.SBPollAdminInsights?.mount(panel);
  const form=panel.querySelector('#poll-admin-form');
  const status=panel.querySelector('#poll-admin-status');
  const optionsField=panel.querySelector('#poll-admin-options');
@@ -127,7 +128,7 @@ async function initPollAdmin(){
    listRoot.replaceChildren();
    listCount.textContent=polls.length+' mostradas';
    if(!polls.length){
-    const empty=document.createElement('p');empty.className='poll-admin-empty';empty.textContent='Todavía no has creado encuestas.';listRoot.append(empty);return;
+    const empty=document.createElement('p');empty.className='poll-admin-empty';empty.textContent='Todavía no has creado encuestas.';listRoot.append(empty);window.SBPollAdminInsights?.renderSummary(panel,polls);return;
    }
    for(const poll of polls){
     const row=document.createElement('article');row.className='poll-admin-item';
@@ -152,13 +153,15 @@ async function initPollAdmin(){
       const {error}=await sb.from('community_polls').update({status:requested}).eq('id',poll.id);
       if(error){select.value=poll.status;showMessage('No se pudo cambiar el estado: '+error.message,'error');return;}
       poll.status=requested;badge.dataset.status=requested;badge.textContent=statusLabels[requested];
+      window.SBPollAdminInsights?.statusChanged(panel,row,poll);
       showMessage('Estado de la encuesta actualizado.','success');
      }catch(error){select.value=poll.status;showMessage('Error al actualizar: '+(error?.message||'Conexión interrumpida'),'error');}
      finally{select.disabled=false;}
     });
     control.append(label,select);
-    row.append(info,control);listRoot.append(row);
+    row.append(info,control);window.SBPollAdminInsights?.decorate(row,poll);listRoot.append(row);
    }
+   window.SBPollAdminInsights?.renderSummary(panel,polls);
   }catch(error){
    listCount.textContent='Sin datos';
    listRoot.textContent='No se pudieron cargar las encuestas: '+(error?.message||'Error de conexión');
