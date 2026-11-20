@@ -1,0 +1,148 @@
+/* Celebración de campeones, coronas anime y confeti accesible. */
+#poll-participation .poll-season-celebration{
+ position:relative;isolation:isolate;overflow:hidden;
+ margin:0 0 23px;padding:clamp(16px,3vw,27px);
+ border:2px solid rgba(234,171,100,.74);border-radius:20px;
+ background:radial-gradient(ellipse at 25% 0%,rgba(159,77,224,.4),transparent 65%),
+ linear-gradient(125deg,rgba(67,37,99,.95),rgba(17,35,69,.97));
+ color:#fff;
+ box-shadow:0 0 28px rgba(187,93,237,.2),inset 0 0 18px rgba(255,181,97,.08);
+}
+#poll-participation .poll-season-celebration.is-preview{
+ border-style:dashed;border-color:rgba(130,205,239,.7);
+ background:linear-gradient(120deg,rgba(51,34,90,.94),rgba(18,38,68,.96));
+}
+#poll-participation .poll-season-celebration-kicker{
+ display:block;color:#ffdf9a;font-size:11px;letter-spacing:1.6px;
+ font-weight:900;margin:0 0 9px;text-transform:uppercase;
+}
+#poll-participation .poll-season-celebration h3{
+ color:#fff;margin:0 0 10px;
+ font:900 clamp(22px,3vw,32px)/1.3 Rajdhani,Arial,sans-serif;
+ text-shadow:0 0 16px rgba(252,203,133,.4);
+}
+#poll-participation .poll-season-celebration-description{
+ margin:0 0 17px;color:#e8d9f8;font-size:15px;line-height:1.5;
+ max-width:750px;
+}
+#poll-participation .poll-season-champions{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:12px;position:relative;z-index:1;
+}
+#poll-participation .poll-season-champion{
+ display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+ gap:8px;min-width:0;min-height:182px;
+ padding:18px 10px 14px;
+ border:1px solid #a791c8;border-radius:16px;
+ background:linear-gradient(155deg,rgba(34,27,66,.92),rgba(16,31,54,.95));
+ box-shadow:inset 0 0 20px rgba(177,133,227,.08),0 9px 25px rgba(4,7,24,.2);
+ animation:poll-champion-rise .66s cubic-bezier(.12,.87,.26,1.12) both;
+}
+#poll-participation .poll-season-champion:nth-child(2){animation-delay:.12s}
+#poll-participation .poll-season-champion:nth-child(3){animation-delay:.24s}
+#poll-participation .poll-season-champion-gold{
+ border-color:#ffd078;background:linear-gradient(155deg,rgba(103,67,35,.79),rgba(43,27,56,.97));
+ box-shadow:0 0 24px rgba(248,196,92,.2);
+}
+#poll-participation .poll-season-champion-silver{
+ border-color:#a1caf0;background:linear-gradient(155deg,rgba(46,80,111,.77),rgba(31,30,59,.98));
+}
+#poll-participation .poll-season-champion-bronze{
+ border-color:#dba187;background:linear-gradient(155deg,rgba(91,59,50,.75),rgba(39,29,59,.97));
+}
+#poll-participation .poll-season-champion-medal{
+ font-size:clamp(32px,5vw,54px);line-height:1.1;
+ filter:drop-shadow(0 0 8px rgba(255,210,111,.48));
+ animation:poll-champion-glow 3.3s ease-in-out infinite;
+}
+#poll-participation .poll-season-champion-award{
+ font-size:16px;text-align:center;color:#fff4ce;line-height:1.3;
+ overflow-wrap:anywhere;
+}
+#poll-participation .poll-season-champion-name{
+ text-align:center;color:#fff;font-size:15px;font-weight:800;
+ line-height:1.4;text-decoration:none;overflow-wrap:anywhere;
+}
+#poll-participation a.poll-season-champion-name:hover{text-decoration:underline;color:#a3ebff}
+#poll-participation .poll-season-champion-points{
+ margin-top:auto;font-size:13px;font-weight:800;
+ text-align:center;line-height:1.45;color:#b9f7d4;
+}
+#poll-participation .poll-season-celebration-link{
+ position:relative;z-index:2;display:inline-flex;margin:18px 0 0;
+ align-items:center;justify-content:center;
+ color:#fff;text-decoration:none;font-weight:800;font-size:14px;
+ background:linear-gradient(100deg,#6e399e,#3569a5);
+ border:1px solid rgba(193,167,240,.86);
+ padding:11px 17px;border-radius:11px;
+}
+#poll-participation .poll-season-celebration-link:hover{filter:brightness(1.13)}
+#poll-participation .poll-season-celebration-note{
+ position:relative;z-index:2;color:#cdf2ff;margin:13px 0 0;
+ font-size:13px;line-height:1.45;font-weight:700;
+}
+#poll-participation .poll-season-celebration-error{
+ grid-column:1/-1;color:#ffe6bb;font-size:14px;
+}
+#poll-participation .poll-season-preview-action{
+ color:#fff;background:#49336b;
+ border:1px solid #b68be5;cursor:pointer;
+ font:800 14px Rajdhani,Arial,sans-serif;
+ padding:10px 14px;min-height:40px;border-radius:11px;
+}
+#poll-participation .poll-season-preview-action:hover{
+ background:#654593;
+}
+#poll-participation .poll-season-confetti{
+ position:absolute;inset:0;overflow:hidden;
+ pointer-events:none;z-index:3;
+}
+#poll-participation .poll-season-confetti-piece{
+ position:absolute;top:-24px;left:var(--confetti-left);
+ display:block;width:9px;height:14px;border-radius:2px;
+ opacity:0;background:hsl(var(--confetti-hue),93%,66%);
+ box-shadow:0 0 8px hsl(var(--confetti-hue),92%,60%);
+ animation:poll-season-fall var(--confetti-duration) ease-in var(--confetti-delay) both;
+}
+#poll-participation .poll-season-confetti-piece:nth-child(4n){
+ width:12px;height:12px;border-radius:50%;
+}
+@keyframes poll-season-fall{
+ 0%{opacity:0;transform:translate3d(0,-15px,0) rotate(0deg)}
+ 8%{opacity:1}
+ 80%{opacity:.93}
+ 100%{opacity:0;transform:translate3d(var(--confetti-drift),620px,0) rotate(600deg)}
+}
+@keyframes poll-champion-rise{
+ from{opacity:0;transform:translateY(22px) scale(.94)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes poll-champion-glow{
+ 0%,100%{filter:drop-shadow(0 0 4px rgba(255,195,94,.3))}
+ 50%{filter:drop-shadow(0 0 18px rgba(255,203,102,.8))}
+}
+@media(max-width:680px){
+ #poll-participation .poll-season-champions{
+ grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
+ }
+ #poll-participation .poll-season-champion{
+ padding:12px 6px;min-height:170px;gap:6px;
+ }
+ #poll-participation .poll-season-champion-medal{font-size:32px}
+ #poll-participation .poll-season-champion-award{font-size:12px}
+ #poll-participation .poll-season-champion-name{font-size:12px}
+ #poll-participation .poll-season-champion-points{font-size:11px}
+ #poll-participation .poll-season-celebration{padding:14px 9px}
+}
+@media(max-width:380px){
+ #poll-participation .poll-season-champions{grid-template-columns:1fr}
+ #poll-participation .poll-season-champion{min-height:0}
+}
+@media(prefers-reduced-motion:reduce){
+ #poll-participation .poll-season-champion,
+ #poll-participation .poll-season-champion-medal,
+ #poll-participation .poll-season-confetti-piece{
+ animation:none!important;
+ }
+ #poll-participation .poll-season-confetti{display:none!important}
+}
