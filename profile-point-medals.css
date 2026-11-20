@@ -1,0 +1,47 @@
+/* Shadows Byte Gaming V2 — medallas permanentes por metas completadas */
+.sbpm-panel{min-width:0;box-sizing:border-box;margin:18px 0;padding:18px;border:1px solid rgba(217,170,238,.48);border-radius:16px;background:linear-gradient(130deg,rgba(35,22,75,.91),rgba(29,45,77,.86));color:#f1e6ff}
+.sbpm-panel h2{margin:0 0 8px;color:#f9e9ff;font:800 clamp(1.2rem,2.8vw,1.62rem) Rajdhani,Arial,sans-serif}
+.sbpm-panel h3{margin:17px 0 10px;color:#f8e6ff;font:800 1.17rem Rajdhani,Arial,sans-serif}
+.sbpm-intro,.sbpm-status,.sbpm-note,.sbpm-empty{font-size:.88rem;line-height:1.48;color:#dfd0f0;margin:10px 0}
+.sbpm-note{font-size:.8rem;border-top:1px solid rgba(226,184,239,.24);padding-top:11px}
+.sbpm-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.sbpm-toolbar:empty{display:none}
+.sbpm-toolbar button{min-height:38px}
+.sbpm-toolbar button:disabled{opacity:.62}
+.sbpm-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.sbpm-summary-item{position:relative;isolation:isolate;min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px;border:1px solid rgba(184,139,230,.38);background:rgba(15,26,58,.55);border-radius:12px;padding:12px 7px}
+.sbpm-summary-icon{font-size:2.18rem;line-height:1.2;filter:drop-shadow(0 2px 7px rgba(255,210,145,.3))}
+.sbpm-summary-name{font:700 .8rem Rajdhani,Arial,sans-serif;color:#eddffa}
+.sbpm-summary-count{font:800 1.35rem Rajdhani,Arial,sans-serif;color:#fff0ca;font-variant-numeric:tabular-nums}
+.sbpm-summary-item.sbpm--bronze{border-color:rgba(211,142,105,.4)}
+.sbpm-summary-item.sbpm--silver{border-color:rgba(202,216,235,.45)}
+.sbpm-summary-item.sbpm--gold{border-color:rgba(251,214,138,.5)}
+.sbpm-summary-item.sbpm--diamond{border-color:rgba(115,223,243,.56)}
+.sbpm-history{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:530px;overflow:auto;scrollbar-width:thin;padding:2px 4px 4px 0}
+.sbpm-medal-card{position:relative;display:flex;gap:12px;align-items:center;min-width:0;border:1px solid rgba(215,182,241,.38);background:linear-gradient(110deg,rgba(111,69,166,.22),rgba(24,36,72,.5));border-radius:12px;padding:12px;overflow:hidden}
+.sbpm-medal-icon{position:relative;display:grid;place-items:center;flex:0 0 57px;width:57px;height:57px;border-radius:50%;font-size:2.02rem;background:radial-gradient(circle at 32% 21%,rgba(250,238,255,.35),rgba(124,81,163,.35) 59%,rgba(34,29,65,.6));border:2px solid rgba(224,182,247,.38);box-shadow:inset 0 0 10px rgba(255,255,255,.15),0 4px 12px rgba(0,0,0,.2)}
+.sbpm-medal-details{display:flex;flex-direction:column;gap:5px;min-width:0}
+.sbpm-medal-details strong{font:800 1rem Rajdhani,Arial,sans-serif;color:#fff2db}
+.sbpm-medal-details span{font:700 .86rem Rajdhani,Arial,sans-serif;color:#e7d9f3}
+.sbpm-medal-details small{font:600 .78rem Rajdhani,Arial,sans-serif;color:#c9bcdf}
+.sbpm-medal-card.sbpm--bronze{border-color:rgba(225,151,111,.55)}
+.sbpm-medal-card.sbpm--bronze .sbpm-medal-icon{border-color:#dc9b71}
+.sbpm-medal-card.sbpm--silver{border-color:rgba(203,220,246,.52)}
+.sbpm-medal-card.sbpm--silver .sbpm-medal-icon{border-color:#cee4f4}
+.sbpm-medal-card.sbpm--gold{border-color:rgba(255,211,112,.7);background:linear-gradient(115deg,rgba(166,114,39,.25),rgba(71,49,111,.48))}
+.sbpm-medal-card.sbpm--gold .sbpm-medal-icon{border-color:#f8d67d;box-shadow:0 0 17px rgba(247,203,111,.3),inset 0 0 10px rgba(255,255,255,.25)}
+.sbpm-medal-card.sbpm--diamond{border-color:rgba(116,226,245,.75);background:linear-gradient(115deg,rgba(63,156,181,.21),rgba(57,57,132,.46))}
+.sbpm-medal-card.sbpm--diamond .sbpm-medal-icon{border-color:#91f4ff;box-shadow:0 0 18px rgba(105,230,246,.36),inset 0 0 10px rgba(255,255,255,.25)}
+.sbpm-empty{grid-column:1/-1;padding:13px;border:1px dashed rgba(214,183,240,.38);border-radius:9px}
+.sbpm-identity-strip{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:5px 0 8px;max-width:100%}
+.sbpm-identity-strip[hidden]{display:none!important}
+.sbpm-strip-caption{font:800 .77rem Rajdhani,Arial,sans-serif;color:#f6dbb0}
+.sbpm-strip-tray{display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
+.sbpm-strip-chip{display:inline-flex;align-items:center;min-height:25px;padding:4px 9px;border:1px solid rgba(233,202,235,.5);border-radius:999px;background:rgba(97,71,138,.42);font:800 .81rem Rajdhani,Arial,sans-serif;color:#f9e8ff;box-shadow:0 3px 10px rgba(0,0,0,.18)}
+.sbpm-strip-chip.sbpm--bronze{border-color:#d39b73;color:#f7d2a7}
+.sbpm-strip-chip.sbpm--silver{border-color:#b5d6ee;color:#e3f6ff}
+.sbpm-strip-chip.sbpm--gold{border-color:#e8c579;color:#ffebae}
+.sbpm-strip-chip.sbpm--diamond{border-color:#8fdce6;color:#bffbff}
+.sbpm-panel button:focus-visible{outline:2px solid #a7f4ff;outline-offset:3px}
+@media(max-width:760px){.sbpm-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.sbpm-history{grid-template-columns:1fr}}
+@media(max-width:420px){.sbpm-panel{padding:12px}.sbpm-medal-card{gap:9px;padding:10px}.sbpm-medal-icon{width:47px;height:47px;flex-basis:47px;font-size:1.7rem}.sbpm-strip-chip{font-size:.76rem}}
