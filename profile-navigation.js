@@ -73,6 +73,25 @@
    search.placeholder='Buscar biblioteca, retos, estadísticas…';
    search.setAttribute('aria-label','Buscar secciones del perfil');
    search.autocomplete='off';
+   const searchFiltersKey='sb-profile-search-filters-'+(isOwn?'own':'public')+'-v1';
+   try{
+    const saved=JSON.parse(localStorage.getItem(searchFiltersKey)||'null');
+    if(saved&&typeof saved==='object'&&!Array.isArray(saved)){
+     if(typeof saved.query==='string')search.value=saved.query.slice(0,120);
+     const favoriteMode=saved.favoriteMode==='favorites'?'favorites':saved.favoriteMode==='unstarred'?'unstarred':'all';
+     const visibilityMode=saved.visibilityMode==='hidden'?'hidden':saved.visibilityMode==='visible'?'visible':'all';
+     nav.dataset.onlyFavorites=String(favoriteMode==='favorites');
+     nav.dataset.onlyUnstarred=String(favoriteMode==='unstarred');
+     nav.dataset.onlyHidden=String(visibilityMode==='hidden');
+     nav.dataset.onlyVisible=String(visibilityMode==='visible');
+     if(visibilityMode!=='all'){
+      const prior=nav.dataset.showHidden==='yes'?'yes':'no';
+      if(visibilityMode==='hidden')nav.dataset.hiddenFilterPriorVisibility=prior;
+      else nav.dataset.visibleFilterPriorVisibility=prior;
+      nav.dataset.showHidden='yes';
+     }
+    }
+   }catch(_){}
    const clear=node('button','sb-nav-search-clear','Limpiar');
    clear.type='button';
    const onlyFavorites=node('button','sb-nav-only-favorites','☆ Solo favoritos');
@@ -725,6 +744,15 @@
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||visibleOnly||nav.dataset.sortMode!=='favorites';
     if(resetFilters.disabled===hasActiveFilters)resetFilters.disabled=!hasActiveFilters;
+    // Escribir solo cuando cambia un filtro: evita bucles con MutationObserver.
+    const savedFilters=JSON.stringify({
+     query:search.value.slice(0,120),
+     favoriteMode:enabled?'favorites':unstarredOnly?'unstarred':'all',
+     visibilityMode:hiddenOnly?'hidden':visibleOnly?'visible':'all'
+    });
+    try{
+     if(localStorage.getItem(searchFiltersKey)!==savedFilters)localStorage.setItem(searchFiltersKey,savedFilters);
+    }catch(_){}
    };
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
