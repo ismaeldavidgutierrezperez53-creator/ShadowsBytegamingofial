@@ -92,7 +92,7 @@
 .sbpg-celebration--motion-on.sbpg-celebration--diamond::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;background:linear-gradient(122deg,transparent 26%,rgba(214,255,255,.19) 44%,transparent 60%);animation:sbpg-diamond-flare 4s ease-in-out infinite}
 @keyframes sbpg-bronze-twinkle{
  0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(-25deg)}
- 24%{opacity:1;transform:translate(calc(-50% + var(--dx,0px)*.35),calc(-50% + var(--dy,0px)*.35)) scale(1.1) rotate(30deg)}
+ 24%{opacity:1;transform:translate(calc(-50% + var(--dx-small,0px)),calc(-50% + var(--dy-small,0px))) scale(1.1) rotate(30deg)}
  60%{opacity:.75}
  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.45) rotate(120deg)}
 }
@@ -110,7 +110,7 @@
 }
 @keyframes sbpg-diamond-crystal{
  0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(0)}
- 27%{opacity:1;transform:translate(calc(-50% + var(--dx,0px)*.35),calc(-50% + var(--dy,0px)*.35)) scale(1.15) rotate(45deg)}
+ 27%{opacity:1;transform:translate(calc(-50% + var(--dx-small,0px)),calc(-50% + var(--dy-small,0px))) scale(1.15) rotate(45deg)}
  59%{opacity:.9;filter:brightness(1.45)}
  100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.5) rotate(180deg)}
 }
