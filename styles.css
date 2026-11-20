@@ -1024,3 +1024,42 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  .group-multi-video .group-video-tile:is(.video-bg-sakura,.video-bg-neon,.video-bg-fire,.video-bg-galaxy){animation:none;}
 }
+
+/* Anime identity profile upgrade: Luna anime cards and safe member preference chips */
+.member-card[data-anime-card="lunar"],
+.public-member-body[data-anime-card="lunar"],
+.profile-preview-card[data-anime-card="lunar"]{
+ border-color:rgba(150,188,255,.72);
+ background-image:
+  radial-gradient(circle at 85% 14%,rgba(237,241,255,.48) 0 14px,rgba(150,192,255,.15) 15px 32px,transparent 34px),
+  radial-gradient(circle at 12% 84%,rgba(107,139,252,.25),transparent 40%),
+  linear-gradient(145deg,rgba(20,26,66,.91),rgba(56,42,119,.74) 60%,rgba(30,78,104,.57));
+ box-shadow:0 8px 27px rgba(92,119,250,.17),inset 0 0 24px rgba(169,194,255,.08);
+}
+.member-card[data-anime-card="lunar"]:hover{
+ border-color:rgba(207,222,255,.92);
+ box-shadow:0 12px 32px rgba(110,151,255,.24),0 0 16px rgba(155,137,255,.14);
+}
+.profile-anime-identity-editor{display:grid;gap:8px}
+.profile-anime-identity-editor input{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.profile-anime-identity-editor small{opacity:.8}
+.profile-anime-tags{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:8px 0;max-width:100%}
+.profile-anime-tags[hidden]{display:none!important}
+.profile-anime-tags>span{
+ display:inline-flex;align-items:center;max-width:100%;
+ padding:6px 11px;min-height:30px;border-radius:999px;
+ border:1px solid rgba(176,166,255,.48);background:rgba(99,67,161,.22);
+ color:inherit;font-size:.84rem;line-height:1.25;
+ overflow-wrap:anywhere;word-break:break-word;
+}
+.public-anime-identity{margin:16px 0}
+.public-anime-identity h2{font-size:1.15rem;margin:0 0 10px}
+.profile-preview-card .profile-anime-tags{margin:5px 0}
+.profile-preview-card .profile-anime-tags>span{font-size:.76rem;padding:4px 7px}
+@media(max-width:540px){
+ .profile-anime-tags>span{font-size:.81rem;max-width:100%}
+ .public-anime-identity{padding:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .member-card[data-anime-card="lunar"]{transition:none}
+}
