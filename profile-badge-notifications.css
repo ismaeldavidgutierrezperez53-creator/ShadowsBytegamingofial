@@ -54,3 +54,26 @@
 .sb-badge-notify-toggle{position:relative;isolation:isolate}
 .sb-badge-notify-feedback{margin:6px 0 11px;padding:7px 10px;color:#eee0fa;font:600 .84rem/1.4 Rajdhani,Arial,sans-serif;border-radius:8px;background:rgba(112,68,162,.19)}
 @media(max-width:540px){.sb-badge-notify{bottom:max(105px,calc(env(safe-area-inset-bottom) + 93px))}}
+
+/* Avisos de metas de puntos dentro de la campana de logros */
+.sb-goal-notify-heading{font:800 1.08rem Rajdhani,Arial,sans-serif;color:#ffe7bf;margin:12px 0 7px}
+.sb-goal-notify-item{position:relative;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid rgba(168,136,240,.45);border-radius:11px;background:linear-gradient(125deg,rgba(103,68,167,.25),rgba(41,58,107,.3))}
+.sb-goal-notify-item.is-unread{border-color:rgba(250,206,120,.75);background:linear-gradient(125deg,rgba(153,94,71,.25),rgba(69,55,152,.24))}
+.sb-goal-notify-info{display:flex;flex-direction:column;gap:5px;min-width:0}
+.sb-goal-notify-info strong{font:800 .96rem Rajdhani,Arial,sans-serif;color:#ffedc8;overflow-wrap:anywhere}
+.sb-goal-notify-info span{font:600 .86rem/1.45 Rajdhani,Arial,sans-serif;color:#f0e0ff}
+.sb-goal-notify-info small{font:600 .78rem Rajdhani,Arial,sans-serif;color:#d2bbe4}
+.sb-goal-notify-actions{display:flex;flex-wrap:wrap;gap:8px}
+.sb-goal-notify-actions button{min-height:36px;flex:1 1 130px}
+.sb-goal-notify-item .sb-badge-notify-new{position:absolute;right:10px;top:9px}
+.sb-goal-notify-item.is-unread .sb-goal-notify-info strong{padding-right:52px}
+.sb-goal-unlock-toast{position:relative;width:min(390px,calc(100vw - 30px));box-sizing:border-box;border:2px solid rgba(182,142,250,.9);border-radius:16px;padding:16px;background:linear-gradient(120deg,#302260,#233756,#34225a);color:#fdf2ff;box-shadow:0 11px 34px rgba(15,12,39,.68);animation:sb-badge-toast-enter .35s ease-out}
+.sb-goal-unlock-toast.is-complete{border-color:#ffe2a0;background:linear-gradient(120deg,#463062,#6e4c34,#312459);box-shadow:0 0 28px rgba(251,219,144,.33),0 14px 33px rgba(15,12,39,.65)}
+.sb-goal-toast-heading{display:block;font:800 1.12rem Rajdhani,Arial,sans-serif;color:#ffe5a8;margin:0 0 8px}
+.sb-goal-toast-text{font:700 .91rem/1.5 Rajdhani,Arial,sans-serif;color:#f6e6ff;margin:0 0 12px}
+.sb-goal-toast-controls{display:flex;gap:8px;flex-wrap:wrap}
+.sb-goal-toast-controls button{min-height:39px;flex:1 1 120px;padding:9px;border-radius:10px;border:1px solid rgba(229,198,255,.65);font:800 .9rem Rajdhani,Arial,sans-serif;color:#fdf2ff;background:rgba(144,87,205,.35);cursor:pointer}
+.sb-goal-toast-controls .sb-goal-toast-go{background:linear-gradient(110deg,#eecb8e,#ffeebd);color:#372044;border-color:#ffe6ad}
+.sb-goal-toast-controls button:focus-visible{outline:2px solid #bdf5ff;outline-offset:3px}
+@media(max-width:540px){.sb-goal-unlock-toast{max-width:calc(100vw - 20px);padding:12px}}
+@media(prefers-reduced-motion:reduce){.sb-goal-unlock-toast{animation:none!important}}
