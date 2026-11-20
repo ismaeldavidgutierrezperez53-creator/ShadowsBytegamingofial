@@ -702,8 +702,21 @@ async function adminInitRewardShop(){
 
  const stats=make('section','sb-shop-admin__section');
  const statsHeading=make('div','sb-shop-admin__section-heading');statsHeading.append(make('h3','','📊 Compras por artículo'));stats.append(statsHeading);
+ const salesData=sales.data||[];
+ const totalPurchases=salesData.reduce((sum,entry)=>sum+Number(entry.purchases||0),0);
+ const totalSpent=salesData.reduce((sum,entry)=>sum+Number(entry.points_spent||0),0);
+ const overview=make('div','sb-shop-admin__overview');
+ for(const [label,value] of [
+  ['Compras registradas',totalPurchases.toLocaleString('es-ES')],
+  ['Puntos gastados',totalSpent.toLocaleString('es-ES')],
+  ['Artículos ocultos',String(inventory.filter(item=>!item.active).length)]
+ ]){
+  const metric=make('div','sb-shop-admin__metric');
+  metric.append(make('span','',label),make('strong','',value));overview.append(metric);
+ }
+ stats.append(overview);
  const salesRoot=make('div','sb-shop-admin__sales');
- for(const entry of sales.data||[]){
+ for(const entry of [...salesData].sort((a,b)=>Number(b.purchases||0)-Number(a.purchases||0))){
   const tile=make('div','sb-shop-admin__sale');
   tile.append(make('strong','',entry.item_name),make('span','',entry.purchases+' compras'),make('span','',entry.points_spent+' puntos gastados'));
   salesRoot.append(tile);
