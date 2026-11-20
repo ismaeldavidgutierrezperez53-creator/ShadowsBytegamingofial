@@ -1,0 +1,57 @@
+/* Mi cuenta — grupo plegable de secciones antes de Mis denuncias. */
+#account-profile .sb-profile-sections-group{
+ width:100%;
+ min-width:0;
+ margin:22px 0;
+ border:1px solid rgba(181,119,245,.58);
+ background:linear-gradient(145deg,rgba(33,20,51,.97),rgba(20,15,35,.98));
+}
+#account-profile .sb-profile-sections-group > h2{
+ margin:0 0 8px;
+ color:#f4e7ff;
+ font-size:clamp(1.3rem,2vw,1.65rem);
+}
+#account-profile .sb-profile-sections-group > p{
+ margin:0 0 12px;
+ color:#cfc1df;
+}
+#account-profile .sb-profile-sections-toggle{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-height:44px;
+ margin:3px 0 0;
+ cursor:pointer;
+}
+#account-profile .sb-profile-sections-toggle:focus-visible{
+ outline:3px solid #7de4ff;
+ outline-offset:3px;
+}
+#account-profile .sb-profile-sections-content{
+ display:flex;
+ flex-direction:column;
+ gap:18px;
+ min-width:0;
+ margin-top:20px;
+}
+#account-profile .sb-profile-sections-content[hidden]{
+ display:none!important;
+}
+#account-profile .sb-profile-sections-content > *{
+ width:100%;
+ max-width:100%;
+ min-width:0;
+ box-sizing:border-box;
+ margin-left:0;
+ margin-right:0;
+}
+@media(max-width:600px){
+ #account-profile .sb-profile-sections-group{
+  padding:16px;
+  margin:16px 0;
+ }
+ #account-profile .sb-profile-sections-toggle{
+  width:100%;
+ }
+ #account-profile .sb-profile-sections-content{gap:14px;}
+}
