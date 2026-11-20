@@ -220,3 +220,10 @@
 .sb-nav-download-all-csv:disabled{opacity:.45;cursor:default}
 .sb-nav-download-all-csv:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-download-all-csv{width:100%}}
+
+/* Exportar a CSV únicamente los accesos que pasan los filtros actuales */
+.sb-nav-download-filtered-csv{min-height:42px;padding:9px 13px;border:1px solid #82a9c5;border-radius:10px;background:#29445c;color:#ebf7ff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-download-filtered-csv:hover:not(:disabled){background:#3d6080}
+.sb-nav-download-filtered-csv:disabled{opacity:.45;cursor:default}
+.sb-nav-download-filtered-csv:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-download-filtered-csv{width:100%}}
