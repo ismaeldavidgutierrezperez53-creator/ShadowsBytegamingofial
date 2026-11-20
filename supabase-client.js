@@ -3341,6 +3341,10 @@ function closePrivateDirectCall(){
  if(!session)return;
  privateDirectCallSession=null;
  clearInterval(session.timer);
+ if(session.filterFrame)cancelAnimationFrame(session.filterFrame);
+ session.filterSource?.pause();if(session.filterSource)session.filterSource.srcObject=null;
+ session.filterStream?.getTracks().forEach(track=>track.stop());
+ session.screenStream?.getTracks().forEach(track=>track.stop());
  session.pc?.close();
  session.localStream?.getTracks().forEach(track=>track.stop());
  if(session.localMedia)session.localMedia.srcObject=null;
@@ -3380,15 +3384,115 @@ async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null
   try{await remoteMedia.play();state.textContent='🔊 Sonido remoto activado';}
   catch(e){state.textContent='No se pudo reproducir el sonido: '+e.message;}
  };
+ const screenShare=document.createElement('button');screenShare.type='button';screenShare.className='private-direct-screen-share';screenShare.textContent='🖥️ Compartir pantalla';screenShare.hidden=kind!=='video';
+ const filterLabel=document.createElement('label');filterLabel.className='private-direct-anime-filter';filterLabel.textContent='✨ Efecto anime';
+ filterLabel.hidden=kind!=='video';
+ const filterSelect=document.createElement('select');filterSelect.setAttribute('aria-label','Efecto anime de cámara');
+ for(const [value,label] of [['none','Sin filtro'],['sakura','🌸 Sakura'],['cyber','💜 Neón cyber'],['galaxy','🌌 Galaxia'],['manga','🖋️ Manga']]){
+  const option=document.createElement('option');option.value=value;option.textContent=label;filterSelect.append(option);
+ }
+ filterLabel.append(filterSelect);
  const hang=document.createElement('button');hang.type='button';hang.className='private-direct-call-hang';hang.textContent='🔴 Colgar';
- actions.append(mic,camera,listen,hang);
+ actions.append(mic,camera,listen,screenShare,filterLabel,hang);
  const hint=document.createElement('small');hint.textContent='Conexión privada entre navegadores. Algunas redes requieren TURN para conectar.';
  overlay.append(title,state,mediaBox,actions,hint);
  document.body.append(overlay);
  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
  localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
- const session={pc,localStream,localMedia,remoteMedia,overlay,timer:null,call:incoming};
+ const session={pc,localStream,localMedia,remoteMedia,overlay,timer:null,call:incoming,
+  screenStream:null,filterStream:null,filterSource:null,filterFrame:0};
  privateDirectCallSession=session;
+ const videoSender=pc.getSenders().find(sender=>sender.track?.kind==='video');
+ const cameraTrack=localStream.getVideoTracks()[0]||null;
+ const filterValues={
+  none:'none',sakura:'saturate(1.3) brightness(1.07) hue-rotate(-12deg)',
+  cyber:'saturate(1.7) contrast(1.2) hue-rotate(30deg)',
+  galaxy:'saturate(1.5) contrast(1.13) hue-rotate(90deg)',
+  manga:'grayscale(1) contrast(1.85) brightness(1.15)'
+ };
+ let currentFilter='none',filteredTrack=null,sharingScreen=false;
+ const outgoingVideoTrack=()=>currentFilter==='none'?cameraTrack:(filteredTrack||cameraTrack);
+ const setupCameraEffect=()=>{
+  if(session.filterStream)return;
+  if(!cameraTrack||typeof HTMLCanvasElement==='undefined'||!HTMLCanvasElement.prototype.captureStream)throw new Error('Este navegador no admite filtros de vídeo compartidos.');
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+  const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw new Error('Tu navegador no permite aplicar filtros.');
+  const source=document.createElement('video');source.autoplay=true;source.muted=true;source.playsInline=true;
+  source.srcObject=new MediaStream([cameraTrack]);source.play().catch(()=>{});
+  session.filterSource=source;
+  const paint=timestamp=>{
+   if(privateDirectCallSession!==session)return;
+   ctx.filter='none';ctx.fillStyle='#0c0920';ctx.fillRect(0,0,canvas.width,canvas.height);
+   if(cameraTrack.enabled&&source.readyState>=2){
+    ctx.filter=filterValues[currentFilter]||'none';
+    ctx.drawImage(source,0,0,canvas.width,canvas.height);
+    ctx.filter='none';
+    if(currentFilter==='sakura'||currentFilter==='galaxy'){
+     for(let i=0;i<13;i++){
+      const x=((i*127+timestamp*.025*(1+i%3))%680)-20;
+      const y=(i*73+(timestamp*.016*(i%3+1)))%390;
+      ctx.fillStyle=currentFilter==='sakura'?'rgba(255,194,234,.72)':'rgba(172,213,255,.85)';
+      ctx.beginPath();ctx.ellipse(x,y,3+i%4,5+i%3,0.6,0,Math.PI*2);ctx.fill();
+     }
+    }else if(currentFilter==='cyber'){
+     ctx.strokeStyle='rgba(168,105,255,.18)';ctx.lineWidth=1;
+     for(let y=0;y<360;y+=18){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(640,y);ctx.stroke();}
+    }
+   }
+   session.filterFrame=requestAnimationFrame(paint);
+  };
+  session.filterFrame=requestAnimationFrame(paint);
+  session.filterStream=canvas.captureStream(24);
+  filteredTrack=session.filterStream.getVideoTracks()[0]||null;
+  if(!filteredTrack)throw new Error('No se pudo iniciar el vídeo con filtro.');
+ };
+ const stopPrivateScreenShare=async()=>{
+  if(!sharingScreen)return;
+  sharingScreen=false;
+  const display=session.screenStream;session.screenStream=null;
+  try{
+   if(videoSender&&outgoingVideoTrack())await videoSender.replaceTrack(outgoingVideoTrack());
+  }catch(e){state.textContent='No se pudo restaurar la cámara: '+e.message;}
+  localMedia.srcObject=localStream;
+  localMedia.style.filter=filterValues[currentFilter]||'none';
+  screenShare.textContent='🖥️ Compartir pantalla';
+  display?.getTracks().forEach(track=>track.stop());
+ };
+ filterSelect.onchange=async()=>{
+  if(!cameraTrack||!videoSender)return;
+  filterSelect.disabled=true;
+  const previous=currentFilter;currentFilter=filterSelect.value;
+  try{
+   if(currentFilter!=='none')setupCameraEffect();
+   if(!sharingScreen)await videoSender.replaceTrack(outgoingVideoTrack());
+   localMedia.style.filter=sharingScreen?'none':filterValues[currentFilter];
+   state.textContent=currentFilter==='none'?'🎥 Cámara sin filtro':'✨ Efecto '+filterSelect.selectedOptions[0].textContent+' aplicado a tu cámara';
+  }catch(e){
+   currentFilter=previous;filterSelect.value=previous;
+   localMedia.style.filter=sharingScreen?'none':filterValues[previous];
+   state.textContent='No se pudo aplicar el efecto: '+e.message;
+  }finally{filterSelect.disabled=false;}
+ };
+ screenShare.onclick=async()=>{
+  if(sharingScreen){await stopPrivateScreenShare();return;}
+  if(!navigator.mediaDevices?.getDisplayMedia){state.textContent='Este navegador no permite compartir pantalla.';return;}
+  screenShare.disabled=true;
+  let display=null;
+  try{
+   display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
+   const track=display.getVideoTracks()[0];
+   if(!track||!videoSender)throw new Error('No hay pista de vídeo disponible para compartir.');
+   await videoSender.replaceTrack(track);
+   session.screenStream=display;sharingScreen=true;
+   localMedia.srcObject=new MediaStream([track]);localMedia.style.filter='none';
+   screenShare.textContent='🛑 Dejar de compartir';
+   state.textContent='🖥️ Estás compartiendo pantalla. Puedes detenerla en cualquier momento.';
+   track.addEventListener('ended',()=>{if(privateDirectCallSession===session)stopPrivateScreenShare().catch(console.warn);},{once:true});
+  }catch(e){
+   display?.getTracks().forEach(track=>track.stop());
+   state.textContent='No se pudo compartir pantalla: '+e.message;
+  }finally{screenShare.disabled=false;}
+ };
  let call=incoming,seenIce=0,busy=false,closed=false;
  const localIce=[],remoteIce=[];
  const updateStatus=()=>{
