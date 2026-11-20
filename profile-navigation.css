@@ -116,3 +116,10 @@
 .sb-nav-only-hidden[aria-pressed="true"]{background:#65415b;border-color:#e2afcb;color:#ffeaf6}
 .sb-nav-only-hidden:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-only-hidden{flex:1}}
+
+/* Restauración en lote: solo se muestra al gestionar accesos ocultos */
+.sb-nav-restore-all{min-height:42px;padding:9px 13px;border:1px solid #d5ac82;border-radius:10px;background:#50372e;color:#fff1d9;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-restore-all:hover{background:#745039}
+.sb-nav-restore-all:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+.sb-nav-restore-all[hidden]{display:none!important}
+@media(max-width:550px){.sb-nav-restore-all{width:100%}}
