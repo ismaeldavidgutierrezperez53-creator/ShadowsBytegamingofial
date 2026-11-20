@@ -1,0 +1,87 @@
+/* Shadows Byte Gaming Official V2 · Torneos 1 contra 1 V9 */
+#reward-shop .community-tournaments-v9{scroll-margin-top:110px;margin:27px 0;padding:22px;border:1px solid #8c68c6;border-radius:20px;color:#f6edff;background:radial-gradient(circle at 100% 0%,#9150d828,transparent 40%),linear-gradient(130deg,#23172e,#10131f);box-shadow:0 14px 35px #0004;min-width:0}
+#reward-shop .community-tournament-v9-header h3{margin:0 0 9px;color:#f1dcff;font-size:26px;line-height:1.2}
+#reward-shop .community-tournament-v9-header p{font-size:15px;line-height:1.55;color:#d3c5df;margin:0}
+#reward-shop .community-tournament-v9-card{margin-top:19px;padding:20px;border-radius:16px;border:1px solid #8461ae;background:linear-gradient(120deg,#292039,#191522);scroll-margin-top:110px}
+#reward-shop .community-tournament-v9-card.anime{border-color:#cc83bf;background:radial-gradient(circle at right top,#ff63b620,transparent 40%),linear-gradient(120deg,#34213c,#181625)}
+#reward-shop .community-tournament-v9-card.gaming{border-color:#66aeca;background:radial-gradient(circle at right top,#65d0ff20,transparent 40%),linear-gradient(120deg,#1b3342,#171a29)}
+#reward-shop .community-tournament-v9-card-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+#reward-shop .community-tournament-v9-title{display:flex;align-items:center;gap:9px;min-width:0}
+#reward-shop .community-tournament-v9-emoji{font-size:31px}
+#reward-shop .community-tournament-v9-title h4{color:#fae9ff;font-size:23px;margin:0;line-height:1.25;overflow-wrap:anywhere}
+#reward-shop .community-tournament-v9-state{font-size:13px;font-weight:800;padding:6px 10px;border:1px solid #aa83d6;background:#352a49;border-radius:999px;color:#efe0ff}
+#reward-shop .community-tournament-v9-description{font-size:15px;line-height:1.5;color:#ddd0e5;margin:13px 0}
+#reward-shop .community-tournament-v9-dates{font-size:14px;color:#c7ebf8;line-height:1.5;margin:10px 0}
+#reward-shop .community-tournament-v9-slots{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border:1px solid #78638f;border-radius:11px;padding:12px;background:#151225}
+#reward-shop .community-tournament-v9-slots strong{font-size:17px;color:#b2f4dc}
+#reward-shop .community-tournament-v9-slots span{font-size:13px;color:#d4c5e6}
+#reward-shop .community-tournament-v9-actions{display:flex;align-items:center;flex-wrap:wrap;gap:11px;margin:13px 0}
+#reward-shop .community-tournament-v9-signup{min-height:43px;padding:10px 16px;border-radius:11px;max-width:100%;white-space:normal;cursor:pointer}
+#reward-shop .community-tournament-v9-signup:disabled{opacity:.65;cursor:not-allowed}
+#reward-shop .community-tournament-v9-awarded{font-size:14px;color:#fbe2a8}
+#reward-shop .community-tournament-v9-status{font-size:14px;color:#e2d2ed;line-height:1.5;min-height:12px}
+#reward-shop .community-tournament-v9-card h5{font-size:20px;color:#f4dcff;margin:15px 0 10px}
+#reward-shop .community-tournament-v9-prizes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#reward-shop .community-tournament-v9-prize{display:grid;gap:6px;justify-items:center;text-align:center;background:#141221;padding:13px 10px;border-radius:11px;border:1px solid #85619d}
+#reward-shop .community-tournament-v9-prize strong{color:#fce4b3;font-size:17px}
+#reward-shop .community-tournament-v9-prize small{color:#d3c2df;font-size:13px;line-height:1.4}
+#reward-shop .community-tournament-v9-bracket{margin:18px 0 0}
+#reward-shop .community-tournament-v9-matches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#reward-shop .community-tournament-v9-match{border:1px solid #65507c;border-radius:12px;padding:13px;background:#151426;min-width:0}
+#reward-shop .community-tournament-v9-match.is-complete{border-color:#4eae8d;background:#192e2a}
+#reward-shop .community-tournament-v9-match-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:14px;margin-bottom:8px}
+#reward-shop .community-tournament-v9-match-top strong{color:#eee1f9;font-size:16px}
+#reward-shop .community-tournament-v9-match-top span{color:#bddeb8;font-size:12px}
+#reward-shop .community-tournament-v9-fighter{display:flex;align-items:center;gap:8px;border:1px solid #554366;background:#241b31;border-radius:8px;padding:10px;margin:6px 0;font-size:14px;min-width:0;overflow-wrap:anywhere}
+#reward-shop .community-tournament-v9-fighter span:nth-child(2){flex:1;min-width:0}
+#reward-shop .community-tournament-v9-fighter strong{font-size:12px;color:#c6f9dd}
+#reward-shop .community-tournament-v9-fighter.is-me{border-color:#6ac5ad}
+#reward-shop .community-tournament-v9-fighter.is-winner{border-color:#5bc997;background:#244335}
+#reward-shop .community-tournament-v9-match small{font-size:12px;color:#beafcc;line-height:1.4}
+#reward-shop .community-tournament-v9-rank{margin-top:17px}
+#reward-shop .community-tournament-v9-rank-item{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #63517c;border-radius:10px;background:#1b192b;padding:10px 12px;margin:7px 0;font-size:14px;color:#efe3f7}
+#reward-shop .community-tournament-v9-rank-item.is-me{border-color:#53bea0;background:#1a3931}
+#reward-shop .community-tournament-v9-placement{min-width:40px;font-size:20px;color:#f8dba6}
+#reward-shop .community-tournament-v9-rank-item span{flex:1;min-width:100px;overflow-wrap:anywhere}
+#reward-shop .community-tournament-v9-rank-item small{color:#cdbcdc}
+#reward-shop .community-tournament-v9-rank-reward{color:#b7f7d8}
+#reward-shop .community-tournament-v9-help{font-size:14px;color:#d1c1e0;line-height:1.5}
+#reward-shop .community-tournament-v9-footer{font-size:12px;color:#cbbcd9;line-height:1.55;margin:14px 0 0}
+#reward-shop .community-tournament-v9-toast{background:#1b4a38;border:1px solid #62c99f;color:#c3ffe0;padding:12px;border-radius:10px;font-weight:700;line-height:1.5}
+#reward-shop .community-tournament-v9-error{color:#ffbdce;font-size:15px;line-height:1.5}
+#reward-shop .community-tournament-v9-shortcut{display:inline-flex;justify-content:center;align-items:center;min-height:41px;max-width:100%;margin:7px 9px 13px 0;padding:9px 15px;border:1px solid #9a6acf;border-radius:9px;background:#35234c;color:#f4e7ff;font-weight:800;white-space:normal;cursor:pointer}
+#admin-shop-root .community-tournament-admin-v9{margin-top:20px;padding:19px;border:1px solid #8360ab;border-radius:16px;background:linear-gradient(135deg,#23172f,#11121f);color:#f2e9fb;min-width:0}
+#admin-shop-root .community-tournament-admin-v9 h3{font-size:23px;color:#f4dcff;margin:0 0 8px}
+#admin-shop-root .community-tournament-admin-v9-help{font-size:15px;color:#d5c3e0;line-height:1.55}
+#admin-shop-root .community-tournament-admin-v9 h4{font-size:20px;color:#f0d9ff;margin:16px 0 11px}
+#admin-shop-root .community-tournament-admin-v9-editor{border:1px solid #6b507c;border-radius:13px;background:#ffffff08;padding:15px}
+#admin-shop-root .community-tournament-admin-v9-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#admin-shop-root .community-tournament-admin-v9-field{min-width:0;display:grid;gap:6px;font-size:14px;font-weight:700;color:#e9d7f7}
+#admin-shop-root .community-tournament-admin-v9-field input,#admin-shop-root .community-tournament-admin-v9-field select,#admin-shop-root .community-tournament-admin-v9-field textarea{box-sizing:border-box;max-width:100%;width:100%;min-height:42px;padding:10px 12px;border-radius:9px;border:1px solid #766092;background:#181125;color:#f7efff;font:600 15px Rajdhani,Arial,sans-serif}
+#admin-shop-root .community-tournament-admin-v9-field textarea{min-height:90px;resize:vertical}
+#admin-shop-root .community-tournament-admin-v9-field input[readonly]{opacity:.7}
+#admin-shop-root .community-tournament-admin-v9-publish,#admin-shop-root .community-tournament-admin-v9-form-actions,#admin-shop-root .community-tournament-admin-v9-status{grid-column:1/-1}
+#admin-shop-root .community-tournament-admin-v9-publish{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:14px}
+#admin-shop-root .community-tournament-admin-v9-publish input{width:19px;height:19px;accent-color:#9572db}
+#admin-shop-root .community-tournament-admin-v9-form-actions{display:flex;gap:10px;flex-wrap:wrap}
+#admin-shop-root .community-tournament-admin-v9-form-actions button,#admin-shop-root .community-tournament-admin-v9-actions button,#admin-shop-root .community-tournament-admin-v9-result-buttons button{min-height:42px;padding:9px 14px;border-radius:9px;white-space:normal;cursor:pointer}
+#admin-shop-root .community-tournament-admin-v9-form-actions button:disabled,#admin-shop-root .community-tournament-admin-v9-actions button:disabled,#admin-shop-root .community-tournament-admin-v9-result-buttons button:disabled{opacity:.63;cursor:not-allowed}
+#admin-shop-root .community-tournament-admin-v9-status{color:#c9f0db;font-size:14px;min-height:15px;line-height:1.4}
+#admin-shop-root .community-tournament-admin-v9-status[data-error=yes],#admin-shop-root .community-tournament-admin-v9-error{color:#ffc5d2}
+#admin-shop-root .community-tournament-admin-v9-list{display:grid;gap:14px}
+#admin-shop-root .community-tournament-admin-v9-card{padding:16px;border:1px solid #695282;border-radius:14px;background:#191526}
+#admin-shop-root .community-tournament-admin-v9-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+#admin-shop-root .community-tournament-admin-v9-card-head>div{display:grid;gap:5px}
+#admin-shop-root .community-tournament-admin-v9-card-head strong{font-size:17px;color:#f8e5ff}
+#admin-shop-root .community-tournament-admin-v9-card-head span{font-size:13px;color:#bcf0d2}
+#admin-shop-root .community-tournament-admin-v9-dates{font-size:14px;color:#d5c4df;line-height:1.4}
+#admin-shop-root .community-tournament-admin-v9-actions,#admin-shop-root .community-tournament-admin-v9-result-buttons{display:flex;flex-wrap:wrap;gap:9px}
+#admin-shop-root .community-tournament-admin-v9-matches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0}
+#admin-shop-root .community-tournament-admin-v9-match{padding:12px;background:#262037;border:1px solid #715789;border-radius:10px;min-width:0}
+#admin-shop-root .community-tournament-admin-v9-match strong{color:#eedcfb}
+#admin-shop-root .community-tournament-admin-v9-match p{color:#d5c8df;line-height:1.4;overflow-wrap:anywhere}
+#admin-shop-root .community-tournament-admin-v9-confirmed{color:#b6f7d4;font-size:14px}
+#admin-shop-root .community-tournament-admin-v9-podium{border:1px solid #95773c;border-radius:12px;padding:12px;background:#31281e;color:#ffe7af}
+@media(max-width:800px){#reward-shop .community-tournament-v9-matches,#admin-shop-root .community-tournament-admin-v9-matches{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:640px){#reward-shop .community-tournaments-v9,#admin-shop-root .community-tournament-admin-v9{padding:13px}#reward-shop .community-tournament-v9-card{padding:14px}#reward-shop .community-tournament-v9-prizes{grid-template-columns:minmax(0,1fr)}#reward-shop .community-tournament-v9-prize{justify-items:start;text-align:left}#admin-shop-root .community-tournament-admin-v9-form{grid-template-columns:minmax(0,1fr)}#reward-shop .community-tournament-v9-signup{width:100%}#admin-shop-root .community-tournament-admin-v9-form-actions button{flex:1}}
+@media(prefers-reduced-motion:reduce){#reward-shop .community-tournaments-v9 *,#admin-shop-root .community-tournament-admin-v9 *{animation:none!important;transition:none!important}}
