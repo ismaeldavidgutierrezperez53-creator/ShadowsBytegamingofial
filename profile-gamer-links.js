@@ -220,6 +220,7 @@
             }
             if(!active())return;
             await load();
+            window.dispatchEvent(new Event('sb:gamer-links-updated'));
             showStatus('Enlace '+slot+' guardado. Ya puedes ordenarlo o marcarlo con ⭐.');
           }catch(err){
             if(active())status.textContent='No se pudo guardar: '+String(err.message||'Error desconocido');
@@ -235,6 +236,7 @@
             if(error)throw error;
             if(!active())return;
             await load();
+            window.dispatchEvent(new Event('sb:gamer-links-updated'));
             showStatus('Enlace '+slot+' eliminado.');
           }catch(err){
             if(active())status.textContent='No se pudo eliminar: '+String(err.message||'Error desconocido');
@@ -251,6 +253,7 @@
             if(error)throw error;
             if(!active())return;
             await load();
+            window.dispatchEvent(new Event('sb:gamer-links-updated'));
             showStatus(data===true
               ?'Nuevo orden guardado. También se aplicará en tu perfil público.'
               :'Este enlace ya está en el extremo de la lista.');
@@ -273,6 +276,7 @@
             if(data!==true)throw Error('No se pudo actualizar el favorito');
             if(!active())return;
             await load();
+            window.dispatchEvent(new Event('sb:gamer-links-updated'));
             showStatus(next
               ?'⭐ Enlace '+slot+' destacado. Solo aparecerá a otros si es público.'
               :'El enlace '+slot+' ya no está destacado.');
