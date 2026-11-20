@@ -413,6 +413,41 @@
     }
    });
    sortBox.append(downloadAllCsv);
+   const downloadFilteredCsv=node('button','sb-nav-download-filtered-csv','🔎 Descargar resultados filtrados CSV');
+   downloadFilteredCsv.type='button';
+   downloadFilteredCsv.addEventListener('click',()=>{
+    const items=[...controls.querySelectorAll('.sb-nav-favorite-item')]
+     .filter(item=>!item.hidden&&item.dataset.shortcutSelector);
+    if(!items.length)return;
+    const favorites=readFavorites();
+    const hidden=readHidden();
+    const csvCell=value=>{
+     let raw=String(value);
+     if(/^\s*[=+@-]/.test(raw))raw="'"+raw;
+     return '"'+raw.replace(/"/g,'""')+'"';
+    };
+    const rows=[['Orden','Acceso','Favorito','Estado'],...items.map((item,index)=>{
+     const selector=item.dataset.shortcutSelector;
+     return [String(index+1),item.dataset.searchLabel||'',favorites.includes(selector)?'Sí':'No',hidden.includes(selector)?'Oculto':'Visible'];
+    })];
+    const csv='sep=;\r\n'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
+    try{
+     const blob=new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'});
+     const url=URL.createObjectURL(blob);
+     const link=node('a');
+     link.href=url;
+     link.download='shadows-byte-accesos-filtrados-'+(isOwn?'mi-perfil':'perfil-publico')+'.csv';
+     link.style.display='none';
+     document.body.append(link);
+     link.click();
+     link.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1000);
+     downloadFilteredCsv.textContent='✓ Resultados CSV preparados ('+items.length+')';
+    }catch(_){
+     downloadFilteredCsv.textContent='No se pudo preparar el CSV filtrado';
+    }
+   });
+   sortBox.append(downloadFilteredCsv);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -465,6 +500,9 @@
     const restoreLabel=restorable?'↺ Restaurar resultados ocultos ('+restorable+')':'↺ No hay resultados ocultos para restaurar';
     if(restoreVisibleResults.textContent!==restoreLabel)restoreVisibleResults.textContent=restoreLabel;
     if(restoreVisibleResults.disabled!==(restorable===0))restoreVisibleResults.disabled=restorable===0;
+    const filteredLabel='🔎 Descargar resultados filtrados CSV ('+visible+')';
+    if(downloadFilteredCsv.disabled!==(visible===0))downloadFilteredCsv.disabled=visible===0;
+    if(downloadFilteredCsv.textContent!==filteredLabel)downloadFilteredCsv.textContent=filteredLabel;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||nav.dataset.sortMode!=='favorites';
