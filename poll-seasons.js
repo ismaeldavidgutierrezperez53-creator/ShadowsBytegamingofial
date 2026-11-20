@@ -76,6 +76,9 @@
   header.append(heading,refresh);root.append(header);
   const note=make('p','poll-season-deadline','📅 Finaliza el '+lastDay(currentMonth)+'. Los premios se asignan automáticamente después del cierre.');
   root.append(note);
+  const countdown=make('div','poll-anime-countdown-host');
+  root.append(countdown);
+  window.SBPollSeasonExtras?.mountCountdown(countdown,currentMonth);
   const columns=make('div','poll-season-columns');
   const live=make('div','poll-season-panel');
   live.append(make('h4',null,'📊 Clasificación de este mes'));
@@ -118,6 +121,7 @@
     console.warn('Ranking mensual:',rankingResult.error.message);
    }else{
     ranks.replaceChildren();
+    window.SBPollSeasonExtras?.renderPodium(ranks,rankingResult.data||[],false);
     if(!rankingResult.data?.length)ranks.append(make('p','poll-season-empty','Aún no hay votos de perfiles públicos durante este mes.'));
     else for(const row of rankingResult.data)ranks.append(rowFor(row));
    }
@@ -194,6 +198,7 @@
     const details=past.find(item=>item.month_start===month);
     archiveRoot.append(make('p','poll-season-summary',
      'Participantes: '+format(details?.participant_count)+' · Votos: '+format(details?.votes_total)));
+    window.SBPollSeasonExtras?.renderPodium(archiveRoot,data||[],true);
     if(!data?.length){
      archiveRoot.append(make('p','poll-season-empty','No hay resultados visibles de perfiles públicos en esta temporada.'));
     }else for(const member of data)archiveRoot.append(rowFor(member,true));
