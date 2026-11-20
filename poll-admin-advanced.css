@@ -150,3 +150,21 @@
  scroll-margin-top:90px;
 }
 #community-polls .poll-community-target:focus{outline-color:#73dbff}
+
+/* Premio de participación visible en encuestas. */
+#community-polls .poll-community-reward{
+ margin:8px 0 14px!important;
+ padding:10px 13px;
+ border:1px solid rgba(143,216,170,.55);
+ border-radius:12px;
+ background:linear-gradient(110deg,rgba(24,78,65,.38),rgba(55,36,84,.52));
+ color:#bff7cf;
+ font-size:16px;
+ font-weight:800;
+ line-height:1.35;
+ overflow-wrap:anywhere;
+}
+#community-polls .poll-community-card[data-featured="true"] .poll-community-reward{
+ border-color:rgba(237,191,96,.65);
+ color:#ffe3a8;
+}
