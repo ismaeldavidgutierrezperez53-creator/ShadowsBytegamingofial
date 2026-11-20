@@ -139,3 +139,10 @@
 .sb-nav-undo-visibility:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 .sb-nav-undo-visibility[hidden]{display:none!important}
 @media(max-width:550px){.sb-nav-undo-visibility{width:100%}}
+
+/* Revertir última estrella o movimiento de favoritos */
+.sb-nav-undo-favorite{min-height:42px;padding:9px 13px;border:1px solid #d4b76e;border-radius:10px;background:#56432d;color:#ffefc2;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-undo-favorite:hover:not(:disabled){background:#755c37}
+.sb-nav-undo-favorite:disabled{opacity:.45;cursor:default}
+.sb-nav-undo-favorite:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-undo-favorite{width:100%}}
