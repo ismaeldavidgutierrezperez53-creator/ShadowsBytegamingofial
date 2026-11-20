@@ -1,4 +1,4 @@
-/* Shadows Byte Gaming V2 — avisos privados de logros de enlaces gamer */
+/* Shadows Byte Gaming V2 — avisos privados de insignias y progreso de metas */
 (() => {
   'use strict';
 
@@ -15,7 +15,7 @@
     return node;
   };
   const root=el('aside','sb-badge-notify');
-  root.setAttribute('aria-label','Notificaciones de insignias');
+  root.setAttribute('aria-label','Notificaciones de insignias y metas de puntos');
   root.hidden=false;
   const trigger=el('button','sb-badge-notify-toggle','🔔 Logros');
   trigger.type='button';
@@ -28,8 +28,8 @@
   panel.id='sb-badge-notify-panel';
   panel.hidden=true;
   panel.setAttribute('aria-label','Mis notificaciones de logros');
-  const panelTitle=el('h2','','🏆 Notificaciones de insignias');
-  const subtitle=el('p','sb-badge-notify-help','Solo tú puedes ver estos avisos. No afectan a los logros obtenidos.');
+  const panelTitle=el('h2','','🏆 Notificaciones de logros y metas');
+  const subtitle=el('p','sb-badge-notify-help','Solo tú puedes ver estos avisos. No cambian tu saldo ni los logros obtenidos.');
   const feedback=el('p','sb-badge-notify-feedback','Consultando tus logros…');
   feedback.setAttribute('role','status');
   feedback.setAttribute('aria-live','polite');
@@ -39,25 +39,58 @@
   const myProfileBtn=el('button','outline-btn mini','🎖️ Mi vitrina');
   const rewardsBtn=el('button','outline-btn mini sb-badge-rewards-btn',
     '💰 Ver mi historial de recompensas');
-  refreshBtn.type='button';myProfileBtn.type='button';rewardsBtn.type='button';
-  footer.append(refreshBtn,myProfileBtn,rewardsBtn);
+  const goalsBtn=el('button','outline-btn mini sb-goal-notify-goals-btn',
+    '🎯 Ver mis metas de puntos');
+  refreshBtn.type='button';myProfileBtn.type='button';rewardsBtn.type='button';goalsBtn.type='button';
+  footer.append(refreshBtn,myProfileBtn,rewardsBtn,goalsBtn);
   panel.append(panelTitle,subtitle,feedback,list,footer);
   const toast=el('section','sb-badge-unlock-toast');
   toast.hidden=true;
   toast.setAttribute('role','status');
   toast.setAttribute('aria-live','polite');
-  root.append(trigger,panel,toast);
+  const goalToast=el('section','sb-goal-unlock-toast');
+  goalToast.hidden=true;
+  goalToast.setAttribute('role','status');
+  goalToast.setAttribute('aria-live','polite');
+  root.append(trigger,panel,toast,goalToast);
 
   let userId=null;
   let data=[];
+  let goalData=[];
   let loading=false;
   let opBusy=false;
   let generation=0;
   let toastKey=null;
+  let goalToastKey=null;
   const announced=new Set();
+  const goalAnnounced=new Set();
+  const goalKey=record=>String(record.goal_id)+':'+String(record.milestone);
+  const validGoal=record=>record&&Number.isSafeInteger(Number(record.goal_id))&&
+    [25,50,75,100].includes(Number(record.milestone))&&
+    Number(record.target_points)>0;
 
   const loggedIn=()=>Boolean(userId);
   const validClient=()=>typeof sb!=='undefined'&&sb&&sb.rpc&&sb.auth;
+
+  function navigateGoals(){
+    panel.hidden=true;
+    trigger.setAttribute('aria-expanded','false');
+    const app=document.getElementById('app');
+    let observer=null;
+    const attempt=()=>{
+      const section=document.querySelector('#account-profile .sbpg-panel');
+      if(!section)return false;
+      section.scrollIntoView({behavior:'smooth',block:'start'});
+      window.dispatchEvent(new Event('sb:open-point-goals'));
+      if(observer)observer.disconnect();
+      return true;
+    };
+    if(location.hash.split('?')[0]!=='#/cuenta')location.hash='#/cuenta';
+    if(attempt()||!app)return;
+    observer=new MutationObserver(attempt);
+    observer.observe(app,{childList:true,subtree:true});
+    setTimeout(()=>observer.disconnect(),8000);
+  }
 
   function navigateRewards(){
     panel.hidden=true;
@@ -97,14 +130,18 @@
     generation++;
     userId=null;
     data=[];
+    goalData=[];
     announced.clear();
+    goalAnnounced.clear();
     toastKey=null;
+    goalToastKey=null;
     root.hidden=false;
     list.replaceChildren(el('p','sb-badge-notify-empty',
       'Inicia sesión para consultar tus insignias y las recompensas que hayas obtenido.'));
     feedback.textContent='Inicia sesión para consultar las notificaciones.';
     count.hidden=true;
     toast.hidden=true;
+    goalToast.hidden=true;
     panel.hidden=true;
     trigger.setAttribute('aria-expanded','false');
   }
@@ -152,19 +189,106 @@
     toastKey=null;
   }
 
+  function drawGoalToast(record){
+    const percentage=Number(record.milestone);
+    const key=goalKey(record);
+    goalToastKey=key;
+    goalAnnounced.add(key);
+    goalToast.hidden=false;
+    goalToast.className='sb-goal-unlock-toast'+(percentage===100?' is-complete':'');
+    goalToast.replaceChildren();
+    goalToast.append(
+      el('strong','sb-goal-toast-heading',percentage===100
+        ?'🎉 ¡Has completado tu meta de puntos!'
+        :'🎯 ¡Has alcanzado el '+percentage+' % de tu meta!'),
+      el('p','sb-goal-toast-text','Meta: '+number(record.target_points)+
+        ' puntos · Progreso al detectar: '+number(record.earned_points)+
+        ' puntos · Restantes: '+number(record.remaining_points)+' puntos.')
+    );
+    const controls=el('div','sb-goal-toast-controls');
+    const go=el('button','sb-goal-toast-go','🎯 Ver mi meta');
+    go.type='button';
+    go.addEventListener('click',()=>{goalToast.hidden=true;goalToastKey=null;navigateGoals();});
+    const dismiss=el('button','sb-goal-toast-dismiss','Entendido');
+    dismiss.type='button';
+    dismiss.addEventListener('click',()=>markGoalRead(record.goal_id,percentage,true));
+    controls.append(go,dismiss);
+    goalToast.append(controls);
+  }
+
+  function drawGoalEntries(){
+    if(!goalData.length)return;
+    list.append(el('h3','sb-goal-notify-heading','🎯 Progreso de mis metas'));
+    for(const record of goalData.slice(0,30)){
+      const pct=Number(record.milestone);
+      const row=el('article','sb-goal-notify-item'+(record.read_at?' is-read':' is-unread'));
+      const info=el('div','sb-goal-notify-info');
+      info.append(
+        el('strong','',pct===100
+          ?'🎉 ¡Meta de '+number(record.target_points)+' puntos completada!'
+          :'🎯 '+pct+' % de tu meta de '+number(record.target_points)+' puntos'),
+        el('span','',
+          'Al detectarse: '+number(record.earned_points)+' puntos ganados · '+
+          (pct===100?'¡Objetivo alcanzado!':
+             'Te faltaban '+number(record.remaining_points)+' puntos.'))
+      );
+      if(record.created_at){
+        const d=new Date(record.created_at);
+        if(Number.isFinite(d.getTime()))
+          info.append(el('small','',d.toLocaleDateString('es-ES',{
+            day:'numeric',month:'short',year:'numeric'
+          })));
+      }
+      row.append(info);
+      if(!record.read_at)row.append(el('span','sb-badge-notify-new','Nuevo'));
+      const actions=el('div','sb-goal-notify-actions');
+      const go=el('button','sb-badge-notify-action','🎯 Ver mi meta');
+      go.type='button';go.addEventListener('click',navigateGoals);
+      actions.append(go);
+      if(!record.read_at){
+        const mark=el('button','sb-badge-notify-secondary','Marcar como leído');
+        mark.type='button';
+        mark.addEventListener('click',()=>markGoalRead(record.goal_id,pct,false));
+        actions.append(mark);
+      }
+      row.append(actions);
+      list.append(row);
+    }
+  }
+
+  async function markGoalRead(goalId,milestone,dismissToast){
+    if(!loggedIn()||!validClient())return;
+    const previousUser=userId;
+    try{
+      const {data:ok,error}=await sb.rpc('mark_my_point_goal_notification_read',{
+        p_goal_id:Number(goalId),p_milestone:Number(milestone)
+      });
+      if(error||ok!==true)throw error||Error('Aviso no encontrado');
+      if(previousUser!==userId)return;
+      if(dismissToast||goalToastKey===String(goalId)+':'+milestone){
+        goalToast.hidden=true;goalToastKey=null;
+      }
+      await refresh();
+    }catch(error){
+      console.debug('Marcar aviso de meta como leído:',error);
+    }
+  }
+
   function drawList(){
-    const unread=data.filter(x=>!x.read_at).length;
+    const unread=data.filter(x=>!x.read_at).length+goalData.filter(x=>!x.read_at).length;
     count.textContent=number(unread);
     count.hidden=unread===0;
     trigger.setAttribute('aria-label',unread
-      ?'Logros: '+number(unread)+' notificaciones sin leer'
-      :'Notificaciones de logros');
+      ?'Logros y metas: '+number(unread)+' notificaciones sin leer'
+      :'Notificaciones de logros y metas');
     list.replaceChildren();
-    if(!data.length){
+    if(!data.length&&!goalData.length){
       list.append(el('p','sb-badge-notify-empty',
-        'Todavía no tienes avisos: las notificaciones y los puntos aparecerán cuando desbloquees una insignia (el primer logro requiere 10 clics en tus enlaces públicos).'));
+        'Todavía no tienes avisos. Recibirás uno al desbloquear una insignia o alcanzar el 25 %, 50 %, 75 % o 100 % de una meta.'));
       return;
     }
+    drawGoalEntries();
+    if(data.length)list.append(el('h3','sb-goal-notify-heading','🏅 Insignias desbloqueadas'));
     for(const record of data.slice(0,20)){
       const badge=badges[record.key];
       if(!badge)continue;
@@ -280,19 +404,36 @@
         reset();
       }
       userId=nextUser;
-      const {data:records,error}=await sb.rpc('get_my_gamer_badge_notifications');
-      if(error)throw error;
+      const [badgesResponse,goalsResponse]=await Promise.all([
+        sb.rpc('get_my_gamer_badge_notifications'),
+        sb.rpc('get_my_point_goal_notifications')
+      ]);
       if(ticket!==generation&&userId!==nextUser)return;
-      if(!Array.isArray(records))throw Error('Lista de notificaciones no válida');
+      if(badgesResponse.error)throw badgesResponse.error;
+      const records=badgesResponse.data;
+      if(!Array.isArray(records))throw Error('Lista de insignias no válida');
       data=records.filter(x=>x&&badges[x.key]).slice(0,50);
+      if(goalsResponse.error){
+        goalData=[];
+        console.debug('No se pudieron consultar metas:',goalsResponse.error);
+      }else{
+        if(!Array.isArray(goalsResponse.data))throw Error('Lista de metas no válida');
+        goalData=goalsResponse.data.filter(validGoal).slice(0,60);
+      }
       root.hidden=false;
-      feedback.textContent=data.length
-        ?'Tienes '+number(data.length)+' avisos de insignias.'
-        :'No hay notificaciones pendientes de desbloqueos.';
+      const total=data.length+goalData.length;
+      feedback.textContent=goalsResponse.error
+        ?'Los avisos de metas no están disponibles. Pulsa ↻ Actualizar.'
+        :total?'Tienes '+number(total)+' avisos de logros y metas.'
+              :'No hay notificaciones de logros ni metas todavía.';
       drawList();
       if(!toastKey){
         const latest=data.find(x=>!x.read_at&&!announced.has(x.key));
         if(latest)drawToast(latest);
+      }
+      if(!goalToastKey){
+        const latestGoal=goalData.find(x=>!x.read_at&&!goalAnnounced.has(goalKey(x)));
+        if(latestGoal)drawGoalToast(latestGoal);
       }
     }catch(error){
       root.hidden=false;
@@ -313,6 +454,7 @@
   refreshBtn.addEventListener('click',refresh);
   myProfileBtn.addEventListener('click',navigateShowcase);
   rewardsBtn.addEventListener('click',navigateRewards);
+  goalsBtn.addEventListener('click',navigateGoals);
 
   function init(){
     if(!document.body)return;
@@ -329,6 +471,7 @@
     });
     window.addEventListener('hashchange',refresh);
     window.addEventListener('sb:badge-showcase-updated',refresh);
+    window.addEventListener('sb:point-goal-updated',refresh);
     const authClient=typeof sb!=='undefined'&&sb.auth;
     if(authClient?.onAuthStateChange){
       sb.auth.onAuthStateChange((event,session)=>{
