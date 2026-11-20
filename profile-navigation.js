@@ -10,6 +10,7 @@
  const modules=[
   ['✨ Mi centro de perfil','.sbp-dashboard',true],
   ['🎴 Identidad gamer','.sbp-identity-card',true],
+  ['👁️ Visitas al perfil','.sb-profile-views',true],
   ['🧭 Miembros afines','.sbd-discovery',true],
   ['🎖️ Escaparate gamer','.sb-showcase',true],
   ['📊 Estadísticas gamer','.sbg-stats',true],
