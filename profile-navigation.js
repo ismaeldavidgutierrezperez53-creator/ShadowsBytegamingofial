@@ -25,6 +25,7 @@
   ['🏆 Logros de enlaces gamer','.sbgl-badges',true],
   ['🎖️ Mi vitrina de insignias','.sbv-editor',true],
   ['💰 Historial de recompensas','.sb-reward-history',true],
+  ['📊 Estadísticas de puntos','.sbrs-panel',true],
   ['🏅 Retos de colección','.sbr-goals',true],
   ['🌟 Retos sociales','.sbs-challenges',true],
   ['🎨 Editar perfil','#profile-form',true],
