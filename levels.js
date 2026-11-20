@@ -228,6 +228,64 @@ async function renderRewardShop(){
  const inventory=(catalog.data||[]).filter(item=>isAvailable(item)||ownedIds.has(item.id));
  const availableInventory=inventory.filter(isAvailable);
  const wishlistIds=new Set((wishes.data||[]).map(entry=>entry.item_id));
+ // Sugerencias de lectura: nunca conceden puntos ni modifican el catálogo.
+ const shopBalance=Math.max(0,Number(balance.data||0));
+ const pendingRewards=availableInventory
+  .filter(item=>!ownedIds.has(item.id)&&Number.isFinite(actualPrice(item))&&actualPrice(item)>0)
+  .sort((a,b)=>actualPrice(a)-actualPrice(b)||String(a.name).localeCompare(String(b.name),'es'));
+ const withinBalance=pendingRewards.find(item=>actualPrice(item)<=shopBalance);
+ const nextToSave=pendingRewards.find(item=>actualPrice(item)>shopBalance);
+ const goalsPanel=document.createElement('section');goalsPanel.className='shop-v3-panel shop-goals-panel';
+ const goalsTitle=document.createElement('h3');goalsTitle.textContent='🎯 Tus próximas recompensas';
+ const goalsIntro=document.createElement('p');goalsIntro.textContent='Descubre qué puedes conseguir con tus puntos y cuánto te falta para tu siguiente objetivo.';
+ goalsPanel.append(goalsTitle,goalsIntro);
+ const goalsGrid=document.createElement('div');goalsGrid.className='shop-goals-grid';
+ const makeGoal=(item,canAfford)=>{
+  const price=actualPrice(item);
+  const tile=document.createElement('article');tile.className='shop-goals-tile';
+  const label=document.createElement('span');label.className='shop-goals-label';
+  label.textContent=canAfford?'🟢 Saldo suficiente':'⭐ Tu siguiente meta';
+  const title=document.createElement('h4');title.textContent=item.name;
+  const info=document.createElement('p');info.textContent=canAfford
+   ?'Cuesta '+formatPts(price)+'. Tienes '+formatPts(shopBalance)+'.'
+   :'Te faltan '+formatPts(price-shopBalance)+' para conseguirla.';
+  const progress=document.createElement('progress');progress.max=price;progress.value=Math.min(shopBalance,price);
+  progress.setAttribute('aria-label','Progreso de puntos para '+item.name);
+  const fraction=document.createElement('small');fraction.textContent=formatPts(Math.min(shopBalance,price))+' / '+formatPts(price);
+  const levelNote=item.category==='anime_theme'?document.createElement('small'):null;
+  if(levelNote)levelNote.textContent='También necesitas nivel '+Number(item.required_level||1)+' para desbloquear este tema.';
+  const see=document.createElement('button');see.type='button';see.className='outline-btn mini';
+  see.textContent='Ver en el catálogo';
+  see.onclick=()=>{
+   const panel=document.getElementById('shop-catalog-filters');
+   if(!panel)return;
+   const search=panel.querySelector('input[aria-label="Buscar artículos de la tienda"]');
+   const category=panel.querySelector('select[aria-label="Filtrar por categoría"]');
+   const view=panel.querySelector('select[aria-label="Filtrar recompensas de la tienda"]');
+   if(search)search.value='';
+   if(category)category.value='all';
+   if(view)view.value='all';
+   (search||view)?.dispatchEvent(new Event('input',{bubbles:true}));
+   const target=Array.from(document.querySelectorAll('#reward-shop [data-shop-item-id]'))
+    .find(card=>card.dataset.shopItemId===item.id);
+   if(target){
+    target.setAttribute('tabindex','-1');
+    target.focus({preventScroll:true});
+    target.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
+   }
+  };
+  tile.append(label,title,info,progress,fraction);
+  if(levelNote)tile.append(levelNote);
+  tile.append(see);
+  return tile;
+ };
+ if(withinBalance)goalsGrid.append(makeGoal(withinBalance,true));
+ if(nextToSave)goalsGrid.append(makeGoal(nextToSave,false));
+ if(!pendingRewards.length){
+  const empty=document.createElement('p');empty.textContent='¡Has conseguido todas las recompensas disponibles! Vuelve cuando lleguen nuevas.';
+  goalsPanel.append(empty);
+ }else goalsPanel.append(goalsGrid);
+ host.append(goalsPanel);
  const limited=availableInventory.filter(item=>!!item.available_until);
  if(!limited.length){
   const empty= document.createElement('section');empty.className='shop-v3-panel';
