@@ -1,0 +1,21 @@
+
+/* Shadows Byte Gaming Official V2 · Anime rewards, featured items & purchase history */
+#reward-shop .shop-v2-panel{margin:22px 0;padding:22px;border-radius:18px;border:1px solid #49365e;background:linear-gradient(128deg,#191227,#0e0d1b);box-shadow:0 14px 40px #0002}
+#reward-shop .shop-v2-panel h3{margin:0 0 15px;font-size:25px;color:#fbf4ff}
+#reward-shop .shop-v2-showcase{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px}
+#reward-shop .shop-v2-promo-card{display:grid;gap:9px;align-content:start;border-radius:13px;border:1px solid #634381;padding:16px;background:radial-gradient(circle at 90% 0%,#bb6cff2a,transparent 60%),#21172d;font-size:19px;overflow-wrap:anywhere}
+#reward-shop .shop-v2-promo-card strong{color:#ffd693;font-size:16px}
+#reward-shop .shop-v2-promo-card small{display:block;color:#c5bad5;font-size:15px}
+#reward-shop .shop-v2-promo-card s{color:#aaa1b6;font-size:15px}
+#reward-shop .shop-v2-reward{position:relative;min-width:0;overflow-wrap:anywhere;background:linear-gradient(125deg,#171022,#100e1a);border-color:#46335c!important}
+#reward-shop .shop-v2-reward h4{margin:8px 0;font-size:22px}
+#reward-shop .shop-v2-reward .gradient-btn,#reward-shop .shop-v2-reward .outline-btn{margin:6px 6px 4px 0;white-space:normal;min-height:40px}
+#reward-shop .shop-v2-flag{display:inline-block;border:1px solid #896839;border-radius:999px;background:#423118;color:#ffe1a0;padding:4px 11px;font-size:14px;font-weight:700}
+#reward-shop .shop-v2-sale{padding:9px 11px;border-left:3px solid #ffb454;background:#46301877;border-radius:8px;color:#ffe5ae;font-weight:700}
+#reward-shop .shop-v2-level{color:#d7b7ff;font-weight:700;font-size:15px}
+#reward-shop .shop-v2-purchases{display:grid;gap:8px}
+#reward-shop .shop-v2-purchase-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) auto;align-items:center;gap:15px;border:1px solid #473753;padding:13px 15px;border-radius:11px;background:#1e1529}
+#reward-shop .shop-v2-purchase-row strong{font-size:17px;overflow-wrap:anywhere}
+#reward-shop .shop-v2-purchase-row span{font-size:15px;color:#bdafca}
+#reward-shop .shop-v2-purchase-row span:last-child{color:#9be8d1;font-weight:700;text-align:right}
+@media(max-width:650px){#reward-shop .shop-v2-panel{padding:16px}#reward-shop .shop-v2-purchase-row{grid-template-columns:1fr;gap:5px}#reward-shop .shop-v2-purchase-row span:last-child{text-align:left}}
