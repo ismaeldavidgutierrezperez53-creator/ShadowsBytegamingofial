@@ -119,12 +119,21 @@
     if(!toRemove.length)return;
     if(!window.confirm('¿Quitar de favoritos los '+toRemove.length+' accesos mostrados? Podrás deshacer este cambio.'))return;
     if(!writeFavorites(current.filter(selector=>!selected.has(selector))))return;
+    // Al retirar estrellas, salir de Solo favoritos para que los apartados sigan visibles.
+    // También quitar Sin favoritos si estaba activo, evitando una vista engañosa.
+    nav.dataset.onlyFavorites='false';
+    nav.dataset.onlyUnstarred='false';
     links.dataset.signature='';
     enhance(host,isOwn);
+    const feedback=nav.querySelector('.sb-nav-bulk-feedback');
+    if(feedback)feedback.textContent='✓ Se han quitado '+toRemove.length+' favoritos. Puedes usar ↶ Deshacer cambio de favoritos.';
    });
    const resultCount=node('p','sb-nav-search-count');
    resultCount.setAttribute('role','status');
-   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites);
+   const bulkFeedback=node('p','sb-nav-bulk-feedback');
+   bulkFeedback.setAttribute('role','status');
+   bulkFeedback.setAttribute('aria-live','polite');
+   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites,bulkFeedback);
    const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
    let chosenLayout='grid';
    try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
@@ -238,6 +247,7 @@
    sortBox.append(redoFavorite);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
+    if(bulkFeedback.textContent)bulkFeedback.textContent='';
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
     const query=normalize(search.value);
     const enabled=nav.dataset.onlyFavorites==='true';
