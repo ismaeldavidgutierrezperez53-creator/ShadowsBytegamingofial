@@ -123,6 +123,7 @@
   const ownAwards=make('div','poll-season-own-awards');
   root.append(ownAwards);
   window.SBPollHallOfFame?.mount(root);
+  window.SBPollMuseumRanking?.mount(root);
   try{
    const [rankingResult,authResult,seasonResult]=await Promise.all([
     sb.from('community_poll_monthly_leaderboard')
