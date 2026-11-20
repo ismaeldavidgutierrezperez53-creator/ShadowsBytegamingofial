@@ -181,11 +181,11 @@ async function loadNotificationPreview(userId){
  for(const n of (data||[])){
   const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');if(n.kind==='follow')item.dataset.followActor=n.actor_id;
   const message=document.createElement('p');const photo=photos.has(n.post_id);
-  message.textContent=n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa ahora'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
+  message.textContent=n.kind==='poll_reminder'?'⏰ Recuerda votar: '+(pollNames.get(n.poll_id)||'Encuesta abierta')+' · Gana 15 puntos.':n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa ahora'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');item.append(message,date);
   if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
   if(n.game_id){const go=document.createElement('a');go.href='#/perfil?id='+encodeURIComponent(userId)+'&game='+encodeURIComponent(n.game_id);go.textContent='🎮 Ver biblioteca';go.className='notification-jump';item.append(go);}
-  if(n.kind==='poll'&&n.poll_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🗳️ Votar ahora';go.className='notification-jump';item.append(go)}
+  if((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🗳️ Votar ahora';go.className='notification-jump';item.append(go)}
   if(n.kind==='gift'){const go=document.createElement('a');go.href='#/regalos';go.textContent='🎁 Ver regalo y equipar';go.className='notification-jump';item.append(go)}
   if(n.kind==='profile_view'&&/^[0-9a-f-]{36}$/i.test(n.actor_id||'')){const go=document.createElement('a');go.href='#/perfil?id='+encodeURIComponent(n.actor_id);go.textContent='👤 Ver visitante';go.className='notification-jump';item.append(go)}
   root.append(item);
@@ -369,11 +369,11 @@ function showRealtimeNotificationToast(n){
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
- const labels={game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!'};
+ const labels={game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!'};
  const toast=document.createElement('div');toast.className='sb-notification-toast';toast.setAttribute('role','status');
  const message=document.createElement('strong');message.textContent=labels[n.kind]||'🔔 Nueva notificación';
  const actions=document.createElement('div');actions.className='sb-notification-toast-actions';
- const open=document.createElement('a');open.className='gradient-btn mini';open.href=n.kind==='poll'&&n.poll_id?notificationDestination(n):'#/notificaciones';open.textContent=n.kind==='poll'?'🗳️ Votar ahora':'Ver aviso';
+ const open=document.createElement('a');open.className='gradient-btn mini';open.href=(n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id?notificationDestination(n):'#/notificaciones';open.textContent=(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
  const close=document.createElement('button');close.type='button';close.className='outline-btn mini';close.textContent='Cerrar';
  let timer;const dismiss=()=>{clearTimeout(timer);toast.remove();};close.onclick=dismiss;open.onclick=dismiss;
  actions.append(open,close);toast.append(message,actions);stack.append(toast);
@@ -1644,7 +1644,7 @@ async function appendFollowBackActions(root,notifications,userId){
   node.append(btn);
  }
 }
-function notificationDestination(n){return n.kind==='poll'&&n.poll_id?'#/encuestas?poll='+encodeURIComponent(n.poll_id):n.game_id?'#/perfil?id='+encodeURIComponent(n.recipient_id||'')+'&game='+encodeURIComponent(n.game_id):n.kind==='gift'?'#/regalos':n.post_id?'#/cuenta?post='+encodeURIComponent(n.post_id):(n.actor_id?'#/perfil?id='+encodeURIComponent(n.actor_id):'#/notificaciones');}
+function notificationDestination(n){return (n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id?'#/encuestas?poll='+encodeURIComponent(n.poll_id):n.game_id?'#/perfil?id='+encodeURIComponent(n.recipient_id||'')+'&game='+encodeURIComponent(n.game_id):n.kind==='gift'?'#/regalos':n.post_id?'#/cuenta?post='+encodeURIComponent(n.post_id):(n.actor_id?'#/perfil?id='+encodeURIComponent(n.actor_id):'#/notificaciones');}
 function focusNotificationPost(root,id){if(!id||!root?.isConnected)return;const el=[...root.querySelectorAll('[data-post-id]')].find(x=>x.dataset.postId===id);if(el){el.classList.add('notification-target-post');el.scrollIntoView({behavior:'smooth',block:'center'});}}
 async function loadMemberNotifications(){
  const root=document.getElementById('member-notifications');if(!root)return;
@@ -1662,11 +1662,11 @@ async function loadMemberNotifications(){
  const ids=[...new Set([...community.map(x=>x.actor_id),...messages.map(x=>x.sender_id)].filter(Boolean))];
  const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username').in('id',ids):{data:[]};
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
- const pollIds=[...new Set(community.filter(n=>n.kind==='poll').map(n=>n.poll_id).filter(Boolean))];
+ const pollIds=[...new Set(community.filter(n=>n.kind==='poll'||n.kind==='poll_reminder').map(n=>n.poll_id).filter(Boolean))];
  const {data:polls}=pollIds.length?await sb.from('community_polls').select('id,question').in('id',pollIds):{data:[]};
  const pollNames=new Map((polls||[]).map(p=>[p.id,p.question]));
  const items=[
-  ...community.map(n=>({...n,recipient_id:user.id,category:n.kind==='poll'?'polls':n.kind==='profile_view'?'visits':'community',title:n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa con tu voto'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?' dio Me gusta a tu publicación.':' comentó tu publicación.'),href:notificationDestination(n),table:'member_notifications'})),
+  ...community.map(n=>({...n,recipient_id:user.id,category:(n.kind==='poll'||n.kind==='poll_reminder')?'polls':n.kind==='profile_view'?'visits':'community',title:n.kind==='poll_reminder'?'⏰ Aún puedes votar: '+(pollNames.get(n.poll_id)||'Encuesta abierta')+' · +15 puntos.':n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa con tu voto'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?' dio Me gusta a tu publicación.':' comentó tu publicación.'),href:notificationDestination(n),table:'member_notifications'})),
   ...reports.map(n=>({...n,category:'reports',title:'Tu denuncia fue '+(n.status==='reviewed'?'revisada.':'descartada.'),href:'#/cuenta',table:'member_report_notifications'})),
   ...messages.map(n=>({...n,category:'messages',title:'Mensaje privado de '+(names.get(n.sender_id)||'un miembro'),href:'#/mensajes?id='+encodeURIComponent(n.sender_id),table:null}))
  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
