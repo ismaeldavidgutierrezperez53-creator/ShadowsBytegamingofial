@@ -300,3 +300,8 @@
 /* Selección mediante flechas en los resultados del buscador */
 .sb-nav-favorite-item.sb-nav-keyboard-selected .sb-nav-link{outline:3px solid #55dbff;outline-offset:-3px;background:#534077;box-shadow:0 0 0 2px #261b3a}
 @media(prefers-reduced-motion:reduce){.sb-nav-favorite-item.sb-nav-keyboard-selected .sb-nav-link{transition:none}}
+
+/* Indicación accesible de la posición del resultado seleccionado con el teclado */
+.sb-nav-selection-status{margin:2px 12px 8px;padding:8px 12px;border-left:3px solid #55dbff;border-radius:6px;background:#1d293b;color:#eafaff;font:700 14px/1.4 Rajdhani,Arial,sans-serif;overflow-wrap:anywhere}
+.sb-nav-selection-status:empty{display:none}
+@media(max-width:550px){.sb-nav-selection-status{font-size:13px}}
