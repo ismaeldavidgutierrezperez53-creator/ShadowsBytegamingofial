@@ -153,8 +153,38 @@
    featured.setAttribute('aria-label','Mis accesos destacados');
    nav.querySelector('.sb-nav-details').after(featured);
   }
-  const topThree=favorites.filter(selector=>!hidden.includes(selector)&&available.some(item=>item[1]===selector)).slice(0,3);
-  const featuredSignature=topThree.join('|');
+  const featuredLimitKey='sb-profile-featured-limit-'+(isOwn?'own':'public')+'-v1';
+  let featuredLimit=3;
+  try{
+   const stored=Number(localStorage.getItem(featuredLimitKey));
+   if([1,3,5].includes(stored))featuredLimit=stored;
+  }catch(_){}
+  let featuredControls=featured.querySelector('.sb-nav-featured-controls');
+  if(!featuredControls){
+   featuredControls=node('div','sb-nav-featured-controls');
+   featuredControls.append(node('span','sb-nav-featured-label','Mostrar destacados:'));
+   for(const limit of [1,3,5]){
+    const btn=node('button','sb-nav-featured-count',String(limit));
+    btn.type='button';
+    btn.dataset.count=String(limit);
+    btn.setAttribute('aria-label','Mostrar '+limit+' accesos destacados');
+    btn.onclick=()=>{
+     if(featured.dataset.limit===String(limit))return;
+     try{localStorage.setItem(featuredLimitKey,String(limit))}catch(_){}
+     featured.dataset.limit=String(limit);
+     enhance(host,isOwn);
+    };
+    featuredControls.append(btn);
+   }
+  }
+  const featuredCandidates=favorites.filter(selector=>!hidden.includes(selector)&&available.some(item=>item[1]===selector));
+  const topThree=featuredCandidates.slice(0,featuredLimit);
+  const featuredSignature=topThree.join('|')+'#'+featuredLimit;
+  if(featured.dataset.limit!==String(featuredLimit))featured.dataset.limit=String(featuredLimit);
+  for(const btn of featuredControls.querySelectorAll('.sb-nav-featured-count')){
+   const selected=Number(btn.dataset.count)===featuredLimit;
+   if(btn.getAttribute('aria-pressed')!==String(selected))btn.setAttribute('aria-pressed',String(selected));
+  }
   if(featured.dataset.signature!==featuredSignature){
    featured.dataset.signature=featuredSignature;
    featured.replaceChildren();
@@ -177,10 +207,10 @@
      item.append(button);
      shortcuts.append(item);
     }
-    featured.append(shortcuts);
+    featured.append(shortcuts,featuredControls);
    }
   }
-  if(featured.hidden!==(topThree.length===0))featured.hidden=topThree.length===0;
+  if(featured.hidden!==(featuredCandidates.length===0))featured.hidden=featuredCandidates.length===0;
   const signature=available.map(x=>x[1]).join('|')+'#'+favorites.join('|')+'#'+hidden.join('|')+'#'+showHidden;
   if(links.dataset.signature===signature)return;
   links.dataset.signature=signature;
