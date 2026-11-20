@@ -1816,6 +1816,18 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const {data:memberProfiles}=await sb.from('profiles').select('id,display_name,username,avatar_url,featured_badge').in('id',(await sb.from('member_chat_group_members').select('user_id').eq('group_id',group.id)).data?.map(m=>m.user_id)||[userId]);
 
  const profileMap=new Map((memberProfiles||[]).map(p=>[p.id,p]));
+ const participantThemes=new Map();
+ const themeNames={sakura:'🌸 Sakura',neon:'💜 Neón',fire:'🔥 Fuego',galaxy:'🌌 Galaxia',night:'🌙 Noche'};
+ let activeParticipantIds=new Set([userId]);
+ const updateVideoThemeTags=()=>{
+  for(const tile of videos.children){
+   const id=tile.dataset.memberId,theme=participantThemes.get(id);
+   let tag=tile.querySelector('.group-video-theme-tag');
+   if(!theme||!themeNames[theme]){tag?.remove();continue;}
+   if(!tag){tag=document.createElement('small');tag.className='group-video-theme-tag';tile.append(tag);}
+   tag.textContent=themeNames[theme];tag.setAttribute('aria-label','Efecto anime: '+themeNames[theme]);
+  }
+ };
  function videoTile(id,video){
   const tile=document.createElement('div');tile.className='group-video-tile';tile.dataset.memberId=id;
   const profile=profileMap.get(id),name=document.createElement('span');name.textContent=(profile?.display_name||profile?.username||'Miembro')+(id===userId?' (tú)':'');
@@ -1872,6 +1884,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  participantList.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px';
  participantPanel.append(participantHeading,participantList);
  const renderVideoParticipants=(active)=>{
+  activeParticipantIds=new Set(active);
   participantHeading.textContent='👥 Participantes ('+active.size+')';
   participantList.replaceChildren();
   for(const id of active){
@@ -1887,9 +1900,12 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    const connection=id===userId?'connected':peers.get(id)?.pc?.connectionState;
    status.textContent=id===userId?'🟢 En la sala':connection==='connected'?'🟢 Conectado':connection==='failed'||connection==='disconnected'?'🟠 Conexión interrumpida':'🟡 Conectando vídeo';
    details.append(name,status);
+   const theme=participantThemes.get(id);
+   if(theme&&themeNames[theme]){const themeChip=document.createElement('small');themeChip.className='group-video-theme-chip';themeChip.textContent='✨ '+themeNames[theme];details.append(themeChip);}
    if(profile?.featured_badge){const badge=document.createElement('small');badge.className='group-video-member-badge';badge.textContent='🏅 '+profile.featured_badge;details.append(badge);}
    item.append(avatar,details);participantList.append(item);
   }
+  updateVideoThemeTags();
  };
  renderVideoParticipants(new Set([userId]));
  const mediaSettings=document.createElement('section');mediaSettings.className='group-video-activity group-video-media-settings';
@@ -1903,9 +1919,17 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  background.onchange=()=>{localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon','video-bg-fire','video-bg-galaxy');if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);};
  quality.onchange=async()=>{const track=stream.getVideoTracks()[0];if(!track)return;const height=quality.value==='low'?360:quality.value==='high'?720:480;try{await track.applyConstraints({height:{ideal:height},frameRate:{ideal:quality.value==='low'?15:24,max:30}});qualityInfo.textContent='Calidad solicitada: '+quality.options[quality.selectedIndex].textContent+'. El navegador ajustará según disponibilidad.';}catch(e){qualityInfo.textContent='Tu cámara no admite ese ajuste: '+e.message;}};
  const {data:savedMedia}=await sb.from('member_group_video_preferences').select('quality,theme').eq('user_id',userId).maybeSingle();
+ const publishVideoTheme=async()=>{
+  participantThemes.set(userId,background.value);
+  renderVideoParticipants(activeParticipantIds);
+  const {error}=await sb.from('member_group_video_participants').update({anime_theme:background.value}).eq('room_id',room.id).eq('user_id',userId);
+  if(error)console.warn('No se pudo compartir el efecto anime en la sala:',error.message);
+ };
  const saveMediaPreference=async()=>{const {error}=await sb.from('member_group_video_preferences').upsert({user_id:userId,quality:quality.value,theme:background.value,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)console.warn('Preferencias de vídeo:',error.message);};
  quality.addEventListener('change',saveMediaPreference);background.addEventListener('change',saveMediaPreference);
+ background.addEventListener('change',()=>{publishVideoTheme().catch(console.warn);});
  if(savedMedia){quality.value=savedMedia.quality||'auto';background.value=savedMedia.theme||'none';background.onchange();if(quality.value!=='auto')quality.onchange();}
+ publishVideoTheme().catch(console.warn);
  const effectsBar=document.createElement('div');effectsBar.className='group-video-theme-options';
  const themeButtons=new Map();
  const themeOptions=[['sakura','🌸 Sakura'],['neon','💜 Neón'],['fire','🔥 Fuego'],['galaxy','🌌 Galaxia'],['none','✖ Sin efecto']];
@@ -2411,8 +2435,10 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   try{
    const {data:roomState}=await sb.from('member_group_video_rooms').select('status').eq('id',room.id).maybeSingle();
    if(!roomState||roomState.status!=='open'){say('La sala de vídeo se ha cerrado.');await leaveRoom();return;}
-   const {data:participants}=await sb.from('member_group_video_participants').select('user_id').eq('room_id',room.id);
+   const {data:participants}=await sb.from('member_group_video_participants').select('user_id,anime_theme').eq('room_id',room.id);
    const active=new Set((participants||[]).map(p=>p.user_id));
+   for(const p of participants||[])participantThemes.set(p.user_id,p.anime_theme||'none');
+   for(const id of participantThemes.keys())if(!active.has(id))participantThemes.delete(id);
    renderVideoParticipants(active);
    if(!active.has(userId)){say('Un moderador te ha retirado de la sala.');await leaveRoom();return;}
    inviteSelect.replaceChildren();for(const [id,p] of profileMap){if(id===userId||active.has(id))continue;const o=document.createElement('option');o.value=id;o.textContent=p.display_name||p.username||'Miembro';inviteSelect.append(o);}
