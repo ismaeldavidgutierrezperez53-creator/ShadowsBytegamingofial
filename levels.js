@@ -190,6 +190,8 @@ async function renderRewardShop(){
  if([catalog,owned,equipped,balance,members,gifts,wishes,daily].some(r=>r.error)){host.textContent='No se pudo cargar la tienda. Inténtalo de nuevo.';return}
  const points=document.createElement('h3');points.textContent='🪙 Saldo disponible: '+Number(balance.data||0)+' puntos';host.append(points);
  const note=document.createElement('p');note.textContent='Los puntos disponibles se obtienen de tu XP ganado menos las compras. Comprar no reduce tu nivel ni tu XP acumulado. Cada artículo se compra una sola vez.';host.append(note);
+ const goToCatalogue=document.createElement('a');goToCatalogue.className='shop-explorer-shortcut outline-btn mini';
+ goToCatalogue.href='#shop-catalog-filters';goToCatalogue.textContent='🔎 Buscar recompensas del catálogo';host.append(goToCatalogue);
  const dailyPanel=document.createElement('section');dailyPanel.className='shop-v3-panel shop-v3-daily';
  const todayUTC=new Date().toISOString().slice(0,10);
  const claimed=(daily.data||[]).some(entry=>entry.claimed_on===todayUTC);
@@ -297,8 +299,59 @@ async function renderRewardShop(){
  host.append(wishesPanel);
  const active=new Map((equipped.data||[]).map(e=>[e.category,e.item_id]));
  const categories={anime_theme:'🌸 Recompensas anime exclusivas',frame:'🖼️ Marcos para avatares',badge:'🏷️ Insignias',color:'🌈 Colores de nombre',title:'👑 Títulos especiales'};
+ const explorePanel=document.createElement('section');explorePanel.id='shop-catalog-filters';explorePanel.className='shop-explorer-panel';
+ const exploreHeading=document.createElement('div');exploreHeading.className='shop-explorer-heading';
+ const exploreTitle=document.createElement('div');
+ const catalogueTitle=document.createElement('h3');catalogueTitle.textContent='🔎 Explorar recompensas';
+ const catalogueSubtitle=document.createElement('p');catalogueSubtitle.textContent='Busca, filtra y ordena las recompensas de la tienda.';
+ exploreTitle.append(catalogueTitle,catalogueSubtitle);
+ const shopCounts=document.createElement('div');shopCounts.className='shop-explorer-counts';
+ for(const [label,value] of [['Artículos',inventory.length],['En mi colección',ownedIds.size],['En deseos',wishlistIds.size]]){
+  const metric=document.createElement('div');metric.className='shop-explorer-count';
+  const amount=document.createElement('strong');amount.textContent=String(value);
+  const caption=document.createElement('span');caption.textContent=label;
+  metric.append(amount,caption);shopCounts.append(metric);
+ }
+ exploreHeading.append(exploreTitle,shopCounts);explorePanel.append(exploreHeading);
+ const controlsPanel=document.createElement('div');controlsPanel.className='shop-explorer-controls';
+ const addControl=(tag,aria,label)=>{
+  const wrapper=document.createElement('label');wrapper.className='shop-explorer-field';
+  const name=document.createElement('span');name.textContent=label;
+  const input=document.createElement(tag);input.setAttribute('aria-label',aria);wrapper.append(name,input);
+  controlsPanel.append(wrapper);return input;
+ };
+ const addOptions=(select,values)=>{
+  for(const [value,label] of values){const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option)}
+ };
+ const queryInput=addControl('input','Buscar artículos de la tienda','Buscar recompensa');
+ queryInput.type='search';queryInput.placeholder='Nombre, descripción o categoría…';queryInput.maxLength=120;
+ const categoryInput=addControl('select','Filtrar por categoría','Categoría');
+ addOptions(categoryInput,[['all','Todas las categorías'],...Object.entries(categories)]);
+ const viewInput=addControl('select','Filtrar recompensas de la tienda','Mostrar');
+ addOptions(viewInput,[
+  ['all','Todos los artículos'],['available','Aún no comprados'],['owned','Mi colección'],
+  ['wishlist','Mi lista de deseos'],['affordable','Puedo pagar con mis puntos'],
+  ['sales','En oferta'],['featured','Destacados'],['limited','Por tiempo limitado']
+ ]);
+ const sortingInput=addControl('select','Ordenar recompensas','Ordenar');
+ addOptions(sortingInput,[['default','Orden de tienda'],['name','Nombre (A-Z)'],['low','Precio: menor a mayor'],['high','Precio: mayor a menor']]);
+ queryInput.value=shopExploreState.query;
+ categoryInput.value=shopExploreState.category;
+ viewInput.value=shopExploreState.view;
+ sortingInput.value=shopExploreState.sort;
+ const resetExplore=document.createElement('button');resetExplore.type='button';resetExplore.className='outline-btn mini shop-explorer-reset';resetExplore.textContent='✕ Quitar filtros';
+ controlsPanel.append(resetExplore);explorePanel.append(controlsPanel);
+ const resultBar=document.createElement('div');resultBar.className='shop-explorer-results';resultBar.setAttribute('role','status');resultBar.setAttribute('aria-live','polite');
+ const resultCount=document.createElement('strong');
+ const resultNote=document.createElement('span');resultNote.textContent='Los artículos comprados siguen siendo tuyos cuando acaba su edición.';
+ resultBar.append(resultCount,resultNote);explorePanel.append(resultBar);
+ const filterEmpty=document.createElement('p');filterEmpty.className='shop-explorer-empty';filterEmpty.textContent='No hay artículos con estos filtros. Prueba otra búsqueda.';filterEmpty.hidden=true;
+ explorePanel.append(filterEmpty);host.append(explorePanel);
+ const catalogueGroups=[];
  for(const [category,label] of Object.entries(categories)){
-  const group=document.createElement('section');group.style.margin='20px 0';const heading=document.createElement('h3');heading.textContent=label;group.append(heading);
+  const group=document.createElement('section');group.className='shop-explorer-group';group.style.margin='20px 0';
+  const heading=document.createElement('h3');heading.textContent=label;group.append(heading);
+  const groupEntries=[];
   const grouped=inventory.filter(x=>x.category===category);if(!grouped.length)continue;
   for(const item of grouped){
    const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:14px;margin:10px 0;border:1px solid #ffffff33;border-radius:12px';
@@ -357,11 +410,56 @@ async function renderRewardShop(){
     if(error){status.textContent='No se pudo actualizar la lista: '+error.message;wishButton.disabled=false;return}
     await renderRewardShop();
    };
-   card.append(wishButton);group.append(card);
+   card.append(wishButton);group.append(card);groupEntries.push({card,item});
   }
 
-  host.append(group);
+  host.append(group);catalogueGroups.push({group,entries:groupEntries});
  }
+ const normalized=value=>String(value??'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
+ const matchesView=item=>{
+  switch(viewInput.value){
+   case 'available':return !ownedIds.has(item.id)&&isAvailable(item);
+   case 'owned':return ownedIds.has(item.id);
+   case 'wishlist':return wishlistIds.has(item.id);
+   case 'affordable':return !ownedIds.has(item.id)&&isAvailable(item)&&actualPrice(item)<=Number(balance.data||0);
+   case 'sales':return isAvailable(item)&&onSale(item);
+   case 'featured':return isAvailable(item)&&!!item.featured;
+   case 'limited':return isAvailable(item)&&!!item.available_until;
+   default:return true;
+  }
+ };
+ const compareShopRows=(a,b)=>{
+  if(sortingInput.value==='name')return String(a.item.name).localeCompare(String(b.item.name),'es');
+  if(sortingInput.value==='low')return actualPrice(a.item)-actualPrice(b.item);
+  if(sortingInput.value==='high')return actualPrice(b.item)-actualPrice(a.item);
+  return Number(a.item.sort_order||0)-Number(b.item.sort_order||0);
+ };
+ const applyExplore=()=>{
+  shopExploreState.query=queryInput.value;
+  shopExploreState.category=categoryInput.value;
+  shopExploreState.view=viewInput.value;
+  shopExploreState.sort=sortingInput.value;
+  const query=normalized(queryInput.value);
+  let total=0;
+  for(const {group,entries} of catalogueGroups){
+   const matched=entries.filter(({item})=>
+    (categoryInput.value==='all'||item.category===categoryInput.value)&&matchesView(item)&&
+    normalized([item.name,item.description,categories[item.category],item.id].join(' ')).includes(query)
+   ).sort(compareShopRows);
+   for(const {card} of entries)card.hidden=true;
+   for(const {card} of matched){card.hidden=false;group.append(card)}
+   group.hidden=matched.length===0;total+=matched.length;
+  }
+  resultCount.textContent=total+' de '+inventory.length+' recompensas';
+  filterEmpty.hidden=total>0;
+ };
+ for(const input of [categoryInput,viewInput,sortingInput])input.addEventListener('change',applyExplore);
+ queryInput.addEventListener('input',applyExplore);
+ resetExplore.onclick=()=>{
+  queryInput.value='';categoryInput.value='all';viewInput.value='all';sortingInput.value='default';
+  applyExplore();queryInput.focus();
+ };
+ applyExplore();
  const purchaseHistory=document.createElement('section');purchaseHistory.className='shop-v2-panel';
  const purchaseTitle=document.createElement('h3');purchaseTitle.textContent='🧾 Mi historial de compras';purchaseHistory.append(purchaseTitle);
  const purchaseRows=owned.data||[];
