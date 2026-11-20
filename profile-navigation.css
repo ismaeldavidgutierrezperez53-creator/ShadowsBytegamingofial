@@ -274,3 +274,9 @@
 .sb-nav-download-all-txt:disabled{opacity:.45;cursor:default}
 .sb-nav-download-all-txt:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-download-all-txt{width:100%}}
+
+/* Filtro de accesos visibles, exclusivo respecto a Solo ocultos */
+.sb-nav-only-visible{min-height:43px;padding:8px 12px;border:1px solid #8ebbb3;border-radius:10px;background:#284c47;color:#eafff8;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-only-visible[aria-pressed="true"]{background:#346e60;border-color:#b4f3d9;color:#fff}
+.sb-nav-only-visible:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-only-visible{flex:1}}
