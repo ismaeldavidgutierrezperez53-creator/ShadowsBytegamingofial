@@ -23,6 +23,7 @@
   ['🔗 Mis enlaces gamer','.sbgl-links',true],
   ['📊 Clics en mis enlaces','.sbgl-link-analytics',true],
   ['🏆 Logros de enlaces gamer','.sbgl-badges',true],
+  ['🎖️ Mi vitrina de insignias','.sbv-editor',true],
   ['🏅 Retos de colección','.sbr-goals',true],
   ['🌟 Retos sociales','.sbs-challenges',true],
   ['🎨 Editar perfil','#profile-form',true],
