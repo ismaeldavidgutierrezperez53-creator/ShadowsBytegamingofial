@@ -50,7 +50,7 @@
    searchBox.append(search,clear);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
-    const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
+    const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
     const query=normalize(search.value);
     let visible=0;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
