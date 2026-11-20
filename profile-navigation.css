@@ -13,3 +13,12 @@
 @keyframes sb-nav-pulse{0%{outline:3px solid #e4b3ff;outline-offset:4px}100%{outline:3px solid transparent;outline-offset:4px}}
 @media(max-width:600px){.sb-nav-panel{padding:14px}.sb-nav-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sb-nav-link{font-size:14px;padding:9px 6px}}
 @media(prefers-reduced-motion:reduce){.sb-nav-target{animation:none}}
+
+/* Accesos favoritos: estrella separada del botón de navegación. */
+.sb-nav-favorite-item{display:flex;align-items:stretch;gap:4px;min-width:0}
+.sb-nav-favorite-item .sb-nav-link{min-width:0;flex:1;text-align:left}
+.sb-nav-star{flex:0 0 42px;min-height:42px;border:1px solid #8260a0;border-radius:10px;background:#241b34;color:#d7c5e6;font-size:25px;cursor:pointer}
+.sb-nav-star.is-favorite{background:#4f3554;border-color:#dbb268;color:#ffdb78}
+.sb-nav-star:hover{background:#633f78}
+.sb-nav-star:focus-visible{outline:3px solid #55dbff;outline-offset:2px}
+@media(max-width:600px){.sb-nav-favorite-item{min-width:0}.sb-nav-favorite-item .sb-nav-link{overflow-wrap:anywhere;font-size:13px}.sb-nav-star{flex-basis:38px;min-height:42px}}
