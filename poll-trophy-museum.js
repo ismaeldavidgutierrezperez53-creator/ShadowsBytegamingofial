@@ -179,7 +179,9 @@ function mount(host,memberId,{own=false}={}){
  text.append(create('span','poll-museum-eyebrow','SHADOWS BYTE · VITRINA DE CAMPEONES'));
  text.append(create('h2',null,'🏛️ Museo de trofeos anime'));
  text.append(create('p',null,'Tus trofeos favoritos, un premio destacado y una vitrina con efectos neón.'));
- heading.append(text);root.append(heading);
+ const rankingLink=create('a','poll-museum-ranking-link','💖 Ver ranking de museos');
+ rankingLink.href='#/encuestas?museo=ranking';
+ heading.append(text,rankingLink);root.append(heading);
  const body=create('div','poll-museum-body');
  const status=create('p','poll-museum-status','Cargando vitrina…');
  status.setAttribute('role','status');
