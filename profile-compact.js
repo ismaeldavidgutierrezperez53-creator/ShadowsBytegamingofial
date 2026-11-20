@@ -59,7 +59,7 @@
  function updateButtons(){
   for(const control of document.querySelectorAll('.sb-compact-control')){
    const btn=control.querySelector('.sb-compact-button');
-   if(btn){btn.textContent=compact?'Desactivar vista compacta':'Activar vista compacta';btn.setAttribute('aria-pressed',String(compact))}
+   if(btn){const label=compact?'Desactivar vista compacta':'Activar vista compacta';if(btn.textContent!==label)btn.textContent=label;if(btn.getAttribute('aria-pressed')!==String(compact))btn.setAttribute('aria-pressed',String(compact))}
   }
  }
  let pending=false;
