@@ -3257,6 +3257,7 @@ async function initGroupChats(userId,root){
 const privateChatDrafts=new Map();
 let privateConversationListFilter='';
 let privateChatActivityInterval=null;
+let privateChatExpiryTimer=null;
 
 function createPrivateVoicePlayer(label='Mensaje de voz'){
  const root=document.createElement('div');root.className='private-voice-player';root.setAttribute('role','group');root.setAttribute('aria-label',label);
@@ -3702,6 +3703,7 @@ async function showIncomingPrivateCall(me,partner,partnerName,panel){
 }
 
 async function loadPrivateMessages(){
+ if(privateChatExpiryTimer){clearTimeout(privateChatExpiryTimer);privateChatExpiryTimer=null;}
  if(privateChatActivityInterval){clearInterval(privateChatActivityInterval);privateChatActivityInterval=null;}
  const root=document.getElementById('private-messages');if(!root)return;
  const {data:{user},error:authError}=await sb.auth.getUser();
@@ -3716,7 +3718,7 @@ async function loadPrivateMessages(){
  const params=new URLSearchParams((location.hash.split('?')[1]||''));
  const requested=params.get('id');
  const validId=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
- const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,image_paths,audio_path,deleted_at,reply_to_id,edited_at').order('created_at',{ascending:false}).limit(300);
+ const {data:messages,error}=await sb.from('member_direct_messages') .select('id,sender_id,recipient_id,body,created_at,is_read,image_path,image_paths,audio_path,deleted_at,reply_to_id,edited_at,expires_at,expires_in_seconds,message_kind,birthday_style').order('created_at',{ascending:false}).limit(300);
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
@@ -4138,6 +4140,11 @@ async function loadPrivateMessages(){
     }).catch(()=>{if(voicePlayer.root.isConnected)voicePlayer.setError('No se pudo cargar el mensaje de voz.');});
    }
    bubble.append(date);
+   if(m.expires_at&&!m.deleted_at){
+    const expires=document.createElement('small');expires.className='private-chat-expiry';
+    expires.textContent='⏳ Temporal · desaparece '+new Date(m.expires_at).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    bubble.append(expires);
+   }
    if(m.edited_at&&!m.deleted_at){const edited=document.createElement('small');edited.className='private-chat-edited';edited.textContent=' · Editado';edited.title='Editado el '+new Date(m.edited_at).toLocaleString('es-ES');bubble.append(edited);}
    if(m.sender_id===me&&!m.deleted_at){
     const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);
@@ -4342,9 +4349,17 @@ async function loadPrivateMessages(){
     preset.onclick=()=>{input.value=input.value.trim()?input.value.trimEnd()+' '+phrase:phrase;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();};
     quickReplySection.append(preset);
    }
+   const tempLabel=document.createElement('label');tempLabel.className='private-chat-temporary-control';
+   tempLabel.textContent='⏳ Duración del mensaje';
+   const tempSelect=document.createElement('select');tempSelect.setAttribute('aria-label','Duración de tu próximo mensaje de texto');
+   for(const [value,label] of [['','Siempre'],['300','5 minutos'],['3600','1 hora'],['86400','24 horas'],['604800','7 días']]){
+    const option=document.createElement('option');option.value=value;option.textContent=label;tempSelect.append(option);
+   }
+   const tempNote=document.createElement('small');tempNote.textContent='Solo texto. Al caducar deja de mostrarse en el chat, pero no impide capturas de pantalla.';
+   tempLabel.append(tempSelect,tempNote);
    const keyboardHelp=document.createElement('small');keyboardHelp.className='private-chat-keyboard-hint';
    keyboardHelp.textContent='Enter para enviar · Shift + Enter para una nueva línea';
-   form.append(replyPreview,input,quickReplySection,quickEmoji,keyboardHelp,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreviewPanel,discardVoice,button,status);
+   form.append(replyPreview,input,quickReplySection,quickEmoji,tempLabel,keyboardHelp,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreviewPanel,discardVoice,button,status);
    input.addEventListener('input',()=>{privateChatDrafts.set(draftKey,input.value);sendPrivateTyping(me,active);});
    input.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){
@@ -4356,6 +4371,10 @@ async function loadPrivateMessages(){
     e.preventDefault();
     if(button.disabled)return;
     const body=input.value.trim(),files=Array.from(imageInput.files||[]);
+    const expires_in_seconds=tempSelect.value?Number(tempSelect.value):null;
+    if(expires_in_seconds&&(!body||files.length||voiceBlob)){
+     status.textContent='Los mensajes temporales deben contener solo texto. Quita los adjuntos o selecciona Siempre.';return;
+    }
     if(voiceRecorder?.state==='recording'){status.textContent='Detén la grabación antes de enviar.';return;}
     if(!body&&!files.length&&!voiceBlob){status.textContent='Escribe un mensaje o selecciona una imagen.';return;}
     const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
@@ -4385,7 +4404,7 @@ async function loadPrivateMessages(){
      if(audioError){await cleanupUploaded();status.textContent='No se pudo subir el audio: '+audioError.message;button.disabled=false;return;}
     }
     const image_path=uploadedImagePaths[0]||null,image_paths=uploadedImagePaths.slice(1);
-    const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path,image_paths,audio_path,reply_to_id:replyToId});
+    const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path,image_paths,audio_path,reply_to_id:replyToId,expires_in_seconds});
     if(sendError){await cleanupUploaded();status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}
     else{privateChatDrafts.delete(draftKey);await loadPrivateMessages();}
    };
@@ -4416,6 +4435,16 @@ async function loadPrivateMessages(){
    });
  }
  const visibleHistory=panel.querySelector('.messages-history');if(visibleHistory)visibleHistory.scrollTop=visibleHistory.scrollHeight;
+ const nearestExpiration=Math.min(...items.filter(m=>m.expires_at).map(m=>new Date(m.expires_at).getTime()).filter(time=>time>Date.now()));
+ if(Number.isFinite(nearestExpiration)){
+  privateChatExpiryTimer=setTimeout(()=>{
+   privateChatExpiryTimer=null;
+   if(root.isConnected&&location.hash.startsWith('#/mensajes')){
+    refreshPrivateMessageBadge(me).catch(console.warn);
+    refreshLivePrivateConversation().catch(console.warn);
+   }
+  },Math.min(2147000000,Math.max(100,nearestExpiration-Date.now()+150)));
+ }
 }
 
 let liveAlertPreferences={notify_private_messages:true,notify_report_updates:true};
