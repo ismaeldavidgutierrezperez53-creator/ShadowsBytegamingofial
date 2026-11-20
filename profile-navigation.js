@@ -482,6 +482,37 @@
     }
    });
    sortBox.append(copyFiltered);
+   const downloadFilteredTxt=node('button','sb-nav-download-filtered-txt','⬇ Descargar resultados filtrados TXT');
+   downloadFilteredTxt.type='button';
+   downloadFilteredTxt.addEventListener('click',()=>{
+    const items=[...controls.querySelectorAll('.sb-nav-favorite-item')]
+     .filter(item=>!item.hidden&&item.dataset.shortcutSelector);
+    if(!items.length)return;
+    const favorites=readFavorites();
+    const hidden=readHidden();
+    const list='🔎 Resultados del perfil — Shadows Byte Gaming Official V2\n'+items.map((item,i)=>{
+     const selector=item.dataset.shortcutSelector;
+     return (i+1)+'. '+(item.dataset.searchLabel||'')+
+      (favorites.includes(selector)?' ⭐':'')+
+      (hidden.includes(selector)?' (oculto)':'');
+    }).join('\n');
+    try{
+     const blob=new Blob(['\uFEFF',list],{type:'text/plain;charset=utf-8'});
+     const url=URL.createObjectURL(blob);
+     const link=node('a');
+     link.href=url;
+     link.download='shadows-byte-accesos-filtrados-'+(isOwn?'mi-perfil':'perfil-publico')+'.txt';
+     link.style.display='none';
+     document.body.append(link);
+     link.click();
+     link.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1000);
+     downloadFilteredTxt.textContent='✓ TXT preparado ('+items.length+')';
+    }catch(_){
+     downloadFilteredTxt.textContent='No se pudo preparar el TXT filtrado';
+    }
+   });
+   sortBox.append(downloadFilteredTxt);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -540,6 +571,9 @@
     const copyFilteredLabel='📋 Copiar resultados filtrados ('+visible+')';
     if(copyFiltered.disabled!==(visible===0))copyFiltered.disabled=visible===0;
     if(!copyFiltered.textContent.startsWith('✓')&&!copyFiltered.textContent.startsWith('No se pudo')&&copyFiltered.textContent!==copyFilteredLabel)copyFiltered.textContent=copyFilteredLabel;
+    const filteredTxtLabel='⬇ Descargar resultados filtrados TXT ('+visible+')';
+    if(downloadFilteredTxt.disabled!==(visible===0))downloadFilteredTxt.disabled=visible===0;
+    if(downloadFilteredTxt.textContent!==filteredTxtLabel)downloadFilteredTxt.textContent=filteredTxtLabel;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||nav.dataset.sortMode!=='favorites';
