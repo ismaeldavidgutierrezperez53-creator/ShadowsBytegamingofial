@@ -263,7 +263,8 @@
   links.dataset.signature=signature;
   links.replaceChildren();
   summary.textContent='Ver accesos rápidos ('+(available.length-hidden.filter(x=>available.some(a=>a[1]===x)).length)+')';
-  const compareNames=(a,b)=>a[0].replace(/^[^\\p{L}\\p{N}]+/u,'').localeCompare(b[0].replace(/^[^\\p{L}\\p{N}]+/u,''),'es',{sensitivity:'base'});
+  const cleanName=entry=>entry[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim();
+  const compareNames=(a,b)=>cleanName(a).localeCompare(cleanName(b),'es',{sensitivity:'base'});
   const ordered=[...available].sort((a,b)=>{
    if(sortMode==='az')return compareNames(a,b);
    if(sortMode==='za')return compareNames(b,a);
