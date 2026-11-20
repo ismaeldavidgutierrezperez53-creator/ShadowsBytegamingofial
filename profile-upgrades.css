@@ -20,3 +20,16 @@
 .public-game-library-item[hidden],.public-game-library-group[hidden]{display:none!important}
 @media(max-width:680px){.sbp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sbp-dashboard,.sbp-public-tools{padding:16px}.sbp-library-controls{flex-direction:column}}
 @media(prefers-reduced-motion:reduce){.sbp-action{transition:none}html:has(.sbp-section-nav){scroll-behavior:auto}}
+
+/* Tarjeta de identidad gamer: vista previa y perfil público */
+.sbp-identity-card{--sbp-accent:#a855f7;margin:16px 0 22px;padding:22px;border-radius:20px;border:1px solid var(--sbp-accent);background:linear-gradient(120deg,#1d1235,#101321);box-shadow:0 12px 38px #0003;min-width:0;overflow:hidden}
+.sbp-identity-card[data-theme=blue]{--sbp-accent:#38bdf8}.sbp-identity-card[data-theme=emerald]{--sbp-accent:#34d399}.sbp-identity-card[data-theme=rose]{--sbp-accent:#fb7185}.sbp-identity-card[data-theme=amber]{--sbp-accent:#fbbf24}
+.sbp-identity-top{display:flex;align-items:center;gap:16px;min-width:0}
+.sbp-identity-avatar{display:grid;place-items:center;width:80px;height:80px;flex:0 0 80px;border-radius:18px;border:2px solid var(--sbp-accent);background:#27183f;overflow:hidden;font-size:33px;box-shadow:0 0 20px #9f55ef33}
+.sbp-identity-avatar img{width:100%;height:100%;object-fit:cover}
+.sbp-identity-text{min-width:0}.sbp-identity-text small{color:var(--sbp-accent);font-size:11px;letter-spacing:1px;font-weight:700}
+.sbp-identity-text h2{font-size:clamp(18px,3vw,25px);overflow-wrap:anywhere;margin:4px 0}.sbp-identity-status{margin:4px 0;color:#d5c6e5}
+.sbp-identity-tags{display:flex;gap:8px;flex-wrap:wrap;margin:17px 0 9px}
+.sbp-identity-chip{padding:7px 11px;border-radius:999px;background:#2a1b43;border:1px solid #705390;color:#f6edff;font-size:14px;overflow-wrap:anywhere;max-width:100%}
+@media(max-width:480px){.sbp-identity-card{padding:15px}.sbp-identity-top{gap:10px}.sbp-identity-avatar{width:58px;height:58px;flex-basis:58px}.sbp-identity-text small{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.sbp-identity-card{animation:none!important}}
