@@ -18,7 +18,24 @@
       border-top: 1px solid #d597ff99;
       border-bottom: 1px solid #ac65ea88;
       box-shadow: 0 0 12px #ad56ee99;
-      overflow: hidden;
+      overflow: visible;
+    }
+    #sb-anime-scroll-progress-percentage {
+      position: absolute;
+      top: 11px;
+      right: 12px;
+      z-index: 2;
+      min-width: 44px;
+      padding: 3px 8px;
+      border: 1px solid var(--sb-user-neon, #ba6bff);
+      border-radius: 999px;
+      background: #1a0d2e;
+      color: #fff;
+      box-shadow: 0 0 10px var(--sb-user-glow, #ba6bff66);
+      font: 700 12px/1.3 Arial, sans-serif;
+      text-align: center;
+      white-space: nowrap;
+      pointer-events: none;
     }
     #sb-anime-scroll-progress-fill {
       display: block;
@@ -44,6 +61,7 @@
     }
     @media (max-width: 600px) {
       #sb-anime-scroll-progress { height: 6px; }
+      #sb-anime-scroll-progress-percentage { right: 8px; top: 10px; font-size: 11px; padding: 3px 7px; }
     }
     @media (prefers-reduced-motion: reduce) {
       #sb-anime-scroll-progress-fill { will-change: auto; }
@@ -54,10 +72,19 @@
 
   const track = document.createElement('div');
   track.id = 'sb-anime-scroll-progress';
-  track.setAttribute('aria-hidden', 'true');
+  track.setAttribute('role', 'progressbar');
+  track.setAttribute('aria-label', 'Progreso de la página');
+  track.setAttribute('aria-valuemin', '0');
+  track.setAttribute('aria-valuemax', '100');
+  track.setAttribute('aria-valuenow', '0');
   const fill = document.createElement('span');
   fill.id = 'sb-anime-scroll-progress-fill';
   track.appendChild(fill);
+  const percentage = document.createElement('span');
+  percentage.id = 'sb-anime-scroll-progress-percentage';
+  percentage.setAttribute('aria-hidden', 'true');
+  percentage.textContent = '0 %';
+  track.appendChild(percentage);
   document.body.appendChild(track);
 
   let scheduled = false;
@@ -77,6 +104,9 @@
     const current = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
     const progress = scrollable > 0 ? Math.max(0, Math.min(1, current / scrollable)) : 0;
     fill.style.transform = 'scaleX(' + progress + ')';
+    const percent = Math.round(progress * 100);
+    percentage.textContent = percent + ' %';
+    track.setAttribute('aria-valuenow', String(percent));
   };
   const scheduleUpdate = () => {
     if (scheduled) return;
