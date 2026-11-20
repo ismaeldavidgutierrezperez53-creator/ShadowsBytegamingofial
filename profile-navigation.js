@@ -97,9 +97,21 @@
     links.dataset.signature='';
     enhance(host,isOwn);
    });
+   const addVisibleFavorites=node('button','sb-nav-add-visible-favorites','⭐ Añadir resultados a favoritos');
+   addVisibleFavorites.type='button';
+   addVisibleFavorites.addEventListener('click',()=>{
+    const items=[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector);
+    const current=readFavorites();
+    const toAdd=[...new Set(items.map(item=>item.dataset.shortcutSelector))].filter(selector=>!current.includes(selector));
+    if(!toAdd.length)return;
+    if(!window.confirm('¿Añadir '+toAdd.length+' accesos de los resultados a tus favoritos? Podrás deshacer este cambio.'))return;
+    if(!writeFavorites([...current,...toAdd]))return;
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
    const resultCount=node('p','sb-nav-search-count');
    resultCount.setAttribute('role','status');
-   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden);
+   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites);
    const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
    let chosenLayout='grid';
    try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
@@ -228,6 +240,7 @@
     if(onlyHidden.textContent!==hiddenLabel)onlyHidden.textContent=hiddenLabel;
     if(onlyHidden.getAttribute('aria-pressed')!==String(hiddenOnly))onlyHidden.setAttribute('aria-pressed',String(hiddenOnly));
     let visible=0;
+    let addable=0;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const matchesText=normalize(item.dataset.searchLabel).includes(query);
      // Leer el estado actual de la estrella, incluso después de reordenar favoritos.
@@ -236,10 +249,16 @@
      const isHidden=item.dataset.shortcutHidden==='true';
      const matched=matchesText&&(!enabled||isFavorite)&&(!unstarredOnly||!isFavorite)&&(!hiddenOnly||isHidden);
      if(item.hidden!==!matched)item.hidden=!matched;
-     if(matched)visible++;
+     if(matched){
+      visible++;
+      if(!isFavorite)addable++;
+     }
     }
     const message=query||enabled||unstarredOnly||hiddenOnly?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
     if(resultCount.textContent!==message)resultCount.textContent=message;
+    const bulkLabel=addable?'⭐ Añadir resultados a favoritos ('+addable+')':'⭐ No hay resultados sin estrella';
+    if(addVisibleFavorites.textContent!==bulkLabel)addVisibleFavorites.textContent=bulkLabel;
+    if(addVisibleFavorites.disabled!==(addable===0))addVisibleFavorites.disabled=addable===0;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||nav.dataset.sortMode!=='favorites';
@@ -539,6 +558,7 @@
   for(const [label,selector] of ordered){
    const item=node('div','sb-nav-favorite-item');
    item.dataset.searchLabel=label;
+   item.dataset.shortcutSelector=selector;
    const isHidden=hidden.includes(selector);
    item.dataset.shortcutHidden=String(isHidden);
    item.classList.toggle('sb-nav-hidden-shortcut',isHidden);
