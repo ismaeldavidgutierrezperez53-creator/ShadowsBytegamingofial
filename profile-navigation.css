@@ -296,3 +296,7 @@
 /* Ayuda compacta para atajos de teclado del buscador */
 .sb-nav-shortcut-hint{padding:6px 9px;border:1px solid #76658b;border-radius:8px;background:#241b35;color:#d8cdea;font:600 12px Rajdhani,Arial,sans-serif;white-space:nowrap}
 @media(max-width:600px){.sb-nav-shortcut-hint{flex-basis:100%;text-align:right}}
+
+/* Selección mediante flechas en los resultados del buscador */
+.sb-nav-favorite-item.sb-nav-keyboard-selected .sb-nav-link{outline:3px solid #55dbff;outline-offset:-3px;background:#534077;box-shadow:0 0 0 2px #261b3a}
+@media(prefers-reduced-motion:reduce){.sb-nav-favorite-item.sb-nav-keyboard-selected .sb-nav-link{transition:none}}
