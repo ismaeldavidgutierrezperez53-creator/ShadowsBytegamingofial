@@ -80,7 +80,7 @@
         list.append(link);
       }
       if(!list.childElementCount){
-        panel.remove();return;
+        panel.hidden=true;return;
       }
       content.append(list);
       message.textContent=list.childElementCount+' enlace(s) compartido(s) por este miembro.';
