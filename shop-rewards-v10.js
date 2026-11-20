@@ -236,16 +236,10 @@
   p.append(inputs,download,result,list);paint();return p;
  }
  async function loadPostcards(user){
-  const {data:notes,error}=await sb.from('member_shop_special_gift_notes')
-   .select('gift_id,sender_id,recipient_id,wrapping,message,created_at')
-   .or('sender_id.eq.'+user.id+',recipient_id.eq.'+user.id)
-   .order('created_at',{ascending:false}).limit(25);
+  const {data,error}=await sb.rpc('shop_my_special_gift_notes');
   if(error)return {error};
-  const ids=(notes||[]).map(n=>n.gift_id);
-  if(!ids.length)return {notes:[],gifts:[]};
-  const result=await sb.from('member_shop_gifts').select('id,item_id,sender_id,recipient_id').in('id',ids);
-  if(result.error)return {notes:notes||[],gifts:[]};
-  return {notes:notes||[],gifts:result.data||[]};
+  const mine=(data||[]).filter(n=>n.sender_id===user.id||n.recipient_id===user.id);
+  return {notes:mine,gifts:mine.map(n=>({id:n.gift_id,item_id:n.item_name||n.item_id}))};
  }
  renderRewardShop=async function(){
   const ticket=++generation;
