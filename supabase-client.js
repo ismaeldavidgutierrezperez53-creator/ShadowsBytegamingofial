@@ -3524,6 +3524,10 @@ async function loadPrivateMessages(){
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
+ const {data:favoriteRows,error:favoriteError}=await sb.from('member_private_chat_favorites')
+  .select('partner_id').eq('user_id',me);
+ if(favoriteError)console.warn('Favoritos del chat:',favoriteError.message);
+ const favoriteIds=new Set((favoriteRows||[]).map(row=>row.partner_id));
  const {data:allGiftRows,error:giftLoadError}=await sb.from('member_private_chat_gifts')
   .select('id,sender_id,recipient_id,gift_code,created_at')
   .order('created_at',{ascending:false}).limit(200);
@@ -3531,7 +3535,8 @@ async function loadPrivateMessages(){
  const gifts=allGiftRows||[];
  const ids=[...new Set([
   ...items.flatMap(m=>[m.sender_id,m.recipient_id]),
-  ...gifts.flatMap(g=>[g.sender_id,g.recipient_id])
+  ...gifts.flatMap(g=>[g.sender_id,g.recipient_id]),
+  ...favoriteIds
  ].filter(id=>id!==me))];
  if(validId(requested)&&requested!==me&&!ids.includes(requested))ids.push(requested);
  const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username,is_public,avatar_url').in('id',ids):{data:[]};
@@ -3548,7 +3553,7 @@ async function loadPrivateMessages(){
   if(!latestGiftByPartner.has(partnerId))latestGiftByPartner.set(partnerId,gift);
  }
  const publicIds=new Set((profiles||[]).filter(p=>p.is_public).map(p=>p.id));
- const partners=[...new Set([...items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id),...gifts.map(g=>g.sender_id===me?g.recipient_id:g.sender_id)])];
+ const partners=[...new Set([...items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id),...gifts.map(g=>g.sender_id===me?g.recipient_id:g.sender_id),...favoriteIds])];
  if(validId(requested)&&requested!==me&&!partners.includes(requested))partners.unshift(requested);
  const {data:archiveRows,error:archiveError}=await sb.from('member_conversation_archives').select('partner_id').eq('user_id',me);
  if(archiveError)console.warn('No se pudo cargar el archivo de conversaciones:',archiveError.message);
@@ -3639,9 +3644,23 @@ async function loadPrivateMessages(){
   action.textContent=archived?'↩ Recuperar':'📁 Archivar';
   action.setAttribute('aria-label',(archived?'Recuperar':'Archivar')+' conversación con '+(names.get(id)||'Miembro'));
   action.onclick=()=>changeArchive(id,archived,action);
-  item.append(link,action);destination.append(item);
+  const fav=document.createElement('button');fav.type='button';fav.className='private-chat-favorite-action'+(favoriteIds.has(id)?' is-favorite':'');
+  fav.textContent=favoriteIds.has(id)?'⭐':'☆';
+  fav.setAttribute('aria-label',(favoriteIds.has(id)?'Quitar de favoritos: ':'Añadir a favoritos: ')+displayName);
+  fav.setAttribute('aria-pressed',String(favoriteIds.has(id)));
+  fav.title=favoriteIds.has(id)?'Quitar de favoritos':'Marcar conversación favorita';
+  fav.onclick=async()=>{
+   fav.disabled=true;
+   const result=favoriteIds.has(id)?
+    await sb.from('member_private_chat_favorites').delete().eq('user_id',me).eq('partner_id',id):
+    await sb.from('member_private_chat_favorites').insert({user_id:me,partner_id:id});
+   if(result.error){alert('No se pudo actualizar Favoritos: '+result.error.message);fav.disabled=false;return;}
+   await loadPrivateMessages();
+  };
+  item.append(link,fav,action);destination.append(item);
  };
- const normalPartners=partners.filter(id=>!archivedIds.has(id));
+ const normalPartners=partners.filter(id=>!archivedIds.has(id)).sort((a,b)=>Number(favoriteIds.has(b))-Number(favoriteIds.has(a)));
+ archivedPartners.sort((a,b)=>Number(favoriteIds.has(b))-Number(favoriteIds.has(a)));
  if(!normalPartners.length){const p=document.createElement('p');p.textContent=archivedPartners.length?'No tienes conversaciones activas. Revisa las archivadas.':'Aún no tienes conversaciones. Visita Miembros para iniciar una.';sidebar.append(p);}
  for(const id of normalPartners)renderPartner(id,false,sidebar);
  for(const id of archivedPartners)renderPartner(id,true,archiveList);
