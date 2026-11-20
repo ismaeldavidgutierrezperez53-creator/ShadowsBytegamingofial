@@ -222,6 +222,12 @@ async function renderRewardShop(){
  const inventory=(catalog.data||[]).filter(isAvailable);
  const wishlistIds=new Set((wishes.data||[]).map(entry=>entry.item_id));
  const limited=inventory.filter(item=>!!item.available_until);
+ if(!limited.length){
+  const empty= document.createElement('section');empty.className='shop-v3-panel';
+  const title=document.createElement('h3');title.textContent='⏳ Artículos por tiempo limitado';
+  const note=document.createElement('p');note.textContent='Ahora mismo no hay recompensas temporales activas. Los artículos especiales aparecerán aquí cuando la administración los programe.';
+  empty.append(title,note);host.append(empty);
+ }
  if(limited.length){
   const panel=document.createElement('section');panel.className='shop-v3-panel';
   const heading=document.createElement('h3');heading.textContent='⏳ Artículos por tiempo limitado';panel.append(heading);
