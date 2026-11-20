@@ -3344,6 +3344,10 @@ function closePrivateDirectCall(){
  if(session.filterFrame)cancelAnimationFrame(session.filterFrame);
  session.filterSource?.pause();if(session.filterSource)session.filterSource.srcObject=null;
  session.filterStream?.getTracks().forEach(track=>track.stop());
+ if(session.screenFallbackFrame)cancelAnimationFrame(session.screenFallbackFrame);
+ session.screenFallbackSource?.pause();
+ if(session.screenFallbackSource)session.screenFallbackSource.srcObject=null;
+ session.screenFallbackStream?.getTracks().forEach(track=>track.stop());
  session.screenStream?.getTracks().forEach(track=>track.stop());
  session.pc?.close();
  session.localStream?.getTracks().forEach(track=>track.stop());
@@ -3385,6 +3389,9 @@ async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null
   catch(e){state.textContent='No se pudo reproducir el sonido: '+e.message;}
  };
  const screenShare=document.createElement('button');screenShare.type='button';screenShare.className='private-direct-screen-share';screenShare.textContent='🖥️ Compartir pantalla';screenShare.hidden=kind!=='video';
+ const screenStatus=document.createElement('p');screenStatus.className='private-direct-screen-status';screenStatus.hidden=kind!=='video';
+ screenStatus.setAttribute('role','status');screenStatus.setAttribute('aria-live','polite');
+ screenStatus.textContent='Para compartir, conecta la videollamada y pulsa Compartir pantalla. El navegador te pedirá elegir qué mostrar.';
  const filterLabel=document.createElement('label');filterLabel.className='private-direct-anime-filter';filterLabel.textContent='✨ Efecto anime';
  filterLabel.hidden=kind!=='video';
  const filterSelect=document.createElement('select');filterSelect.setAttribute('aria-label','Efecto anime de cámara');
@@ -3395,12 +3402,13 @@ async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null
  const hang=document.createElement('button');hang.type='button';hang.className='private-direct-call-hang';hang.textContent='🔴 Colgar';
  actions.append(mic,camera,listen,screenShare,filterLabel,hang);
  const hint=document.createElement('small');hint.textContent='Conexión privada entre navegadores. Algunas redes requieren TURN para conectar.';
- overlay.append(title,state,mediaBox,actions,hint);
+ overlay.append(title,state,mediaBox,actions,screenStatus,hint);
  document.body.append(overlay);
  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
  localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
  const session={pc,localStream,localMedia,remoteMedia,overlay,timer:null,call:incoming,
-  screenStream:null,filterStream:null,filterSource:null,filterFrame:0};
+  screenStream:null,screenFallbackStream:null,screenFallbackSource:null,screenFallbackFrame:0,
+  filterStream:null,filterSource:null,filterFrame:0};
  privateDirectCallSession=session;
  const videoSender=pc.getSenders().find(sender=>sender.track?.kind==='video');
  const cameraTrack=localStream.getVideoTracks()[0]||null;
@@ -3446,17 +3454,62 @@ async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null
   filteredTrack=session.filterStream.getVideoTracks()[0]||null;
   if(!filteredTrack)throw new Error('No se pudo iniciar el vídeo con filtro.');
  };
+ const releaseScreenFallback=()=>{
+  if(session.screenFallbackFrame){cancelAnimationFrame(session.screenFallbackFrame);session.screenFallbackFrame=0;}
+  session.screenFallbackSource?.pause();
+  if(session.screenFallbackSource)session.screenFallbackSource.srcObject=null;
+  session.screenFallbackSource=null;
+  session.screenFallbackStream?.getTracks().forEach(t=>t.stop());
+  session.screenFallbackStream=null;
+ };
+ const prepareSmallerScreenTrack=async(display)=>{
+  if(!HTMLCanvasElement.prototype.captureStream)throw new Error('Este navegador no permite reducir la captura para WebRTC.');
+  const source=document.createElement('video');
+  source.muted=true;source.defaultMuted=true;source.autoplay=true;source.playsInline=true;
+  source.srcObject=display;
+  session.screenFallbackSource=source;
+  await source.play();
+  const settings=cameraTrack?.getSettings?.()||{};
+  const limitW=Math.min(960,Math.max(320,settings.width||640)),limitH=Math.min(540,Math.max(180,settings.height||360));
+  const canvas=document.createElement('canvas');canvas.width=limitW;canvas.height=limitH;
+  const context=canvas.getContext('2d',{alpha:false});
+  if(!context)throw new Error('El navegador no admite dibujar la pantalla capturada.');
+  const renderFrame=()=>{
+   if(privateDirectCallSession!==session||source.paused)return;
+   if(source.readyState>=2){
+    context.fillStyle='#070a13';
+    context.fillRect(0,0,canvas.width,canvas.height);
+    const naturalW=source.videoWidth||canvas.width,naturalH=source.videoHeight||canvas.height;
+    const factor=Math.min(canvas.width/naturalW,canvas.height/naturalH);
+    const width=Math.round(naturalW*factor),height=Math.round(naturalH*factor);
+    context.drawImage(source,Math.round((canvas.width-width)/2),Math.round((canvas.height-height)/2),width,height);
+   }
+   session.screenFallbackFrame=requestAnimationFrame(renderFrame);
+  };
+  renderFrame();
+  const stream=canvas.captureStream(15);
+  const track=stream.getVideoTracks()[0];
+  if(!track){releaseScreenFallback();throw new Error('No se pudo preparar una captura de pantalla compatible.');}
+  session.screenFallbackStream=stream;
+  return track;
+ };
  const stopPrivateScreenShare=async()=>{
   if(!sharingScreen)return;
   sharingScreen=false;
   const display=session.screenStream;session.screenStream=null;
   try{
    if(videoSender&&outgoingVideoTrack())await videoSender.replaceTrack(outgoingVideoTrack());
-  }catch(e){state.textContent='No se pudo restaurar la cámara: '+e.message;}
+  }catch(e){
+   try{await videoSender?.replaceTrack(null);}catch(_){}
+   screenStatus.textContent='⚠️ Se detuvo la pantalla, pero no se pudo restaurar la cámara ('+e.message+'). Cuelga y vuelve a llamar.';
+  }
+  releaseScreenFallback();
   localMedia.srcObject=localStream;
+  localMedia.play().catch(()=>{});
   localMedia.style.filter=filterValues[currentFilter]||'none';
   overlay.classList.remove('is-sharing-screen');
   screenShare.textContent='🖥️ Compartir pantalla';
+  if(!screenStatus.textContent.startsWith('⚠️'))screenStatus.textContent='Pantalla detenida. Puedes compartir de nuevo pulsando el botón.';
   display?.getTracks().forEach(track=>track.stop());
  };
  filterSelect.onchange=async()=>{
@@ -3476,22 +3529,60 @@ async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null
  };
  screenShare.onclick=async()=>{
   if(sharingScreen){await stopPrivateScreenShare();return;}
-  if(!navigator.mediaDevices?.getDisplayMedia){state.textContent='Este navegador no permite compartir pantalla.';return;}
+  if(!navigator.mediaDevices?.getDisplayMedia){
+   screenStatus.textContent='⚠️ Este navegador o dispositivo no permite compartir pantalla. Usa Chrome o Edge en un ordenador.';return;
+  }
+  if(!window.isSecureContext){
+   screenStatus.textContent='⚠️ Compartir pantalla requiere HTTPS. Abre la dirección segura de la web.';return;
+  }
+  if(pc.connectionState!=='connected'){
+   screenStatus.textContent='⚠️ Primero espera a que el otro miembro acepte y la videollamada muestre «Conexión establecida».';return;
+  }
+  if(!videoSender||!cameraTrack){
+   screenStatus.textContent='⚠️ No se encontró el canal de vídeo. Finaliza y vuelve a iniciar una videollamada.';return;
+  }
   screenShare.disabled=true;
+  screenStatus.textContent='Selecciona «Pantalla», «Ventana» o «Pestaña» en el diálogo y pulsa Compartir.';
   let display=null;
   try{
+   // Must be called synchronously inside the click handler; browser requires fresh user activation.
    display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
-   const track=display.getVideoTracks()[0];
-   if(!track||!videoSender)throw new Error('No hay pista de vídeo disponible para compartir.');
-   await videoSender.replaceTrack(track);
+   if(privateDirectCallSession!==session||pc.connectionState==='closed'){
+    display.getTracks().forEach(t=>t.stop());
+    return;
+   }
+   const sourceTrack=display.getVideoTracks()[0];
+   if(!sourceTrack||sourceTrack.readyState!=='live')throw new Error('No hay captura de pantalla activa. Vuelve a seleccionarla.');
+   let sentTrack=sourceTrack,reduced=false;
+   try{
+    await videoSender.replaceTrack(sentTrack);
+   }catch(replaceError){
+    if(!['InvalidModificationError','OperationError'].includes(replaceError.name))throw replaceError;
+    screenStatus.textContent='Ajustando la resolución de la pantalla para transmitirla…';
+    sentTrack=await prepareSmallerScreenTrack(display);
+    await videoSender.replaceTrack(sentTrack);
+    reduced=true;
+   }
    session.screenStream=display;sharingScreen=true;overlay.classList.add('is-sharing-screen');
-   localMedia.srcObject=new MediaStream([track]);localMedia.style.filter='none';
+   localMedia.srcObject=new MediaStream([sourceTrack]);localMedia.style.filter='none';
+   localMedia.play().catch(()=>{});
    screenShare.textContent='🛑 Dejar de compartir';
-   state.textContent='🖥️ Estás compartiendo pantalla. Puedes detenerla en cualquier momento.';
-   track.addEventListener('ended',()=>{if(privateDirectCallSession===session)stopPrivateScreenShare().catch(console.warn);},{once:true});
+   screenStatus.textContent='✅ Pantalla transmitiéndose al otro miembro'+(reduced?' (resolución adaptada)':'')+'. Pulsa «Dejar de compartir» para volver a la cámara.';
+   sourceTrack.addEventListener('ended',()=>{
+    if(privateDirectCallSession===session)stopPrivateScreenShare().catch(console.warn);
+   },{once:true});
   }catch(e){
    display?.getTracks().forEach(track=>track.stop());
-   state.textContent='No se pudo compartir pantalla: '+e.message;
+   releaseScreenFallback();
+   if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError')
+    screenStatus.textContent='⚠️ Se canceló o denegó el permiso. Pulsa Compartir pantalla otra vez y confirma la selección.';
+   else if(e.name==='InvalidStateError')
+    screenStatus.textContent='⚠️ El navegador necesita la pestaña activa. Vuelve a la videollamada, haz clic y comparte desde ahí.';
+   else if(e.name==='NotReadableError')
+    screenStatus.textContent='⚠️ El sistema no permite capturar esa pantalla. Cierra otras aplicaciones de captura y prueba con una ventana.';
+   else if(e.name==='InvalidModificationError')
+    screenStatus.textContent='⚠️ Tu dispositivo no permite cambiar la cámara por esa captura. Prueba compartiendo una ventana más pequeña.';
+   else screenStatus.textContent='⚠️ No se pudo compartir: '+(e.message||'error desconocido');
   }finally{screenShare.disabled=false;}
  };
  let call=incoming,seenIce=0,busy=false,closed=false;
