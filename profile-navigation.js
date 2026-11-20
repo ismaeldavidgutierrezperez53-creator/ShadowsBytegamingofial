@@ -287,7 +287,7 @@
     entries.sort((a,b)=>mode==='az'?compare(a,b):mode==='za'?compare(b,a):favorites.indexOf(a[1])-favorites.indexOf(b[1]));
     return {
      count:entries.length,
-     list:'⭐ Mis accesos favoritos — Shadows Byte Gaming Official V2\\n'+entries.map(([label,selector],i)=>(i+1)+'. '+label+(currentHidden.includes(selector)?' (oculto)':'')).join('\\n')
+     list:'⭐ Mis accesos favoritos — Shadows Byte Gaming Official V2\n'+entries.map(([label,selector],i)=>(i+1)+'. '+label+(currentHidden.includes(selector)?' (oculto)':'')).join('\n')
     };
    };
    const copyFavorites=node('button','sb-nav-copy-favorites','📋 Copiar mis accesos favoritos');
@@ -321,7 +321,7 @@
     const {list,count}=buildFavoriteList();
     if(!count)return;
     try{
-     const file=new Blob(['\\uFEFF',list],{type:'text/plain;charset=utf-8'});
+     const file=new Blob(['\uFEFF',list],{type:'text/plain;charset=utf-8'});
      const url=URL.createObjectURL(file);
      const link=node('a');
      link.href=url;
