@@ -64,6 +64,7 @@
     // Personalización exclusiva del propietario: la galería histórica no cambia.
     let editor=null,editorStatus=null,featuredList=null,availableList=null;
     let themePicker=null,themeGrid=null,themeStatus=null;
+    let motionBox=null,motionButton=null,motionStatus=null;
     const themeButtons=new Map();
     if(isOwner){
       editor=el('section','sbpm-editor');
@@ -99,12 +100,27 @@
       themeStatus.setAttribute('role','status');
       themeStatus.setAttribute('aria-live','polite');
       themePicker.append(themeGrid,themeStatus);
+      motionBox=el('section','sbpm-motion-setting');
+      motionBox.setAttribute('aria-label','Control de animaciones de medallas');
+      motionBox.append(el('h4','','✨ Efectos especiales de mis medallas'));
+      motionBox.append(el('p','sbpm-motion-intro',
+        'Bronce: destellos · Plata: partículas · Oro: aura dorada · Diamante: cristales brillantes.'));
+      motionButton=el('button','outline-btn sbpm-motion-toggle','✨ Animaciones activadas · Desactivar');
+      motionButton.type='button';
+      motionButton.setAttribute('aria-pressed','true');
+      motionButton.setAttribute('aria-label','Desactivar efectos animados de las medallas');
+      motionButton.addEventListener('click',()=>saveMotion(!motionEnabled));
+      motionStatus=el('p','sbpm-motion-status',
+        'El ajuste se guarda en tu cuenta. El movimiento reducido del dispositivo siempre tiene prioridad.');
+      motionStatus.setAttribute('role','status');
+      motionStatus.setAttribute('aria-live','polite');
+      motionBox.append(motionButton,motionStatus);
       editorStatus=el('p','sbpm-editor-status','Cargando medallas favoritas…');
       editorStatus.setAttribute('role','status');
       editorStatus.setAttribute('aria-live','polite');
       featuredList=el('div','sbpm-featured-list');
       availableList=el('div','sbpm-available-list');
-      editor.append(themePicker,editorStatus,el('h4','','⭐ Destacadas en mi perfil'),featuredList,
+      editor.append(themePicker,motionBox,editorStatus,el('h4','','⭐ Destacadas en mi perfil'),featuredList,
         el('h4','','🏅 Medallas disponibles'),availableList);
     }
     panel.append(h2,intro,toolbar,status,summary);
@@ -117,6 +133,9 @@
 
     let last=0,busy=false,memberId=null,unlocked=[],selectedIds=[],selectedRecords=[];
     let themeKey='neon',themeBusy=false;
+    let motionEnabled=true,motionBusy=false;
+    const reducedMotion=()=>typeof window.matchMedia==='function'&&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const active=()=>root.isConnected&&panel.isConnected&&
       location.hash.split('?')[0]===(isOwner?'#/cuenta':'#/perfil');
 
@@ -130,6 +149,56 @@
           button.setAttribute('aria-pressed',String(key===themeKey));
           button.disabled=themeBusy;
         }
+      }
+    }
+
+    function applyMotion(){
+      const motionClass=motionEnabled?'sbpm-motion-on':'sbpm-motion-off';
+      for(const node of [strip,panel]){
+        node.className=node.className
+          .replace(/\s?sbpm-motion-(?:on|off)/g,'')+' '+motionClass;
+      }
+      if(isOwner){
+        motionButton.setAttribute('aria-pressed',String(motionEnabled));
+        motionButton.setAttribute('aria-label',motionEnabled
+          ?'Desactivar efectos animados de las medallas'
+          :'Activar efectos animados de las medallas');
+        motionButton.textContent=motionEnabled
+          ?'✨ Animaciones activadas · Desactivar'
+          :'⏸️ Animaciones desactivadas · Activar';
+        motionButton.disabled=motionBusy;
+      }
+    }
+
+    async function saveMotion(nextEnabled){
+      if(!isOwner||motionBusy||!memberId||!active()||typeof nextEnabled!=='boolean')return;
+      if(motionEnabled===nextEnabled)return;
+      const oldEnabled=motionEnabled;
+      motionBusy=true;
+      motionEnabled=nextEnabled;
+      applyMotion();
+      motionStatus.textContent='Guardando preferencia de animaciones…';
+      try{
+        if(typeof sb==='undefined'||!sb?.auth||!sb?.rpc)throw Error('Supabase no disponible');
+        const session=await sb.auth.getUser();
+        if(session.error||session.data?.user?.id!==memberId)
+          throw Error('La sesión ha cambiado. Inicia sesión de nuevo.');
+        const {data,error}=await sb.rpc('set_my_point_goal_showcase_motion',{p_enabled:nextEnabled});
+        if(error||!data?.saved||data.enabled!==nextEnabled)
+          throw error||Error('No se pudo confirmar el cambio de efectos.');
+        if(active()){
+          motionStatus.textContent=(motionEnabled
+            ?'✅ Efectos animados activados y guardados.'
+            :'✅ Efectos animados desactivados y guardados.')+
+            (reducedMotion()?' El dispositivo mantiene el movimiento reducido.':'');
+        }
+      }catch(error){
+        motionEnabled=oldEnabled;
+        if(active())motionStatus.textContent='No se pudo guardar el ajuste: '+
+          String(error.message||'Error desconocido')+'. Se ha restaurado la preferencia anterior.';
+      }finally{
+        motionBusy=false;
+        if(active())applyMotion();
       }
     }
 
@@ -338,7 +407,7 @@
     }
 
     async function load(){
-      if(busy||themeBusy)return;
+      if(busy||themeBusy||motionBusy)return;
       const ticket=++last;
       if(isOwner)refresh.disabled=true;
       status.textContent='Consultando medallas…';
@@ -353,15 +422,17 @@
           targetMember=new URLSearchParams(location.hash.split('?')[1]||'').get('id');
           if(!uuid.test(String(targetMember)))throw Error('Perfil no disponible');
         }
-        const [medalResponse,showcaseResponse,styleResponse]=await Promise.all([
+        const [medalResponse,showcaseResponse,styleResponse,motionResponse]=await Promise.all([
           sb.rpc('get_member_point_goal_medals',{target_member:targetMember}),
           sb.rpc('get_member_point_goal_showcase',{target_member:targetMember}),
-          sb.rpc('get_member_point_goal_showcase_style',{target_member:targetMember})
+          sb.rpc('get_member_point_goal_showcase_style',{target_member:targetMember}),
+          sb.rpc('get_member_point_goal_showcase_motion',{target_member:targetMember})
         ]);
         if(ticket!==last||!active())return;
         if(medalResponse.error)throw medalResponse.error;
         if(showcaseResponse.error)throw showcaseResponse.error;
         if(styleResponse.error)throw styleResponse.error;
+        if(motionResponse.error)throw motionResponse.error;
         if(!Array.isArray(medalResponse.data)||!Array.isArray(showcaseResponse.data))
           throw Error('Los datos de las medallas están incompletos.');
         if(styleResponse.data!==null&&!themes[styleResponse.data])
@@ -369,6 +440,15 @@
         themeKey=themes[styleResponse.data]?styleResponse.data:'neon';
         applyTheme();
         if(isOwner)themeStatus.textContent='Estilo actual: '+themes[themeKey].icon+' '+themes[themeKey].label+'.';
+        if(motionResponse.data!==null&&typeof motionResponse.data!=='boolean')
+          throw Error('La preferencia de animación no es válida.');
+        motionEnabled=motionResponse.data===true;
+        applyMotion();
+        if(isOwner)motionStatus.textContent=(motionEnabled
+          ?'Animaciones activadas.'
+          :'Animaciones desactivadas.')+
+          (reducedMotion()?' Tu dispositivo ha solicitado reducir el movimiento; no se reproducirán animaciones.':
+            ' Puedes cambiar este ajuste cuando quieras.');
         memberId=targetMember;
         unlocked=medalResponse.data.filter(valid).slice(0,50);
         selectedRecords=showcaseResponse.data.filter(valid).slice(0,3);
