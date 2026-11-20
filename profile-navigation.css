@@ -213,3 +213,10 @@
 .sb-nav-download-csv:disabled{opacity:.45;cursor:default}
 .sb-nav-download-csv:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-download-csv{width:100%}}
+
+/* Exportar en CSV todos los accesos disponibles, favoritos y ocultos */
+.sb-nav-download-all-csv{min-height:42px;padding:9px 13px;border:1px solid #b8a6d2;border-radius:10px;background:#3d3156;color:#f4ebff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-download-all-csv:hover:not(:disabled){background:#594476}
+.sb-nav-download-all-csv:disabled{opacity:.45;cursor:default}
+.sb-nav-download-all-csv:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-download-all-csv{width:100%}}
