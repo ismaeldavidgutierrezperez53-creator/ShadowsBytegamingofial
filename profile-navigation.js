@@ -694,7 +694,11 @@
    const nextResult=node('button','sb-nav-select-next','↓ Siguiente');
    previousResult.type='button';
    nextResult.type='button';
-   selectionNav.append(previousResult,nextResult);
+   const openSelected=node('button','sb-nav-open-selected','↗ Abrir seleccionado');
+   openSelected.type='button';
+   openSelected.disabled=true;
+   openSelected.title='Abre la sección que has seleccionado con las flechas o los botones';
+   selectionNav.append(previousResult,nextResult,openSelected);
    let selectedShortcut=null;
    const matchingShortcuts=()=>[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector);
    const markShortcut=selector=>{
@@ -707,6 +711,7 @@
     const disabled=matches.length===0;
     if(previousResult.disabled!==disabled)previousResult.disabled=disabled;
     if(nextResult.disabled!==disabled)nextResult.disabled=disabled;
+    if(openSelected.disabled!==!selected)openSelected.disabled=!selected;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const highlighted=item===selected;
      if(item.classList.contains('sb-nav-keyboard-selected')!==highlighted)item.classList.toggle('sb-nav-keyboard-selected',highlighted);
@@ -725,6 +730,11 @@
    };
    previousResult.addEventListener('click',()=>chooseResult(-1));
    nextResult.addEventListener('click',()=>chooseResult(1));
+   openSelected.addEventListener('click',()=>{
+    const item=matchingShortcuts().find(row=>row.dataset.shortcutSelector===selectedShortcut);
+    const button=item?.querySelector('.sb-nav-link');
+    if(button)button.click();
+   });
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -769,6 +779,8 @@
     const navigationDisabled=visible===0;
     if(previousResult.disabled!==navigationDisabled)previousResult.disabled=navigationDisabled;
     if(nextResult.disabled!==navigationDisabled)nextResult.disabled=navigationDisabled;
+    if(openSelected.disabled!==!(selectedShortcut&&matchingShortcuts().some(item=>item.dataset.shortcutSelector===selectedShortcut)))
+     openSelected.disabled=!(selectedShortcut&&matchingShortcuts().some(item=>item.dataset.shortcutSelector===selectedShortcut));
     if(selectedShortcut){
      const matches=matchingShortcuts();
      if(!matches.some(item=>item.dataset.shortcutSelector===selectedShortcut))markShortcut(null);
