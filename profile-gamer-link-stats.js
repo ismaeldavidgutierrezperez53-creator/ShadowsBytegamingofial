@@ -172,7 +172,7 @@
       cleanup.disconnect();
     }
   });
-  cleanup.observe(host.parentElement||host,{childList:true,subtree:true});
+  cleanup.observe(document.getElementById('app'),{childList:true,subtree:true});
   load();
  }
  let scheduled=false;
