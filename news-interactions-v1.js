@@ -83,7 +83,6 @@
         if(!profileError)(profiles||[]).forEach(p=>names.set(p.id,String(p.display_name||p.username||'Miembro')));
       }
       if(!current(articleId))return;
-      setStatus('sb-news-comments-total',(comments||[]).length+(comments||[]).length===1?'':'');
       const total=document.getElementById('sb-news-comments-total');
       if(total)total.textContent=(comments||[]).length+' comentario'+((comments||[]).length===1?'':'s')+((comments||[]).length===50?' (mostrando los últimos 50)':'');
       if(!comments?.length){host.innerHTML='<p class="sb-news-no-comments">Todavía no hay comentarios. ¡Sé el primero!</p>';return;}
