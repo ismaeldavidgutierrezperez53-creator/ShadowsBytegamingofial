@@ -57,6 +57,29 @@
    const resultCount=node('p','sb-nav-search-count');
    resultCount.setAttribute('role','status');
    searchBox.append(search,clear,onlyFavorites);
+   const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
+   let chosenLayout='grid';
+   try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
+   nav.dataset.layout=chosenLayout;
+   const layoutBar=node('div','sb-nav-layout-bar');
+   layoutBar.setAttribute('role','group');
+   layoutBar.setAttribute('aria-label','Presentación de los accesos del perfil');
+   layoutBar.append(node('span','sb-nav-layout-label','Vista de accesos:'));
+   const layoutButtons=[];
+   for(const [mode,label] of [['grid','▦ Cuadrícula'],['list','☰ Lista']]){
+    const button=node('button','sb-nav-layout-btn',label);
+    button.type='button';
+    button.dataset.mode=mode;
+    button.setAttribute('aria-pressed',String(chosenLayout===mode));
+    button.onclick=()=>{
+     if(nav.dataset.layout===mode)return;
+     nav.dataset.layout=mode;
+     try{localStorage.setItem(layoutKey,mode)}catch(_){}
+     for(const b of layoutButtons)b.setAttribute('aria-pressed',String(b.dataset.mode===mode));
+    };
+    layoutButtons.push(button);
+    layoutBar.append(button);
+   }
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -80,7 +103,7 @@
    };
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
-   details.append(summary,searchBox,resultCount,controls);
+   details.append(summary,searchBox,layoutBar,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
