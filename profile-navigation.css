@@ -234,3 +234,10 @@
 .sb-nav-copy-filtered:disabled{opacity:.45;cursor:default}
 .sb-nav-copy-filtered:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-copy-filtered{width:100%}}
+
+/* Descargar en TXT únicamente los resultados filtrados */
+.sb-nav-download-filtered-txt{min-height:42px;padding:9px 13px;border:1px solid #8aa8cf;border-radius:10px;background:#2d3e5d;color:#edf4ff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-download-filtered-txt:hover:not(:disabled){background:#425b80}
+.sb-nav-download-filtered-txt:disabled{opacity:.45;cursor:default}
+.sb-nav-download-filtered-txt:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-download-filtered-txt{width:100%}}
