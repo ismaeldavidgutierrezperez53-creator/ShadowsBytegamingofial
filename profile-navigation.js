@@ -67,7 +67,7 @@
     try{localStorage.setItem(detailsOpenKey,String(details.open))}catch(_){}
    });
    const summary=node('summary','sb-nav-summary','Ver accesos rápidos');
-   const filterStatus=node('p','sb-nav-active-filters');
+   const filterStatus=node('div','sb-nav-active-filters');
    filterStatus.setAttribute('role','status');
    filterStatus.setAttribute('aria-live','polite');
    const searchBox=node('div','sb-nav-searchbox');
@@ -746,15 +746,27 @@
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const activeLabels=[];
-    if(query)activeLabels.push('🔎 «'+search.value.trim().slice(0,60)+'»');
-    if(enabled)activeLabels.push('⭐ Solo favoritos');
-    if(unstarredOnly)activeLabels.push('☆ Sin favoritos');
-    if(hiddenOnly)activeLabels.push('🙈 Solo ocultos');
-    if(visibleOnly)activeLabels.push('👁️ Solo visibles');
-    if(nav.dataset.sortMode==='az')activeLabels.push('🔤 A → Z');
-    if(nav.dataset.sortMode==='za')activeLabels.push('🔤 Z → A');
-    const filterText=activeLabels.length?'Filtros activos ('+activeLabels.length+'): '+activeLabels.join(' · '):'Sin filtros activos · Orden: favoritos primero';
-    if(filterStatus.textContent!==filterText)filterStatus.textContent=filterText;
+    if(query)activeLabels.push(['search','🔎 «'+search.value.trim().slice(0,60)+'»']);
+    if(enabled)activeLabels.push(['favorites','⭐ Solo favoritos']);
+    if(unstarredOnly)activeLabels.push(['unstarred','☆ Sin favoritos']);
+    if(hiddenOnly)activeLabels.push(['hidden','🙈 Solo ocultos']);
+    if(visibleOnly)activeLabels.push(['visible','👁️ Solo visibles']);
+    if(nav.dataset.sortMode==='az')activeLabels.push(['sort','🔤 A → Z']);
+    if(nav.dataset.sortMode==='za')activeLabels.push(['sort','🔤 Z → A']);
+    const filterSignature=JSON.stringify(activeLabels);
+    if(filterStatus.dataset.signature!==filterSignature){
+     filterStatus.dataset.signature=filterSignature;
+     const heading=node('span','sb-nav-active-filter-heading',activeLabels.length?'Filtros activos ('+activeLabels.length+'):':'Sin filtros activos · Orden: favoritos primero');
+     filterStatus.replaceChildren(heading);
+     for(const [type,label] of activeLabels){
+      const chip=node('button','sb-nav-active-filter-chip',label+'  ×');
+      chip.type='button';
+      chip.dataset.filterType=type;
+      chip.setAttribute('aria-label','Quitar filtro: '+label);
+      chip.title='Quitar solo este filtro';
+      filterStatus.append(chip);
+     }
+    }
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||visibleOnly||nav.dataset.sortMode!=='favorites';
     if(resetFilters.disabled===hasActiveFilters)resetFilters.disabled=!hasActiveFilters;
     // Escribir solo cuando cambia un filtro: evita bucles con MutationObserver.
@@ -767,6 +779,37 @@
      if(localStorage.getItem(searchFiltersKey)!==savedFilters)localStorage.setItem(searchFiltersKey,savedFilters);
     }catch(_){}
    };
+   filterStatus.addEventListener('click',event=>{
+    const chip=event.target.closest?.('.sb-nav-active-filter-chip');
+    if(!chip||!filterStatus.contains(chip))return;
+    const type=chip.dataset.filterType;
+    if(type==='search')search.value='';
+    else if(type==='favorites')nav.dataset.onlyFavorites='false';
+    else if(type==='unstarred')nav.dataset.onlyUnstarred='false';
+    else if(type==='hidden'&&nav.dataset.onlyHidden==='true'){
+     nav.dataset.onlyHidden='false';
+     nav.dataset.showHidden=nav.dataset.hiddenFilterPriorVisibility==='yes'?'yes':'no';
+     delete nav.dataset.hiddenFilterPriorVisibility;
+     links.dataset.signature='';
+     enhance(host,isOwn);
+     return;
+    }else if(type==='visible'&&nav.dataset.onlyVisible==='true'){
+     nav.dataset.onlyVisible='false';
+     nav.dataset.showHidden=nav.dataset.visibleFilterPriorVisibility==='yes'?'yes':'no';
+     delete nav.dataset.visibleFilterPriorVisibility;
+     links.dataset.signature='';
+     enhance(host,isOwn);
+     return;
+    }else if(type==='sort'){
+     nav.dataset.sortMode='favorites';
+     sortSelect.value='favorites';
+     try{localStorage.setItem(sortKey,'favorites')}catch(_){}
+     links.dataset.signature='';
+     enhance(host,isOwn);
+     return;
+    }
+    applyFilter();
+   });
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
    details.append(summary,searchBox,filterStatus,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
