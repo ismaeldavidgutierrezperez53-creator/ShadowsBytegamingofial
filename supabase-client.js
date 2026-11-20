@@ -3255,6 +3255,7 @@ async function initGroupChats(userId,root){
 // Private drafts are held only in this tab's memory, never uploaded or saved in storage.
 const privateChatDrafts=new Map();
 let privateConversationListFilter='';
+let privateChatActivityInterval=null;
 
 function createPrivateVoicePlayer(label='Mensaje de voz'){
  const root=document.createElement('div');root.className='private-voice-player';root.setAttribute('role','group');root.setAttribute('aria-label',label);
@@ -3333,6 +3334,7 @@ function createPrivateVoicePlayer(label='Mensaje de voz'){
 }
 
 async function loadPrivateMessages(){
+ if(privateChatActivityInterval){clearInterval(privateChatActivityInterval);privateChatActivityInterval=null;}
  const root=document.getElementById('private-messages');if(!root)return;
  const {data:{user},error:authError}=await sb.auth.getUser();
  if(!root.isConnected)return;root.replaceChildren();
@@ -3375,6 +3377,34 @@ async function loadPrivateMessages(){
  sidebarSearch.value=privateConversationListFilter;
  const sidebarSearchResult=document.createElement('small');sidebarSearchResult.className='private-chat-sidebar-result';
  sidebar.append(sidebarSearch,sidebarSearchResult);
+ const shareStatusLabel=document.createElement('label');shareStatusLabel.className='private-chat-share-status';
+ const shareStatusBox=document.createElement('input');shareStatusBox.type='checkbox';shareStatusBox.disabled=true;shareStatusBox.setAttribute('aria-label','Compartir mi estado de actividad en Mensajes');
+ const shareStatusText=document.createElement('span');shareStatusText.textContent='🟢 Compartir mi estado en Mensajes';
+ shareStatusLabel.append(shareStatusBox,shareStatusText);
+ const shareStatusInfo=document.createElement('small');shareStatusInfo.className='private-chat-sharing-info';
+ shareStatusInfo.textContent='Tu actividad está oculta hasta que lo actives.';
+ sidebar.append(shareStatusLabel,shareStatusInfo);
+ const updateMyChatActivity=async()=>{
+  if(!root.isConnected||!location.hash.startsWith('#/mensajes')||!shareStatusBox.checked||document.visibilityState!=='visible')return;
+  const {error}=await sb.from('member_private_chat_activity').upsert({user_id:me,share_status:true},{onConflict:'user_id'});
+  if(error)console.warn('Estado del chat:',error.message);
+ };
+ shareStatusBox.onchange=async()=>{
+  const enabled=shareStatusBox.checked;shareStatusBox.disabled=true;
+  const {error}=await sb.from('member_private_chat_activity').upsert({user_id:me,share_status:enabled},{onConflict:'user_id'});
+  if(error){shareStatusBox.checked=!enabled;shareStatusInfo.textContent='No se pudo cambiar la privacidad: '+error.message;}
+  else shareStatusInfo.textContent=enabled?'Compartido solo con miembros con conversación · actualizado mientras usas Mensajes.':'Tu última conexión en Mensajes está oculta.';
+  shareStatusBox.disabled=false;
+ };
+ const loadMyChatActivity=async()=>{
+  const {data,error}=await sb.from('member_private_chat_activity').select('share_status').eq('user_id',me).maybeSingle();
+  if(!sidebar.isConnected)return;
+  shareStatusBox.disabled=false;
+  if(error){shareStatusInfo.textContent='No se pudo consultar tu preferencia de privacidad.';return;}
+  shareStatusBox.checked=data?.share_status===true;
+  shareStatusInfo.textContent=shareStatusBox.checked?'Estado compartido con miembros con conversación.':'Estado privado. Actívalo para compartir tu última actividad.';
+  updateMyChatActivity().catch(console.warn);
+ };
  const archiveToggle=document.createElement('button');archiveToggle.type='button';archiveToggle.className='private-chat-archive-toggle';
  const archiveList=document.createElement('div');archiveList.className='private-chat-archive-list';archiveList.hidden=true;
  const archivedPartners=partners.filter(id=>archivedIds.has(id));
@@ -3442,10 +3472,46 @@ async function loadPrivateMessages(){
  filterConversationList();
  const panel=document.createElement('section');panel.className='messages-panel';
  let unreadPartnerToMark=null;
+ let loadChatTheme=null,refreshPartnerActivity=null;
  if(!active){panel.textContent='Selecciona un miembro desde su perfil para comenzar.';}
  else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
  else {
   const heading=document.createElement('h2');heading.textContent=names.get(active)||'Miembro';
+  const chatHeader=document.createElement('header');chatHeader.className='private-chat-personal-header';
+  const headingText=document.createElement('div');headingText.className='private-chat-heading-text';
+  const activityStatus=document.createElement('small');activityStatus.className='private-chat-connection-status';activityStatus.textContent='⚪ Estado privado';activityStatus.setAttribute('role','status');
+  headingText.append(heading,activityStatus);
+  const themeLabel=document.createElement('label');themeLabel.className='private-chat-theme-picker';themeLabel.textContent='🎨 Tema del chat';
+  const themeSelect=document.createElement('select');themeSelect.setAttribute('aria-label','Tema anime de esta conversación');
+  for(const [value,label] of [['default','🌙 Clásico'],['sakura','🌸 Sakura'],['neon','💜 Cyber neón'],['galaxy','🌌 Galaxia'],['sunset','🌅 Atardecer anime']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;themeSelect.append(option);
+  }
+  themeLabel.append(themeSelect);chatHeader.append(headingText,themeLabel);
+  const chatThemeClasses=['private-chat-theme-sakura','private-chat-theme-neon','private-chat-theme-galaxy','private-chat-theme-sunset'];
+  const applyChatTheme=value=>{panel.classList.remove(...chatThemeClasses);if(value!=='default')panel.classList.add('private-chat-theme-'+value);};
+  let themeTouched=false;
+  themeSelect.onchange=async()=>{
+   themeTouched=true;
+   const chosen=themeSelect.value;applyChatTheme(chosen);
+   const {error}=await sb.from('member_private_chat_themes').upsert({user_id:me,partner_id:active,theme:chosen},{onConflict:'user_id,partner_id'});
+   if(error){console.warn('Tema de chat:',error.message);alert('No se pudo guardar el tema: '+error.message);}
+  };
+  loadChatTheme=async()=>{
+   const {data,error}=await sb.from('member_private_chat_themes').select('theme').eq('user_id',me).eq('partner_id',active).maybeSingle();
+   if(error){console.warn('Tema de chat:',error.message);return;}
+   if(!panel.isConnected||themeTouched)return;
+   themeSelect.value=data?.theme||'default';applyChatTheme(themeSelect.value);
+  };
+  refreshPartnerActivity=async()=>{
+   if(!panel.isConnected)return;
+   const {data,error}=await sb.from('member_private_chat_activity').select('last_active_at').eq('user_id',active).maybeSingle();
+   if(!panel.isConnected)return;
+   if(error){activityStatus.textContent='⚪ Actividad no disponible';return;}
+   if(!data?.last_active_at){activityStatus.textContent='⚪ Estado privado';activityStatus.classList.remove('is-online');return;}
+   const last=new Date(data.last_active_at),age=Date.now()-last.getTime();
+   if(age>=0&&age<90000){activityStatus.textContent='🟢 Conectado a Mensajes';activityStatus.classList.add('is-online');}
+   else{activityStatus.classList.remove('is-online');activityStatus.textContent='⚪ Última actividad en Mensajes: '+last.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
+  };
   const blockControls=document.createElement('div');blockControls.className='member-block-controls';
   const blockButton=document.createElement('button');blockButton.type='button';blockButton.className='private-chat-archive-action';
   const currentlyBlocked=blockedByMe.has(active);
@@ -3459,7 +3525,7 @@ async function loadPrivateMessages(){
   };
   blockControls.append(blockButton);
   if(currentlyBlocked||blockedMe.has(active)){const notice=document.createElement('p');notice.textContent='🚫 No se pueden enviar mensajes privados mientras exista un bloqueo.';blockControls.append(notice);}
-  panel.append(blockControls);
+  panel.append(chatHeader,blockControls);
   const searchWrap=document.createElement('div');searchWrap.className='private-chat-search';
   const searchInput=document.createElement('input');searchInput.type='search';searchInput.placeholder='🔎 Buscar mensajes en esta conversación…';searchInput.setAttribute('aria-label','Buscar mensajes en esta conversación');
   const searchClear=document.createElement('button');searchClear.type='button';searchClear.textContent='Limpiar';searchClear.hidden=true;
@@ -3606,7 +3672,7 @@ async function loadPrivateMessages(){
    jumpButton.onclick=()=>{searchInput.value='';filterMessages();const target=history.querySelector('[data-message-id="'+pinnedMessage.id+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('private-chat-highlight');setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);}};
    pinnedPanel.append(jumpButton);
   }
-  panel.append(heading,pinnedPanel,searchWrap,history,typingIndicator);
+  panel.append(pinnedPanel,searchWrap,history,typingIndicator);
   subscribePrivateTyping(me,active,typingIndicator);
   if(publicIds.has(active)&&!blockedByMe.has(active)&&!blockedMe.has(active)){
    const form=document.createElement('form');form.className='social-form messages-compose';
@@ -3706,6 +3772,18 @@ async function loadPrivateMessages(){
   }else{const p=document.createElement('p');p.textContent='Este miembro ya no tiene un perfil público; no puedes enviarle nuevos mensajes.';panel.append(p);}
  }
  wrapper.append(sidebar,panel);root.append(wrapper);
+ loadMyChatActivity().catch(console.warn);
+ loadChatTheme?.().catch(console.warn);
+ refreshPartnerActivity?.().catch(console.warn);
+ privateChatActivityInterval=setInterval(()=>{
+  if(!root.isConnected||!location.hash.startsWith('#/mensajes')){
+   if(privateChatActivityInterval){clearInterval(privateChatActivityInterval);privateChatActivityInterval=null;}
+   return;
+  }
+  if(document.visibilityState!=='visible')return;
+  updateMyChatActivity().catch(console.warn);
+  refreshPartnerActivity?.().catch(console.warn);
+ },30000);
  if(unreadPartnerToMark&&document.visibilityState==='visible'){
   sb.from('member_direct_messages').update({is_read:true})
    .eq('recipient_id',me).eq('sender_id',unreadPartnerToMark).eq('is_read',false).is('deleted_at',null)
