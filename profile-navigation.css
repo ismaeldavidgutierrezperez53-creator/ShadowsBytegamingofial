@@ -284,3 +284,11 @@
 /* Resumen de búsqueda, filtros y orden seleccionados */
 .sb-nav-active-filters{margin:4px 12px 9px;padding:9px 12px;border:1px solid #67548c;border-radius:10px;background:#241b37;color:#e8def8;font:600 14px/1.5 Rajdhani,Arial,sans-serif;overflow-wrap:anywhere}
 @media(max-width:550px){.sb-nav-active-filters{font-size:13px}}
+
+/* Etiquetas interactivas para quitar un único filtro sin reiniciar los demás */
+.sb-nav-active-filters{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.sb-nav-active-filter-heading{margin-right:3px}
+.sb-nav-active-filter-chip{min-height:34px;padding:6px 10px;border:1px solid #aa86cd;border-radius:999px;background:#3b2a52;color:#fff;font:700 13px Rajdhani,Arial,sans-serif;cursor:pointer;overflow-wrap:anywhere}
+.sb-nav-active-filter-chip:hover{background:#583b76}
+.sb-nav-active-filter-chip:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-active-filter-chip{max-width:100%;text-align:left}}
