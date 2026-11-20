@@ -149,6 +149,7 @@
     const piece=create('span','sbpg-confetti-piece sbpg-medal-piece',
       effect.symbols[i%effect.symbols.length]);
     const angle=i*Math.PI/9;
+    piece.style.setProperty('--start-x',String(9+(i*29)%82)+'%');
     piece.style.setProperty('--dx',Math.round(Math.cos(angle)*(85+i%4*16))+'px');
     piece.style.setProperty('--dy',Math.round(Math.sin(angle)*(68+i%3*15))+'px');
     piece.style.setProperty('--delay',String(i%6*85)+'ms');
