@@ -4157,6 +4157,21 @@ function syncReportLiveAlerts(userId){
   if(document.getElementById('account-report-history'))loadAccountReportHistory(userId);
  }).subscribe();
 }
+async function notifyPrivateConversationEvent(userId,partnerId,kind='message'){
+ if(!userId||!partnerId||userId===partnerId)return;
+ if(isNotificationQuietNow()||document.visibilityState!=='visible')return;
+ const {data,error}=await sb.from('member_private_chat_notifications')
+  .select('muted,popup_enabled,sound').eq('user_id',userId).eq('partner_id',partnerId).maybeSingle();
+ if(error)console.warn('Preferencias de conversación:',error.message);
+ if(data?.muted)return;
+ const sound=data?.sound||((kind==='gift')?activeToastPreferences.gift_sound:activeToastPreferences.message_sound);
+ if(activeToastPreferences.sound_enabled&&sound!=='off')playNotificationSound(sound);
+ if(!liveAlertPreferences.notify_private_messages||!activeToastPreferences.popup_enabled||data?.popup_enabled===false)return;
+ const href='#/mensajes?id='+encodeURIComponent(partnerId);
+ if(kind==='call')showMemberLiveAlert('📞 Tienes una llamada individual entrante. Pulsa Ver para aceptar o rechazar.',href);
+ else if(kind==='gift')showMemberLiveAlert('🎁 ¡Has recibido un regalo anime en tu chat!',href);
+ else showMemberLiveAlert('💬 Has recibido un mensaje privado.',href);
+}
 let privateMessageRealtimeChannel=null;
 let privateMessageRealtimeUserId=null;
 function syncPrivateMessageRealtime(userId){
@@ -4165,10 +4180,9 @@ function syncPrivateMessageRealtime(userId){
  privateMessageRealtimeUserId=userId||null;
  if(!userId)return;
  privateMessageRealtimeChannel=sb.channel('direct-message-alerts-'+userId)
-  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},()=>{
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+userId},payload=>{
    refreshPrivateMessageBadge(userId);refreshNotificationBadge(userId);
-   if(!isNotificationQuietNow()&&activeToastPreferences.sound_enabled)playNotificationSound(activeToastPreferences.message_sound);
-   if(liveAlertPreferences.notify_private_messages)showMemberLiveAlert('💬 Has recibido un mensaje privado.','#/mensajes');
+   notifyPrivateConversationEvent(userId,payload.new?.sender_id,'message').catch(console.warn);
    refreshLivePrivateConversation();
   })
   .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_direct_messages',filter:'sender_id=eq.'+userId},()=>{
@@ -4182,6 +4196,20 @@ function syncPrivateMessageRealtime(userId){
   })
   .on('postgres_changes',{event:'*',schema:'public',table:'member_message_reactions'},()=>{
    if(document.getElementById('private-messages'))refreshLivePrivateConversation();
+  })
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_private_chat_gifts',filter:'recipient_id=eq.'+userId},payload=>{
+   notifyPrivateConversationEvent(userId,payload.new?.sender_id,'gift').catch(console.warn);
+   refreshLivePrivateConversation();
+  })
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_private_chat_gifts',filter:'sender_id=eq.'+userId},()=>{
+   refreshLivePrivateConversation();
+  })
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'member_private_calls',filter:'callee_id=eq.'+userId},payload=>{
+   notifyPrivateConversationEvent(userId,payload.new?.caller_id,'call').catch(console.warn);
+   refreshLivePrivateConversation();
+  })
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_private_calls',filter:'callee_id=eq.'+userId},()=>{
+   refreshLivePrivateConversation();
   }).subscribe();
 }
 async function refreshPrivateMessageBadge(userId){
