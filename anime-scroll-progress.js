@@ -37,6 +37,22 @@
       white-space: nowrap;
       pointer-events: none;
     }
+    #sb-anime-scroll-progress.is-complete #sb-anime-scroll-progress-percentage {
+      border-color: #ffe5a2;
+      background: linear-gradient(135deg, #3a1a58, #54366b);
+      animation: sb-anime-progress-complete .8s ease-out 1;
+    }
+    #sb-anime-scroll-progress.is-complete #sb-anime-scroll-progress-percentage::after {
+      content: ' ✦';
+      color: #ffeaa8;
+    }
+    #sb-anime-scroll-progress.is-complete #sb-anime-scroll-progress-fill {
+      filter: brightness(1.25);
+    }
+    @keyframes sb-anime-progress-complete {
+      0%, 100% { box-shadow: 0 0 10px var(--sb-user-glow, #ba6bff66); }
+      45% { box-shadow: 0 0 24px #ffe5a2, 0 0 14px var(--sb-user-neon, #ba6bff); }
+    }
     #sb-anime-scroll-progress-fill {
       display: block;
       width: 100%;
@@ -65,8 +81,10 @@
     }
     @media (prefers-reduced-motion: reduce) {
       #sb-anime-scroll-progress-fill { will-change: auto; }
+      #sb-anime-scroll-progress-percentage { animation: none !important; }
     }
     html[data-sb-motion="off"] #sb-anime-scroll-progress-fill { will-change: auto; }
+    html[data-sb-motion="off"] #sb-anime-scroll-progress-percentage { animation: none !important; }
   `;
   document.head.appendChild(style);
 
@@ -107,6 +125,7 @@
     const percent = Math.round(progress * 100);
     percentage.textContent = percent + ' %';
     track.setAttribute('aria-valuenow', String(percent));
+    track.classList.toggle('is-complete', scrollable > 0 && progress >= 0.999);
   };
   const scheduleUpdate = () => {
     if (scheduled) return;
