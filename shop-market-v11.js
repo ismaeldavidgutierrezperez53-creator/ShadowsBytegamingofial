@@ -107,7 +107,7 @@
    }
    card.append(status);grid.append(card);
   }
-  p.append(grid);p.append(node('small','shop-v11-footnote','La liquidación se realiza de forma segura cuando alguien pulsa «Liquidar resultado» tras vencer la subasta. Las pujas no ganadoras se reintegran.'));return p;
+  p.append(grid);p.append(node('small','shop-v11-footnote','Las subastas vencidas se liquidan automáticamente aproximadamente cada 2 minutos; también puedes usar «Liquidar resultado». Las pujas superadas se devuelven al instante.'));return p;
  }
  function tradePanel(host,user,items,owned,trades,auctions,alive){
   const p=panel('shop-v11-trades','🔄 Intercambios de recompensas',
