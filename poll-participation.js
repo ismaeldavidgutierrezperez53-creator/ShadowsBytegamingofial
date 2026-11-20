@@ -104,6 +104,7 @@
   const myRoot=make('div','poll-journey-self','Consultando tus premios…');
   my.append(myRoot);
   layout.append(top,my);host.append(layout);
+  window.SBPollSeasons?.mount(host,layout);
   try{
    const [rankResult,authResult]=await Promise.all([
     sb.from('community_poll_leaderboard')
