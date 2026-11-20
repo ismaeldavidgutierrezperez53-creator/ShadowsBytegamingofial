@@ -1,0 +1,40 @@
+/* Shadows Byte — participación en noticias completas. */
+.sb-news-interactions{padding:0 clamp(22px,4.5vw,44px) 32px;color:#f1e6fa}
+.sb-news-engagement{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:0 0 26px;padding:16px 18px;border:1px solid #624179;border-radius:14px;background:rgba(78,45,111,.27)}
+#sb-news-views{font-weight:750;color:#e0c6f3;white-space:nowrap}
+.sb-news-like,.sb-news-submit{min-height:43px;padding:10px 18px;border:1px solid #c875ed;border-radius:11px;background:linear-gradient(120deg,#8b26a8,#6234b1);font:700 1rem Rajdhani,Arial,sans-serif;color:#fff;cursor:pointer}
+.sb-news-like:hover:not(:disabled),.sb-news-submit:hover:not(:disabled){filter:brightness(1.16)}
+.sb-news-like:disabled,.sb-news-submit:disabled{opacity:.65;cursor:wait}
+.sb-news-like[aria-pressed=true]{background:linear-gradient(120deg,#b8307b,#8a208d);border-color:#ed78ad}
+#sb-news-action-status{margin:0;flex-basis:100%;min-height:0;color:#ffd0e9}
+.sb-news-comments,.sb-news-related{margin:24px 0 0}
+.sb-news-comments h2,.sb-news-related h2{margin:0 0 18px;font-size:clamp(1.3rem,3vw,1.65rem);color:#fff}
+.sb-news-comments h2 small{font-size:.78rem;color:#c8b5d7;margin-left:8px;vertical-align:middle}
+#sb-news-comments-list{display:grid;gap:12px}
+.sb-news-comment{padding:16px 19px;background:rgba(15,12,28,.63);border:1px solid #523b70;border-radius:13px;min-width:0}
+.sb-news-comment-head{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between}
+.sb-news-comment-head strong{color:#e8b6ff;overflow-wrap:anywhere}
+.sb-news-comment-head time{color:#bfb1cf;font-size:.85rem}
+.sb-news-comment p{line-height:1.6;overflow-wrap:anywhere;white-space:normal;margin:10px 0 0}
+.sb-news-delete-comment{display:inline-block;margin:9px 0 0;padding:4px 9px;border:1px solid #9a677f;border-radius:8px;background:transparent;color:#ffc4d3;cursor:pointer;font:700 .9rem Rajdhani,Arial,sans-serif}
+.sb-news-delete-comment:hover{background:#5a293a}
+.sb-news-no-comments{margin:0;padding:14px;color:#d8c3e6}
+#sb-news-comment-form-wrap{margin-top:22px}
+#sb-news-comment-form-wrap>a,#sb-news-comment-form-wrap a{color:#91dfff}
+#sb-news-comment-form label{display:block;font-weight:800;margin:0 0 9px}
+#sb-news-comment-text{display:block;width:100%;box-sizing:border-box;min-height:115px;padding:14px;resize:vertical;border:1px solid #8859af;border-radius:12px;background:#170d25;color:#fff;font:500 1rem Rajdhani,Arial,sans-serif;line-height:1.5}
+#sb-news-comment-text:focus-visible,.sb-news-like:focus-visible,.sb-news-submit:focus-visible,.sb-news-delete-comment:focus-visible,.sb-news-related-card:focus-visible{outline:3px solid #49c9fc;outline-offset:3px}
+.sb-news-form-bottom{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px}
+.sb-news-form-bottom span{font-size:.85rem;color:#bba8ce}
+#sb-news-comments-status{margin:12px 0;color:#a9e8ff;min-height:1em}
+.sb-news-related{border-top:1px solid #594276;padding-top:24px}
+.sb-news-related-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px}
+.sb-news-related-card{display:flex;flex-direction:column;gap:0;overflow:hidden;border:1px solid #6c4990;border-radius:14px;background:#21122f;text-decoration:none;color:#fff;min-width:0;transition:transform .15s}
+.sb-news-related-card:hover{transform:translateY(-2px);border-color:#b16ff0}
+.sb-news-related-card img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.sb-news-related-placeholder{display:grid;place-items:center;width:100%;aspect-ratio:16/9;font-size:2.4rem;background:#321642}
+.sb-news-related-card-body{display:flex;flex-direction:column;gap:9px;padding:14px}
+.sb-news-related-card strong{font-size:1.07rem;line-height:1.35;overflow-wrap:anywhere}
+.sb-news-related-card small{color:#c6b5d7}
+@media(max-width:600px){.sb-news-engagement{flex-direction:column;align-items:stretch}.sb-news-like{width:100%}.sb-news-interactions{padding:0 16px 24px}.sb-news-form-bottom{align-items:stretch}.sb-news-submit{width:100%}}
+@media(prefers-reduced-motion:reduce){.sb-news-related-card{transition:none}.sb-news-related-card:hover{transform:none}}
