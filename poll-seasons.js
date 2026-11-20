@@ -82,7 +82,10 @@
    preview.textContent=root.querySelector('.poll-season-celebration.is-preview')?
     '✕ Ocultar vista previa':'🎉 Probar celebración';
   };
-  header.append(heading,preview,refresh);root.append(header);
+  const previewCeremony=make('button','poll-season-preview-action','👑 Probar ceremonia');
+  previewCeremony.type='button';
+  previewCeremony.onclick=()=>window.SBPollAwardCeremony?.preview();
+  header.append(heading,preview,previewCeremony,refresh);root.append(header);
   const note=make('p','poll-season-deadline','📅 Finaliza el '+lastDay(currentMonth)+'. Los premios se asignan automáticamente después del cierre.');
   root.append(note);
   const countdown=make('div','poll-anime-countdown-host');
@@ -167,6 +170,7 @@
     if(awardsResult.error){
      ownAwards.append(make('p','poll-season-help','No se pudo consultar tu historial de premios.'));
     }else if(awardsResult.data?.length){
+     window.SBPollAwardCeremony?.maybeCelebrate(user.id);
      ownAwards.append(make('h4',null,'🏅 Mis premios de temporadas anteriores'));
      for(const a of awardsResult.data){
       ownAwards.append(make('p','poll-season-my-award',labelMonth(a.month_start)+' · '+(awardFor(a.position)?.symbol||'🏅')+' '+a.badge+' · +'+a.points+' puntos'));
