@@ -1643,3 +1643,149 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  #private-messages .private-chat-quick-replies button{transition:none}
  #private-messages .private-chat-quick-replies button:hover{transform:none}
 }
+
+
+/* Individual chat V4: calling, ceremonial gifts and per-contact notification controls. */
+#private-messages .private-direct-extra-controls{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.9fr);gap:10px;
+ margin:0 0 14px;
+}
+#private-messages .private-direct-call-toolbar,
+#private-messages .private-direct-notification-settings,
+#private-messages .private-direct-gift-controls{
+ min-width:0;padding:12px 13px;border-radius:14px;
+ background:linear-gradient(145deg,rgba(92,60,146,.17),rgba(36,44,87,.13));
+ border:1px solid rgba(178,139,229,.37);
+}
+#private-messages .private-direct-call-toolbar{display:flex;align-items:flex-start;align-content:start;gap:8px;flex-wrap:wrap}
+#private-messages .private-direct-call-toolbar button,
+#private-messages .private-direct-gift-controls .outline-btn{
+ border:1px solid rgba(198,167,245,.57);
+ border-radius:10px;background:rgba(99,61,145,.24);color:#fff;
+ font:inherit;font-size:.86rem;padding:10px 13px;cursor:pointer;
+}
+#private-messages .private-direct-call-toolbar button:disabled,
+#private-messages .private-direct-gift-controls button:disabled{opacity:.46;cursor:not-allowed}
+#private-messages .private-direct-call-feedback{
+ display:block;flex-basis:100%;color:#d6c3e8;font-size:.77rem;overflow-wrap:anywhere;
+}
+#private-messages .private-direct-notification-settings{
+ display:flex;flex-direction:column;align-items:flex-start;gap:9px;grid-row:span 2;
+}
+#private-messages .private-direct-notification-settings strong{font-size:.9rem;color:#f3d6ff}
+#private-messages .private-direct-notification-settings label{
+ display:flex;align-items:center;gap:7px;max-width:100%;font-size:.82rem;
+}
+#private-messages .private-direct-notification-settings input[type="checkbox"]{
+ flex:0 0 17px;width:17px;height:17px;accent-color:#ba8cff;
+}
+#private-messages .private-direct-notification-settings select{
+ min-width:0;max-width:100%;min-height:35px;padding:7px 8px;
+ border:1px solid rgba(200,171,240,.54);border-radius:9px;background:#282042;color:#fff;
+}
+#private-messages .private-direct-notification-settings small{
+ display:block;font-size:.73rem;color:#d0bcdc;overflow-wrap:anywhere;
+}
+#private-messages .private-direct-gift-controls{
+ display:flex;align-items:flex-start;flex-direction:column;gap:8px;
+}
+#private-messages .private-direct-gift-options{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;width:100%;
+}
+#private-messages .private-direct-gift-options[hidden]{display:none!important}
+#private-messages .private-direct-gift-options button{
+ padding:9px;border:1px solid rgba(212,166,244,.58);border-radius:10px;
+ background:rgba(111,61,163,.3);color:#fff;font-size:.76rem;cursor:pointer;
+}
+#private-messages .private-direct-gift-options button:hover,
+#private-messages .private-direct-call-toolbar button:not(:disabled):hover{
+ background:rgba(153,85,208,.49);
+}
+#private-messages .private-direct-gift-controls small{display:block;color:#d5c0ea;font-size:.72rem}
+#private-messages .private-direct-incoming{
+ display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+ margin:0 0 16px;padding:14px 16px;border:1px solid rgba(112,239,181,.72);
+ border-radius:14px;background:linear-gradient(120deg,rgba(50,115,91,.35),rgba(102,61,154,.3));
+ box-shadow:0 0 20px rgba(92,201,163,.13);
+}
+#private-messages .private-direct-incoming strong{font-size:.96rem}
+#private-messages .private-direct-incoming small{flex-basis:100%;color:#d5f7e5}
+#private-messages .private-direct-incoming-actions{display:flex;flex-wrap:wrap;gap:10px}
+#private-messages .private-direct-incoming-actions button{
+ border-radius:11px;padding:9px 13px;
+ border:1px solid rgba(190,228,218,.53);background:rgba(47,83,86,.78);
+ color:#fff;font:inherit;cursor:pointer;
+}
+#private-messages .private-direct-incoming-actions button:first-child{background:#236e55}
+#private-messages .private-direct-incoming-actions button:disabled{opacity:.5;cursor:not-allowed}
+#private-messages .private-direct-gift-bubble{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:8px;text-align:center;width:min(100%,255px);
+ background:radial-gradient(circle at 50% 0%,rgba(237,148,250,.22),transparent 65%),linear-gradient(155deg,#3b255c,#22214c);
+ border:1px solid rgba(220,160,247,.66);box-shadow:0 6px 17px rgba(9,5,26,.18);
+}
+#private-messages .private-direct-gift-bubble.mine{background:linear-gradient(145deg,#5e286a,#47335d)}
+#private-messages .private-direct-gift-emoji{font-size:3rem;line-height:1.1}
+#private-messages .private-direct-gift-bubble strong{font-size:.88rem;color:#ffe4fb}
+#private-messages .private-direct-gift-bubble small{font-size:.72rem}
+.private-direct-call-overlay{
+ position:fixed;right:18px;bottom:18px;
+ z-index:10020;width:min(94vw,520px);max-height:88vh;
+ overflow:auto;box-sizing:border-box;
+ display:flex;flex-direction:column;gap:10px;
+ padding:17px;border-radius:19px;
+ border:1px solid rgba(182,171,254,.78);
+ background:radial-gradient(circle at top right,rgba(135,72,205,.4),transparent 54%),linear-gradient(150deg,#18132e,#16233e);
+ color:#fff;box-shadow:0 16px 65px rgba(0,0,0,.64),0 0 21px rgba(153,99,242,.24);
+}
+.private-direct-call-overlay>strong{font-size:1.07rem;line-height:1.3}
+.private-direct-call-overlay .private-direct-call-state{
+ margin:0;min-height:1.45em;color:#d8efff;font-size:.85rem;
+}
+.private-direct-call-overlay .private-direct-call-videos{
+ display:flex;position:relative;align-items:stretch;justify-content:center;
+ min-height:72px;width:100%;overflow:hidden;gap:8px;border-radius:12px;
+ background:rgba(2,5,20,.61);
+}
+.private-direct-call-overlay .private-direct-call-videos video:not([hidden]){
+ display:block;width:100%;max-height:270px;min-height:140px;
+ object-fit:contain;background:#111527;
+}
+.private-direct-call-overlay .private-direct-call-videos video[aria-label="Tu cámara"]:not([hidden]){
+ position:absolute;z-index:2;top:8px;right:8px;
+ width:31%;height:85px;min-height:0;max-height:85px;
+ border:2px solid #c3a8ff;border-radius:9px;object-fit:cover;
+ box-shadow:0 3px 12px rgba(0,0,0,.48);
+}
+.private-direct-call-overlay .private-direct-call-videos audio{
+ width:100%;padding:13px;box-sizing:border-box;
+}
+.private-direct-call-overlay .private-direct-call-actions{
+ display:flex;flex-wrap:wrap;gap:8px;
+}
+.private-direct-call-overlay .private-direct-call-actions button{
+ flex:1 1 125px;border:1px solid rgba(216,198,250,.55);
+ border-radius:10px;padding:10px 12px;background:#423268;
+ color:#fff;font:inherit;font-size:.84rem;cursor:pointer;
+}
+.private-direct-call-overlay .private-direct-call-actions .private-direct-call-hang{
+ background:#a83252;border-color:#f49ab1;
+}
+.private-direct-call-overlay>small{color:#c7b6dc;font-size:.72rem;line-height:1.35}
+.private-direct-call-overlay button:focus-visible,
+#private-messages .private-direct-extra-controls :is(button,input,select):focus-visible,
+#private-messages .private-direct-incoming-actions button:focus-visible{
+ outline:3px solid #aff0ff;outline-offset:2px;
+}
+@media(max-width:720px){
+ #private-messages .private-direct-extra-controls{grid-template-columns:1fr}
+ #private-messages .private-direct-notification-settings{grid-row:auto}
+ .private-direct-call-overlay{
+  width:auto;left:8px;right:8px;bottom:8px;max-height:86vh;padding:13px;
+ }
+ .private-direct-call-overlay .private-direct-call-videos video:not([hidden]){max-height:215px}
+ .private-direct-call-overlay .private-direct-call-actions button{flex-basis:42%;font-size:.8rem}
+}
+@media(prefers-reduced-motion:reduce){
+ #private-messages .private-direct-incoming{animation:none}
+}
