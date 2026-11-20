@@ -185,3 +185,10 @@
 .sb-nav-hide-visible-results:disabled{opacity:.45;cursor:default}
 .sb-nav-hide-visible-results:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-hide-visible-results{width:100%}}
+
+/* Restaurar únicamente los accesos ocultos que coincidan con los filtros */
+.sb-nav-restore-visible-results{min-height:43px;padding:8px 12px;border:1px solid #8cbba0;border-radius:10px;background:#2c4b41;color:#e5fff0;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-restore-visible-results:hover:not(:disabled){background:#386857}
+.sb-nav-restore-visible-results:disabled{opacity:.45;cursor:default}
+.sb-nav-restore-visible-results:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-restore-visible-results{width:100%}}
