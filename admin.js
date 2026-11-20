@@ -636,6 +636,17 @@ async function adminInitRewardShop(){
  const listTitle=make('div','');listTitle.append(make('h3','','🛍️ Artículos existentes'),make('p','','Selecciona Editar para actualizar un artículo sin perder compras.'));
  const search=document.createElement('input');search.className='sb-shop-admin__search';search.type='search';search.placeholder='Buscar artículos…';search.setAttribute('aria-label','Buscar artículos de la tienda');
  listHeading.append(listTitle,search);list.append(listHeading);
+ const toolbar=make('div','sb-shop-admin__toolbar');
+ const categoryFilter=document.createElement('select');categoryFilter.setAttribute('aria-label','Filtrar por categoría');
+ const visibilityFilter=document.createElement('select');visibilityFilter.setAttribute('aria-label','Filtrar por visibilidad');
+ const sorting=document.createElement('select');sorting.setAttribute('aria-label','Ordenar artículos');
+ const addOptions=(select,values)=>{for(const [value,label] of values){const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option)}};
+ addOptions(categoryFilter,[['all','Todas las categorías'],...Object.entries(categories)]);
+ addOptions(visibilityFilter,[['all','Todos los estados'],['visible','Visibles'],['hidden','Ocultos']]);
+ addOptions(sorting,[['order','Orden de tienda'],['name','Nombre (A-Z)'],['price_asc','Puntos: menor a mayor'],['price_desc','Puntos: mayor a menor']]);
+ const resultCount=make('span','sb-shop-admin__result-count','');
+ const csvButton=make('button','sb-shop-admin__export','⬇ Exportar CSV');csvButton.type='button';
+ toolbar.append(categoryFilter,visibilityFilter,sorting,csvButton,resultCount);list.append(toolbar);
  const itemsRoot=make('div','sb-shop-admin__items');const rows=[];
  for(const item of inventory){
   const row=make('div','sb-shop-admin__item');
@@ -644,18 +655,50 @@ async function adminInitRewardShop(){
   const info=make('div','sb-shop-admin__item-info');
   info.append(make('strong','',item.name),make('small','',item.price+' puntos · '+(categories[item.category]||item.category)),make('span','sb-shop-admin__item-status'+(item.active?'':' sb-shop-admin__item-status--hidden'),item.active?'● Visible':'● Oculto'));
   const button=make('button','','Editar');button.type='button';button.onclick=()=>fill(item);
-  row.append(info,button);itemsRoot.append(row);
+  const duplicateButton=make('button','sb-shop-admin__duplicate','Duplicar');duplicateButton.type='button';duplicateButton.onclick=()=>duplicate(item);
+  const itemActions=make('div','sb-shop-admin__item-actions');itemActions.append(button,duplicateButton);
+  row.append(info,itemActions);itemsRoot.append(row);
   rows.push({row,item});
  }
  const empty=make('p','sb-shop-admin__empty','No hay artículos que coincidan con la búsqueda.');empty.hidden=true;
  list.append(itemsRoot,empty);shop.append(list);
  const filter=()=>{
-  const term=search.value.trim().toLocaleLowerCase('es');let visible=0;
-  for(const {row,item} of rows){const content=[item.name,item.id,categories[item.category]||item.category].join(' ').toLocaleLowerCase('es');row.hidden=!content.includes(term);if(!row.hidden)visible++}
-  empty.hidden=visible>0;
-  if(!inventory.length)empty.textContent='Aún no hay artículos en la tienda.';
+  const term=search.value.trim().toLocaleLowerCase('es');
+  const matching=rows.filter(({item})=>{
+   const content=[item.name,item.id,item.description,categories[item.category]||item.category].join(' ').toLocaleLowerCase('es');
+   const isCorrectVisibility=visibilityFilter.value==='all'||(visibilityFilter.value==='visible'?!!item.active:!item.active);
+   return content.includes(term)&&(categoryFilter.value==='all'||item.category===categoryFilter.value)&&isCorrectVisibility;
+  });
+  matching.sort((a,b)=>{
+   if(sorting.value==='name')return String(a.item.name).localeCompare(String(b.item.name),'es');
+   if(sorting.value==='price_asc')return Number(a.item.price)-Number(b.item.price);
+   if(sorting.value==='price_desc')return Number(b.item.price)-Number(a.item.price);
+   return Number(a.item.sort_order||0)-Number(b.item.sort_order||0);
+  });
+  for(const {row} of rows)row.hidden=true;
+  for(const {row} of matching){row.hidden=false;itemsRoot.append(row)}
+  empty.hidden=matching.length>0;
+  empty.textContent=inventory.length?'No hay artículos que coincidan con los filtros.':'Aún no hay artículos en la tienda.';
+  resultCount.textContent=matching.length+' de '+inventory.length+' artículos';
+  return matching.map(({item})=>item);
  };
- search.addEventListener('input',filter);filter();
+ const csvCell=value=>{
+  let valueText=String(value??'');
+  if(valueText.length && ('=+@-'.includes(valueText.trimStart().charAt(0)) || valueText.startsWith('\t') || valueText.startsWith('\r')))valueText="'"+valueText;
+  return '"'+valueText.replace(/"/g,'""')+'"';
+ };
+ csvButton.onclick=()=>{
+  const filtered=filter();
+  const columns=['id','name','description','category','price','image_url','sort_order','active'];
+  const lines=[columns.join(','),...filtered.map(item=>columns.map(key=>csvCell(item[key])).join(','))];
+  const csv=lines.join(String.fromCharCode(13,10));
+  const url=URL.createObjectURL(new Blob([String.fromCharCode(65279)+csv],{type:'text/csv;charset=utf-8;'}));
+  const link=document.createElement('a');link.href=url;link.download='shadows-byte-tienda.csv';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+ };
+ search.addEventListener('input',filter);
+ for(const control of [categoryFilter,visibilityFilter,sorting])control.addEventListener('change',filter);
+ filter();
 
  const stats=make('section','sb-shop-admin__section');
  const statsHeading=make('div','sb-shop-admin__section-heading');statsHeading.append(make('h3','','📊 Compras por artículo'));stats.append(statsHeading);
