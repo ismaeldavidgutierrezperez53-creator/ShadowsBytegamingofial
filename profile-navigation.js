@@ -9,6 +9,8 @@
  };
  const visibilityUndo=new Map();
  const favoriteUndo=new Map();
+ const visibilityRedo=new Map();
+ const favoriteRedo=new Map();
  const modules=[
   ['✨ Mi centro de perfil','.sbp-dashboard',true],
   ['🎴 Identidad gamer','.sbp-identity-card',true],
@@ -174,10 +176,28 @@
     }
     try{localStorage.setItem(key,JSON.stringify(previous.before))}catch(_){return}
     favoriteUndo.delete(key);
+    favoriteRedo.set(key,previous);
     links.dataset.signature='';
     enhance(host,isOwn);
    });
    sortBox.append(undoFavorite);
+   const redoFavorite=node('button','sb-nav-redo-favorite','↷ Rehacer cambio de favoritos');
+   redoFavorite.type='button';
+   redoFavorite.addEventListener('click',()=>{
+    const previous=favoriteRedo.get(key);
+    if(!previous)return;
+    if(readFavorites().join('|')!==previous.before.join('|')){
+     favoriteRedo.delete(key);
+     enhance(host,isOwn);
+     return;
+    }
+    try{localStorage.setItem(key,JSON.stringify(previous.after))}catch(_){return}
+    favoriteRedo.delete(key);
+    favoriteUndo.set(key,previous);
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
+   sortBox.append(redoFavorite);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -234,6 +254,7 @@
    try{
     localStorage.setItem(hiddenKey,JSON.stringify(normalized));
     visibilityUndo.set(hiddenKey,{before,after:normalized});
+    visibilityRedo.delete(hiddenKey);
     return true;
    }catch(_){return false}
   };
@@ -287,10 +308,28 @@
     }
     try{localStorage.setItem(hiddenKey,JSON.stringify(last.before))}catch(_){return}
     visibilityUndo.delete(hiddenKey);
+    visibilityRedo.set(hiddenKey,last);
     links.dataset.signature='';
     enhance(host,isOwn);
    });
    settings.append(undo);
+   const redo=node('button','sb-nav-redo-visibility','↷ Rehacer último cambio');
+   redo.type='button';
+   redo.addEventListener('click',()=>{
+    const last=visibilityRedo.get(hiddenKey);
+    if(!last)return;
+    if(readHidden().join('|')!==last.before.join('|')){
+     visibilityRedo.delete(hiddenKey);
+     enhance(host,isOwn);
+     return;
+    }
+    try{localStorage.setItem(hiddenKey,JSON.stringify(last.after))}catch(_){return}
+    visibilityRedo.delete(hiddenKey);
+    visibilityUndo.set(hiddenKey,last);
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
+   settings.append(redo);
    const details=nav.querySelector('.sb-nav-details');
    details.after(settings);
   }
@@ -310,6 +349,14 @@
    if(undoVisibility.hidden===showHidden)undoVisibility.hidden=!showHidden;
    if(undoVisibility.disabled===valid)undoVisibility.disabled=!valid;
   }
+  const redoVisibility=settings.querySelector('.sb-nav-redo-visibility');
+  if(redoVisibility){
+   const last=visibilityRedo.get(hiddenKey);
+   const valid=!!last&&readHidden().join('|')===last.before.join('|');
+   if(last&&!valid)visibilityRedo.delete(hiddenKey);
+   if(redoVisibility.hidden===showHidden)redoVisibility.hidden=!showHidden;
+   if(redoVisibility.disabled!==!valid)redoVisibility.disabled=!valid;
+  }
   const visibilityToggle=settings.querySelector('.sb-nav-visibility-toggle');
   const visibilityLabel=showHidden?'Ocultar ajustes de accesos':'Gestionar accesos ocultos';
   if(visibilityToggle.textContent!==visibilityLabel)visibilityToggle.textContent=visibilityLabel;
@@ -327,6 +374,7 @@
    try{
     localStorage.setItem(key,JSON.stringify(normalized));
     favoriteUndo.set(key,{before,after:normalized});
+    favoriteRedo.delete(key);
     return true;
    }catch(_){return false}
   };
@@ -336,6 +384,13 @@
    const valid=!!previous&&readFavorites().join('|')===previous.after.join('|');
    if(previous&&!valid)favoriteUndo.delete(key);
    if(undoFavorite.disabled!==!valid)undoFavorite.disabled=!valid;
+  }
+  const redoFavorite=nav.querySelector('.sb-nav-redo-favorite');
+  if(redoFavorite){
+   const previous=favoriteRedo.get(key);
+   const valid=!!previous&&readFavorites().join('|')===previous.before.join('|');
+   if(previous&&!valid)favoriteRedo.delete(key);
+   if(redoFavorite.disabled!==!valid)redoFavorite.disabled=!valid;
   }
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
