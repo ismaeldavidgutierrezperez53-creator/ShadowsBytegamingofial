@@ -69,7 +69,7 @@
   const historyTitle=create('h3','','🏅 Metas completadas');
   const history=create('div','sbpg-history');
   const notice=create('p','sbpg-footnote',
-    'Solo tú puedes consultar y cambiar tus metas. Si borras actividades, el progreso de una meta pendiente puede disminuir; una meta ya completada permanece en el historial.');
+    'Solo tú puedes consultar y cambiar tus metas. La campana 🔔 muestra avisos al llegar al 25 %, 50 %, 75 % y 100 %; cada hito se guarda una sola vez. Si borras actividades, el progreso de una meta pendiente puede disminuir; una meta completada permanece en el historial.');
   section.append(title,explain,stats,current,form,status,historyTitle,history,notice);
   anchor.after(section);
 
@@ -205,6 +205,8 @@
     if(!data||!Number.isFinite(Number(data.earned_points))||
       !Array.isArray(data.completed))throw Error('Datos de metas incompletos');
     paint(data);
+    // Refresh the bell promptly when milestones are reached or a goal changes.
+    window.dispatchEvent(new Event('sb:point-goal-updated'));
    }catch(err){
     if(ticket===requested&&active()){
      status.textContent='No se pudo actualizar: '+String(err.message||'Error desconocido')+
