@@ -3255,6 +3255,83 @@ async function initGroupChats(userId,root){
 // Private drafts are held only in this tab's memory, never uploaded or saved in storage.
 const privateChatDrafts=new Map();
 let privateConversationListFilter='';
+
+function createPrivateVoicePlayer(label='Mensaje de voz'){
+ const root=document.createElement('div');root.className='private-voice-player';root.setAttribute('role','group');root.setAttribute('aria-label',label);
+ const audio=document.createElement('audio');audio.className='private-chat-audio';audio.preload='metadata';audio.hidden=true;audio.setAttribute('aria-label',label);
+ const header=document.createElement('div');header.className='private-voice-player-header';
+ const decoration=document.createElement('span');decoration.className='private-voice-player-sigil';decoration.textContent='🎙️';decoration.setAttribute('aria-hidden','true');
+ const title=document.createElement('strong');title.textContent=label;
+ const bars=document.createElement('span');bars.className='private-voice-player-bars';bars.setAttribute('aria-hidden','true');
+ for(let i=0;i<5;i++){bars.append(document.createElement('i'));}
+ header.append(decoration,title,bars);
+ const controls=document.createElement('div');controls.className='private-voice-player-controls';
+ const play=document.createElement('button');play.type='button';play.className='private-voice-player-play';play.textContent='▶';play.disabled=true;play.setAttribute('aria-label','Reproducir '+label);
+ const seek=document.createElement('input');seek.type='range';seek.className='private-voice-player-progress';seek.min='0';seek.max='1000';seek.step='1';seek.value='0';seek.disabled=true;seek.style.setProperty('--voice-progress','0%');seek.setAttribute('aria-label','Posición del mensaje de voz');
+ const time=document.createElement('small');time.className='private-voice-player-time';time.textContent='0:00 / --:--';
+ const rate=document.createElement('button');rate.type='button';rate.className='private-voice-player-speed';rate.textContent='1×';rate.setAttribute('aria-label','Velocidad de reproducción 1×; cambiar velocidad');rate.title='Cambiar velocidad de reproducción';
+ const status=document.createElement('small');status.className='private-voice-player-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+ controls.append(play,seek,time,rate);
+ root.append(header,controls,status,audio);
+ let hint=0;
+ const formatSeconds=(seconds)=>{
+  if(!Number.isFinite(seconds)||seconds<0)return '--:--';
+  const total=Math.floor(seconds),hours=Math.floor(total/3600),mins=Math.floor((total%3600)/60),secs=String(total%60).padStart(2,'0');
+  return hours?hours+':'+String(mins).padStart(2,'0')+':'+secs:mins+':'+secs;
+ };
+ const duration=()=>{
+  if(Number.isFinite(audio.duration)&&audio.duration>0)return audio.duration;
+  if(audio.seekable?.length){const end=audio.seekable.end(audio.seekable.length-1);if(Number.isFinite(end)&&end>0)return end;}
+  return hint;
+ };
+ const update=()=>{
+  const length=duration(),position=Number.isFinite(audio.currentTime)?Math.max(0,audio.currentTime):0;
+  const share=length>0?Math.min(1,position/length):0;
+  seek.value=String(Math.round(share*1000));seek.style.setProperty('--voice-progress',Math.round(share*100)+'%');
+  seek.disabled=!audio.src||length<=0;
+  seek.setAttribute('aria-valuetext',formatSeconds(position)+' de '+(length>0?formatSeconds(length):'duración desconocida'));
+  time.textContent=formatSeconds(position)+' / '+(length>0?formatSeconds(length):'--:--');
+  const playing=!audio.paused&&!audio.ended;
+  play.textContent=playing?'❚❚':'▶';
+  play.setAttribute('aria-label',(playing?'Pausar ':'Reproducir ')+label);
+  root.classList.toggle('is-playing',playing);
+ };
+ const reset=()=>{
+  audio.pause();audio.removeAttribute('src');audio.load();
+  hint=0;play.disabled=true;status.textContent='';update();
+ };
+ const setSource=(url)=>{
+  if(!url){reset();return;}
+  audio.pause();hint=0;audio.src=url;audio.load();play.disabled=false;status.textContent='';update();
+ };
+ const setDurationHint=(seconds)=>{hint=Number.isFinite(seconds)&&seconds>0?seconds:0;update();};
+ const setError=(message)=>{reset();status.textContent=message||'No se pudo cargar el audio.';};
+ play.onclick=async()=>{
+  if(!audio.src)return;
+  if(!audio.paused){audio.pause();return;}
+  try{await audio.play();status.textContent='';}catch(e){status.textContent='No se pudo reproducir. Comprueba la conexión o el permiso de audio.';update();}
+ };
+ seek.oninput=()=>{
+  const length=duration();if(length<=0)return;
+  try{audio.currentTime=Math.min(length,Number(seek.value)/1000*length);}catch(e){status.textContent='Este audio no permite desplazarse por la grabación.';}
+  update();
+ };
+ const speeds=[1,1.25,1.5,2];
+ rate.onclick=()=>{
+  const next=(speeds.indexOf(audio.playbackRate)+1)%speeds.length;
+  audio.playbackRate=speeds[next];rate.textContent=speeds[next]+'×';
+  rate.setAttribute('aria-label','Velocidad de reproducción '+speeds[next]+'×; cambiar velocidad');
+ };
+ for(const eventName of ['timeupdate','loadedmetadata','durationchange','seeked','ended','pause'])audio.addEventListener(eventName,update);
+ audio.addEventListener('play',()=>{
+  // Avoid overlapping audio messages or previews inside the same chat.
+  document.querySelectorAll('#private-messages .private-voice-player audio').forEach(other=>{if(other!==audio&&!other.paused)other.pause();});
+  update();
+ });
+ audio.addEventListener('error',()=>{if(audio.src){status.textContent='Audio no disponible. Prueba a recargar la conversación.';update();}});
+ return {root,audio,setSource,setDurationHint,setError,reset};
+}
+
 async function loadPrivateMessages(){
  const root=document.getElementById('private-messages');if(!root)return;
  const {data:{user},error:authError}=await sb.auth.getUser();
@@ -3419,7 +3496,14 @@ async function loadPrivateMessages(){
    if(m.reply_to_id){const original=conversationById.get(m.reply_to_id);const quote=document.createElement('div');quote.className='private-chat-reply-quote';quote.textContent=!original?'↪ Mensaje anterior':original.deleted_at?'↪ Mensaje eliminado':'↪ '+(original.sender_id===me?'Tú: ':'Miembro: ')+(original.body?.trim()|| (original.image_path?'📷 Imagen':original.audio_path?'🎤 Audio':'Mensaje'));if(original){quote.title='Ir al mensaje original';quote.tabIndex=0;quote.setAttribute('role','button');const jump=()=>{const target=history.querySelector('[data-message-id="'+original.id+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('private-chat-highlight');setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);}};quote.onclick=jump;quote.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();jump();}};}bubble.append(quote);}
    bubble.append(text);
    if(!m.deleted_at&&m.image_path){const photo=document.createElement('img');photo.className='private-chat-photo';photo.alt='Imagen enviada en el chat';photo.loading='lazy';bubble.append(photo);sb.storage.from('private-chat-images').createSignedUrl(m.image_path,3600).then(({data})=>{if(data?.signedUrl&&photo.isConnected){photo.src=data.signedUrl;photo.tabIndex=0;photo.setAttribute('role','button');photo.setAttribute('aria-label','Ampliar imagen del chat');photo.onclick=()=>openPrivateChatLightbox(data.signedUrl);photo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPrivateChatLightbox(data.signedUrl);}};}});}
-   if(!m.deleted_at&&m.audio_path){const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.className='private-chat-audio';audio.setAttribute('aria-label','Mensaje de voz');bubble.append(audio);sb.storage.from('private-chat-audio').createSignedUrl(m.audio_path,3600).then(({data})=>{if(data?.signedUrl&&audio.isConnected)audio.src=data.signedUrl;});}
+   if(!m.deleted_at&&m.audio_path){
+    const voicePlayer=createPrivateVoicePlayer('Mensaje de voz');bubble.append(voicePlayer.root);
+    sb.storage.from('private-chat-audio').createSignedUrl(m.audio_path,3600).then(({data,error})=>{
+     if(!voicePlayer.root.isConnected)return;
+     if(data?.signedUrl)voicePlayer.setSource(data.signedUrl);
+     else voicePlayer.setError('No se pudo cargar el mensaje de voz.');
+    }).catch(()=>{if(voicePlayer.root.isConnected)voicePlayer.setError('No se pudo cargar el mensaje de voz.');});
+   }
    bubble.append(date);
    if(m.edited_at&&!m.deleted_at){const edited=document.createElement('small');edited.className='private-chat-edited';edited.textContent=' · Editado';edited.title='Editado el '+new Date(m.edited_at).toLocaleString('es-ES');bubble.append(edited);}
    if(m.sender_id===me&&!m.deleted_at){
@@ -3541,11 +3625,11 @@ async function loadPrivateMessages(){
    imageInput.onchange=()=>{const file=imageInput.files?.[0];imagePreview.textContent=file?file.name+' ('+(file.size/1048576).toFixed(1)+' MB)':'';};
    const voiceButton=document.createElement('button');voiceButton.type='button';voiceButton.className='private-chat-voice-button';voiceButton.textContent='🎤 Grabar voz';
    const voiceStatus=document.createElement('span');voiceStatus.className='private-chat-voice-status';voiceStatus.setAttribute('role','status');
-   const voicePreview=document.createElement('audio');voicePreview.controls=true;voicePreview.hidden=true;voicePreview.className='private-chat-audio';
+   const voicePreviewPlayer=createPrivateVoicePlayer('Vista previa de tu grabación');const voicePreviewPanel=voicePreviewPlayer.root;voicePreviewPanel.hidden=true;
    const discardVoice=document.createElement('button');discardVoice.type='button';discardVoice.textContent='Eliminar audio';discardVoice.hidden=true;
    let voiceBlob=null,voiceMime='',voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceUrl=null;
    const stopVoice=()=>{if(voiceRecorder?.state==='recording')voiceRecorder.stop();};
-   const resetVoice=()=>{voiceBlob=null;voiceMime='';if(voiceUrl)URL.revokeObjectURL(voiceUrl);voiceUrl=null;voicePreview.removeAttribute('src');voicePreview.hidden=true;discardVoice.hidden=true;voiceStatus.textContent='';};
+   const resetVoice=()=>{voiceBlob=null;voiceMime='';voicePreviewPlayer.reset();if(voiceUrl)URL.revokeObjectURL(voiceUrl);voiceUrl=null;voicePreviewPanel.hidden=true;discardVoice.hidden=true;voiceStatus.textContent='';};
    discardVoice.onclick=resetVoice;
    voiceButton.onclick=async()=>{
     if(voiceRecorder?.state==='recording'){stopVoice();return;}
@@ -3563,7 +3647,7 @@ async function loadPrivateMessages(){
       voiceButton.textContent='🎤 Grabar voz';
       const type=voiceRecorder.mimeType.split(';')[0]||'audio/webm';
       const blob=new Blob(chunks,{type});
-      if(blob.size>0&&blob.size<=10485760){voiceBlob=blob;voiceMime=type;voiceUrl=URL.createObjectURL(blob);voicePreview.src=voiceUrl;voicePreview.hidden=false;discardVoice.hidden=false;voiceStatus.textContent='Audio listo para enviar';}
+      if(blob.size>0&&blob.size<=10485760){voiceBlob=blob;voiceMime=type;voiceUrl=URL.createObjectURL(blob);voicePreviewPlayer.setSource(voiceUrl);voicePreviewPlayer.setDurationHint(Math.ceil((Date.now()-started)/1000));voicePreviewPanel.hidden=false;discardVoice.hidden=false;voiceStatus.textContent='Audio listo para enviar';}
       else voiceStatus.textContent='La grabación está vacía o supera los 10 MB.';
      };
      voiceRecorder.start(250);voiceButton.textContent='⏹ Detener grabación';
@@ -3583,7 +3667,7 @@ async function loadPrivateMessages(){
    }
    const keyboardHelp=document.createElement('small');keyboardHelp.className='private-chat-keyboard-hint';
    keyboardHelp.textContent='Enter para enviar · Shift + Enter para una nueva línea';
-   form.append(replyPreview,input,quickEmoji,keyboardHelp,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreview,discardVoice,button,status);
+   form.append(replyPreview,input,quickEmoji,keyboardHelp,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreviewPanel,discardVoice,button,status);
    input.addEventListener('input',()=>{privateChatDrafts.set(draftKey,input.value);sendPrivateTyping(me,active);});
    input.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){
