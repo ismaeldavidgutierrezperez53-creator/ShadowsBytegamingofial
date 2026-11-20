@@ -133,7 +133,7 @@
   podium.append(places);
   host.prepend(podium);
  }
- function trophyCard(record,{memberId,own,isPublic,displayName}={}){
+ function trophyCard(record,{memberId,own,isPublic,displayName,profile}={}){
   const prize=monthlyPrizes.find(p=>p.position===Number(record.position));
   if(!prize)return null;
   const item=make('article','poll-month-trophy-card poll-month-trophy-'+prize.glow);
@@ -160,6 +160,13 @@
     ceremony.setAttribute('aria-label','Ver ceremonia del trofeo '+prize.name+' de '+monthText(record.month_start));
     ceremony.onclick=()=>window.SBPollAwardCeremony?.openForWinner(memberId,record.month_start,feedback);
     actions.append(ceremony);
+    const certificate=make('button',null,'🖼️ Descargar certificado PNG');
+    certificate.type='button';
+    certificate.setAttribute('aria-label','Descargar certificado de ganador de '+monthText(record.month_start));
+    certificate.onclick=()=>window.SBPollAwardCertificate?.downloadOfficial({
+     memberId,month:record.month_start,feedback
+    });
+    actions.append(certificate);
    }
    if(isPublic){
     const share=make('button',null,own?'🔗 Compartir mi trofeo':'🔗 Compartir trofeo');
@@ -177,6 +184,7 @@
     actions.append(feedback);
    }
   }
+  window.SBPollHallOfFame?.enhanceTrophyCard(item,record,profile);
   return item;
  }
  function mountProfileTrophies(host,memberId,options={}){
@@ -217,7 +225,7 @@
      return;
     }
     const {data:profileData,error:profileError}=await sb.from('profiles')
-      .select('is_public,display_name,username').eq('id',memberId).maybeSingle();
+      .select('is_public,display_name,username,anime_card_style,favorite_anime,avatar_url').eq('id',memberId).maybeSingle();
     if(!section.isConnected)return;
     const isPublic=!profileError&&profileData?.is_public===true;
     const displayName=profileData?.display_name||profileData?.username||'Un miembro';
@@ -229,7 +237,7 @@
     const grid=make('div','poll-month-trophy-grid');
     const max=6;
     awards.forEach((item,i)=>{
-     const card=trophyCard(item,{memberId,own,isPublic,displayName});
+     const card=trophyCard(item,{memberId,own,isPublic,displayName,profile:profileData});
      if(!card)return;
      if(i>=max)card.hidden=true;
      grid.append(card);
