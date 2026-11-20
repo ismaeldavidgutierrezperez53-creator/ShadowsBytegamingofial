@@ -292,3 +292,7 @@
 .sb-nav-active-filter-chip:hover{background:#583b76}
 .sb-nav-active-filter-chip:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-active-filter-chip{max-width:100%;text-align:left}}
+
+/* Ayuda compacta para atajos de teclado del buscador */
+.sb-nav-shortcut-hint{padding:6px 9px;border:1px solid #76658b;border-radius:8px;background:#241b35;color:#d8cdea;font:600 12px Rajdhani,Arial,sans-serif;white-space:nowrap}
+@media(max-width:600px){.sb-nav-shortcut-hint{flex-basis:100%;text-align:right}}
