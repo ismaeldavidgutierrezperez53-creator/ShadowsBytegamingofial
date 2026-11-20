@@ -3252,6 +3252,9 @@ async function initGroupChats(userId,root){
    if(currentGroup?.id!==message.group_id)loadGroups();
   }).subscribe();
 }
+// Private drafts are held only in this tab's memory, never uploaded or saved in storage.
+const privateChatDrafts=new Map();
+let privateConversationListFilter='';
 async function loadPrivateMessages(){
  const root=document.getElementById('private-messages');if(!root)return;
  const {data:{user},error:authError}=await sb.auth.getUser();
@@ -3272,9 +3275,15 @@ async function loadPrivateMessages(){
  const items=messages||[];
  const ids=[...new Set(items.flatMap(m=>[m.sender_id,m.recipient_id]).filter(id=>id!==me))];
  if(validId(requested)&&requested!==me&&!ids.includes(requested))ids.push(requested);
- const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username,is_public').in('id',ids):{data:[]};
+ const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username,is_public,avatar_url').in('id',ids):{data:[]};
  if(!root.isConnected)return;
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+ const partnerProfiles=new Map((profiles||[]).map(p=>[p.id,p]));
+ const latestMessageByPartner=new Map();
+ for(const message of items){
+  const partnerId=message.sender_id===me?message.recipient_id:message.sender_id;
+  if(!latestMessageByPartner.has(partnerId))latestMessageByPartner.set(partnerId,message);
+ }
  const publicIds=new Set((profiles||[]).filter(p=>p.is_public).map(p=>p.id));
  const partners=[...new Set(items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id))];
  if(validId(requested)&&requested!==me&&!partners.includes(requested))partners.unshift(requested);
@@ -3284,6 +3293,11 @@ async function loadPrivateMessages(){
  const wrapper=document.createElement('div');wrapper.className='messages-layout';
  const sidebar=document.createElement('aside');sidebar.className='messages-sidebar';
  const title=document.createElement('h2');title.textContent='Conversaciones';sidebar.append(title);
+ const sidebarSearch=document.createElement('input');sidebarSearch.type='search';sidebarSearch.className='private-chat-sidebar-search';
+ sidebarSearch.placeholder='🔎 Buscar conversación…';sidebarSearch.setAttribute('aria-label','Buscar conversaciones por nombre');
+ sidebarSearch.value=privateConversationListFilter;
+ const sidebarSearchResult=document.createElement('small');sidebarSearchResult.className='private-chat-sidebar-result';
+ sidebar.append(sidebarSearch,sidebarSearchResult);
  const archiveToggle=document.createElement('button');archiveToggle.type='button';archiveToggle.className='private-chat-archive-toggle';
  const archiveList=document.createElement('div');archiveList.className='private-chat-archive-list';archiveList.hidden=true;
  const archivedPartners=partners.filter(id=>archivedIds.has(id));
@@ -3304,7 +3318,28 @@ async function loadPrivateMessages(){
   const link=document.createElement('a');link.href='#/mensajes?id='+encodeURIComponent(id);
   link.className='messages-partner'+(id===active?' selected':'');
   const unread=items.filter(m=>m.sender_id===id&&m.recipient_id===me&&!m.is_read).length;
-  link.textContent=(names.get(id)||'Miembro')+(unread?' · '+unread+' nuevo(s)':'');
+  const displayName=names.get(id)||'Miembro';
+  const avatar=document.createElement('span');avatar.className='private-chat-partner-avatar';
+  const profile=partnerProfiles.get(id);
+  if(profile?.avatar_url){
+   const img=document.createElement('img');img.src=profile.avatar_url;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';
+   img.onerror=()=>{img.remove();avatar.textContent=displayName.slice(0,1).toUpperCase();};
+   avatar.append(img);
+  }else avatar.textContent=displayName.slice(0,1).toUpperCase();
+  const details=document.createElement('span');details.className='private-chat-partner-details';
+  const name=document.createElement('strong');name.textContent=displayName;
+  const recent=latestMessageByPartner.get(id);
+  const preview=document.createElement('small');preview.className='private-chat-partner-preview';
+  if(recent){
+   const messagePreview=recent.deleted_at?'Mensaje eliminado':recent.body?.trim()||(recent.image_path?'📷 Imagen':recent.audio_path?'🎤 Audio':'Mensaje');
+   preview.textContent=(recent.sender_id===me?'Tú: ':'')+messagePreview;
+   const when=document.createElement('small');when.className='private-chat-partner-time';
+   when.textContent=new Date(recent.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
+   details.append(name,preview,when);
+  }else{preview.textContent='Inicia una conversación';details.append(name,preview);}
+  link.append(avatar,details);
+  if(unread){const count=document.createElement('span');count.className='private-chat-partner-unread';count.textContent=unread>99?'99+':String(unread);count.setAttribute('aria-label',unread+' mensajes sin leer');link.append(count);}
+  item.dataset.partnerName=displayName;
   const action=document.createElement('button');action.type='button';action.className='private-chat-archive-action';
   action.textContent=archived?'↩ Recuperar':'📁 Archivar';
   action.setAttribute('aria-label',(archived?'Recuperar':'Archivar')+' conversación con '+(names.get(id)||'Miembro'));
@@ -3316,7 +3351,20 @@ async function loadPrivateMessages(){
  for(const id of normalPartners)renderPartner(id,false,sidebar);
  for(const id of archivedPartners)renderPartner(id,true,archiveList);
  sidebar.append(archiveToggle,archiveList);
+ const filterConversationList=()=>{
+  const query=sidebarSearch.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+  let visible=0;
+  for(const row of sidebar.querySelectorAll('.private-chat-partner-row')){
+   const normalized=(row.dataset.partnerName||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+   const matches=!query||normalized.includes(query);
+   row.hidden=!matches;if(matches)visible++;
+  }
+  sidebarSearchResult.textContent=query?(visible+' conversación'+(visible===1?'':'es')+' encontrada'+(visible===1?'':'s')):'';
+ };
+ sidebarSearch.oninput=()=>{privateConversationListFilter=sidebarSearch.value;filterConversationList();};
+ filterConversationList();
  const panel=document.createElement('section');panel.className='messages-panel';
+ let unreadPartnerToMark=null;
  if(!active){panel.textContent='Selecciona un miembro desde su perfil para comenzar.';}
  else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
  else {
@@ -3342,6 +3390,7 @@ async function loadPrivateMessages(){
   searchWrap.append(searchInput,searchClear,searchCount);
   const history=document.createElement('div');history.className='messages-history';
   const conversation=items.filter(m=>(m.sender_id===me&&m.recipient_id===active)||(m.recipient_id===me&&m.sender_id===active)).reverse();
+  if(conversation.some(m=>m.sender_id===active&&m.recipient_id===me&&!m.is_read&&!m.deleted_at))unreadPartnerToMark=active;
   if(!conversation.length){const hint=document.createElement('p');hint.textContent='Todavía no hay mensajes en esta conversación.';history.append(hint);}
   const reactionIds=conversation.filter(m=>!m.deleted_at).map(m=>m.id);
   const {data:reactions,error:reactionError}=reactionIds.length?await sb.from('member_message_reactions').select('message_id,user_id,emoji').in('message_id',reactionIds):{data:[],error:null};
@@ -3353,7 +3402,17 @@ async function loadPrivateMessages(){
   const pinnedIds=new Set((pins||[]).map(pin=>pin.message_id));
   const conversationById=new Map(conversation.map(message=>[message.id,message]));
   let selectReply=null;
+  let previousMessageDay='';
   for(const m of conversation){
+   const dateObj=new Date(m.created_at);
+   const day=dateObj.toDateString();
+   if(day!==previousMessageDay){
+    previousMessageDay=day;
+    const separator=document.createElement('div');separator.className='private-chat-day-divider';separator.setAttribute('role','separator');
+    const today=new Date(),yesterday=new Date(today);yesterday.setDate(today.getDate()-1);
+    separator.textContent=day===today.toDateString()?'Hoy':day===yesterday.toDateString()?'Ayer':dateObj.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+    history.append(separator);
+   }
    const bubble=document.createElement('div');bubble.className='message-bubble'+(m.sender_id===me?' mine':'');
    const text=document.createElement('p');text.textContent=m.deleted_at?'Mensaje eliminado':m.body;if(m.deleted_at)text.className='private-chat-deleted';
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
@@ -3446,6 +3505,7 @@ async function loadPrivateMessages(){
     bubble.hidden=!match;
     if(match)found++;
    }
+   for(const separator of history.querySelectorAll('.private-chat-day-divider'))separator.hidden=!!query;
    searchCount.textContent=query?(found+' resultado'+(found===1?'':'s')+' en los '+conversation.length+' mensajes cargados'):'';
    searchClear.hidden=!query;
   };
@@ -3467,6 +3527,7 @@ async function loadPrivateMessages(){
   if(publicIds.has(active)&&!blockedByMe.has(active)&&!blockedMe.has(active)){
    const form=document.createElement('form');form.className='social-form messages-compose';
    const input=document.createElement('textarea');input.required=false;input.maxLength=2000;input.placeholder='Escribe tu mensaje privado…';input.setAttribute('aria-label','Mensaje privado');
+   const draftKey=me+':'+active;input.value=privateChatDrafts.get(draftKey)||'';
    const button=document.createElement('button');button.className='gradient-btn mini';button.type='submit';button.textContent='Enviar mensaje';
    const status=document.createElement('p');status.setAttribute('role','status');
    let replyToId=null;
@@ -3510,10 +3571,29 @@ async function loadPrivateMessages(){
      voiceTimer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);voiceStatus.textContent='Grabando… '+seconds+' s';if(seconds>=90)stopVoice();},500);
     }catch(err){voiceStream?.getTracks().forEach(t=>t.stop());voiceStream=null;voiceStatus.textContent='No se pudo acceder al micrófono. Comprueba sus permisos.';}
    };
-   form.append(replyPreview,input,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreview,discardVoice,button,status);
-   input.addEventListener('input',()=>sendPrivateTyping(me,active));
+   const quickEmoji=document.createElement('div');quickEmoji.className='private-chat-quick-emoji';
+   quickEmoji.setAttribute('aria-label','Insertar emoji en tu mensaje');
+   for(const emoji of ['😊','❤️','😂','🔥','👍','🎮','🌸']){
+    const shortcut=document.createElement('button');shortcut.type='button';shortcut.textContent=emoji;shortcut.setAttribute('aria-label','Insertar '+emoji);
+    shortcut.onclick=()=>{
+     const start=input.selectionStart??input.value.length,end=input.selectionEnd??input.value.length;
+     input.setRangeText(emoji,start,end,'end');input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();
+    };
+    quickEmoji.append(shortcut);
+   }
+   const keyboardHelp=document.createElement('small');keyboardHelp.className='private-chat-keyboard-hint';
+   keyboardHelp.textContent='Enter para enviar · Shift + Enter para una nueva línea';
+   form.append(replyPreview,input,quickEmoji,keyboardHelp,imageLabel,imagePreview,voiceButton,voiceStatus,voicePreview,discardVoice,button,status);
+   input.addEventListener('input',()=>{privateChatDrafts.set(draftKey,input.value);sendPrivateTyping(me,active);});
+   input.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){
+     e.preventDefault();
+     if(!button.disabled)form.requestSubmit(button);
+    }
+   });
    form.onsubmit=async e=>{
     e.preventDefault();
+    if(button.disabled)return;
     const body=input.value.trim();const file=imageInput.files?.[0];
     if(voiceRecorder?.state==='recording'){status.textContent='Detén la grabación antes de enviar.';return;}
     if(!body&&!file&&!voiceBlob){status.textContent='Escribe un mensaje o selecciona una imagen.';return;}
@@ -3536,12 +3616,20 @@ async function loadPrivateMessages(){
     }
     const {error:sendError}=await sb.from('member_direct_messages').insert({sender_id:me,recipient_id:active,body,image_path,audio_path,reply_to_id:replyToId});
     if(sendError){status.textContent='No se pudo enviar: '+sendError.message;button.disabled=false;}
-    else await loadPrivateMessages();
+    else{privateChatDrafts.delete(draftKey);await loadPrivateMessages();}
    };
    panel.append(form);
   }else{const p=document.createElement('p');p.textContent='Este miembro ya no tiene un perfil público; no puedes enviarle nuevos mensajes.';panel.append(p);}
  }
  wrapper.append(sidebar,panel);root.append(wrapper);
+ if(unreadPartnerToMark&&document.visibilityState==='visible'){
+  sb.from('member_direct_messages').update({is_read:true})
+   .eq('recipient_id',me).eq('sender_id',unreadPartnerToMark).eq('is_read',false).is('deleted_at',null)
+   .then(({error:readError})=>{
+    if(readError)console.warn('No se pudieron marcar los mensajes como leídos:',readError.message);
+    else{refreshPrivateMessageBadge(me);refreshNotificationBadge(me);}
+   });
+ }
  const visibleHistory=panel.querySelector('.messages-history');if(visibleHistory)visibleHistory.scrollTop=visibleHistory.scrollHeight;
 }
 
