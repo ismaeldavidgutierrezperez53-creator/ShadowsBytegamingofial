@@ -220,10 +220,28 @@
     enhance(host,isOwn);
    });
    settings.append(toggle);
+   const restoreAll=node('button','sb-nav-restore-all','↺ Restaurar todos los accesos ocultos');
+   restoreAll.type='button';
+   restoreAll.addEventListener('click',()=>{
+    const current=readHidden();
+    if(!current.length)return;
+    if(!window.confirm('¿Restaurar los '+current.length+' accesos ocultos de '+(isOwn?'Mi cuenta':'los perfiles públicos')+'? Tus favoritos y su orden se conservarán.'))return;
+    try{localStorage.removeItem(hiddenKey)}catch(_){return}
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
+   settings.append(restoreAll);
    const details=nav.querySelector('.sb-nav-details');
    details.after(settings);
   }
   const hidden=readHidden();
+  const restoreAll=settings.querySelector('.sb-nav-restore-all');
+  if(restoreAll){
+   const showRestore=showHidden&&hidden.length>0;
+   if(restoreAll.hidden===showRestore)restoreAll.hidden=!showRestore;
+   const restoreLabel='↺ Restaurar todos los accesos ocultos ('+hidden.length+')';
+   if(restoreAll.textContent!==restoreLabel)restoreAll.textContent=restoreLabel;
+  }
   const visibilityToggle=settings.querySelector('.sb-nav-visibility-toggle');
   const visibilityLabel=showHidden?'Ocultar ajustes de accesos':'Gestionar accesos ocultos';
   if(visibilityToggle.textContent!==visibilityLabel)visibilityToggle.textContent=visibilityLabel;
