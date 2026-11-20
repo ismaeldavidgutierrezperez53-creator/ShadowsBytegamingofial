@@ -27,6 +27,7 @@
   ['💰 Historial de recompensas','.sb-reward-history',true],
   ['📊 Estadísticas de puntos','.sbrs-panel',true],
   ['🏆 Mis metas de puntos','.sbpg-panel',true],
+  ['🎖️ Medallero de metas','.sbpm-panel',true],
   ['🏅 Retos de colección','.sbr-goals',true],
   ['🌟 Retos sociales','.sbs-challenges',true],
   ['🎨 Editar perfil','#profile-form',true],
