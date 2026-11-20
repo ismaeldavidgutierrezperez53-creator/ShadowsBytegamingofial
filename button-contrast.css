@@ -1,0 +1,24 @@
+/* Botones accesibles: texto violeta de alto contraste sobre fondo claro.
+   Se aplica a botones .outline-btn, sin modificar enlaces ni acciones. */
+button.outline-btn {
+  background: #f5f3f9;
+  color: #2a0e57;
+  border: 1px solid #943bc2;
+  font-weight: 700;
+  text-shadow: none;
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+button.outline-btn:hover:not(:disabled) {
+  background: #e9def4;
+  color: #2a0e57;
+  border-color: #7220ae;
+  box-shadow: 0 0 0 2px rgba(139, 61, 188, .12);
+}
+button.outline-btn:focus-visible {
+  outline: 3px solid #66219f;
+  outline-offset: 2px;
+}
+button.outline-btn:disabled {
+  color: #46305c;
+  opacity: .72;
+}
