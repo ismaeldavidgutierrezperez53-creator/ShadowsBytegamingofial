@@ -117,6 +117,27 @@ sb.auth.onAuthStateChange((event)=>{
  if(event==='PASSWORD_RECOVERY')setTimeout(()=>{location.hash='#/reset-password';},0);
 });
 
+// Create a public profile for any signed-in member who does not have one yet.
+const publicProfileBootstrap = new Set();
+async function ensurePublicMemberProfile(user){
+ if(!user?.id||publicProfileBootstrap.has(user.id))return;
+ publicProfileBootstrap.add(user.id);
+ const meta=user.user_metadata||{};
+ const displayName=String(meta.display_name||meta.full_name||meta.name||'').replace(/\\s+/g,' ').trim().slice(0,60);
+ const avatarUrl=typeof meta.avatar_url==='string'&&/^https:\\/\\/[^\\s]+$/i.test(meta.avatar_url)?meta.avatar_url:null;
+ try{
+  const {data,error}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
+  if(error)throw error;
+  if(!data){
+   const {error:insertError}=await sb.from('profiles').insert({id:user.id,display_name:displayName||null,avatar_url:avatarUrl,bio:'',is_public:true,game_library_public:false});
+   if(insertError&&insertError.code!=='23505')throw insertError;
+  }
+ }catch(error){
+  publicProfileBootstrap.delete(user.id);
+  console.warn('No se pudo crear automáticamente el perfil público:',error.message);
+ }
+}
+
 // Keep the account controls synchronized with the persisted Supabase session.
 async function refreshAccountActions() {
  const actions=document.getElementById('account-actions');
@@ -124,6 +145,7 @@ async function refreshAccountActions() {
  const {data:{session},error}=await sb.auth.getSession();
  if(error)console.warn('No se pudo comprobar la sesión:',error.message);
  const user=session?.user;
+ if(user)void ensurePublicMemberProfile(user);
  const adminMenuLink=document.getElementById('menu-admin-link');
  if(adminMenuLink)adminMenuLink.hidden=user?.app_metadata?.role!=='admin';
  syncNotificationRealtime(user?.id||null);
@@ -898,12 +920,12 @@ async function loadAccountProfile(){
  communityPanel.before(ownGallery);
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
- // Public member directory is opt-in; keep authentication email private.
+ // Every member profile is public automatically; authentication email remains private.
  const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character').eq('id',user.id).maybeSingle();
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
-  extra.innerHTML='<label for="profile-bio">Presentación para la comunidad</label><textarea id="profile-bio" maxlength="280" rows="3" placeholder="Cuéntanos algo sobre ti..."></textarea><label class="profile-checkbox"><input type="checkbox" id="profile-public"> Mostrar mi perfil en Miembros</label><p class="profile-privacy">Solo se mostrarán tu nombre, avatar y presentación. Tu correo no será público.</p>';
+  extra.innerHTML='<label for="profile-bio">Presentación para la comunidad</label><textarea id="profile-bio" maxlength="280" rows="3" placeholder="Cuéntanos algo sobre ti..."></textarea><label class="profile-checkbox"><input type="checkbox" id="profile-public" checked disabled> Perfil público automático para todos los miembros</label><p class="profile-privacy">Tu perfil será visible para todos los miembros. Tu correo y datos de acceso no serán públicos.</p>';
   panel.querySelector('#profile-form').insertBefore(extra,panel.querySelector('#profile-form button[type="submit"]'));
   const statusControls=document.createElement('div');statusControls.className='profile-gaming-status-editor';
   const gameStatusLabel=document.createElement('label');gameStatusLabel.textContent='🎮 Estado gaming';gameStatusLabel.htmlFor='profile-gaming-status';
@@ -919,7 +941,7 @@ async function loadAccountProfile(){
   panel.querySelector('#profile-form').insertBefore(statusControls,panel.querySelector('#profile-form button[type="submit"]'));
 
   document.getElementById('profile-bio').value=profile?.bio||'';
-  document.getElementById('profile-public').checked=profile?.is_public===true;
+  document.getElementById('profile-public').checked=true;
   const customization=document.createElement('div');customization.className='profile-customization';
   customization.innerHTML='<label for="profile-cover-url">🖼️ Portada (URL HTTPS)</label><input id="profile-cover-url" type="url" placeholder="https://ejemplo.com/portada.jpg"><label for="profile-theme">🎨 Color del perfil</label><select id="profile-theme"><option value="violet">Morado</option><option value="blue">Azul</option><option value="emerald">Verde</option><option value="rose">Rosa</option><option value="amber">Dorado</option></select>';
   panel.querySelector('#profile-form').insertBefore(customization,panel.querySelector('#profile-form button[type="submit"]'));
@@ -1006,7 +1028,7 @@ async function loadAccountProfile(){
    const {error}=await sb.auth.updateUser({data:{display_name,avatar_url}});
    if(!error){
     const bio=document.getElementById('profile-bio').value.trim();
-    const is_public=document.getElementById('profile-public').checked;
+    const is_public=true;
     const cover_url=document.getElementById('profile-cover-url').value.trim();
     if(cover_url&&!/^https:\/\/[^\s]+$/i.test(cover_url)){status.textContent='La portada debe ser una URL HTTPS válida.';return;}
     const theme_color=document.getElementById('profile-theme').value;
@@ -1024,7 +1046,7 @@ async function loadAccountProfile(){
       :sb.from('profiles').insert(payload).select('id,is_public');
     const {data:saved,error:profileError}=await request.single();
     if(profileError||!saved){status.textContent='No se pudo guardar el perfil de Miembros: '+(profileError?.message||'No se confirmó el guardado');return;}
-    status.textContent=saved.is_public?'Perfil público guardado. Ya puedes verlo en Miembros.':'Perfil guardado como privado. Activa la casilla para aparecer en Miembros.';
+    status.textContent='Perfil público guardado. Ya puedes verlo en Miembros.';
    }
    if(error){status.textContent='No se pudo guardar: '+error.message;return;}
    heading.textContent=display_name;paintAvatar(avatar_url,display_name);updateProfilePreview();
@@ -1043,7 +1065,7 @@ async function loadMembers(){
   const term=(document.getElementById('members-search')?.value||'').toLocaleLowerCase().trim();
   const filtered=members.filter(x=>[x.display_name,x.username,x.favorite_anime,x.favorite_anime_character].some(value=>String(value||'').toLocaleLowerCase().includes(term)));
   root.replaceChildren();
-  if(!filtered.length){const empty=document.createElement('div');empty.className='admin-empty';empty.textContent=term?'No se encontraron miembros.':'Todavía no hay perfiles públicos. Puedes activar el tuyo desde Mi cuenta.';root.append(empty);return;}
+  if(!filtered.length){const empty=document.createElement('div');empty.className='admin-empty';empty.textContent=term?'No se encontraron miembros.':'Todavía no hay miembros registrados.';root.append(empty);return;}
   filtered.forEach(member=>{
    const card=document.createElement('article');card.className='member-card';card.dataset.animeCard=['sakura','neon','stellar','lunar'].includes(member.anime_card_style)?member.anime_card_style:'sakura';
    const avatar=document.createElement('div');avatar.className='member-avatar';
