@@ -2108,8 +2108,9 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    for(const theme of premiumVideoThemes){
     const product=(itemsRes.data||[]).find(item=>
      item.id===theme.id &&
-     (!item.available_from || Date.now()>=Date.parse(item.available_from)) &&
-     (!item.available_until || Date.now()<Date.parse(item.available_until))
+     (premiumVideoOwned.has(theme.value) ||
+      ((!item.available_from || Date.now()>=Date.parse(item.available_from)) &&
+       (!item.available_until || Date.now()<Date.parse(item.available_until))))
     );
     const card=document.createElement('article');card.className='group-video-premium-card';card.dataset.theme=theme.value;if(theme.vip)card.classList.add('is-vip');
     const heading=document.createElement('strong');heading.textContent=theme.label;card.append(heading);
