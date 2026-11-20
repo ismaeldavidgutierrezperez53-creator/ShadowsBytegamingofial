@@ -12,7 +12,10 @@
   const grid=make('div','sb-showcase-grid');
   grid.setAttribute('aria-live','polite');
   const message=make('p','sb-showcase-message','Cargando videojuegos…');
-  panel.append(h,intro,message,grid);anchor.after(panel);
+  panel.append(h,intro,message,grid);
+  // En el perfil público Escaparate siempre va después de Afinidad gamer.
+  const affinity=!own?host.querySelector('.sbaf-panel'):null;
+  if(affinity)affinity.after(panel);else anchor.after(panel);
   if(typeof sb==='undefined' || !sb.auth || !sb.from){message.textContent='La conexión de videojuegos no está disponible.';return}
   async function load(){
    try{
