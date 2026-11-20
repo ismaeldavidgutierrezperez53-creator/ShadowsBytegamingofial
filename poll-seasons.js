@@ -65,6 +65,7 @@
   if(!root?.isConnected)return;
   const id=++requestId;
   const currentMonth=monthNowMadrid();
+  let publicRanks=[];
   root.replaceChildren();
   const header=make('div','poll-season-heading');
   const heading=make('div');
@@ -73,7 +74,15 @@
   heading.append(make('p',null,'Se cuentan los votos del mes en curso. Al cambiar de mes, la clasificación empieza de cero sin afectar a los puntos ni al ranking histórico.'));
   const refresh=make('button','poll-season-refresh','↻ Actualizar temporada');
   refresh.type='button';refresh.onclick=()=>render(root);
-  header.append(heading,refresh);root.append(header);
+  const preview=make('button','poll-season-preview-action','🎉 Probar celebración');
+  preview.type='button';
+  preview.onclick=()=>{
+   window.SBPollSeasonCelebration?.preview(root,
+    {month_start:currentMonth,participant_count:publicRanks.length},publicRanks);
+   preview.textContent=root.querySelector('.poll-season-celebration.is-preview')?
+    '✕ Ocultar vista previa':'🎉 Probar celebración';
+  };
+  header.append(heading,preview,refresh);root.append(header);
   const note=make('p','poll-season-deadline','📅 Finaliza el '+lastDay(currentMonth)+'. Los premios se asignan automáticamente después del cierre.');
   root.append(note);
   const countdown=make('div','poll-anime-countdown-host');
@@ -120,8 +129,9 @@
     ranks.textContent='No se pudo cargar el ranking de la temporada.';
     console.warn('Ranking mensual:',rankingResult.error.message);
    }else{
+    publicRanks=rankingResult.data||[];
     ranks.replaceChildren();
-    window.SBPollSeasonExtras?.renderPodium(ranks,rankingResult.data||[],false);
+    window.SBPollSeasonExtras?.renderPodium(ranks,publicRanks,false);
     if(!rankingResult.data?.length)ranks.append(make('p','poll-season-empty','Aún no hay votos de perfiles públicos durante este mes.'));
     else for(const row of rankingResult.data)ranks.append(rowFor(row));
    }
@@ -171,6 +181,11 @@
     return;
    }
    const past=seasonResult.data||[];
+   window.SBPollSeasonCelebration?.watch(root,currentMonth,past,()=>render(root));
+   if(past.length){
+    // Only confirmed seasons generate winner announcements and real celebrations.
+    window.SBPollSeasonCelebration?.showFinal(root,past[0],user?.id);
+   }
    if(!past.length){
     picker.disabled=true;
     const option=document.createElement('option');option.value='';option.textContent='Sin temporadas finalizadas';picker.append(option);
@@ -182,6 +197,8 @@
     option.textContent=labelMonth(season.month_start);
     picker.append(option);
    }
+   const requestedMonth=new URLSearchParams(location.hash.split('?')[1]||'').get('temporada');
+   if(requestedMonth&&past.some(season=>season.month_start===requestedMonth))picker.value=requestedMonth;
    const loadHistory=async()=>{
     const month=picker.value;
     const token=id;
@@ -206,6 +223,15 @@
    };
    picker.onchange=loadHistory;
    await loadHistory();
+   if(requestedMonth===picker.value&&archive.isConnected){
+    archive.tabIndex=-1;
+    requestAnimationFrame(()=>{
+     if(archive.isConnected){
+      archive.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+      archive.focus({preventScroll:true});
+     }
+    });
+   }
   }catch(error){
    if(!root.isConnected||id!==requestId)return;
    ranks.textContent='Error de conexión al cargar la temporada.';
