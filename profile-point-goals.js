@@ -8,6 +8,13 @@
   if(text!==undefined)n.textContent=text;
   return n;
  };
+ const medalForTarget=target=>{
+  const points=Number(target)||0;
+  if(points>=10000)return {tier:'diamond',icon:'💎',label:'Medalla Diamante'};
+  if(points>=5000)return {tier:'gold',icon:'🥇',label:'Medalla de Oro'};
+  if(points>=1000)return {tier:'silver',icon:'🥈',label:'Medalla de Plata'};
+  return {tier:'bronze',icon:'🥉',label:'Medalla de Bronce'};
+ };
  const dateLabel=raw=>{
   const d=new Date(raw);
   return Number.isFinite(d.getTime())?d.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'}):'';
@@ -69,7 +76,7 @@
   const historyTitle=create('h3','','🏅 Metas completadas');
   const history=create('div','sbpg-history');
   const notice=create('p','sbpg-footnote',
-    'Solo tú puedes consultar y cambiar tus metas. La campana 🔔 muestra avisos al llegar al 25 %, 50 %, 75 % y 100 %; cada hito se guarda una sola vez. Si borras actividades, el progreso de una meta pendiente puede disminuir; una meta completada permanece en el historial.');
+    'Solo tú puedes consultar y cambiar tus metas. La campana 🔔 avisa al llegar al 25 %, 50 %, 75 % y 100 %. Al completar una meta se desbloquea una medalla decorativa visible en tu perfil público, respetando su privacidad y los bloqueos. No se entregan puntos extra.');
   section.append(title,explain,stats,current,form,status,historyTitle,history,notice);
   anchor.after(section);
 
@@ -102,9 +109,10 @@
     return;
    }
    for(const item of entries){
-    const row=create('div','sbpg-history-row');
+    const medal=medalForTarget(item.target_points);
+    const row=create('div','sbpg-history-row sbpg-history-row--'+medal.tier);
     row.append(
-      create('strong','','🏆 '+format(item.target_points)+' puntos'),
+      create('strong','',medal.icon+' '+medal.label+' · '+format(item.target_points)+' puntos'),
       create('span','','Completada el '+dateLabel(item.completed_at))
     );
     history.append(row);
@@ -115,16 +123,28 @@
    if(!pending?.id||toast&&celebratedId===pending.id)return;
    if(toast){toast.remove();toast=null;}
    celebratedId=pending.id;
-   toast=create('aside','sbpg-celebration');
+   const medal=medalForTarget(pending.target_points);
+   toast=create('aside','sbpg-celebration sbpg-celebration--'+medal.tier);
    toast.setAttribute('role','status');
    toast.setAttribute('aria-live','polite');
+   const burst=create('div','sbpg-confetti-burst');
+   burst.setAttribute('aria-hidden','true');
+   for(let i=0;i<16;i++){
+    const piece=create('span','sbpg-confetti-piece',i%3===0?'✦':'◆');
+    const angle=i*Math.PI/8;
+    piece.style.setProperty('--dx',Math.round(Math.cos(angle)*(85+i%4*15))+'px');
+    piece.style.setProperty('--dy',Math.round(Math.sin(angle)*(65+i%3*15))+'px');
+    piece.style.setProperty('--delay',String(i%5*45)+'ms');
+    burst.append(piece);
+   }
    const content=create('div','sbpg-celebration-content');
    content.append(
-    create('span','sbpg-celebration-icon','🎉🏆'),
-    create('strong','','¡Meta de puntos alcanzada!'),
-    create('p','','Has ganado '+format(pending.target_points)+
-      ' puntos acumulados. ¡Enhorabuena! Puedes crear una nueva meta.'),
-    create('small','','La felicitación no añade puntos a tu saldo.')
+    create('span','sbpg-celebration-icon','🎉 '+medal.icon),
+    create('strong','','¡Meta completada y medalla desbloqueada!'),
+    create('p','sbpg-new-medal-name',medal.icon+' '+medal.label),
+    create('p','','Has alcanzado '+format(pending.target_points)+
+      ' puntos acumulados. ¡Enhorabuena! La medalla aparecerá en tu perfil.'),
+    create('small','','Esta recompensa es decorativa. No añade puntos a tu saldo.')
    );
    const dismiss=create('button','gradient-btn mini','¡Genial! Continuar');
    dismiss.type='button';
@@ -135,13 +155,14 @@
      const {data,error}=await sb.rpc('ack_my_point_goal_completion',{p_goal_id:pending.id});
      if(error||data!==true)throw error||Error('No se pudo confirmar');
      toast?.remove();toast=null;celebratedId=null;
+     window.dispatchEvent(new Event('sb:point-goal-medal-unlocked'));
      if(active())refresh();
     }catch(err){
      dismiss.disabled=false;
      status.textContent='No se pudo confirmar la felicitación. Inténtalo otra vez.';
     }
    });
-   toast.append(content,dismiss);
+   toast.append(burst,content,dismiss);
    document.body.append(toast);
   }
 
