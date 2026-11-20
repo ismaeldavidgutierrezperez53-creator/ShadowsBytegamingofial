@@ -154,3 +154,9 @@
 .sb-nav-redo-favorite:focus-visible,.sb-nav-redo-visibility:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 .sb-nav-redo-visibility[hidden]{display:none!important}
 @media(max-width:550px){.sb-nav-redo-favorite,.sb-nav-redo-visibility{width:100%}}
+
+/* Filtro de accesos sin estrella, exclusivo respecto a Solo favoritos */
+.sb-nav-only-unstarred{min-height:43px;padding:8px 12px;border:1px solid #bda48d;border-radius:10px;background:#382b36;color:#fff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-only-unstarred[aria-pressed="true"]{background:#665035;border-color:#f0c891;color:#ffedcb}
+.sb-nav-only-unstarred:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-only-unstarred{flex:1}}
