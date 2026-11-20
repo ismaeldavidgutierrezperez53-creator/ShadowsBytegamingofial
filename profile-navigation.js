@@ -287,6 +287,7 @@
     entries.sort((a,b)=>mode==='az'?compare(a,b):mode==='za'?compare(b,a):favorites.indexOf(a[1])-favorites.indexOf(b[1]));
     return {
      count:entries.length,
+     entries:entries.map(([label,selector])=>({label,hidden:currentHidden.includes(selector)})),
      list:'⭐ Mis accesos favoritos — Shadows Byte Gaming Official V2\n'+entries.map(([label,selector],i)=>(i+1)+'. '+label+(currentHidden.includes(selector)?' (oculto)':'')).join('\n')
     };
    };
@@ -337,6 +338,35 @@
     }
    });
    sortBox.append(downloadFavorites);
+   const downloadCsv=node('button','sb-nav-download-csv','📊 Descargar favoritos CSV');
+   downloadCsv.type='button';
+   downloadCsv.addEventListener('click',()=>{
+    const {count,entries}=buildFavoriteList();
+    if(!count)return;
+    const csvCell=value=>{
+     let raw=String(value);
+     if(/^\s*[=+@-]/.test(raw))raw="'"+raw;
+     return '"'+raw.replace(/"/g,'""')+'"';
+    };
+    const rows=[['Orden','Acceso','Estado'],...entries.map((entry,index)=>[String(index+1),entry.label,entry.hidden?'Oculto':'Visible'])];
+    const csv='sep=;\r\n'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
+    try{
+     const blob=new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'});
+     const url=URL.createObjectURL(blob);
+     const link=node('a');
+     link.href=url;
+     link.download='shadows-byte-accesos-favoritos-'+(isOwn?'mi-perfil':'perfil-publico')+'.csv';
+     link.style.display='none';
+     document.body.append(link);
+     link.click();
+     link.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1000);
+     downloadCsv.textContent='✓ CSV preparado ('+count+')';
+    }catch(_){
+     downloadCsv.textContent='No se pudo preparar el CSV';
+    }
+   });
+   sortBox.append(downloadCsv);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -565,6 +595,12 @@
   if(copyFavorites){
    const count=available.filter(([_,selector])=>favorites.includes(selector)).length;
    if(copyFavorites.disabled!==(count===0))copyFavorites.disabled=count===0;
+   const downloadCsv=nav.querySelector('.sb-nav-download-csv');
+   if(downloadCsv){
+    if(downloadCsv.disabled!==(count===0))downloadCsv.disabled=count===0;
+    const csvLabel='📊 Descargar favoritos CSV ('+count+')';
+    if(!downloadCsv.textContent.startsWith('✓')&&!downloadCsv.textContent.startsWith('No se pudo')&&downloadCsv.textContent!==csvLabel)downloadCsv.textContent=csvLabel;
+   }
    const downloadFavorites=nav.querySelector('.sb-nav-download-favorites');
    if(downloadFavorites){
     if(downloadFavorites.disabled!==(count===0))downloadFavorites.disabled=count===0;
