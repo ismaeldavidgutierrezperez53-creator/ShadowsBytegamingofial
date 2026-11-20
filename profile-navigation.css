@@ -241,3 +241,12 @@
 .sb-nav-download-filtered-txt:disabled{opacity:.45;cursor:default}
 .sb-nav-download-filtered-txt:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-download-filtered-txt{width:100%}}
+
+/* Herramientas de copiar y exportar agrupadas en un panel desplegable */
+.sb-nav-export-details{margin:8px 12px 10px;border:1px solid #82629c;border-radius:12px;background:#291b37;overflow:hidden}
+.sb-nav-export-summary{padding:12px 14px;cursor:pointer;font:700 16px Rajdhani,Arial,sans-serif;color:#f6ebff}
+.sb-nav-export-summary:hover{background:#3a2850}
+.sb-nav-export-summary:focus-visible{outline:3px solid #5cdbff;outline-offset:-3px}
+.sb-nav-export-tools{display:flex;flex-wrap:wrap;gap:9px;padding:12px;border-top:1px solid #60477a}
+.sb-nav-export-details:not([open]) .sb-nav-export-tools{display:none}
+@media(max-width:550px){.sb-nav-export-tools{display:grid;grid-template-columns:minmax(0,1fr)}.sb-nav-export-tools>button{width:100%}}
