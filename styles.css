@@ -1063,3 +1063,51 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  .member-card[data-anime-card="lunar"]{transition:none}
 }
+
+
+/* Easily discoverable personal anime theme picker at the top of video calls. */
+.group-multi-video .group-video-theme-picker{
+ display:flex!important;
+ flex-direction:column;
+ gap:10px;
+ margin:12px 0;
+ padding:14px;
+ border:1px solid rgba(177,121,255,.72);
+ background:linear-gradient(120deg,rgba(39,20,82,.93),rgba(12,36,76,.9));
+ box-shadow:0 0 22px rgba(164,88,255,.2);
+}
+.group-multi-video .group-video-theme-picker>h5:first-child{
+ margin:0;color:#ffe9ff;font-size:1.05rem;
+}
+.group-multi-video .group-video-theme-options{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,125px),1fr));
+ gap:8px;
+}
+.group-multi-video .group-video-theme-options button{
+ min-width:0;
+ min-height:46px;
+ margin:0!important;
+ padding:9px 12px;
+ border-radius:12px;
+ border:1px solid rgba(220,170,255,.5);
+ color:#fff;
+ background:rgba(71,47,117,.8);
+ font-weight:700;
+ cursor:pointer;
+}
+.group-multi-video .group-video-theme-options button:is(:hover,:focus-visible){
+ border-color:#8df0ff;
+ box-shadow:0 0 12px rgba(141,240,255,.3);
+}
+.group-multi-video .group-video-theme-options button.is-selected{
+ border-color:#92f6ff;
+ background:linear-gradient(120deg,#642991,#176c86);
+ box-shadow:0 0 0 2px rgba(146,246,255,.38);
+}
+@media(max-width:540px){
+ .group-multi-video .group-video-theme-options{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ .group-multi-video .group-video-theme-picker{padding:10px}
+}
