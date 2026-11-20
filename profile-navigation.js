@@ -689,6 +689,12 @@
    const selectionStatus=node('p','sb-nav-selection-status');
    selectionStatus.setAttribute('role','status');
    selectionStatus.setAttribute('aria-live','polite');
+   const selectionNav=node('div','sb-nav-selection-controls');
+   const previousResult=node('button','sb-nav-select-previous','↑ Anterior');
+   const nextResult=node('button','sb-nav-select-next','↓ Siguiente');
+   previousResult.type='button';
+   nextResult.type='button';
+   selectionNav.append(previousResult,nextResult);
    let selectedShortcut=null;
    const matchingShortcuts=()=>[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector);
    const markShortcut=selector=>{
@@ -698,6 +704,9 @@
     const position=matches.indexOf(selected);
     const status=selected?'Resultado '+(position+1)+' de '+matches.length+': '+(selected.dataset.searchLabel||''):'';
     if(selectionStatus.textContent!==status)selectionStatus.textContent=status;
+    const disabled=matches.length===0;
+    if(previousResult.disabled!==disabled)previousResult.disabled=disabled;
+    if(nextResult.disabled!==disabled)nextResult.disabled=disabled;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const highlighted=item===selected;
      if(item.classList.contains('sb-nav-keyboard-selected')!==highlighted)item.classList.toggle('sb-nav-keyboard-selected',highlighted);
@@ -707,6 +716,15 @@
     else search.removeAttribute('aria-activedescendant');
     selected?.scrollIntoView({block:'nearest',behavior:'auto'});
    };
+   const chooseResult=step=>{
+    const matches=matchingShortcuts();
+    if(!matches.length)return;
+    const current=matches.findIndex(item=>item.dataset.shortcutSelector===selectedShortcut);
+    const next=step>0?(current+1)%matches.length:(current<0?matches.length-1:(current-1+matches.length)%matches.length);
+    markShortcut(matches[next].dataset.shortcutSelector);
+   };
+   previousResult.addEventListener('click',()=>chooseResult(-1));
+   nextResult.addEventListener('click',()=>chooseResult(1));
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -748,6 +766,9 @@
       else restorable++;
      }
     }
+    const navigationDisabled=visible===0;
+    if(previousResult.disabled!==navigationDisabled)previousResult.disabled=navigationDisabled;
+    if(nextResult.disabled!==navigationDisabled)nextResult.disabled=navigationDisabled;
     if(selectedShortcut){
      const matches=matchingShortcuts();
      if(!matches.some(item=>item.dataset.shortcutSelector===selectedShortcut))markShortcut(null);
@@ -881,7 +902,7 @@
    });
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
    searchBox.append(shortcutHint);
-   details.append(summary,searchBox,filterStatus,selectionStatus,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
+   details.append(summary,searchBox,filterStatus,selectionStatus,selectionNav,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
