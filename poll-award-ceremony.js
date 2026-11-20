@@ -165,6 +165,7 @@ async function maybeCelebrate(id){
   try{localStorage.setItem(key,'seen');}catch(_){requested.add(key);}
   show(item,id,profile?.display_name||profile?.username||user.user_metadata?.display_name||'campeón',profile?.is_public===true);
  }catch(error){console.warn('Ceremonia automática:',error);}
+ finally{requested.delete(id);}
 }
 function preview(){
  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Madrid',month:'2-digit',year:'numeric'}).formatToParts(new Date());
