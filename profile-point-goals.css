@@ -66,3 +66,72 @@
 .sbpg-confetti-piece:nth-child(4n){color:#ffc6ec}
 @keyframes sbpg-confetti-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}14%{opacity:1}75%{opacity:.9}100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.7) rotate(280deg)}}
 @media(prefers-reduced-motion:reduce){.sbpg-confetti-piece{animation:none!important;display:none!important}}
+
+/* Cuatro celebraciones anime. El estilo se deriva de la medalla realmente ganada. */
+.sbpg-celebration--bronze{background:linear-gradient(139deg,#46283e,#6d4339,#38305b);border-color:#f0b985}
+.sbpg-celebration--silver{background:linear-gradient(135deg,#283b65,#4a4c79,#2d365f);border-color:#d9edff;box-shadow:0 0 31px rgba(195,228,255,.28),0 15px 40px rgba(5,7,23,.65)}
+.sbpg-celebration--gold{background:linear-gradient(138deg,#503353,#6c4a2a,#463057);border-color:#ffe4a1}
+.sbpg-celebration--diamond{background:linear-gradient(135deg,#21486c,#3b4687,#28466d);border-color:#a3f6ff}
+.sbpg-celebration .sbpg-new-medal-name{align-self:flex-start;font:800 1.02rem Rajdhani,Arial,sans-serif}
+.sbpg-celebration-effect-note{position:relative;font:700 .91rem/1.45 Rajdhani,Arial,sans-serif;color:#f6eafa}
+.sbpg-celebration-actions{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.sbpg-celebration .sbpg-celebration-actions button{width:auto;flex:1 1 145px;min-height:43px;margin:0;white-space:normal}
+.sbpg-celebration .sbpg-view-medal{background:linear-gradient(115deg,#f8dba1,#f4b8ed);color:#342042;border-color:rgba(255,228,169,.8)}
+.sbpg-celebration .sbpg-celebration-dismiss{background:rgba(35,32,76,.7);color:#faeefe;border:1px solid rgba(224,190,243,.6)}
+.sbpg-medal-burst{overflow:hidden;border-radius:inherit;isolation:isolate}
+.sbpg-medal-piece{pointer-events:none;user-select:none;line-height:1;filter:drop-shadow(0 0 5px currentColor)}
+.sbpg-celebration--motion-on.sbpg-celebration--bronze .sbpg-medal-piece{color:#ffcf94;font-size:1.2rem;animation:sbpg-bronze-twinkle 2.2s ease-in-out var(--delay,0ms) both}
+.sbpg-celebration--motion-on.sbpg-celebration--bronze .sbpg-medal-piece:nth-child(3n){color:#f7e9c5}
+.sbpg-celebration--motion-on.sbpg-celebration--silver .sbpg-medal-piece{top:-14px;left:var(--start-x,50%);color:#e1f1ff;font-size:1.05rem;animation:sbpg-silver-starfall 2.4s ease-in var(--delay,0ms) both}
+.sbpg-celebration--motion-on.sbpg-celebration--silver .sbpg-medal-piece:nth-child(3n){color:#fff8db}
+.sbpg-celebration--motion-on.sbpg-celebration--gold .sbpg-medal-piece{color:#ffe19a;font-size:1.3rem;animation:sbpg-gold-sunburst 1.9s cubic-bezier(.14,.72,.26,1) var(--delay,0ms) both}
+.sbpg-celebration--motion-on.sbpg-celebration--gold .sbpg-medal-piece:nth-child(3n){color:#fff5d1}
+.sbpg-celebration--motion-on.sbpg-celebration--diamond .sbpg-medal-piece{color:#a0f8ff;font-size:1.17rem;animation:sbpg-diamond-crystal 2.4s ease-in-out var(--delay,0ms) both}
+.sbpg-celebration--motion-on.sbpg-celebration--diamond .sbpg-medal-piece:nth-child(3n){color:#e9ffff}
+.sbpg-celebration--motion-on.sbpg-celebration--gold::before{content:"";position:absolute;inset:-16%;pointer-events:none;z-index:0;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,217,122,.18) 0deg 7deg,transparent 7deg 18deg);animation:sbpg-gold-aura-rotate 5s linear infinite}
+.sbpg-celebration--motion-on.sbpg-celebration--diamond::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;background:linear-gradient(122deg,transparent 26%,rgba(214,255,255,.19) 44%,transparent 60%);animation:sbpg-diamond-flare 4s ease-in-out infinite}
+@keyframes sbpg-bronze-twinkle{
+ 0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(-25deg)}
+ 24%{opacity:1;transform:translate(calc(-50% + var(--dx,0px)*.35),calc(-50% + var(--dy,0px)*.35)) scale(1.1) rotate(30deg)}
+ 60%{opacity:.75}
+ 100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.45) rotate(120deg)}
+}
+@keyframes sbpg-silver-starfall{
+ 0%{opacity:0;transform:translateY(-22px) rotate(-20deg) scale(.6)}
+ 22%{opacity:1}
+ 68%{opacity:.97}
+ 100%{opacity:0;transform:translateY(325px) rotate(170deg) scale(.8)}
+}
+@keyframes sbpg-gold-sunburst{
+ 0%{opacity:0;transform:translate(-50%,-50%) scale(.1) rotate(-30deg)}
+ 20%{opacity:1;transform:translate(-50%,-50%) scale(1.3) rotate(0)}
+ 74%{opacity:.9}
+ 100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.4) rotate(210deg)}
+}
+@keyframes sbpg-diamond-crystal{
+ 0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(0)}
+ 27%{opacity:1;transform:translate(calc(-50% + var(--dx,0px)*.35),calc(-50% + var(--dy,0px)*.35)) scale(1.15) rotate(45deg)}
+ 59%{opacity:.9;filter:brightness(1.45)}
+ 100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.5) rotate(180deg)}
+}
+@keyframes sbpg-gold-aura-rotate{to{transform:rotate(360deg)}}
+@keyframes sbpg-diamond-flare{
+ 0%,100%{opacity:.2;transform:translateX(-24%)}
+ 50%{opacity:.75;transform:translateX(24%)}
+}
+/* OFF disables all celebration motion, including earlier general popup animation. */
+.sbpg-celebration--motion-off,.sbpg-celebration--motion-off *,
+.sbpg-celebration--motion-off::before,.sbpg-celebration--motion-off::after,
+.sbpg-celebration--motion-off *::before,.sbpg-celebration--motion-off *::after{animation:none!important;transition:none!important}
+.sbpg-celebration--motion-off .sbpg-medal-burst{display:none!important}
+@media(prefers-reduced-motion:reduce){
+ .sbpg-celebration,.sbpg-celebration *,
+ .sbpg-celebration::before,.sbpg-celebration::after,
+ .sbpg-celebration *::before,.sbpg-celebration *::after{animation:none!important;transition:none!important}
+ .sbpg-medal-burst{display:none!important}
+}
+@media(max-width:420px){
+ .sbpg-celebration{max-height:min(72vh,490px);padding:13px}
+ .sbpg-celebration-actions{gap:7px}
+ .sbpg-celebration .sbpg-celebration-actions button{flex:1 1 110px;font-size:.87rem}
+}
