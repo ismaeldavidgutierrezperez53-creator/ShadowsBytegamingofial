@@ -76,6 +76,9 @@
    search.placeholder='Buscar biblioteca, retos, estadísticas…';
    search.setAttribute('aria-label','Buscar secciones del perfil');
    search.autocomplete='off';
+   search.title='Atajos: / para buscar · Esc para limpiar';
+   const shortcutHint=node('span','sb-nav-shortcut-hint','⌨️ / buscar · Esc limpiar');
+   shortcutHint.title='Pulsa / fuera de los campos de texto para enfocar este buscador';
    const searchFiltersKey='sb-profile-search-filters-'+(isOwn?'own':'public')+'-v1';
    try{
     const saved=JSON.parse(localStorage.getItem(searchFiltersKey)||'null');
@@ -810,8 +813,18 @@
     }
     applyFilter();
    });
+   search.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    if(search.value){
+     search.value='';
+     applyFilter();
+    }else search.blur();
+    event.preventDefault();
+    event.stopPropagation();
+   });
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
+   searchBox.append(shortcutHint);
    details.append(summary,searchBox,filterStatus,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
@@ -1233,6 +1246,20 @@
   if(!app)return;
   new MutationObserver(schedule).observe(app,{childList:true,subtree:true});
   addEventListener('hashchange',schedule);
+  document.addEventListener('keydown',event=>{
+   if(event.key!=='/'||event.ctrlKey||event.metaKey||event.altKey||event.isComposing||event.repeat)return;
+   const target=event.target;
+   if(target?.isContentEditable||target?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]'))return;
+   const panels=[...document.querySelectorAll('.sb-nav-panel')];
+   const panel=panels.find(nav=>{
+    const details=nav.querySelector('.sb-nav-details');
+    return details?.open&&nav.getClientRects().length>0&&!nav.closest('[hidden], [inert], [aria-hidden="true"]');
+   });
+   const input=panel?.querySelector('.sb-nav-search');
+   if(!input||input.disabled)return;
+   event.preventDefault();
+   input.focus();
+  });
   schedule();
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
