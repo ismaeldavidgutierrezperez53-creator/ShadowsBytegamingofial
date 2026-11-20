@@ -1817,7 +1817,13 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
 
  const profileMap=new Map((memberProfiles||[]).map(p=>[p.id,p]));
  const participantThemes=new Map();
- const themeNames={sakura:'🌸 Sakura',neon:'💜 Neón',fire:'🔥 Fuego',galaxy:'🌌 Galaxia',night:'🌙 Noche'};
+ const themeNames={sakura:'🌸 Sakura',neon:'💜 Neón',fire:'🔥 Fuego',galaxy:'🌌 Galaxia',night:'🌙 Noche',aurora:'🌈 Aurora mística',ember:'🐉 Dragón de brasas',celestial:'👑 Nebulosa celestial'};
+ const premiumVideoThemes=[
+  {id:'theme_aurora',value:'aurora',label:'🌈 Aurora mística'},
+  {id:'theme_ember',value:'ember',label:'🐉 Dragón de brasas'},
+  {id:'theme_celestial',value:'celestial',label:'👑 Nebulosa celestial'}
+ ];
+ const premiumVideoOwned=new Set();
  let activeParticipantIds=new Set([userId]);
  const updateVideoThemeTags=()=>{
   for(const tile of videos.children){
@@ -1913,11 +1919,22 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const quality=document.createElement('select');quality.setAttribute('aria-label','Calidad de vídeo');
  for(const [value,label] of [['auto','Calidad automática'],['low','Ahorro de datos (360p)'],['high','Alta calidad (720p)']]){const option=document.createElement('option');option.value=value;option.textContent=label;quality.append(option);}
  const background=document.createElement('select');background.setAttribute('aria-label','Efecto anime de mi vídeo');
- for(const [value,label] of [['none','Sin efecto'],['sakura','🌸 Sakura'],['neon','💜 Neón'],['fire','🔥 Fuego'],['galaxy','🌌 Galaxia'],['night','🌙 Noche (estilo anterior)']]){const option=document.createElement('option');option.value=value;option.textContent=label;background.append(option);}
+ for(const [value,label] of [['none','Sin efecto'],['sakura','🌸 Sakura'],['neon','💜 Neón'],['fire','🔥 Fuego'],['galaxy','🌌 Galaxia'],['night','🌙 Noche (estilo anterior)'],['aurora','🌈 Aurora mística (exclusivo)'],['ember','🐉 Dragón de brasas (exclusivo)'],['celestial','👑 Nebulosa celestial (exclusivo)']]){const option=document.createElement('option');option.value=value;option.textContent=label;background.append(option);}
  const qualityInfo=document.createElement('p');qualityInfo.textContent='La calidad se adapta a tu conexión. El efecto elegido decora solo el marco de tu vídeo, sin modificar la imagen de la cámara.';
  const localTile=local.parentElement;
- background.onchange=()=>{localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon','video-bg-fire','video-bg-galaxy');if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);};
+ background.onchange=()=>{
+  if(premiumVideoThemes.some(item=>item.value===background.value)&&!premiumVideoOwned.has(background.value)){
+   qualityInfo.textContent='🔒 Debes desbloquear este efecto exclusivo antes de utilizarlo.';
+   background.value='none';
+  }
+  localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon','video-bg-fire','video-bg-galaxy','video-bg-aurora','video-bg-ember','video-bg-celestial');
+  if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);
+ };
  quality.onchange=async()=>{const track=stream.getVideoTracks()[0];if(!track)return;const height=quality.value==='low'?360:quality.value==='high'?720:480;try{await track.applyConstraints({height:{ideal:height},frameRate:{ideal:quality.value==='low'?15:24,max:30}});qualityInfo.textContent='Calidad solicitada: '+quality.options[quality.selectedIndex].textContent+'. El navegador ajustará según disponibilidad.';}catch(e){qualityInfo.textContent='Tu cámara no admite ese ajuste: '+e.message;}};
+ const {data:initialPremiumPurchases,error:initialPremiumError}=await sb.from('member_shop_purchases').select('item_id').eq('user_id',userId).in('item_id',premiumVideoThemes.map(item=>item.id));
+ if(initialPremiumError)console.warn('No se pudieron comprobar los temas desbloqueados:',initialPremiumError.message);
+ for(const row of initialPremiumPurchases||[]){const item=premiumVideoThemes.find(theme=>theme.id===row.item_id);if(item)premiumVideoOwned.add(item.value);}
+ for(const option of background.options)if(premiumVideoThemes.some(theme=>theme.value===option.value))option.disabled=!premiumVideoOwned.has(option.value);
  const {data:savedMedia}=await sb.from('member_group_video_preferences').select('quality,theme').eq('user_id',userId).maybeSingle();
  const publishVideoTheme=async()=>{
   participantThemes.set(userId,background.value);
@@ -1944,7 +1961,71 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  updateThemeButtons();
  const effectsTitle=document.createElement('h5');effectsTitle.textContent='✨ Elige el efecto anime de tu cámara';
  mediaSettings.classList.add('group-video-theme-picker');
- mediaSettings.append(effectsTitle,effectsBar,mediaTitle,quality,background,qualityInfo);
+ const premiumVideoSection=document.createElement('section');premiumVideoSection.className='group-video-premium-themes';
+ const premiumTitle=document.createElement('h5');premiumTitle.textContent='🏆 Efectos exclusivos: puntos y niveles';
+ const premiumStatus=document.createElement('p');premiumStatus.textContent='Consultando tu nivel, saldo y efectos comprados…';premiumStatus.setAttribute('role','status');
+ const premiumCards=document.createElement('div');premiumCards.className='group-video-premium-grid';
+ const refreshPremium=document.createElement('button');refreshPremium.type='button';refreshPremium.textContent='🔄 Actualizar puntos y efectos';
+ premiumVideoSection.append(premiumTitle,premiumStatus,premiumCards,refreshPremium);
+ const choosePremiumTheme=(value)=>{
+  if(!premiumVideoOwned.has(value))return;
+  background.value=value;
+  background.dispatchEvent(new Event('change',{bubbles:true}));
+  updateThemeButtons();
+ };
+ const refreshPremiumVideoThemes=async()=>{
+  refreshPremium.disabled=true;
+  try{
+   const [itemsRes,purchasesRes,balanceRes,xpRes]=await Promise.all([
+    sb.from('reward_shop_items').select('id,name,price,required_level,value').in('id',premiumVideoThemes.map(item=>item.id)).eq('active',true),
+    sb.from('member_shop_purchases').select('item_id').eq('user_id',userId).in('item_id',premiumVideoThemes.map(item=>item.id)),
+    sb.rpc('reward_shop_balance'),
+    sb.rpc('community_member_xp',{target_member:userId})
+   ]);
+   const error=itemsRes.error||purchasesRes.error||balanceRes.error||xpRes.error;
+   if(error){premiumStatus.textContent='⚠️ No se pudieron cargar los efectos exclusivos: '+error.message;return;}
+   const balance=Math.max(0,Number(balanceRes.data)||0),xp=Math.max(0,Number(xpRes.data)||0);
+   const level=Math.min(50,Math.floor(Math.sqrt(xp/100))+1);
+   premiumVideoOwned.clear();
+   for(const row of purchasesRes.data||[]){const item=premiumVideoThemes.find(t=>t.id===row.item_id);if(item)premiumVideoOwned.add(item.value);}
+   for(const option of background.options)if(premiumVideoThemes.some(t=>t.value===option.value))option.disabled=!premiumVideoOwned.has(option.value);
+   premiumStatus.textContent='⭐ Nivel '+level+' · 💰 '+balance.toLocaleString('es-ES')+' puntos disponibles. Las compras son permanentes.';
+   premiumCards.replaceChildren();
+   for(const theme of premiumVideoThemes){
+    const product=(itemsRes.data||[]).find(item=>item.id===theme.id);
+    const card=document.createElement('article');card.className='group-video-premium-card';card.dataset.theme=theme.value;
+    const heading=document.createElement('strong');heading.textContent=theme.label;card.append(heading);
+    if(!product){const unavailable=document.createElement('small');unavailable.textContent='No disponible por ahora';card.append(unavailable);premiumCards.append(card);continue;}
+    const owned=premiumVideoOwned.has(theme.value);
+    const info=document.createElement('small');info.textContent='Nivel '+product.required_level+' · '+product.price+' puntos'+(owned?' · ✅ Desbloqueado':'');
+    const button=document.createElement('button');button.type='button';
+    if(owned){
+     button.textContent=background.value===theme.value?'✅ Efecto seleccionado':'✨ Usar efecto';
+     button.onclick=()=>{choosePremiumTheme(theme.value);premiumStatus.textContent='✅ Has elegido '+product.name+'.';refreshPremiumVideoThemes().catch(console.warn);};
+    }else if(level<product.required_level){
+     button.textContent='🔒 Necesitas nivel '+product.required_level;button.disabled=true;
+    }else if(balance<product.price){
+     button.textContent='🔒 Faltan '+(product.price-balance)+' puntos';button.disabled=true;
+    }else{
+     button.textContent='🔓 Desbloquear por '+product.price+' puntos';
+     button.onclick=async()=>{
+      if(!confirm('¿Desbloquear '+product.name+' por '+product.price+' puntos?'))return;
+      button.disabled=true;
+      const {data,error:buyError}=await sb.rpc('buy_reward_shop_item',{requested_item:theme.id});
+      if(buyError){premiumStatus.textContent='⚠️ No se pudo desbloquear: '+buyError.message;button.disabled=false;return;}
+      await refreshPremiumVideoThemes();
+      if(premiumVideoOwned.has(theme.value))choosePremiumTheme(theme.value);
+      premiumStatus.textContent=data===false?'✅ Este efecto ya estaba comprado.':'🎉 ¡Efecto desbloqueado y seleccionado!';
+     };
+    }
+    card.append(info,button);premiumCards.append(card);
+   }
+  }catch(e){premiumStatus.textContent='⚠️ No se pudieron cargar los efectos: '+e.message;}
+  finally{refreshPremium.disabled=false;}
+ };
+ refreshPremium.onclick=()=>{refreshPremiumVideoThemes().catch(console.warn);};
+ mediaSettings.append(effectsTitle,effectsBar,premiumVideoSection,mediaTitle,quality,background,qualityInfo);
+ refreshPremiumVideoThemes().catch(console.warn);
  const actions=document.createElement('div');actions.className='group-call-actions';
  const invites=document.createElement('div');invites.className='group-video-invites';
  const inviteSelect=document.createElement('select');inviteSelect.setAttribute('aria-label','Invitar miembro');
