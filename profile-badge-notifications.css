@@ -1,5 +1,5 @@
 /* Shadows Byte V2 — notificaciones privadas de logros y celebraciones */
-.sb-badge-notify{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:98px;z-index:1900;display:flex;flex-direction:column;align-items:flex-end;gap:10px;pointer-events:none;max-width:min(400px,calc(100vw - 30px))}
+.sb-badge-notify{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:98px;z-index:12050;display:flex;flex-direction:column;align-items:flex-end;gap:10px;pointer-events:none;max-width:min(400px,calc(100vw - 30px))}
 .sb-badge-notify[hidden],.sb-badge-notify [hidden]{display:none!important}
 .sb-badge-notify>*,.sb-badge-notify button{pointer-events:auto}
 .sb-badge-notify-toggle{min-height:44px;display:flex;align-items:center;gap:8px;padding:9px 15px;border:1px solid rgba(203,158,249,.8);border-radius:999px;background:linear-gradient(120deg,#482872,#302355);color:#fff0ff;font:800 .95rem Rajdhani,Arial,sans-serif;box-shadow:0 4px 18px rgba(28,15,53,.45);cursor:pointer}
@@ -49,3 +49,8 @@
 /* Recompensas de puntos acreditadas al desbloquear cada insignia */
 .sb-badge-notify-points{display:inline-flex;align-items:center;margin-top:4px;padding:4px 8px;max-width:100%;width:max-content;border:1px solid rgba(250,210,116,.7);border-radius:999px;background:rgba(153,97,35,.28);color:#ffdfa1;font:800 .84rem Rajdhani,Arial,sans-serif;white-space:normal;overflow-wrap:anywhere}
 .sb-badge-unlock-toast:has(.sb-badge-unlock-note) .sb-badge-unlock-note{font-weight:700;color:#ffebbf}
+
+/* Un clic siempre debe llegar a la campana, también con WhatsApp flotante. */
+.sb-badge-notify-toggle{position:relative;isolation:isolate}
+.sb-badge-notify-feedback{margin:6px 0 11px;padding:7px 10px;color:#eee0fa;font:600 .84rem/1.4 Rajdhani,Arial,sans-serif;border-radius:8px;background:rgba(112,68,162,.19)}
+@media(max-width:540px){.sb-badge-notify{bottom:max(105px,calc(env(safe-area-inset-bottom) + 93px))}}
