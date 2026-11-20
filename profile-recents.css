@@ -1,0 +1,11 @@
+/* Historial local de navegación entre secciones de perfiles */
+.sb-recent-panel{margin-top:14px;padding:14px;border:1px solid #8367a5;border-radius:12px;background:#221831}
+.sb-recent-panel h3{margin:0 0 6px;font-size:18px;color:#f8e9ff}
+.sb-recent-description{margin:4px 0 12px;color:#d9c8e9;font-size:14px}
+.sb-recent-items{display:flex;gap:8px;flex-wrap:wrap}
+.sb-recent-go,.sb-recent-clear{min-height:42px;border:1px solid #9875bc;border-radius:10px;color:white;background:#3d2854;padding:8px 12px;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-recent-go:hover,.sb-recent-clear:hover{background:#654084}
+.sb-recent-clear{margin-top:11px;background:transparent}
+.sb-recent-clear[hidden]{display:none!important}
+.sb-recent-go:focus-visible,.sb-recent-clear:focus-visible{outline:3px solid #65d9ff;outline-offset:2px}
+@media(max-width:600px){.sb-recent-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sb-recent-go{min-width:0;overflow-wrap:anywhere;font-size:14px}}
