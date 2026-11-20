@@ -17,8 +17,11 @@
   'sb-profile-featured-limit-own-v1',
   'sb-profile-featured-limit-public-v1',
   'sb-profile-featured-visible-own-v1',
-  'sb-profile-featured-visible-public-v1'
+  'sb-profile-featured-visible-public-v1',
+  'sb-profile-nav-sort-own-v1',
+  'sb-profile-nav-sort-public-v1'
  ];
+ const isSortKey=key=>key.startsWith('sb-profile-nav-sort-');
  const isFeaturedVisibleKey=key=>key.startsWith('sb-profile-featured-visible-');
  const isFeaturedLimitKey=key=>key.startsWith('sb-profile-featured-limit-');
  const customKey='sb-profile-preset-custom-own-v1';
@@ -31,6 +34,7 @@
    const raw=localStorage.getItem(key);
    if(key==='sb-profile-compact-v1')return raw==='yes'?'yes':'no';
    if(isLayoutKey(key))return raw==='list'?'list':'grid';
+   if(isSortKey(key))return ['favorites','az','za'].includes(raw)?raw:'favorites';
    if(isFeaturedLimitKey(key))return ['1','3','5'].includes(raw)?raw:'3';
    if(isFeaturedVisibleKey(key))return raw==='no'?'no':'yes';
    if(key===customKey){
@@ -39,7 +43,7 @@
     return {sections:[...new Set(value.sections.filter(v=>typeof v==='string'&&allowedCustom.has(v)))].slice(0,20)};
    }
    return safeArray(JSON.parse(raw||'[]'));
-  }catch(_){return key==='sb-profile-compact-v1'?'no':isLayoutKey(key)?'grid':isFeaturedLimitKey(key)?'3':isFeaturedVisibleKey(key)?'yes':key===customKey?null:[]}
+  }catch(_){return key==='sb-profile-compact-v1'?'no':isLayoutKey(key)?'grid':isFeaturedLimitKey(key)?'3':isFeaturedVisibleKey(key)?'yes':isSortKey(key)?'favorites':key===customKey?null:[]}
  }
  function mount(host){
   const nav=host.querySelector('.sb-nav-panel');
@@ -47,7 +51,7 @@
   const section=element('section','sb-profile-backup');
   section.setAttribute('aria-label','Guardar y recuperar organización del perfil');
   section.append(element('h3','','💾 Copia de mi organización'));
-  section.append(element('p','sb-profile-backup-help','Guarda favoritos, su orden, accesos ocultos, modo compacto, vista de lista/cuadrícula, cantidad y visibilidad de accesos destacados y tu plantilla personalizada en un archivo. No incluye mensajes, datos de cuenta ni videojuegos.'));
+  section.append(element('p','sb-profile-backup-help','Guarda favoritos, su orden, accesos ocultos, modo compacto, vista de lista/cuadrícula, cantidad y visibilidad de accesos destacados, ordenación de accesos y tu plantilla personalizada en un archivo. No incluye mensajes, datos de cuenta ni videojuegos.'));
   const actions=element('div','sb-profile-backup-actions');
   const exportButton=element('button','sb-profile-backup-btn','⬇ Exportar configuración');
   exportButton.type='button';
@@ -82,7 +86,7 @@
      // Las copias antiguas no tienen el modo de presentación: se conserva el actual.
      if(value===undefined||value===null&&key!==customKey)continue;
      if(key===customKey&&value===null){localStorage.removeItem(key);continue}
-     localStorage.setItem(key,key==='sb-profile-compact-v1'||isLayoutKey(key)||isFeaturedLimitKey(key)||isFeaturedVisibleKey(key)?value:JSON.stringify(value));
+     localStorage.setItem(key,key==='sb-profile-compact-v1'||isLayoutKey(key)||isFeaturedLimitKey(key)||isFeaturedVisibleKey(key)||isSortKey(key)?value:JSON.stringify(value));
     }
     dismissPreview();
     notice.textContent='Configuración importada. Actualizando el organizador.';
@@ -90,7 +94,7 @@
    }catch(_){notice.textContent='No se pudo guardar la configuración en este navegador.'}
   };
   resetButton.onclick=()=>{
-   if(!window.confirm('¿Restablecer el organizador? Se eliminarán tus favoritos, accesos ocultos, preferencia de modo compacto, vistas de lista/cuadrícula, cantidad y visibilidad de accesos destacados y plantilla personalizada en este navegador. No afecta a tu cuenta.'))return;
+   if(!window.confirm('¿Restablecer el organizador? Se eliminarán tus favoritos, accesos ocultos, preferencia de modo compacto, vistas de lista/cuadrícula, cantidad y visibilidad de accesos destacados, ordenación y plantilla personalizada en este navegador. No afecta a tu cuenta.'))return;
    try{
     keys.forEach(key=>localStorage.removeItem(key));
     dismissPreview();
@@ -127,6 +131,11 @@
      if(key==='sb-profile-compact-v1'){
       if(value!=='yes'&&value!=='no')throw Error('Modo compacto inválido');
       validated[key]=value;
+     }else if(isSortKey(key)){
+      // Los archivos anteriores conservan el modo de ordenación actual.
+      if(value===undefined){validated[key]=null;continue}
+      if(!['favorites','az','za'].includes(value))throw Error('Orden de accesos inválido');
+      validated[key]=value;
      }else if(isFeaturedVisibleKey(key)){
       if(value===undefined){validated[key]=null;continue}
       if(value!=='yes'&&value!=='no')throw Error('Visibilidad de destacados inválida');
@@ -161,7 +170,8 @@
     const featuredOwn=validated['sb-profile-featured-limit-own-v1']||'sin cambios';
     const featuredPublic=validated['sb-profile-featured-limit-public-v1']||'sin cambios';
     const visibleSummary=value=>value===null?'sin cambios':value==='yes'?'visibles':'ocultos';
-    previewSummary.textContent='Destacados en Mi cuenta: '+visibleSummary(validated['sb-profile-featured-visible-own-v1'])+'. Destacados en perfiles públicos: '+visibleSummary(validated['sb-profile-featured-visible-public-v1'])+'. Cantidad de destacados en Mi cuenta: '+featuredOwn+'. Destacados públicos: '+featuredPublic+'. Plantilla personalizada: '+customSummary+'. Archivo: '+selected.name+' · '+ownFav+' favoritos en Mi cuenta, '+publicFav+' favoritos públicos, '+hidden+' accesos ocultos. Modo compacto: '+(validated['sb-profile-compact-v1']==='yes'?'activado':'desactivado')+'. Vista en Mi cuenta: '+layoutName(validated['sb-profile-nav-layout-own-v1'])+'. Vista en perfiles públicos: '+layoutName(validated['sb-profile-nav-layout-public-v1'])+'. Se sustituirán las preferencias indicadas en este navegador.';
+    const sortName=value=>value===null?'sin cambios':value==='az'?'A-Z':value==='za'?'Z-A':'favoritos primero';
+    previewSummary.textContent='Orden de accesos en Mi cuenta: '+sortName(validated['sb-profile-nav-sort-own-v1'])+'. Orden en perfiles públicos: '+sortName(validated['sb-profile-nav-sort-public-v1'])+'. Destacados en Mi cuenta: '+visibleSummary(validated['sb-profile-featured-visible-own-v1'])+'. Destacados en perfiles públicos: '+visibleSummary(validated['sb-profile-featured-visible-public-v1'])+'. Cantidad de destacados en Mi cuenta: '+featuredOwn+'. Destacados públicos: '+featuredPublic+'. Plantilla personalizada: '+customSummary+'. Archivo: '+selected.name+' · '+ownFav+' favoritos en Mi cuenta, '+publicFav+' favoritos públicos, '+hidden+' accesos ocultos. Modo compacto: '+(validated['sb-profile-compact-v1']==='yes'?'activado':'desactivado')+'. Vista en Mi cuenta: '+layoutName(validated['sb-profile-nav-layout-own-v1'])+'. Vista en perfiles públicos: '+layoutName(validated['sb-profile-nav-layout-public-v1'])+'. Se sustituirán las preferencias indicadas en este navegador.';
     preview.hidden=false;
     notice.textContent='Revisa la vista previa antes de aplicar los cambios.';
    }catch(_){dismissPreview();notice.textContent='El archivo es inválido o no se pudo importar.'}
