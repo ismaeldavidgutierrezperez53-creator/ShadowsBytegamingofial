@@ -1816,6 +1816,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const {data:memberProfiles}=await sb.from('profiles').select('id,display_name,username,avatar_url,featured_badge').in('id',(await sb.from('member_chat_group_members').select('user_id').eq('group_id',group.id)).data?.map(m=>m.user_id)||[userId]);
 
  const profileMap=new Map((memberProfiles||[]).map(p=>[p.id,p]));
+ const peers=new Map();
  const participantThemes=new Map();
  const themeNames={sakura:'🌸 Sakura',neon:'💜 Neón',fire:'🔥 Fuego',galaxy:'🌌 Galaxia',night:'🌙 Noche',aurora:'🌈 Aurora mística',ember:'🐉 Dragón de brasas',celestial:'👑 Nebulosa celestial',welcome_spark:'🌟 Estrella del inicio',moon_blade:'🌙 Espada lunar',storm_spirit:'⚡ Espíritu tormenta',dragon_sky:'🐲 Dragón del cielo',phoenix:'🔥 Fénix dorado VIP',royal_cosmos:'💎 Trono cósmico VIP'};
  const premiumVideoThemes=[
@@ -2396,7 +2397,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  focusView.onclick=()=>{videos.classList.add('group-video-focus');};
  fullView.onclick=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else panel.requestFullscreen?.().catch(e=>say('Pantalla completa: '+e.message));};
  viewBar.append(gridView,focusView,fullView);panel.insertBefore(viewBar,videos);panel.insertBefore(shareStatus,actions);
- const peers=new Map();let lastSignal=0,busy=false,screenStream=null,originalVideo=null,closed=false;
+ let lastSignal=0,busy=false,screenStream=null,originalVideo=null,closed=false;
  const connectionPanel=document.createElement('div');connectionPanel.className='group-video-connection-health';
  const qualityTitle=document.createElement('strong');qualityTitle.textContent='📶 Diagnóstico de conexión';
  const qualityStatus=document.createElement('span');qualityStatus.textContent='Esperando participantes…';
