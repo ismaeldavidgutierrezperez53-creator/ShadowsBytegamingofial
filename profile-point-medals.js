@@ -8,6 +8,12 @@
     gold:{icon:'🥇',label:'Medalla de Oro',className:'gold',description:'Meta de 5.000 a 9.999 puntos'},
     diamond:{icon:'💎',label:'Medalla Diamante',className:'diamond',description:'Meta de 10.000 puntos o más'}
   };
+  const themes={
+    sakura:{icon:'🌸',label:'Sakura',description:'Pétalos rosas y brillo suave'},
+    neon:{icon:'⚡',label:'Neón Gamer',description:'Luces eléctricas moradas y cian'},
+    dragon:{icon:'🔥',label:'Dragón',description:'Resplandores rojos y dorados'},
+    diamond:{icon:'💎',label:'Diamante',description:'Destellos de cristal y hielo'}
+  };
   const toNumber=x=>Math.max(0,Number(x)||0).toLocaleString('es-ES');
   const el=(tag,cls,text)=>{
     const node=document.createElement(tag);
@@ -57,6 +63,8 @@
       :'Las medallas son reconocimientos visuales; no representan premios canjeables.');
     // Personalización exclusiva del propietario: la galería histórica no cambia.
     let editor=null,editorStatus=null,featuredList=null,availableList=null;
+    let themePicker=null,themeGrid=null,themeStatus=null;
+    const themeButtons=new Map();
     if(isOwner){
       editor=el('section','sbpm-editor');
       editor.setAttribute('aria-label','Personalizar mi vitrina de medallas');
@@ -65,12 +73,38 @@
         el('p','sbpm-editor-intro',
           'Destaca hasta 3 medallas que hayas ganado. Elige cuáles mostrar, cambia su orden o quítalas sin perder los logros.')
       );
+      themePicker=el('section','sbpm-theme-picker');
+      themePicker.setAttribute('aria-label','Elegir estilo anime de mi vitrina');
+      themePicker.append(
+        el('h4','','🎨 Estilo anime de la vitrina'),
+        el('p','sbpm-theme-intro',
+          'Personaliza el diseño de tus medallas destacadas. El estilo también se verá en tu perfil público.')
+      );
+      themeGrid=el('div','sbpm-theme-grid');
+      themeGrid.setAttribute('role','group');
+      themeGrid.setAttribute('aria-label','Elige entre cuatro estilos anime');
+      for(const [key,info] of Object.entries(themes)){
+        const button=el('button','sbpm-theme-card sbpm-theme-card--'+key);
+        button.type='button';
+        button.setAttribute('aria-label','Elegir estilo '+info.label);
+        button.setAttribute('aria-pressed',String(key==='neon'));
+        button.append(el('span','sbpm-theme-card-icon',info.icon),
+          el('strong','',info.label),
+          el('small','',info.description));
+        button.addEventListener('click',()=>saveTheme(key));
+        themeButtons.set(key,button);
+        themeGrid.append(button);
+      }
+      themeStatus=el('p','sbpm-theme-status','Selecciona un estilo para tu vitrina.');
+      themeStatus.setAttribute('role','status');
+      themeStatus.setAttribute('aria-live','polite');
+      themePicker.append(themeGrid,themeStatus);
       editorStatus=el('p','sbpm-editor-status','Cargando medallas favoritas…');
       editorStatus.setAttribute('role','status');
       editorStatus.setAttribute('aria-live','polite');
       featuredList=el('div','sbpm-featured-list');
       availableList=el('div','sbpm-available-list');
-      editor.append(editorStatus,el('h4','','⭐ Destacadas en mi perfil'),featuredList,
+      editor.append(themePicker,editorStatus,el('h4','','⭐ Destacadas en mi perfil'),featuredList,
         el('h4','','🏅 Medallas disponibles'),availableList);
     }
     panel.append(h2,intro,toolbar,status,summary);
@@ -82,8 +116,51 @@
     anchor.after(panel);
 
     let last=0,busy=false,memberId=null,unlocked=[],selectedIds=[],selectedRecords=[];
+    let themeKey='neon',themeBusy=false;
     const active=()=>root.isConnected&&panel.isConnected&&
       location.hash.split('?')[0]===(isOwner?'#/cuenta':'#/perfil');
+
+    function applyTheme(){
+      const newClass='sbpm-theme--'+themeKey;
+      for(const node of [strip,panel]){
+        node.className=node.className.replace(/\s?sbpm-theme--(?:sakura|neon|dragon|diamond)/g,'')+' '+newClass;
+      }
+      if(isOwner){
+        for(const [key,button] of themeButtons){
+          button.setAttribute('aria-pressed',String(key===themeKey));
+          button.disabled=themeBusy;
+        }
+      }
+    }
+
+    async function saveTheme(nextTheme){
+      if(!isOwner||themeBusy||!memberId||!active()||!themes[nextTheme])return;
+      if(themeKey===nextTheme){
+        themeStatus.textContent='Ya tienes seleccionado el estilo '+themes[nextTheme].label+'.';
+        return;
+      }
+      const previous=themeKey;
+      themeBusy=true;
+      themeKey=nextTheme;applyTheme();
+      themeStatus.textContent='Guardando estilo '+themes[nextTheme].label+'…';
+      try{
+        if(typeof sb==='undefined'||!sb?.auth||!sb?.rpc)throw Error('Supabase no disponible');
+        const session=await sb.auth.getUser();
+        if(session.error||session.data?.user?.id!==memberId)
+          throw Error('Tu sesión ha cambiado. Inicia sesión de nuevo.');
+        const {data,error}=await sb.rpc('set_my_point_goal_showcase_style',{p_theme:nextTheme});
+        if(error||!data?.saved||data.theme!==nextTheme)
+          throw error||Error('El estilo no se ha guardado correctamente.');
+        if(active())themeStatus.textContent='✅ Estilo '+themes[nextTheme].label+' guardado en tu perfil.';
+      }catch(error){
+        themeKey=previous;
+        if(active())themeStatus.textContent='No se pudo guardar el estilo: '+
+          String(error.message||'Error desconocido')+'. Inténtalo de nuevo.';
+      }finally{
+        themeBusy=false;
+        if(active())applyTheme();
+      }
+    }
 
     function drawStrip(items){
       strip.replaceChildren();
@@ -261,7 +338,7 @@
     }
 
     async function load(){
-      if(busy)return;
+      if(busy||themeBusy)return;
       const ticket=++last;
       if(isOwner)refresh.disabled=true;
       status.textContent='Consultando medallas…';
@@ -276,15 +353,22 @@
           targetMember=new URLSearchParams(location.hash.split('?')[1]||'').get('id');
           if(!uuid.test(String(targetMember)))throw Error('Perfil no disponible');
         }
-        const [medalResponse,showcaseResponse]=await Promise.all([
+        const [medalResponse,showcaseResponse,styleResponse]=await Promise.all([
           sb.rpc('get_member_point_goal_medals',{target_member:targetMember}),
-          sb.rpc('get_member_point_goal_showcase',{target_member:targetMember})
+          sb.rpc('get_member_point_goal_showcase',{target_member:targetMember}),
+          sb.rpc('get_member_point_goal_showcase_style',{target_member:targetMember})
         ]);
         if(ticket!==last||!active())return;
         if(medalResponse.error)throw medalResponse.error;
         if(showcaseResponse.error)throw showcaseResponse.error;
+        if(styleResponse.error)throw styleResponse.error;
         if(!Array.isArray(medalResponse.data)||!Array.isArray(showcaseResponse.data))
           throw Error('Los datos de las medallas están incompletos.');
+        if(styleResponse.data!==null&&!themes[styleResponse.data])
+          throw Error('El estilo de la vitrina no es válido.');
+        themeKey=themes[styleResponse.data]?styleResponse.data:'neon';
+        applyTheme();
+        if(isOwner)themeStatus.textContent='Estilo actual: '+themes[themeKey].icon+' '+themes[themeKey].label+'.';
         memberId=targetMember;
         unlocked=medalResponse.data.filter(valid).slice(0,50);
         selectedRecords=showcaseResponse.data.filter(valid).slice(0,3);
