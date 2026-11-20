@@ -113,7 +113,7 @@
         count: Math.max(0, Math.floor(Number(entry.visits) || 0)),
         visitors: Math.max(0, Math.floor(Number(entry.visitors) || 0))
       }));
-      if (days.some(day => !/^\\d{4}-\\d{2}-\\d{2}$/.test(day.date))) {
+      if (days.some(day => !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(day.date))) {
         chartStatus.textContent = 'No se pudieron interpretar las fechas del gráfico.';
         return;
       }
