@@ -527,6 +527,7 @@ async function adminInitRewardShop(){
   fieldsRoot.append(wrap);controls[key]=control;
  }
  const categories={frame:'Marco',badge:'Insignia',color:'Color',title:'Título'};
+ const displayCategories={...categories,anime_theme:'Tema anime exclusivo'};
  const categoryLabel=make('label','sb-shop-admin__field');categoryLabel.append(make('span','','Categoría'));
  const category=document.createElement('select');
  for(const [key,label] of Object.entries(categories)){const option=document.createElement('option');option.value=key;option.textContent=label;category.append(option)}
@@ -641,7 +642,7 @@ async function adminInitRewardShop(){
  const visibilityFilter=document.createElement('select');visibilityFilter.setAttribute('aria-label','Filtrar por visibilidad');
  const sorting=document.createElement('select');sorting.setAttribute('aria-label','Ordenar artículos');
  const addOptions=(select,values)=>{for(const [value,label] of values){const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option)}};
- addOptions(categoryFilter,[['all','Todas las categorías'],...Object.entries(categories)]);
+ addOptions(categoryFilter,[['all','Todas las categorías'],...Object.entries(displayCategories)]);
  addOptions(visibilityFilter,[['all','Todos los estados'],['visible','Visibles'],['hidden','Ocultos']]);
  addOptions(sorting,[['order','Orden de tienda'],['name','Nombre (A-Z)'],['price_asc','Puntos: menor a mayor'],['price_desc','Puntos: mayor a menor']]);
  const resultCount=make('span','sb-shop-admin__result-count','');
@@ -653,10 +654,13 @@ async function adminInitRewardShop(){
   if(item.image_url){const img=document.createElement('img');img.className='sb-shop-admin__item-image';img.src=item.image_url;img.alt='';img.loading='lazy';row.append(img)}
   else row.append(make('div','sb-shop-admin__item-image sb-shop-admin__item-fallback','🎁'));
   const info=make('div','sb-shop-admin__item-info');
-  info.append(make('strong','',item.name),make('small','',item.price+' puntos · '+(categories[item.category]||item.category)),make('span','sb-shop-admin__item-status'+(item.active?'':' sb-shop-admin__item-status--hidden'),item.active?'● Visible':'● Oculto'));
+  info.append(make('strong','',item.name),make('small','',item.price+' puntos · '+(displayCategories[item.category]||item.category)),make('span','sb-shop-admin__item-status'+(item.active?'':' sb-shop-admin__item-status--hidden'),item.active?'● Visible':'● Oculto'));
   const button=make('button','','Editar');button.type='button';button.onclick=()=>fill(item);
+  if(item.category==='anime_theme'){button.disabled=true;button.title='Los temas anime existentes conservan su efecto. Usa Promoción para destacarlos u ofrecer descuentos.'}
   const duplicateButton=make('button','sb-shop-admin__duplicate','Duplicar');duplicateButton.type='button';duplicateButton.onclick=()=>duplicate(item);
-  const itemActions=make('div','sb-shop-admin__item-actions');itemActions.append(button,duplicateButton);
+  const promotionButton=make('button','sb-shop-admin__promote','Promoción');promotionButton.type='button';promotionButton.onclick=()=>openMerchandising(item);
+  if(item.category==='anime_theme'){duplicateButton.disabled=true;duplicateButton.title='Los temas anime usan efectos exclusivos ya existentes.'}
+  const itemActions=make('div','sb-shop-admin__item-actions');itemActions.append(button,duplicateButton,promotionButton);
   row.append(info,itemActions);itemsRoot.append(row);
   rows.push({row,item});
  }
@@ -665,7 +669,7 @@ async function adminInitRewardShop(){
  const filter=()=>{
   const term=search.value.trim().toLocaleLowerCase('es');
   const matching=rows.filter(({item})=>{
-   const content=[item.name,item.id,item.description,categories[item.category]||item.category].join(' ').toLocaleLowerCase('es');
+   const content=[item.name,item.id,item.description,displayCategories[item.category]||item.category].join(' ').toLocaleLowerCase('es');
    const isCorrectVisibility=visibilityFilter.value==='all'||(visibilityFilter.value==='visible'?!!item.active:!item.active);
    return content.includes(term)&&(categoryFilter.value==='all'||item.category===categoryFilter.value)&&isCorrectVisibility;
   });
@@ -699,6 +703,89 @@ async function adminInitRewardShop(){
  search.addEventListener('input',filter);
  for(const control of [categoryFilter,visibilityFilter,sorting])control.addEventListener('change',filter);
  filter();
+
+
+ const merch=make('section','sb-shop-admin__section sb-shop-admin__merch');
+ const merchHeader=make('div','sb-shop-admin__section-heading');
+ merchHeader.append(make('h3','','🌟 Destacados y ofertas especiales'),make('p','','Configura promociones. Los cambios de puntos solo se aplican durante el periodo elegido.'));
+ merch.append(merchHeader);
+ const merchForm=document.createElement('form');merchForm.className='sb-shop-admin__merch-form';
+ const itemWrap=make('label','sb-shop-admin__field sb-shop-admin__field--wide');itemWrap.append(make('span','','Artículo'));
+ const itemSelect=document.createElement('select');
+ for(const item of inventory){
+  const option=document.createElement('option');option.value=item.id;option.textContent=item.name+' · '+(displayCategories[item.category]||item.category);itemSelect.append(option)
+ }
+ itemWrap.append(itemSelect);merchForm.append(itemWrap);
+ const featuredWrap=make('label','sb-shop-admin__toggle');
+ const featuredCheck=document.createElement('input');featuredCheck.type='checkbox';
+ featuredWrap.append(featuredCheck,make('span','','⭐ Mostrar en recompensas destacadas'));merchForm.append(featuredWrap);
+ const salePriceWrap=make('label','sb-shop-admin__field');
+ salePriceWrap.append(make('span','','Precio de oferta (puntos)'));
+ const salePrice=document.createElement('input');salePrice.type='number';salePrice.min='1';salePrice.step='1';salePrice.placeholder='Dejar vacío: sin oferta';salePriceWrap.append(salePrice);
+ const saleStartWrap=make('label','sb-shop-admin__field');
+ saleStartWrap.append(make('span','','Inicio de la oferta'));
+ const saleStart=document.createElement('input');saleStart.type='datetime-local';saleStartWrap.append(saleStart);
+ const saleEndWrap=make('label','sb-shop-admin__field');
+ saleEndWrap.append(make('span','','Fin de la oferta'));
+ const saleEnd=document.createElement('input');saleEnd.type='datetime-local';saleEndWrap.append(saleEnd);
+ const merchHint=make('p','sb-shop-admin__hint sb-shop-admin__field--wide','El precio de oferta debe ser menor que el precio normal. Para quitar una oferta, deja los tres campos vacíos y guarda.');
+ merchForm.append(salePriceWrap,saleStartWrap,saleEndWrap,merchHint);
+ const merchActions=make('div','sb-shop-admin__merch-actions');
+ const merchSave=make('button','gradient-btn','💾 Guardar promoción');merchSave.type='submit';
+ const merchClear=make('button','outline-btn','Quitar oferta');merchClear.type='button';
+ merchActions.append(merchSave,merchClear);
+ const merchStatus=make('p','sb-shop-admin__status');merchStatus.setAttribute('role','status');merchStatus.setAttribute('aria-live','polite');
+ merch.append(merchForm,merchActions,merchStatus);shop.append(merch);
+ const localDate=value=>{
+  if(!value)return '';
+  const date=new Date(value);if(Number.isNaN(date.getTime()))return '';
+  const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,16);
+ };
+ const openMerchandising=item=>{
+  if(!item)return;
+  itemSelect.value=item.id;featuredCheck.checked=!!item.featured;
+  salePrice.value=item.sale_price??'';
+  saleStart.value=localDate(item.sale_starts_at);saleEnd.value=localDate(item.sale_ends_at);
+  salePrice.max=String(Math.max(1,Number(item.price)-1));
+  merchStatus.textContent='Precio normal: '+Number(item.price).toLocaleString('es-ES')+' puntos.';
+  merchStatus.removeAttribute('data-type');
+  merch.scrollIntoView({behavior:'smooth',block:'start'});
+ };
+ itemSelect.onchange=()=>openMerchandising(inventory.find(item=>item.id===itemSelect.value));
+ merchClear.onclick=()=>{salePrice.value='';saleStart.value='';saleEnd.value='';merchStatus.textContent='Oferta borrada del formulario; pulsa Guardar promoción para aplicar.'};
+ merchForm.onsubmit=event=>{event.preventDefault();merchSave.click()};
+ merchSave.onclick=async()=>{
+  const item=inventory.find(row=>row.id===itemSelect.value);
+  if(!item){merchStatus.textContent='Selecciona un artículo.';return}
+  const values=[salePrice.value.trim(),saleStart.value.trim(),saleEnd.value.trim()];
+  const any=values.some(Boolean),all=values.every(Boolean);
+  if(any&&!all){merchStatus.textContent='Para programar una oferta, completa el precio, el inicio y el fin.';merchStatus.dataset.type='error';return}
+  let price=null,start=null,end=null;
+  if(all){
+   price=Number(salePrice.value);start=new Date(saleStart.value);end=new Date(saleEnd.value);
+   if(!Number.isInteger(price)||price<=0||price>=Number(item.price)||Number.isNaN(start.getTime())||Number.isNaN(end.getTime())||start>=end){
+    merchStatus.textContent='Comprueba el precio y las fechas: la oferta debe ser menor que el precio normal y terminar después de empezar.';
+    merchStatus.dataset.type='error';return;
+   }
+  }
+  merchSave.disabled=true;merchStatus.textContent='Guardando promoción…';merchStatus.removeAttribute('data-type');
+  try{
+   const {error}=await sb.rpc('admin_update_shop_merchandising',{
+    p_id:item.id,p_featured:featuredCheck.checked,p_sale_price:price,
+    p_sale_starts_at:start?start.toISOString():null,p_sale_ends_at:end?end.toISOString():null
+   });
+   if(error){merchStatus.textContent='Error: '+error.message;merchStatus.dataset.type='error';return}
+   await adminInitRewardShop();
+   const result=root.querySelector('.sb-shop-admin__merch .sb-shop-admin__status');
+   if(result){result.textContent='✓ Promoción guardada. Las ofertas solo aparecerán durante sus fechas.';result.dataset.type='success'}
+  }catch(error){merchStatus.textContent='No se pudo guardar: '+(error?.message||String(error));merchStatus.dataset.type='error'}
+  finally{merchSave.disabled=false}
+ };
+ if(inventory.length)openMerchandising(inventory[0]);else{
+  for(const control of [itemSelect,featuredCheck,salePrice,saleStart,saleEnd,merchSave,merchClear])control.disabled=true;
+  merchStatus.textContent='Crea primero un artículo para configurar promociones.';
+ }
 
  const stats=make('section','sb-shop-admin__section');
  const statsHeading=make('div','sb-shop-admin__section-heading');statsHeading.append(make('h3','','📊 Compras por artículo'));stats.append(statsHeading);
