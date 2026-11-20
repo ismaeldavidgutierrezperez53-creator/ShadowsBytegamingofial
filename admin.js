@@ -382,7 +382,11 @@ async function adminInitCompetitions(){
   const ids=(events||[]).map(e=>e.id);
   const {data:entries,error:entryError}=ids.length?await sb.from('community_competition_entries').select('competition_id,user_id,score,completed,joined_at').in('competition_id',ids).limit(700):{data:[],error:null};
   if(entryError){list.textContent='No se pudieron cargar las inscripciones: '+entryError.message;return;}
-  const members=[...new Set((entries||[]).map(e=>e.user_id))];
+  const {data:awards,error:awardsError}=ids.length
+   ?await sb.from('community_competition_awards').select('competition_id,user_id,place,points,badge,score,awarded_at').in('competition_id',ids).limit(210)
+   :{data:[],error:null};
+  if(awardsError){list.textContent='No se pudieron cargar los premios: '+awardsError.message;return;}
+  const members=[...new Set([...(entries||[]).map(e=>e.user_id),...(awards||[]).map(a=>a.user_id)])];
   const {data:profiles}=members.length?await sb.from('profiles').select('id,display_name,username').in('id',members):{data:[]};
   const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
   list.replaceChildren();
@@ -403,8 +407,35 @@ async function adminInitCompetitions(){
     if(error){note.textContent='No se pudo cambiar el estado: '+error.message;statusButton.disabled=false;return;}
     note.textContent='Competición actualizada.';await reload();
    };
+   const eventAwards=(awards||[]).filter(a=>a.competition_id===event.id).sort((a,b)=>a.place-b.place);
+   if(eventAwards.length){statusButton.disabled=true;statusButton.title='Premios entregados: el estado no debe cambiar.';}
    actions.append(statusButton);box.append(title,dates,description,actions);
-   const people=(entries||[]).filter(e=>e.competition_id===event.id).sort((a,b)=>b.score-a.score);
+   const people=(entries||[]).filter(e=>e.competition_id===event.id).sort((a,b)=>b.score-a.score||new Date(a.joined_at)-new Date(b.joined_at)||a.user_id.localeCompare(b.user_id));
+   const prizePanel=document.createElement('div');prizePanel.className='admin-competition-award-panel';
+   if(eventAwards.length){
+    const summary=document.createElement('strong');summary.textContent='🏅 Premios entregados y registrados ('+eventAwards.length+')';prizePanel.append(summary);
+    for(const prize of eventAwards){
+     const row=document.createElement('p');row.textContent=prize.badge+' · '+(names.get(prize.user_id)||'Participante')+' · +'+prize.points+' puntos de tienda';prizePanel.append(row);
+    }
+   }else{
+    const heading=document.createElement('strong');heading.textContent='🏅 Premios del podio';prizePanel.append(heading);
+    const legend=document.createElement('p');legend.textContent='🥇 100 puntos · 🥈 50 puntos · 🥉 25 puntos. Los premios no añaden XP y solo se entregan una vez.';prizePanel.append(legend);
+    const eligible=people.filter(e=>e.completed||e.score>0);
+    if(event.status==='published'&&Date.now()>=new Date(event.ends_at).getTime()&&eligible.length){
+     const button=document.createElement('button');button.type='button';button.className='gradient-btn';button.textContent='🏆 Entregar premios a los ganadores';
+     button.onclick=async()=>{
+      if(!confirm('¿Confirmas la clasificación final de «'+event.title+'»? Se entregarán los premios una sola vez.'))return;
+      button.disabled=true;
+      const {data,error}=await sb.rpc('award_community_competition_podium',{p_competition_id:event.id});
+      if(error){note.textContent='No se pudieron entregar los premios: '+error.message;button.disabled=false;return;}
+      await reload();note.textContent='🏆 Premios entregados a '+data+' ganador(es). Saldo de tienda e insignias actualizados.';
+     };
+     prizePanel.append(button);
+    }else{
+     const hint=document.createElement('small');hint.textContent='Para entregar premios, la competición debe estar publicada, finalizada y tener participantes con puntuación o resultado completado.';prizePanel.append(hint);
+    }
+   }
+   box.append(prizePanel);
    const count=document.createElement('strong');count.textContent='👥 '+people.length+' participantes registrados (hasta 700 inscripciones consultadas)';
    box.append(count);
    if(!people.length){
@@ -413,9 +444,9 @@ async function adminInitCompetitions(){
    for(const person of people){
     const row=document.createElement('div');row.className='admin-competition-score-row';
     const label=document.createElement('span');label.textContent=names.get(person.user_id)||'Miembro sin perfil público';
-    const score=document.createElement('input');score.type='number';score.min='0';score.max='100000';score.step='1';score.value=String(person.score);score.setAttribute('aria-label','Puntuación de '+label.textContent);
-    const completedLabel=document.createElement('label');const completed=document.createElement('input');completed.type='checkbox';completed.checked=person.completed;completedLabel.append(completed,document.createTextNode(' Completado'));
-    const save=document.createElement('button');save.type='button';save.className='admin-secondary';save.textContent='Guardar puntos';
+    const score=document.createElement('input');score.type='number';score.min='0';score.max='100000';score.step='1';score.value=String(person.score);score.disabled=eventAwards.length>0;score.setAttribute('aria-label','Puntuación de '+label.textContent);
+    const completedLabel=document.createElement('label');const completed=document.createElement('input');completed.type='checkbox';completed.checked=person.completed;completed.disabled=eventAwards.length>0;completedLabel.append(completed,document.createTextNode(' Completado'));
+    const save=document.createElement('button');save.type='button';save.className='admin-secondary';save.textContent=eventAwards.length?'Premios cerrados':'Guardar puntuación';save.disabled=eventAwards.length>0;
     save.onclick=async()=>{
      const value=Number(score.value);
      if(!Number.isInteger(value)||value<0||value>100000){note.textContent='Introduce una puntuación válida de 0 a 100000.';return;}
