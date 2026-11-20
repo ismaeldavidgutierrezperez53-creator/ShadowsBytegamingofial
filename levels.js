@@ -190,8 +190,9 @@ async function renderRewardShop(){
  if([catalog,owned,equipped,balance,members,gifts,wishes,daily].some(r=>r.error)){host.textContent='No se pudo cargar la tienda. Inténtalo de nuevo.';return}
  const points=document.createElement('h3');points.textContent='🪙 Saldo disponible: '+Number(balance.data||0)+' puntos';host.append(points);
  const note=document.createElement('p');note.textContent='Los puntos disponibles se obtienen de tu XP ganado menos las compras. Comprar no reduce tu nivel ni tu XP acumulado. Cada artículo se compra una sola vez.';host.append(note);
- const goToCatalogue=document.createElement('a');goToCatalogue.className='shop-explorer-shortcut outline-btn mini';
- goToCatalogue.href='#shop-catalog-filters';goToCatalogue.textContent='🔎 Buscar recompensas del catálogo';host.append(goToCatalogue);
+ const goToCatalogue=document.createElement('button');goToCatalogue.type='button';goToCatalogue.className='shop-explorer-shortcut outline-btn mini';
+ goToCatalogue.onclick=()=>document.getElementById('shop-catalog-filters')?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+ goToCatalogue.textContent='🔎 Buscar recompensas del catálogo';host.append(goToCatalogue);
  const dailyPanel=document.createElement('section');dailyPanel.className='shop-v3-panel shop-v3-daily';
  const todayUTC=new Date().toISOString().slice(0,10);
  const claimed=(daily.data||[]).some(entry=>entry.claimed_on===todayUTC);
@@ -333,7 +334,7 @@ async function renderRewardShop(){
   ['wishlist','Mi lista de deseos'],['affordable','Puedo pagar con mis puntos'],
   ['sales','En oferta'],['featured','Destacados'],['limited','Por tiempo limitado']
  ]);
- const sortingInput=addControl('select','Ordenar recompensas','Ordenar');
+ const sortingInput=addControl('select','Ordenar recompensas dentro de cada categoría','Ordenar en la categoría');
  addOptions(sortingInput,[['default','Orden de tienda'],['name','Nombre (A-Z)'],['low','Precio: menor a mayor'],['high','Precio: mayor a menor']]);
  queryInput.value=shopExploreState.query;
  categoryInput.value=shopExploreState.category;
@@ -415,7 +416,7 @@ async function renderRewardShop(){
 
   host.append(group);catalogueGroups.push({group,entries:groupEntries});
  }
- const normalized=value=>String(value??'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
+ const normalized=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
  const matchesView=item=>{
   switch(viewInput.value){
    case 'available':return !ownedIds.has(item.id)&&isAvailable(item);
