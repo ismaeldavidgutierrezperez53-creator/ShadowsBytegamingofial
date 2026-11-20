@@ -1318,3 +1318,107 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  .group-multi-video .group-video-tile:is(.video-bg-welcome_spark,.video-bg-moon_blade,.video-bg-storm_spirit,.video-bg-dragon_sky,.video-bg-phoenix,.video-bg-royal_cosmos){animation:none}
 }
+
+
+/* Individual chats V2: clearer inbox, previews, read counters and quick composer. */
+.messages-sidebar{
+ display:flex;flex-direction:column;gap:8px;
+}
+.messages-sidebar .private-chat-sidebar-search{
+ display:block;width:100%;max-width:100%;min-height:42px;
+ padding:10px 12px;border:1px solid rgba(180,143,249,.52);border-radius:11px;
+ background:rgba(27,21,52,.86);color:#fff;font:inherit;
+}
+.messages-sidebar .private-chat-sidebar-search:focus-visible{
+ outline:2px solid #bda6ff;outline-offset:2px;
+}
+.private-chat-sidebar-result{
+ display:block;color:#c9b9dc;font-size:.82rem;
+}
+.messages-sidebar .private-chat-partner-row{
+ display:flex;align-items:center;gap:5px;min-width:0;
+ border:1px solid rgba(164,125,207,.16);
+ border-radius:12px;padding:4px;margin:2px 0;
+ background:rgba(24,17,48,.28);
+}
+.messages-sidebar .private-chat-partner-row[hidden]{display:none!important}
+.messages-sidebar .messages-partner{
+ display:flex;align-items:center;gap:10px;
+ flex:1 1 auto;min-width:0;padding:9px 7px;
+ border-radius:10px;overflow:hidden;
+}
+.messages-sidebar .messages-partner.selected{
+ background:linear-gradient(120deg,rgba(116,58,179,.52),rgba(38,89,129,.26));
+ box-shadow:inset 3px 0 0 #cfa9ff;
+}
+.private-chat-partner-avatar{
+ display:grid;place-items:center;
+ width:40px;height:40px;flex:0 0 40px;
+ border-radius:50%;overflow:hidden;
+ border:1px solid rgba(216,174,255,.55);
+ background:linear-gradient(135deg,#8054a9,#226fa3);
+ color:#fff;font-weight:800;
+}
+.private-chat-partner-avatar img{width:100%;height:100%;object-fit:cover}
+.private-chat-partner-details{
+ display:flex;flex-direction:column;gap:2px;
+ flex:1 1 auto;min-width:0;
+}
+.private-chat-partner-details strong{
+ font-weight:700;color:#fff;font-size:.94rem;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.private-chat-partner-preview{
+ display:block;font-size:.8rem;color:#d6c9e5;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.private-chat-partner-time{color:#bcaed2;font-size:.69rem}
+.private-chat-partner-unread{
+ display:inline-flex;align-items:center;justify-content:center;
+ flex:0 0 auto;min-width:23px;min-height:23px;
+ padding:2px 6px;border-radius:999px;
+ background:#bb4cec;color:#fff;font-size:.72rem;font-weight:800;
+}
+.messages-panel .private-chat-day-divider{
+ display:flex;align-self:stretch;align-items:center;justify-content:center;
+ gap:12px;margin:12px 0 3px;
+ font-size:.78rem;font-weight:700;color:#e5d9f4;
+}
+.messages-panel .private-chat-day-divider::before,
+.messages-panel .private-chat-day-divider::after{
+ content:"";height:1px;flex:1 1 24px;
+ background:linear-gradient(90deg,transparent,rgba(182,158,234,.46),transparent);
+}
+.messages-panel .private-chat-day-divider[hidden]{display:none!important}
+.messages-compose .private-chat-quick-emoji{
+ display:flex;flex-wrap:wrap;gap:5px;
+ margin:4px 0;
+}
+.messages-compose .private-chat-quick-emoji button{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:39px;height:39px;padding:5px;
+ border:1px solid rgba(188,158,229,.4);border-radius:10px;
+ background:rgba(102,64,138,.26);color:inherit;
+ font-size:1.1rem;cursor:pointer;
+}
+.messages-compose .private-chat-quick-emoji button:hover{
+ background:rgba(140,92,186,.5);
+ transform:translateY(-1px);
+}
+.messages-compose .private-chat-quick-emoji button:focus-visible{
+ outline:2px solid #c7e5ff;outline-offset:2px;
+}
+.messages-compose .private-chat-keyboard-hint{
+ display:block;margin:2px 0 8px;color:#c8b9d8;
+ font-size:.76rem;
+}
+@media(max-width:680px){
+ .messages-sidebar{max-height:260px}
+ .messages-sidebar .private-chat-partner-row{padding:3px}
+ .messages-sidebar .messages-partner{padding:8px}
+ .messages-panel .message-bubble{max-width:95%}
+ .messages-compose .private-chat-keyboard-hint{font-size:.72rem}
+}
+@media(prefers-reduced-motion:reduce){
+ .messages-compose .private-chat-quick-emoji button:hover{transform:none}
+}
