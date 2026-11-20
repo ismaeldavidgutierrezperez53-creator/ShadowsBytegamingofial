@@ -1906,7 +1906,21 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const saveMediaPreference=async()=>{const {error}=await sb.from('member_group_video_preferences').upsert({user_id:userId,quality:quality.value,theme:background.value,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)console.warn('Preferencias de vídeo:',error.message);};
  quality.addEventListener('change',saveMediaPreference);background.addEventListener('change',saveMediaPreference);
  if(savedMedia){quality.value=savedMedia.quality||'auto';background.value=savedMedia.theme||'none';background.onchange();if(quality.value!=='auto')quality.onchange();}
- mediaSettings.append(mediaTitle,quality,background,qualityInfo);
+ const effectsBar=document.createElement('div');effectsBar.className='group-video-theme-options';
+ const themeButtons=new Map();
+ const themeOptions=[['sakura','🌸 Sakura'],['neon','💜 Neón'],['fire','🔥 Fuego'],['galaxy','🌌 Galaxia'],['none','✖ Sin efecto']];
+ const updateThemeButtons=()=>{for(const [theme,button] of themeButtons){const chosen=background.value===theme;button.setAttribute('aria-pressed',String(chosen));button.classList.toggle('is-selected',chosen);}};
+ for(const [theme,label] of themeOptions){
+  const button=document.createElement('button');button.type='button';button.textContent=label;
+  button.setAttribute('aria-label','Elegir efecto '+label);
+  button.onclick=()=>{background.value=theme;background.dispatchEvent(new Event('change',{bubbles:true}));updateThemeButtons();};
+  effectsBar.append(button);themeButtons.set(theme,button);
+ }
+ background.addEventListener('change',updateThemeButtons);
+ updateThemeButtons();
+ const effectsTitle=document.createElement('h5');effectsTitle.textContent='✨ Elige el efecto anime de tu cámara';
+ mediaSettings.classList.add('group-video-theme-picker');
+ mediaSettings.append(effectsTitle,effectsBar,mediaTitle,quality,background,qualityInfo);
  const actions=document.createElement('div');actions.className='group-call-actions';
  const invites=document.createElement('div');invites.className='group-video-invites';
  const inviteSelect=document.createElement('select');inviteSelect.setAttribute('aria-label','Invitar miembro');
@@ -2178,7 +2192,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
  actions.append(mic,camera,share,leave);
- actions.append(voiceIndicatorControls);panel.append(title,videos,participantPanel,actions,mediaSettings,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
+ actions.append(voiceIndicatorControls);panel.append(title,mediaSettings,videos,participantPanel,actions,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
  const viewBar=document.createElement('div');viewBar.className='group-call-actions';
  const gridView=document.createElement('button');gridView.textContent='▦ Cuadrícula';
  const focusView=document.createElement('button');focusView.textContent='▣ Destacar vídeo';
