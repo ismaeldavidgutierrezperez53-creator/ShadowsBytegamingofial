@@ -115,3 +115,29 @@
 @media(prefers-reduced-motion:reduce){
  #poll-participation .poll-museum-ranking *{animation:none!important;transition:none!important}
 }
+
+/* Accesos visibles al entrar en Encuestas. */
+.poll-museum-hero-access{
+ display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+ margin-top:15px;
+}
+.poll-museum-hero-access .outline-btn{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:44px;border:1px solid #9fe6ff;
+ border-radius:12px;padding:10px 15px;
+ background:rgba(30,31,65,.72);
+ color:#fff;text-decoration:none;
+ font-weight:800;line-height:1.35;
+ box-shadow:0 0 12px rgba(84,204,255,.16);
+}
+.poll-museum-hero-access .outline-btn:hover{
+ background:rgba(65,47,99,.92);
+ box-shadow:0 0 18px rgba(148,109,236,.3);
+}
+.poll-museum-hero-access .outline-btn:focus-visible{
+ outline:3px solid #9fe6ff;outline-offset:3px;
+}
+@media(max-width:480px){
+ .poll-museum-hero-access{display:grid;grid-template-columns:1fr;}
+ .poll-museum-hero-access .outline-btn{width:100%;text-align:center;}
+}
