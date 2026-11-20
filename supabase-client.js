@@ -3643,7 +3643,7 @@ async function loadPrivateMessages(){
  filterConversationList();
  const panel=document.createElement('section');panel.className='messages-panel';
  let unreadPartnerToMark=null;
- let loadChatTheme=null,refreshPartnerActivity=null;
+ let loadChatTheme=null,refreshPartnerActivity=null,loadPrivateChatNotifications=null;
  if(!active){panel.textContent='Selecciona un miembro desde su perfil para comenzar.';}
  else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
  else {
@@ -3696,7 +3696,86 @@ async function loadPrivateMessages(){
   };
   blockControls.append(blockButton);
   if(currentlyBlocked||blockedMe.has(active)){const notice=document.createElement('p');notice.textContent='🚫 No se pueden enviar mensajes privados mientras exista un bloqueo.';blockControls.append(notice);}
-  panel.append(chatHeader,blockControls);
+  const chatExtras=document.createElement('section');chatExtras.className='private-direct-extra-controls';
+  const callToolbar=document.createElement('div');callToolbar.className='private-direct-call-toolbar';
+  const voiceCall=document.createElement('button');voiceCall.type='button';voiceCall.className='outline-btn mini';voiceCall.textContent='📞 Llamada de voz';
+  const videoCall=document.createElement('button');videoCall.type='button';videoCall.className='outline-btn mini';videoCall.textContent='📹 Videollamada';
+  const callFeedback=document.createElement('small');callFeedback.className='private-direct-call-feedback';callFeedback.setAttribute('role','status');
+  const callsAllowed=publicIds.has(active)&&!blockedByMe.has(active)&&!blockedMe.has(active);
+  voiceCall.disabled=!callsAllowed;videoCall.disabled=!callsAllowed;
+  const callPartner=names.get(active)||'Miembro';
+  const initiateCall=async(kind,trigger)=>{
+   trigger.disabled=true;callFeedback.textContent='Solicitando acceso al micrófono'+(kind==='video'?' y cámara':'')+'…';
+   try{
+    await startPrivateDirectCall({me,partner:active,partnerName:callPartner,kind});
+    callFeedback.textContent='Llamada iniciada. Esperando respuesta del otro miembro.';
+   }catch(e){callFeedback.textContent='No se pudo iniciar: '+e.message;}
+   finally{trigger.disabled=!callsAllowed;}
+  };
+  voiceCall.onclick=()=>initiateCall('audio',voiceCall);
+  videoCall.onclick=()=>initiateCall('video',videoCall);
+  callToolbar.append(voiceCall,videoCall,callFeedback);
+  const notificationPanel=document.createElement('div');notificationPanel.className='private-direct-notification-settings';
+  const notificationTitle=document.createElement('strong');notificationTitle.textContent='🔔 Avisos de esta conversación';
+  const muteLabel=document.createElement('label');const muteBox=document.createElement('input');muteBox.type='checkbox';
+  muteLabel.append(muteBox,document.createTextNode(' Silenciar notificaciones'));
+  const popupLabel=document.createElement('label');const popupBox=document.createElement('input');popupBox.type='checkbox';popupBox.checked=true;
+  popupLabel.append(popupBox,document.createTextNode(' Mostrar avisos'));
+  const soundLabel=document.createElement('label');soundLabel.textContent='Sonido: ';
+  const soundSelect=document.createElement('select');soundSelect.setAttribute('aria-label','Sonido de esta conversación');
+  for(const [value,label] of [['message','🎵 Clásico'],['gift','✨ Mágico'],['comment','🎮 Arcade'],['follow','🌸 Suave'],['off','🔇 Sin sonido']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;soundSelect.append(option);
+  }
+  soundLabel.append(soundSelect);
+  const notificationStatus=document.createElement('small');notificationStatus.setAttribute('role','status');
+  notificationStatus.textContent='Los sonidos también respetan tus ajustes generales y No molestar.';
+  const notificationSave=async()=>{
+   const state={user_id:me,partner_id:active,muted:muteBox.checked,popup_enabled:popupBox.checked,sound:soundSelect.value};
+   for(const el of [muteBox,popupBox,soundSelect])el.disabled=true;
+   const {error}=await sb.from('member_private_chat_notifications').upsert(state,{onConflict:'user_id,partner_id'});
+   notificationStatus.textContent=error?'⚠️ No se guardaron los avisos: '+error.message:'✅ Preferencias de esta conversación guardadas.';
+   for(const el of [muteBox,popupBox,soundSelect])el.disabled=false;
+   if(error)loadPrivateChatNotifications?.().catch(console.warn);
+  };
+  muteBox.onchange=notificationSave;popupBox.onchange=notificationSave;soundSelect.onchange=notificationSave;
+  loadPrivateChatNotifications=async()=>{
+   const {data,error}=await sb.from('member_private_chat_notifications').select('muted,popup_enabled,sound')
+    .eq('user_id',me).eq('partner_id',active).maybeSingle();
+   if(error){notificationStatus.textContent='⚠️ '+error.message;return;}
+   if(!notificationPanel.isConnected)return;
+   muteBox.checked=data?.muted===true;
+   popupBox.checked=data?.popup_enabled!==false;
+   soundSelect.value=data?.sound||'message';
+  };
+  notificationPanel.append(notificationTitle,muteLabel,popupLabel,soundLabel,notificationStatus);
+  const giftSection=document.createElement('section');giftSection.className='private-direct-gift-controls';
+  const giftToggle=document.createElement('button');giftToggle.type='button';giftToggle.className='outline-btn mini';giftToggle.textContent='🎁 Regalo anime';
+  giftToggle.disabled=!callsAllowed;
+  const giftPicker=document.createElement('div');giftPicker.className='private-direct-gift-options';giftPicker.hidden=true;
+  const giftFeedback=document.createElement('small');giftFeedback.setAttribute('role','status');
+  const availableGifts=[['sakura','🌸','Flores de Sakura'],['star','⭐','Estrella mágica'],['dragon','🐲','Dragón anime'],['heart','💖','Corazón kawaii'],['crystal','💎','Cristal celestial']];
+  for(const [code,emoji,name] of availableGifts){
+   const gift=document.createElement('button');gift.type='button';gift.textContent=emoji+' '+name;
+   gift.onclick=async()=>{
+    for(const item of giftPicker.querySelectorAll('button'))item.disabled=true;
+    giftFeedback.textContent='Enviando '+name+'…';
+    const {error}=await sb.from('member_private_chat_gifts').insert({sender_id:me,recipient_id:active,gift_code:code});
+    if(error){giftFeedback.textContent='No se pudo enviar el regalo: '+error.message;for(const item of giftPicker.querySelectorAll('button'))item.disabled=false;return;}
+    giftFeedback.textContent='✅ '+name+' enviado (regalo decorativo, sin coste de puntos).';
+    giftPicker.hidden=true;giftToggle.setAttribute('aria-expanded','false');
+    await refreshLivePrivateConversation();
+   };
+   giftPicker.append(gift);
+  }
+  giftToggle.setAttribute('aria-expanded','false');
+  giftToggle.onclick=()=>{
+   giftPicker.hidden=!giftPicker.hidden;
+   giftToggle.setAttribute('aria-expanded',String(!giftPicker.hidden));
+  };
+  const giftNote=document.createElement('small');giftNote.textContent='Regalos decorativos gratuitos: no descuentan puntos ni modifican tu inventario.';
+  giftSection.append(giftToggle,giftPicker,giftNote,giftFeedback);
+  chatExtras.append(callToolbar,notificationPanel,giftSection);
+  panel.append(chatHeader,chatExtras,blockControls);
   const searchWrap=document.createElement('div');searchWrap.className='private-chat-search';
   const searchInput=document.createElement('input');searchInput.type='search';searchInput.placeholder='🔎 Buscar mensajes en esta conversación…';searchInput.setAttribute('aria-label','Buscar mensajes en esta conversación');
   const searchClear=document.createElement('button');searchClear.type='button';searchClear.textContent='Limpiar';searchClear.hidden=true;
@@ -3988,6 +4067,8 @@ async function loadPrivateMessages(){
  loadMyChatActivity().catch(console.warn);
  loadChatTheme?.().catch(console.warn);
  refreshPartnerActivity?.().catch(console.warn);
+ loadPrivateChatNotifications?.().catch(console.warn);
+ if(active&&!blockedByMe.has(active)&&!blockedMe.has(active)&&panel.querySelector('.private-chat-personal-header'))showIncomingPrivateCall(me,active,names.get(active)||'Miembro',panel).catch(console.warn);
  privateChatActivityInterval=setInterval(()=>{
   if(!root.isConnected||!location.hash.startsWith('#/mensajes')){
    if(privateChatActivityInterval){clearInterval(privateChatActivityInterval);privateChatActivityInterval=null;}
