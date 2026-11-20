@@ -1,0 +1,67 @@
+/* Tienda V9: cuatro mejoras para miembros; diseño adaptable y accesible. */
+#reward-shop .shop-v9-panel{margin:18px 0;padding:20px;border:1px solid #785296;border-radius:18px;background:linear-gradient(145deg,#251536,#121021);color:#f2e8fb;min-width:0;box-shadow:0 13px 30px #0003}
+#reward-shop .shop-v9-panel h3{font-size:23px;margin:0 0 8px;color:#f8ddff}
+#reward-shop .shop-v9-panel .shop-v9-intro{margin:0 0 14px;color:#d5c4e6;line-height:1.45}
+#reward-shop .shop-v9-panel small{display:block;color:#d8c7e7;font-size:13px;line-height:1.4}
+#reward-shop .shop-v9-daily{border-color:#967350;background:radial-gradient(circle at 95% 0%,#d99f4630,transparent 50%),linear-gradient(135deg,#292035,#17131e)}
+#reward-shop .shop-v9-feature{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border:1px solid #a07eaa70;border-radius:14px;padding:15px;background:#110d1f88}
+#reward-shop .shop-v9-feature-body{display:flex;flex:1 1 220px;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+#reward-shop .shop-v9-overline{color:#ffdb9a;font-size:14px}
+#reward-shop .shop-v9-feature h4{font-size:21px;margin:0;color:#fff;overflow-wrap:anywhere}
+#reward-shop .shop-v9-feature p{margin:0;color:#e0d2e9}
+#reward-shop .shop-v9-price{font-weight:800;font-size:21px!important;color:#bfffe8!important}
+#reward-shop .shop-v9-strike{color:#dfb6be}
+#reward-shop .shop-v9-feature-image{width:116px;height:116px;object-fit:cover;border-radius:13px;flex:0 0 auto}
+#reward-shop .shop-v9-feature button,#reward-shop .shop-v9-bonus button,#reward-shop .shop-v9-actions button{min-height:40px;padding:9px 14px;border-radius:10px;background:#352143;color:#fff;border:1px solid #a77bd0;cursor:pointer}
+#reward-shop .shop-v9-feature button:hover,#reward-shop .shop-v9-bonus button:hover,#reward-shop .shop-v9-actions button:hover{background:#513465}
+#reward-shop .shop-v9-bonus{display:flex;align-items:center;gap:10px 15px;flex-wrap:wrap;padding:14px;margin-top:15px;background:#28423550;border:1px solid #558a6d;border-radius:12px}
+#reward-shop .shop-v9-bonus strong{font-size:17px}
+#reward-shop .shop-v9-bonus span{flex:1 1 250px}
+#reward-shop .shop-v9-more{font-size:14px;opacity:.85}
+#reward-shop .shop-v9-alerts{border-color:#547b98}
+#reward-shop .shop-v9-summary{font-weight:700;color:#c9f5e9;margin:12px 0}
+#reward-shop .shop-v9-alert-list{display:grid;gap:10px}
+#reward-shop .shop-v9-alert{padding:13px;border-radius:12px;border:1px solid #675082;background:#241b34}
+#reward-shop .shop-v9-alert.is-unread{border-color:#4da98c;background:#193d3790}
+#reward-shop .shop-v9-alert strong{display:block;font-size:16px;margin-bottom:5px;overflow-wrap:anywhere}
+#reward-shop .shop-v9-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+#reward-shop .shop-v9-actions button:disabled{opacity:.6;cursor:wait}
+#reward-shop .shop-v9-ranking{border-color:#7d689e}
+#reward-shop .shop-v9-opt-in{display:flex;align-items:flex-start;gap:11px;cursor:pointer;font-weight:700;line-height:1.45;padding:13px 0}
+#reward-shop .shop-v9-opt-in input{width:19px;height:19px;margin-top:2px;flex-shrink:0;accent-color:#9b73d4}
+#reward-shop .shop-v9-footnote{display:block;margin-bottom:14px}
+#reward-shop .shop-v9-period{display:block;max-width:270px;width:100%;min-height:44px;padding:10px 12px;border:1px solid #8964ac;border-radius:10px;background:#181023;color:#fff;font:600 16px Rajdhani,Arial,sans-serif}
+#reward-shop .shop-v9-board{display:grid;gap:9px;margin-top:13px}
+#reward-shop .shop-v9-ranking-row{display:flex;justify-content:space-between;gap:8px 18px;flex-wrap:wrap;align-items:center;background:#221830;border:1px solid #68547b;border-radius:11px;padding:13px}
+#reward-shop .shop-v9-ranking-row.is-me{border-color:#75bd97;background:#18362f}
+#reward-shop .shop-v9-ranking-row strong{font-size:17px;overflow-wrap:anywhere}
+#reward-shop .shop-v9-ranking-row span{color:#e1cee9}
+#reward-shop .shop-v9-preview-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 13px;margin:5px 8px 5px 0;border:1px solid #a475d6;border-radius:9px;background:#352044;color:#fff;cursor:pointer}
+#reward-shop .shop-v9-preview-btn:hover{background:#563366}
+#reward-shop .shop-v9-preview-info{font-size:14px;color:#d8bff0;margin:14px 0}
+#reward-shop .shop-v9-error{border-color:#a94f66}
+#reward-shop .shop-v9-panel button:focus-visible,#reward-shop .shop-v9-preview-btn:focus-visible,#reward-shop .shop-v9-panel select:focus-visible,#reward-shop .shop-v9-opt-in input:focus-visible{outline:3px solid #e2b3ff;outline-offset:3px}
+.shop-v9-modal-layer{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;padding:18px;z-index:4000;background:#090713d9;backdrop-filter:blur(6px)}
+.shop-v9-dialog{display:flex;flex-direction:column;max-width:540px;width:100%;max-height:min(90vh,820px);max-height:min(90dvh,820px);overflow-y:auto;background:linear-gradient(140deg,#241333,#11101d);border:1px solid #a774d6;box-shadow:0 25px 75px #000b;border-radius:20px;color:#fff}
+.shop-v9-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:17px 20px;border-bottom:1px solid #785194}
+.shop-v9-dialog-head h2{font-size:24px;margin:0}
+.shop-v9-dialog .shop-v9-close{background:#372343;color:#fff;border:1px solid #b184d0;min-width:40px;min-height:40px;border-radius:10px;cursor:pointer}
+.shop-v9-dialog .shop-v9-dialog-body{padding:20px;display:flex;flex-direction:column;gap:13px}
+.shop-v9-dialog .shop-v9-profile{display:flex;align-items:center;gap:16px;padding:15px;border:2px solid #735390;border-radius:14px;background:linear-gradient(110deg,#262041,#121227);min-width:0}
+.shop-v9-dialog .shop-v9-profile.shop-v9-frame{border:4px solid #ebc471;box-shadow:0 0 12px #f1d68a60}
+.shop-v9-dialog .shop-v9-profile.shop-v9-color{color:#89efff}
+.shop-v9-dialog .shop-v9-profile.shop-v9-anime{background:linear-gradient(125deg,#60398a,#1e274c)}
+.shop-v9-dialog .shop-v9-avatar{display:grid;place-items:center;width:65px;height:65px;flex-shrink:0;border-radius:50%;border:2px solid #c195f1;background:#25173f;font-size:28px}
+.shop-v9-dialog .shop-v9-profile strong,.shop-v9-dialog .shop-v9-profile small,.shop-v9-dialog .shop-v9-profile .shop-v9-effect{display:block;margin:3px 0}
+.shop-v9-dialog .shop-v9-profile .shop-v9-effect{color:#fff1b8}
+.shop-v9-dialog .shop-v9-preview-image{max-width:100%;width:160px;height:160px;object-fit:cover;border-radius:13px;align-self:center}
+.shop-v9-dialog .shop-v9-dialog-body h3{font-size:22px;margin:0}
+.shop-v9-dialog .shop-v9-dialog-body p{margin:0;color:#ece0f6;line-height:1.5}
+.shop-v9-dialog .shop-v9-disclaimer{color:#c9b2dc;font-size:13px}
+.shop-v9-dialog .shop-v9-actions{display:flex;gap:10px;flex-wrap:wrap}
+.shop-v9-dialog .shop-v9-actions button{flex:1;min-height:44px;border:1px solid #a67bcd;color:#fff;border-radius:10px;padding:9px 14px;cursor:pointer}
+.shop-v9-dialog .shop-v9-actions .outline-btn{background:#342441}
+.shop-v9-dialog .shop-v9-actions .gradient-btn{background:linear-gradient(90deg,#8249a8,#3b6fba)}
+.shop-v9-dialog button:focus-visible{outline:3px solid #d9b3ff;outline-offset:3px}
+@media(max-width:650px){#reward-shop .shop-v9-panel{padding:16px}#reward-shop .shop-v9-feature-image{width:94px;height:94px}#reward-shop .shop-v9-ranking-row{display:grid}#reward-shop .shop-v9-bonus button{width:100%}.shop-v9-dialog .shop-v9-dialog-body{padding:16px}.shop-v9-modal-layer{padding:9px}}
+@media(prefers-reduced-motion:reduce){.shop-v9-modal-layer *,#reward-shop .shop-v9-panel *{animation:none!important;transition:none!important}}
