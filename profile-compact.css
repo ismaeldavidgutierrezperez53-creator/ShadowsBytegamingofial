@@ -1,0 +1,11 @@
+.sb-compact-control{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:14px;padding-top:13px;border-top:1px solid #62427c}
+.sb-compact-text{font-size:14px;color:#ddcce9;font-weight:700;margin-right:auto}
+.sb-compact-button,.sb-collapse-toggle{border:1px solid #9b71c1;border-radius:10px;background:#352149;color:#fff;cursor:pointer;padding:9px 13px;font:700 15px Rajdhani,Arial,sans-serif;min-height:40px}
+.sb-compact-button:hover,.sb-collapse-toggle:hover{background:#623a80}
+.sb-compact-button:focus-visible,.sb-collapse-toggle:focus-visible{outline:3px solid #62d6fa;outline-offset:2px}
+.sb-collapse-section{position:relative}
+.sb-collapse-section>.sb-collapse-toggle{display:inline-flex;align-items:center;margin:5px 0 10px}
+.sb-collapse-section.sb-collapse-closed>:not(h2):not(.sb-collapse-toggle){display:none!important}
+.sb-collapse-section.sb-collapse-closed>.sb-collapse-toggle{margin-bottom:2px}
+@media(max-width:600px){.sb-compact-control{align-items:stretch}.sb-compact-text{flex-basis:100%}.sb-compact-button{flex:1}}
+@media(prefers-reduced-motion:reduce){.sb-collapse-section{transition:none!important}}
