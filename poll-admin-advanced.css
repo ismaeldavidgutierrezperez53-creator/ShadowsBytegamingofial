@@ -1,0 +1,142 @@
+/* Edición, fechas de cierre y destacados de Encuestas. */
+#poll-admin-panel .poll-admin-extras{
+ grid-column:1/-1;display:grid;gap:14px;padding:14px;
+ border:1px solid #5d487c;border-radius:14px;background:#17142b;
+}
+#poll-admin-panel .poll-admin-featured{
+ display:flex;align-items:center;gap:10px;
+ color:#f1e3ff;font-size:16px;font-weight:700;line-height:1.4;
+ cursor:pointer;max-width:100%;
+}
+#poll-admin-panel .poll-admin-featured input{
+ appearance:auto;flex:0 0 20px;width:20px;height:20px;
+ margin:0;accent-color:#bb59ec;
+}
+#poll-admin-panel .poll-admin-feature-label{
+ color:#ffd783;background:#45341b;border:1px solid #836124;
+ border-radius:999px;font-size:13px;font-weight:800;padding:3px 9px;
+}
+#poll-admin-panel .poll-admin-feature-label[hidden]{display:none}
+#poll-admin-panel .poll-admin-deadline{
+ display:block;margin-top:9px;font-size:14px;color:#bcdafa;
+}
+#poll-admin-panel .poll-admin-edit{
+ font:700 15px Rajdhani,Arial,sans-serif;
+ border:1px solid #8963ba;border-radius:10px;
+ color:#f7eaff;background:#342147;padding:9px 10px;
+ cursor:pointer;min-height:40px;width:100%;
+}
+#poll-admin-panel .poll-admin-edit:hover{
+ background:#4c2b68;border-color:#c797ef;
+}
+#poll-admin-panel .poll-admin-editor{
+ flex:0 0 100%;width:100%;min-width:0;
+ border-top:1px solid #664983;padding-top:18px;
+}
+#poll-admin-panel .poll-admin-editor[hidden]{display:none}
+#poll-admin-panel .poll-admin-editor h5{
+ margin:0 0 14px;font-size:20px;color:#fff;
+}
+#poll-admin-panel .poll-admin-edit-form{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;
+}
+#poll-admin-panel .poll-admin-edit-form .poll-admin-field label{
+ display:block;font-size:15px;font-weight:700;
+}
+#poll-admin-panel .poll-admin-edit-form .poll-admin-field label input,
+#poll-admin-panel .poll-admin-edit-form .poll-admin-field label select,
+#poll-admin-panel .poll-admin-edit-form .poll-admin-field label textarea{
+ margin-top:7px;
+}
+#poll-admin-panel .poll-admin-edit-form .poll-admin-field:nth-child(3),
+#poll-admin-panel .poll-admin-edit-form .poll-admin-featured,
+#poll-admin-panel .poll-admin-edit-actions,
+#poll-admin-panel .poll-admin-edit-status{grid-column:1/-1}
+#poll-admin-panel .poll-admin-edit-actions{
+ display:flex;gap:10px;flex-wrap:wrap;
+}
+#poll-admin-panel .poll-admin-edit-actions button{
+ min-height:42px;padding:9px 15px;border-radius:10px;
+ font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer;
+}
+#poll-admin-panel .poll-admin-edit-cancel{
+ background:#28203b;border:1px solid #765896;color:#f6ecff;
+}
+#poll-admin-panel .poll-admin-edit-status{
+ margin:0;font-size:14px;color:#a7f0d3;
+}
+#community-polls .poll-community-heading{
+ display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:17px;
+}
+#community-polls .poll-community-heading h2{
+ font-size:25px;margin:0;color:#fff;
+}
+#community-polls .poll-community-heading p{
+ margin:0;color:#cbb7df;font-size:16px;
+}
+#community-polls .poll-community-grid{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));
+ gap:17px;
+}
+#community-polls .poll-community-card{
+ margin:0!important;padding:23px;min-width:0;min-height:unset;
+ border-color:#69408e;box-shadow:0 10px 32px #08031177;
+}
+#community-polls .poll-community-card[data-featured="true"]{
+ border-color:#e2ad47;
+ box-shadow:0 0 0 1px #e2ad4740,0 12px 38px #bc84282b;
+}
+#community-polls .poll-community-tags{
+ display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:10px;
+}
+#community-polls .poll-community-tag{
+ display:inline-block;padding:3px 10px;border-radius:999px;
+ background:#3b2752;border:1px solid #735496;color:#e5d4fb;
+ font-size:13px;font-weight:800;
+}
+#community-polls .poll-community-tag[data-type="popular"]{
+ border-color:#ad4586;background:#4e1e44;color:#ffd0e8;
+}
+#community-polls .poll-community-tag[data-type="featured"]{
+ border-color:#a77723;background:#46351c;color:#ffe09a;
+}
+#community-polls .poll-community-card h3{
+ margin:8px 0 10px;color:#fff;line-height:1.35;overflow-wrap:anywhere;
+}
+#community-polls .poll-community-meta{
+ color:#c9bade;margin-bottom:16px!important;font-size:15px;
+}
+#community-polls .poll-community-option{
+ display:block;width:100%;margin:8px 0;
+ background:#261a3d;border:1px solid #714baa;border-radius:12px;
+ color:#faf5ff;padding:11px 14px;text-align:left;line-height:1.35;
+ cursor:pointer;font:700 17px Rajdhani,Arial,sans-serif;
+ overflow-wrap:anywhere;min-height:44px;
+}
+#community-polls .poll-community-option:not(:disabled):hover{
+ background:#442765;border-color:#b485e8;
+}
+#community-polls .poll-community-option:disabled{
+ opacity:.85;cursor:default;
+}
+#community-polls .poll-community-option.is-selected{
+ border-color:#7fdcff;background:#19344e;
+}
+#community-polls .poll-community-card .poll-community-tally{
+ margin-top:14px;color:#97dafa;font-size:16px;font-weight:700;
+}
+#community-polls .poll-community-deadline{
+ margin-top:10px!important;color:#dfc79b;font-size:14px;
+}
+#community-polls .poll-community-login{
+ display:inline-block;color:#9ce4fc;margin-top:8px;
+}
+@media(max-width:680px){
+ #poll-admin-panel .poll-admin-edit-form{grid-template-columns:1fr}
+ #poll-admin-panel .poll-admin-edit-form>*{grid-column:1!important}
+ #poll-admin-panel .poll-admin-edit-actions button{width:100%}
+ #community-polls .poll-community-card{padding:17px}
+}
+@media(prefers-reduced-motion:reduce){
+ #community-polls .poll-community-option{transition:none}
+}
