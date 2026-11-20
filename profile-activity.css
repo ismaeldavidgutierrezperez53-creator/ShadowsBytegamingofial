@@ -1,0 +1,13 @@
+.sba-timeline{margin:18px 0;padding:22px;border:1px solid #60477a;border-radius:20px;background:linear-gradient(140deg,#171224,#101624);min-width:0}
+.sba-timeline h2{margin:0 0 8px;font-size:clamp(21px,3vw,27px)}
+.sba-intro,.sba-status{color:#ccc0da;font-size:15px;margin:7px 0 12px}
+.sba-controls{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.sba-select,.sba-refresh{border:1px solid #8250a6;background:#251936;color:#fff;border-radius:10px;padding:10px 13px;min-height:42px;font:600 16px Rajdhani,Arial,sans-serif}
+.sba-refresh{cursor:pointer}.sba-refresh:disabled{opacity:.5;cursor:wait}
+.sba-items{display:grid;gap:11px}
+.sba-item{display:flex;align-items:flex-start;gap:13px;padding:13px;border:1px solid #443455;background:#1d182b;border-radius:14px;min-width:0}
+.sba-event-icon{flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:#38234f;display:grid;place-items:center}
+.sba-item-body{min-width:0}.sba-item-body strong{display:block;color:#f1e5ff}
+.sba-item-body p{margin:5px 0;color:#ddd1e8;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}
+.sba-item-body small{color:#b5a4c8}
+@media(max-width:550px){.sba-timeline{padding:15px}.sba-select{flex:1;min-width:160px}}
