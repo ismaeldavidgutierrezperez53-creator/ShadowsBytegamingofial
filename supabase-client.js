@@ -1510,7 +1510,21 @@ async function loadCommunityCompetitions(root){
   if(!list.isConnected)return;
   list.replaceChildren();
   const visible=all.filter(c=>select.value==='all'||c.kind===select.value);
-  if(!visible.length){list.textContent='Todavía no hay retos o torneos publicados en este filtro.';return;}
+  if(!visible.length){
+   const empty=document.createElement('div');empty.className='community-contest-empty';
+   const icon=document.createElement('span');icon.className='community-contest-empty-icon';icon.setAttribute('aria-hidden','true');icon.textContent=all.length?'🔎':'🏆';
+   const title=document.createElement('h3');title.textContent=all.length?'Sin resultados para este filtro':'Próximamente: retos y torneos';
+   const info=document.createElement('p');info.textContent=all.length
+    ?'No hay actividades de este tipo. Selecciona «Todos» para ver las publicadas.'
+    :'Aún no hay competiciones publicadas. Cuando administración publique la primera, aparecerá aquí y podrás inscribirte.';
+   empty.append(icon,title,info);
+   if(user?.app_metadata?.role==='admin'&&!all.length){
+    const link=document.createElement('a');link.className='community-contest-create-link';
+    link.href='#/admin?focus=competitions';link.textContent='➕ Crear el primer reto o torneo';
+    empty.append(link);
+   }
+   list.append(empty);return;
+  }
   for(const c of visible){
    const own=entries.some(e=>e.competition_id===c.id&&e.user_id===user?.id);
    const members=entries.filter(e=>e.competition_id===c.id);
