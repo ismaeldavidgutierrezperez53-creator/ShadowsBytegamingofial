@@ -170,6 +170,8 @@ async function renderRewardInventory(){
  makeSection('📅 Recompensas diarias'+(dailyList.length===100?' · últimas 100':''),dailyList,'Todavía no has reclamado recompensas diarias.');
 }
 
+const shopExploreState={query:'',category:'all',view:'all',sort:'default'};
+
 async function renderRewardShop(){
  const host=document.getElementById('reward-shop');if(!host)return;
  const {data:{user}}=await sb.auth.getUser();if(!host.isConnected)return;
@@ -219,9 +221,11 @@ async function renderRewardShop(){
  const formatPts=value=>Number(value).toLocaleString('es-ES')+' puntos';
  const isAvailable=item=>(!item.available_from||Date.parse(item.available_from)<=nowMs)&&
   (!item.available_until||Date.parse(item.available_until)>nowMs);
- const inventory=(catalog.data||[]).filter(isAvailable);
+ const ownedIds=new Set((owned.data||[]).map(p=>p.item_id));
+ const inventory=(catalog.data||[]).filter(item=>isAvailable(item)||ownedIds.has(item.id));
+ const availableInventory=inventory.filter(isAvailable);
  const wishlistIds=new Set((wishes.data||[]).map(entry=>entry.item_id));
- const limited=inventory.filter(item=>!!item.available_until);
+ const limited=availableInventory.filter(item=>!!item.available_until);
  if(!limited.length){
   const empty= document.createElement('section');empty.className='shop-v3-panel';
   const title=document.createElement('h3');title.textContent='⏳ Artículos por tiempo limitado';
@@ -241,7 +245,7 @@ async function renderRewardShop(){
   }
   panel.append(cards);host.append(panel);
  }
- const featured=inventory.filter(item=>item.featured);
+ const featured=availableInventory.filter(item=>item.featured);
  if(featured.length){
   const showcase=document.createElement('section');showcase.className='shop-v2-panel';
   const title=document.createElement('h3');title.textContent='🌟 Recompensas destacadas';showcase.append(title);
@@ -255,7 +259,7 @@ async function renderRewardShop(){
   }
   showcase.append(grid);host.append(showcase);
  }
- const offers=inventory.filter(onSale);
+ const offers=availableInventory.filter(onSale);
  if(!offers.length){
   const offerEmpty=document.createElement('section');offerEmpty.className='shop-v2-panel';
   const title=document.createElement('h3');title.textContent='🔥 Ofertas especiales';
@@ -291,7 +295,7 @@ async function renderRewardShop(){
   wishesPanel.append(grid);
  }
  host.append(wishesPanel);
- const ownedIds=new Set((owned.data||[]).map(p=>p.item_id));const active=new Map((equipped.data||[]).map(e=>[e.category,e.item_id]));
+ const active=new Map((equipped.data||[]).map(e=>[e.category,e.item_id]));
  const categories={anime_theme:'🌸 Recompensas anime exclusivas',frame:'🖼️ Marcos para avatares',badge:'🏷️ Insignias',color:'🌈 Colores de nombre',title:'👑 Títulos especiales'};
  for(const [category,label] of Object.entries(categories)){
   const group=document.createElement('section');group.style.margin='20px 0';const heading=document.createElement('h3');heading.textContent=label;group.append(heading);
@@ -300,7 +304,9 @@ async function renderRewardShop(){
    const card=document.createElement('article');card.className='profile-panel';card.style.cssText='padding:14px;margin:10px 0;border:1px solid #ffffff33;border-radius:12px';
    card.classList.add('shop-v2-reward');
    if(item.featured){const flag=document.createElement('span');flag.className='shop-v2-flag';flag.textContent='🌟 Destacado';card.append(flag)}
-   if(item.available_until){const limitedTag=document.createElement('span');limitedTag.className='shop-v2-flag shop-v3-limited-tag';limitedTag.textContent='⏳ Hasta '+new Date(item.available_until).toLocaleDateString('es-ES');card.append(limitedTag)}
+   const unavailable=!isAvailable(item);
+   if(unavailable){const saved= document.createElement('span');saved.className='shop-v2-flag shop-explorer-expired';saved.textContent='🔒 Edición finalizada · Ya es tuya';card.append(saved)}
+   else if(item.available_until){const limitedTag=document.createElement('span');limitedTag.className='shop-v2-flag shop-v3-limited-tag';limitedTag.textContent='⏳ Hasta '+new Date(item.available_until).toLocaleDateString('es-ES');card.append(limitedTag)}
    const name=document.createElement('h4');name.textContent=item.name+' · '+formatPts(actualPrice(item));card.append(name);
    if(onSale(item)){
     const sale=document.createElement('p');sale.className='shop-v2-sale';
@@ -338,7 +344,7 @@ async function renderRewardShop(){
     if(error){status.textContent=error.message;button.disabled=false;return}
     if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}
    };
-   card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent='🎁 Regalar · '+formatPts(priceNow);gift.disabled=Number(balance.data||0)<priceNow||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+formatPts(priceNow)+'?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);
+   card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent=unavailable?'🔒 Regalo no disponible':'🎁 Regalar · '+formatPts(priceNow);gift.disabled=unavailable||Number(balance.data||0)<priceNow||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+formatPts(priceNow)+'?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);
    const wishButton=document.createElement('button');wishButton.type='button';wishButton.className='outline-btn mini shop-v3-wish';
    wishButton.textContent=wishlistIds.has(item.id)?'💜 En mi lista':'♡ Añadir a deseos';
    wishButton.setAttribute('aria-pressed',String(wishlistIds.has(item.id)));
@@ -361,7 +367,7 @@ async function renderRewardShop(){
  const purchaseRows=owned.data||[];
  const purchaseTotal=purchaseRows.reduce((sum,row)=>sum+Number(row.price_paid||0),0);
  const summary=document.createElement('p');summary.textContent=purchaseRows.length+' compras · '+formatPts(purchaseTotal)+' gastados';purchaseHistory.append(summary);
- const purchasedItems=new Map(inventory.map(item=>[item.id,item]));
+ const purchasedItems=new Map((catalog.data||[]).map(item=>[item.id,item]));
  const historyList=document.createElement('div');historyList.className='shop-v2-purchases';
  if(!purchaseRows.length){
   const empty=document.createElement('p');empty.textContent='Todavía no has comprado artículos.';historyList.append(empty)
