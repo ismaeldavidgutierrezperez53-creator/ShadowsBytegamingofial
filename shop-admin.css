@@ -1,0 +1,63 @@
+/* Administración de la tienda · Shadows Byte Gaming Official V2 */
+#admin-shop-root .sb-shop-admin{display:grid;gap:22px;min-width:0;color:#f7f4ff}
+#admin-shop-root .sb-shop-admin *{box-sizing:border-box}
+#admin-shop-root .sb-shop-admin__header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;padding:23px 25px;border:1px solid #593b7a;border-radius:20px;background:radial-gradient(circle at 95% 0%,#8b37b92a,transparent 50%),linear-gradient(120deg,#1d132e,#10101f);box-shadow:0 12px 45px #0003}
+#admin-shop-root .sb-shop-admin__eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#65dfff;font-weight:700}
+#admin-shop-root .sb-shop-admin__header h2{font-size:clamp(24px,3vw,31px);margin:5px 0 8px;font-weight:700}
+#admin-shop-root .sb-shop-admin__header p{margin:0;color:#c6bdd5;max-width:750px;line-height:1.5}
+#admin-shop-root .sb-shop-admin__pills{display:flex;gap:9px;flex-wrap:wrap}
+#admin-shop-root .sb-shop-admin__pill{border:1px solid #584178;background:#241831;border-radius:999px;padding:7px 12px;font-size:15px;font-weight:700;white-space:nowrap;color:#e9dcff}
+#admin-shop-root .sb-shop-admin__pill--active{border-color:#24695e;background:#12352f;color:#8af2d4}
+#admin-shop-root .sb-shop-admin__layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:20px;align-items:start}
+#admin-shop-root .sb-shop-admin__form,#admin-shop-root .sb-shop-admin__preview,#admin-shop-root .sb-shop-admin__section{min-width:0;background:linear-gradient(145deg,#15101f,#0e0d1a);border:1px solid #3a2d4e;border-radius:19px;padding:22px;box-shadow:0 13px 38px #0002}
+#admin-shop-root .sb-shop-admin__section-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:19px}
+#admin-shop-root .sb-shop-admin__section-heading h3{margin:0;font-size:23px;color:#f9f4ff}
+#admin-shop-root .sb-shop-admin__section-heading p{margin:5px 0 0;color:#a9a0b9;font-size:15px}
+#admin-shop-root .sb-shop-admin__fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+#admin-shop-root .sb-shop-admin__field{display:flex;flex-direction:column;gap:7px;min-width:0;color:#e6ddf4;font-size:16px;font-weight:700}
+#admin-shop-root .sb-shop-admin__field--wide{grid-column:1/-1}
+#admin-shop-root .sb-shop-admin__field input:not([type=checkbox]),#admin-shop-root .sb-shop-admin__field select,#admin-shop-root .sb-shop-admin__field textarea,#admin-shop-root .sb-shop-admin__search{width:100%;max-width:100%;min-width:0;min-height:46px;border-radius:11px;background:#0c0a17!important;border:1px solid #58466d!important;color:#fff!important;font:500 17px Rajdhani,Arial,sans-serif;padding:11px 13px;outline:none;box-shadow:none;transition:border-color .2s,box-shadow .2s}
+#admin-shop-root .sb-shop-admin__field textarea{resize:vertical;min-height:100px}
+#admin-shop-root .sb-shop-admin__field input::placeholder,#admin-shop-root .sb-shop-admin__field textarea::placeholder{color:#9589a7}
+#admin-shop-root .sb-shop-admin__field input:focus-visible,#admin-shop-root .sb-shop-admin__field select:focus-visible,#admin-shop-root .sb-shop-admin__field textarea:focus-visible,#admin-shop-root .sb-shop-admin__search:focus-visible{border-color:#c584ff!important;box-shadow:0 0 0 3px #a65bed36!important}
+#admin-shop-root .sb-shop-admin__field input:read-only,#admin-shop-root .sb-shop-admin__field select:disabled{opacity:.72;cursor:not-allowed}
+#admin-shop-root .sb-shop-admin__hint{color:#9e93ae;font-size:13px;font-weight:500}
+#admin-shop-root .sb-shop-admin__toggle{grid-column:1/-1;display:flex;align-items:center;gap:11px;padding:13px 14px;border:1px solid #49395c;background:#21182b;border-radius:12px;cursor:pointer;font-weight:700}
+#admin-shop-root .sb-shop-admin__toggle input{width:19px;height:19px;accent-color:#b35cff;cursor:pointer;flex:none}
+#admin-shop-root .sb-shop-admin__actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:21px}
+#admin-shop-root .sb-shop-admin__actions button{min-height:47px;white-space:normal;cursor:pointer;border-radius:11px;font:700 17px Rajdhani,Arial,sans-serif}
+#admin-shop-root .sb-shop-admin__actions .outline-btn{background:#251733;border:1px solid #8053aa;color:#f5eaff}
+#admin-shop-root .sb-shop-admin__actions button:disabled{opacity:.55;cursor:wait}
+#admin-shop-root .sb-shop-admin__status{margin:12px 0 0;padding:11px 13px;border-left:3px solid #a75cf1;border-radius:9px;background:#25182e;color:#e8d5ff;overflow-wrap:anywhere}
+#admin-shop-root .sb-shop-admin__status[data-type=error]{color:#ffd5d8;border-color:#ff7993;background:#321824}
+#admin-shop-root .sb-shop-admin__status[data-type=success]{color:#b0f5d6;border-color:#46d6a0;background:#12322c}
+#admin-shop-root .sb-shop-admin__status:empty{display:none}
+#admin-shop-root .sb-shop-admin__preview{position:sticky;top:82px}
+#admin-shop-root .sb-shop-admin__preview-art{aspect-ratio:1.25;display:grid;place-items:center;position:relative;overflow:hidden;border-radius:15px;background:radial-gradient(circle,#5b296d55,transparent 65%),linear-gradient(135deg,#16142e,#24112b);border:1px solid #62437e}
+#admin-shop-root .sb-shop-admin__preview-art img{width:100%;height:100%;object-fit:cover}
+#admin-shop-root .sb-shop-admin__preview-placeholder{font-size:68px;text-shadow:0 0 30px #ce85ff7e}
+#admin-shop-root .sb-shop-admin__preview-name{font-size:22px;font-weight:700;overflow-wrap:anywhere;margin-top:14px}
+#admin-shop-root .sb-shop-admin__preview-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+#admin-shop-root .sb-shop-admin__preview-meta span{font-size:14px;border:1px solid #4c3a62;border-radius:99px;padding:5px 10px;background:#231830;color:#dfcafe}
+#admin-shop-root .sb-shop-admin__preview-description{color:#b7adc8;margin:12px 0 0;overflow-wrap:anywhere}
+#admin-shop-root .sb-shop-admin__search{max-width:270px!important}
+#admin-shop-root .sb-shop-admin__items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+#admin-shop-root .sb-shop-admin__item{display:flex;align-items:center;gap:12px;min-width:0;padding:13px;border-radius:13px;background:#1c1628;border:1px solid #40314f}
+#admin-shop-root .sb-shop-admin__item-image{width:58px;height:58px;object-fit:cover;border-radius:12px;flex:none;background:#2a1d3b;border:1px solid #6a4684}
+#admin-shop-root .sb-shop-admin__item-fallback{display:grid;place-items:center;font-size:28px}
+#admin-shop-root .sb-shop-admin__item-info{display:flex;flex:1;flex-direction:column;min-width:0;gap:3px}
+#admin-shop-root .sb-shop-admin__item-info strong{font-size:18px;overflow-wrap:anywhere}
+#admin-shop-root .sb-shop-admin__item-info small{color:#b9aac9;font-size:14px}
+#admin-shop-root .sb-shop-admin__item-status{font-size:13px;color:#89eccc}
+#admin-shop-root .sb-shop-admin__item-status--hidden{color:#ffca86}
+#admin-shop-root .sb-shop-admin__item button{background:#30213f;color:#f2dfff;border:1px solid #8458ad;border-radius:9px;padding:8px 12px;cursor:pointer;font:700 15px Rajdhani,Arial,sans-serif}
+#admin-shop-root .sb-shop-admin__item button:hover{border-color:#cf8bff}
+#admin-shop-root .sb-shop-admin__empty{padding:23px;border:1px dashed #634977;border-radius:12px;color:#bdadcd;text-align:center}
+#admin-shop-root [hidden]{display:none!important}
+#admin-shop-root .sb-shop-admin__sales{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#admin-shop-root .sb-shop-admin__sale{background:#1c1629;border:1px solid #493657;border-radius:12px;padding:15px;display:grid;gap:5px;min-width:0}
+#admin-shop-root .sb-shop-admin__sale strong{overflow-wrap:anywhere;font-size:17px}
+#admin-shop-root .sb-shop-admin__sale span{color:#b8abca;font-size:15px}
+@media(max-width:990px){#admin-shop-root .sb-shop-admin__layout{grid-template-columns:1fr}#admin-shop-root .sb-shop-admin__preview{position:static}#admin-shop-root .sb-shop-admin__preview-art{max-height:280px}#admin-shop-root .sb-shop-admin__sales{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:690px){#admin-shop-root .sb-shop-admin__header{padding:18px}#admin-shop-root .sb-shop-admin__form,#admin-shop-root .sb-shop-admin__preview,#admin-shop-root .sb-shop-admin__section{padding:17px}#admin-shop-root .sb-shop-admin__fields{grid-template-columns:1fr}#admin-shop-root .sb-shop-admin__field--wide,#admin-shop-root .sb-shop-admin__toggle{grid-column:1}#admin-shop-root .sb-shop-admin__items,#admin-shop-root .sb-shop-admin__sales{grid-template-columns:1fr}#admin-shop-root .sb-shop-admin__search{max-width:none!important}#admin-shop-root .sb-shop-admin__actions{grid-template-columns:1fr}#admin-shop-root .sb-shop-admin__item{flex-wrap:wrap}#admin-shop-root .sb-shop-admin__item button{margin-left:auto}}
+@media(prefers-reduced-motion:reduce){#admin-shop-root .sb-shop-admin__field input,#admin-shop-root .sb-shop-admin__field select,#admin-shop-root .sb-shop-admin__field textarea{transition:none}}
