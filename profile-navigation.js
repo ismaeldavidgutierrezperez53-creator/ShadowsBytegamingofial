@@ -21,6 +21,7 @@
   ['🕒 Actividad reciente','.sba-timeline',true],
   ['👥 Conexiones gamer','.sbc-connections',true],
   ['🔗 Mis enlaces gamer','.sbgl-links',true],
+  ['📊 Clics en mis enlaces','.sbgl-link-analytics',true],
   ['🏅 Retos de colección','.sbr-goals',true],
   ['🌟 Retos sociales','.sbs-challenges',true],
   ['🎨 Editar perfil','#profile-form',true],
