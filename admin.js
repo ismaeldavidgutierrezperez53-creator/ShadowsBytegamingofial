@@ -742,7 +742,7 @@ async function adminInitRewardShop(){
   const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);
   return local.toISOString().slice(0,16);
  };
- const openMerchandising=item=>{
+ const openMerchandising=(item,scroll=true)=>{
   if(!item)return;
   itemSelect.value=item.id;featuredCheck.checked=!!item.featured;
   salePrice.value=item.sale_price??'';
@@ -750,7 +750,7 @@ async function adminInitRewardShop(){
   salePrice.max=String(Math.max(1,Number(item.price)-1));
   merchStatus.textContent='Precio normal: '+Number(item.price).toLocaleString('es-ES')+' puntos.';
   merchStatus.removeAttribute('data-type');
-  merch.scrollIntoView({behavior:'smooth',block:'start'});
+  if(scroll)merch.scrollIntoView({behavior:'smooth',block:'start'});
  };
  itemSelect.onchange=()=>openMerchandising(inventory.find(item=>item.id===itemSelect.value));
  merchClear.onclick=()=>{salePrice.value='';saleStart.value='';saleEnd.value='';merchStatus.textContent='Oferta borrada del formulario; pulsa Guardar promoción para aplicar.'};
@@ -782,7 +782,7 @@ async function adminInitRewardShop(){
   }catch(error){merchStatus.textContent='No se pudo guardar: '+(error?.message||String(error));merchStatus.dataset.type='error'}
   finally{merchSave.disabled=false}
  };
- if(inventory.length)openMerchandising(inventory[0]);else{
+ if(inventory.length)openMerchandising(inventory[0],false);else{
   for(const control of [itemSelect,featuredCheck,salePrice,saleStart,saleEnd,merchSave,merchClear])control.disabled=true;
   merchStatus.textContent='Crea primero un artículo para configurar promociones.';
  }
