@@ -178,3 +178,10 @@
 /* Confirmación accesible de operaciones en lote sobre favoritos */
 .sb-nav-bulk-feedback{flex-basis:100%;margin:4px 0 0;color:#cbf9dd;font:700 14px Rajdhani,Arial,sans-serif}
 .sb-nav-bulk-feedback:empty{display:none}
+
+/* Ocultar todos los accesos que coincidan con los filtros actuales */
+.sb-nav-hide-visible-results{min-height:43px;padding:8px 12px;border:1px solid #a99cc8;border-radius:10px;background:#3b3455;color:#f0eaff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-hide-visible-results:hover:not(:disabled){background:#564674}
+.sb-nav-hide-visible-results:disabled{opacity:.45;cursor:default}
+.sb-nav-hide-visible-results:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-hide-visible-results{width:100%}}
