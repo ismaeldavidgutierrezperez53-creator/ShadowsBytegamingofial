@@ -1504,11 +1504,22 @@ async function loadCommunityCompetitions(root){
  const refresh=document.createElement('button');refresh.type='button';refresh.textContent='🔄 Actualizar retos y torneos';
  const note=document.createElement('p');note.setAttribute('role','status');
  const list=document.createElement('div');list.className='community-contest-list';
- toolbar.append(select,refresh);root.append(heading,intro,toolbar,note,list);
- let all=[],entries=[],names=new Map(),user=null;
+ const myAwards=document.createElement('div');myAwards.className='community-contest-my-awards';
+ toolbar.append(select,refresh);root.append(heading,intro,toolbar,note,myAwards,list);
+ let all=[],entries=[],awards=[],names=new Map(),user=null;
  const paint=()=>{
   if(!list.isConnected)return;
-  list.replaceChildren();
+  list.replaceChildren();myAwards.replaceChildren();
+  const personal=awards.filter(a=>a.user_id===user?.id).sort((a,b)=>new Date(b.awarded_at)-new Date(a.awarded_at));
+  if(personal.length){
+   const personalTitle=document.createElement('strong');personalTitle.textContent='🎖️ Mis insignias de retos y torneos';
+   myAwards.append(personalTitle);
+   for(const prize of personal){
+    const earned=document.createElement('span');earned.className='community-contest-earned-badge';
+    earned.textContent=prize.badge+' · +'+prize.points+' puntos · '+(all.find(c=>c.id===prize.competition_id)?.title||'Competición');
+    myAwards.append(earned);
+   }
+  }
   const visible=all.filter(c=>select.value==='all'||c.kind===select.value);
   if(!visible.length){
    const empty=document.createElement('div');empty.className='community-contest-empty';
@@ -1528,6 +1539,7 @@ async function loadCommunityCompetitions(root){
   for(const c of visible){
    const own=entries.some(e=>e.competition_id===c.id&&e.user_id===user?.id);
    const members=entries.filter(e=>e.competition_id===c.id);
+   const medals=awards.filter(a=>a.competition_id===c.id).sort((a,b)=>a.place-b.place);
    const now=Date.now(),end=new Date(c.ends_at).getTime(),start=new Date(c.starts_at).getTime();
    const card=document.createElement('article');card.className='community-contest-card';
    const title=document.createElement('h3');title.textContent=(c.kind==='challenge'?'🎯 Reto: ':'🏆 Torneo: ')+c.title;
@@ -1553,6 +1565,19 @@ async function loadCommunityCompetitions(root){
     await reload();note.textContent=message;
    };
    card.append(title,state,description,dates,count,signup);
+   const prizeInfo=document.createElement('div');prizeInfo.className='community-contest-prizes';
+   const prizeTitle=document.createElement('strong');prizeTitle.textContent=medals.length?'🏆 Podio oficial · premios entregados':'🎁 Premios al finalizar';
+   prizeInfo.append(prizeTitle);
+   if(medals.length){
+    for(const prize of medals){
+     const place=document.createElement('p');place.textContent=prize.badge+' · '+(names.get(prize.user_id)||'Participante')+' · +'+prize.points+' puntos';prizeInfo.append(place);
+    }
+   }else{
+    const preview=document.createElement('p');preview.textContent='🥇 +100 · 🥈 +50 · 🥉 +25 puntos de tienda, con insignia por posición.';
+    const warning=document.createElement('small');warning.textContent=now>=end?'Pendiente de que administración confirme el podio.':'Se entregan tras finalizar el torneo y verificar el resultado.';
+    prizeInfo.append(preview,warning);
+   }
+   card.append(prizeInfo);
    const ranked=members.filter(e=>e.completed||e.score>0).sort((a,b)=>b.score-a.score||new Date(a.joined_at)-new Date(b.joined_at)).slice(0,10);
    const ranking=document.createElement('div');ranking.className='community-contest-ranking';
    const rankingTitle=document.createElement('h4');rankingTitle.textContent='🥇 Clasificación verificada por administración';ranking.append(rankingTitle);
@@ -1574,11 +1599,16 @@ async function loadCommunityCompetitions(root){
   const {data,error}=await sb.from('community_competitions').select('id,kind,title,description,starts_at,ends_at,status').eq('status','published').order('starts_at',{ascending:false}).limit(50);
   if(error){list.textContent='No se pudieron cargar los torneos: '+error.message;note.textContent='';return;}
   all=data||[];const ids=all.map(x=>x.id);
-  if(!ids.length){entries=[];names=new Map();note.textContent='';paint();return;}
+  if(!ids.length){entries=[];awards=[];names=new Map();note.textContent='';paint();return;}
   const {data:rows,error:entryError}=await sb.from('community_competition_entries')
    .select('competition_id,user_id,score,completed,joined_at').in('competition_id',ids).limit(500);
   if(entryError){note.textContent='No se pudieron cargar las inscripciones: '+entryError.message;return;}
-  entries=rows||[];const users=[...new Set(entries.map(e=>e.user_id))];
+  entries=rows||[];
+  const {data:prizes,error:prizeError}=await sb.from('community_competition_awards')
+   .select('competition_id,user_id,place,points,badge,awarded_at').in('competition_id',ids).limit(150);
+  if(prizeError){note.textContent='No se pudieron cargar los premios: '+prizeError.message;return;}
+  awards=prizes||[];
+  const users=[...new Set([...entries.map(e=>e.user_id),...awards.map(a=>a.user_id)])];
   const {data:profiles}=users.length?await sb.from('profiles').select('id,display_name,username').in('id',users).eq('is_public',true):{data:[]};
   names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
   note.textContent='';paint();
