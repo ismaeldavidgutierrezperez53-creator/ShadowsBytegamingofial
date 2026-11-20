@@ -167,3 +167,10 @@
 .sb-nav-add-visible-favorites:disabled{opacity:.45;cursor:default}
 .sb-nav-add-visible-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-add-visible-favorites{width:100%}}
+
+/* Quitar de favoritos los accesos que coinciden con filtros actuales */
+.sb-nav-remove-visible-favorites{min-height:43px;padding:8px 12px;border:1px solid #be9da9;border-radius:10px;background:#50333f;color:#ffeaf0;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-remove-visible-favorites:hover:not(:disabled){background:#6c4354}
+.sb-nav-remove-visible-favorites:disabled{opacity:.45;cursor:default}
+.sb-nav-remove-visible-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-remove-visible-favorites{width:100%}}
