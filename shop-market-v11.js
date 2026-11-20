@@ -49,7 +49,7 @@
    'Vende una recompensa que ya tienes o puja por otra. Los puntos de la puja ganadora quedan reservados y se devuelven si te superan. Solo participan perfiles públicos.');
   const byId=new Map(items.map(i=>[i.id,i]));
   const active=(auctions||[]).filter(a=>a.status==='open');
-  const busy=new Set(active.filter(a=>a.seller_id===user.id).map(a=>a.item_id));
+  const busy=new Set(active.filter(a=>a.is_mine).map(a=>a.item_id));
   const choices=items.filter(i=>owned.has(i.id)&&i.category!=='anime_theme'&&!busy.has(i.id));
   const create= node('form','shop-v11-form');
   const formTitle=node('h4','','Abrir una subasta');create.append(formTitle);
@@ -74,19 +74,19 @@
    const item=byId.get(a.item_id);
    if(!item)continue;
    const expired=Date.parse(a.ends_at)<=Date.now();
-   const isMine=a.seller_id===user.id;
-   const min=Number(a.highest_bidder ? Number(a.highest_bid)+Math.max(10,Math.ceil(Number(a.highest_bid)*0.05)):a.starting_bid);
+   const isMine=a.is_mine;
+   const min=Number(Number(a.highest_bid)>0 ? Number(a.highest_bid)+Math.max(10,Math.ceil(Number(a.highest_bid)*0.05)):a.starting_bid);
    const card=node('article','shop-v11-card');
    card.append(node('strong','',item.name),node('span','shop-v11-kicker',isMine?'🧾 Tu subasta':'🔨 Subasta de un miembro'),
-    node('p','','Puja más alta: '+(a.highest_bidder?points(a.highest_bid):'sin pujas')+' · Mínima: '+points(min)),
+    node('p','','Puja más alta: '+(Number(a.highest_bid)>0?points(a.highest_bid):'sin pujas')+' · Mínima: '+points(min)),
     node('small','',expired?'⏰ Plazo finalizado · pendiente de liquidación':'⏳ Termina el '+when(a.ends_at)));
-   if(a.highest_bidder===user.id)card.append(node('p','shop-v11-notice','🪙 Eres la mejor oferta. Tus puntos siguen reservados.'));
+   if(a.is_highest_bidder)card.append(node('p','shop-v11-notice','🪙 Eres la mejor oferta. Tus puntos siguen reservados.'));
    const status=feedback();
    if(expired){
     const settle=node('button','outline-btn mini','✅ Liquidar resultado');settle.type='button';
     settle.onclick=()=>needRefresh(settle,status,()=>sb.rpc('shop_market_settle_auction',{p_auction_id:a.id}),alive);
     card.append(settle);
-   }else if(isMine&&a.highest_bidder==null){
+   }else if(isMine&&Number(a.highest_bid)===0){
     const cancel=node('button','outline-btn mini','Cancelar subasta');cancel.type='button';
     cancel.onclick=()=>{
      if(!confirm('¿Cancelar esta subasta sin pujas?'))return;
@@ -115,8 +115,8 @@
   const map=new Map(items.map(i=>[i.id,i]));
   const open=(trades||[]).filter(t=>t.status==='open');
   const reserved=new Set([
-   ...open.filter(t=>t.proposer_id===user.id).map(t=>t.offered_item),
-   ...(auctions||[]).filter(a=>a.status==='open'&&a.seller_id===user.id).map(a=>a.item_id)
+   ...open.filter(t=>t.is_mine).map(t=>t.offered_item),
+   ...(auctions||[]).filter(a=>a.status==='open'&&a.is_mine).map(a=>a.item_id)
   ]);
   const marketable=items.filter(i=>i.category!=='anime_theme');
   const mine=marketable.filter(i=>owned.has(i.id)&&!reserved.has(i.id));
@@ -138,7 +138,7 @@
   for(const t of open){
    const offered=map.get(t.offered_item),requested=map.get(t.requested_item);
    if(!offered||!requested)continue;
-   const mine=t.proposer_id===user.id;
+   const mine=t.is_mine;
    const card=node('article','shop-v11-card');
    card.append(node('strong','','🔁 '+offered.name),node('p','','A cambio de: '+requested.name),
     node('small','',mine?'Tu propuesta':'Propuesta abierta a miembros de la comunidad'));
@@ -251,8 +251,8 @@
     sb.from('reward_shop_items').select('id,name,category,price,active').eq('active',true).order('sort_order'),
     sb.from('member_shop_purchases').select('item_id,price_paid').eq('user_id',user.id),
     sb.rpc('reward_shop_balance'),
-    sb.from('shop_market_auctions').select('id,seller_id,item_id,starting_bid,highest_bid,highest_bidder,ends_at,status').eq('status','open').order('ends_at',{ascending:true}).limit(40),
-    sb.from('shop_market_trades').select('id,proposer_id,offered_item,requested_item,status').eq('status','open').order('created_at',{ascending:false}).limit(40),
+    sb.rpc('shop_market_auction_list'),
+    sb.rpc('shop_market_trade_list'),
     sb.rpc('shop_anime_collection_catalog'),
     sb.rpc('shop_pass_status'),
     sb.rpc('shop_market_history',{p_limit:60})
