@@ -262,8 +262,25 @@
     dailyScroll.append(dailyChart);
     card.append(reportStatus, overview, dailyTitle, dailyScroll);
     card.append(el('p', 'sb-views-monthly-note', 'Informe privado. Las visitas se registran con consentimiento mutuo; los meses anteriores a la activación del historial pueden aparecer sin actividad. En el mes actual se compara el mismo número de días del mes anterior.'));
+
+    // Archivo consultable de los meses anteriores: sin guardar documentos ni datos en el dispositivo.
+    const historySection = el('section', 'sb-views-monthly-history');
+    historySection.setAttribute('aria-label', 'Historial de informes de visitas mensuales');
+    const historyHeading = el('div', 'sb-views-history-heading');
+    historyHeading.append(el('h4', '', '🗂️ Historial de informes mensuales'));
+    const historyRefresh = el('button', 'outline-btn mini', '↻ Actualizar historial');
+    historyRefresh.type = 'button';
+    historyHeading.append(historyRefresh);
+    historySection.append(historyHeading);
+    historySection.append(el('p', 'sb-views-history-help', 'Consulta los 11 meses anteriores y descarga cualquiera de sus informes en PDF. Se generan al solicitarlo con los datos todavía disponibles; no son copias de PDF guardadas. Los meses sin actividad aparecen con 0 visitas.'));
+    const historyStatus = el('p', 'sb-views-history-status', 'Cargando historial de informes…');
+    historyStatus.setAttribute('role', 'status');
+    const historyList = el('div', 'sb-views-history-list');
+    historySection.append(historyStatus, historyList);
+    card.append(historySection);
     statsPanel.append(card);
     let revision = 0;
+    let archiveRevision = 0;
     let report = null;
 
     function render(data) {
@@ -342,6 +359,108 @@
       }
     }
 
+
+    function clearHistory(message) {
+      archiveRevision++;
+      historyList.replaceChildren();
+      historyStatus.textContent = message;
+      historyRefresh.disabled = false;
+    }
+
+    function validateArchivedMonth(value) {
+      return /^[0-9]{4}-[0-9]{2}$/.test(String(value)) &&
+        [...selector.options].some(option => option.value === value);
+    }
+
+    async function downloadHistoryMonth(month, button) {
+      if (!validateArchivedMonth(month) || button.disabled) return;
+      // El archivo PDF vuelve a consultarse: no se guardan copias ni respuestas antiguas.
+      const activeRequest = archiveRevision;
+      button.disabled = true;
+      historyStatus.textContent = 'Preparando el informe de ' + monthLabel(month) + '…';
+      try {
+        const { data, error } = await sb.rpc('get_profile_monthly_report', { report_month: month + '-01' });
+        if (!historySection.isConnected || activeRequest !== archiveRevision) return;
+        if (error) throw error;
+        if (!data || data.enabled !== true || data.month !== month ||
+          !Array.isArray(data.days) || !data.days.length) {
+          throw new Error('El informe no está disponible o el historial está desactivado');
+        }
+        if (historyCheckbox && !historyCheckbox.checked) {
+          clearHistory('Activa el historial de visitas para acceder a informes anteriores.');
+          return;
+        }
+        downloadPdf(data);
+        historyStatus.textContent = 'PDF de ' + monthLabel(month) + ' descargado en este dispositivo.';
+      } catch (error) {
+        if (!historySection.isConnected || activeRequest !== archiveRevision) return;
+        historyStatus.textContent = 'No se pudo descargar este informe. Inténtalo de nuevo.';
+        console.warn('Error al descargar informe del historial:', error);
+      } finally {
+        if (historySection.isConnected && activeRequest === archiveRevision) button.disabled = false;
+      }
+    }
+
+    async function loadHistory() {
+      const ticket = ++archiveRevision;
+      historyRefresh.disabled = true;
+      historyList.replaceChildren();
+      historyStatus.textContent = 'Cargando informes de meses anteriores…';
+      try {
+        const { data, error } = await sb.rpc('get_profile_monthly_report_history');
+        if (!historySection.isConnected || ticket !== archiveRevision) return;
+        if (error) throw error;
+        if (!data || data.enabled !== true) {
+          historyStatus.textContent = 'Activa el historial de visitas para consultar los informes anteriores.';
+          return;
+        }
+        if (!Array.isArray(data.months) || data.months.length > 11 ||
+          data.months.some(item => !validateArchivedMonth(item.month))) {
+          throw new Error('Formato inesperado del historial de informes');
+        }
+        if (data.months.length === 0) {
+          historyStatus.textContent = 'Todavía no hay meses anteriores disponibles.';
+          return;
+        }
+        historyStatus.textContent = 'Puedes abrir cada mes o descargar su PDF. Los datos siguen sujetos a tus ajustes de privacidad.';
+        for (const item of data.months) {
+          const month = item.month;
+          const visits = numeral(item.visits);
+          const viewers = numeral(item.unique_visitors);
+          const row = el('article', 'sb-views-history-item');
+          const info = el('div', 'sb-views-history-info');
+          info.append(el('strong', '', monthLabel(month)));
+          info.append(el('small', '', format(visits) + (visits === 1 ? ' visita' : ' visitas') + ' · ' + format(viewers) + (viewers === 1 ? ' visitante único' : ' visitantes únicos')));
+          if (!visits) info.append(el('span', 'sb-views-history-empty', 'Sin visitas registradas'));
+          const actions = el('div', 'sb-views-history-actions');
+          const view = el('button', 'outline-btn mini', '👁️ Ver informe');
+          view.type = 'button';
+          view.setAttribute('aria-label', 'Ver informe de ' + monthLabel(month));
+          view.addEventListener('click', () => {
+            if (!validateArchivedMonth(month)) return;
+            selector.value = month;
+            loadReport();
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+          const pdf = el('button', 'gradient-btn mini', '⬇ PDF');
+          pdf.type = 'button';
+          pdf.setAttribute('aria-label', 'Descargar PDF de ' + monthLabel(month));
+          pdf.addEventListener('click', () => downloadHistoryMonth(month, pdf));
+          actions.append(view, pdf);
+          row.append(info, actions);
+          historyList.append(row);
+        }
+      } catch (error) {
+        if (!historySection.isConnected || ticket !== archiveRevision) return;
+        historyStatus.textContent = 'No se pudo cargar el historial. Pulsa Actualizar historial para reintentarlo.';
+        console.warn('Error al consultar historial de informes:', error);
+      } finally {
+        if (historySection.isConnected && ticket === archiveRevision) historyRefresh.disabled = false;
+      }
+    }
+
+    historyRefresh.addEventListener('click', loadHistory);
+
     reload.addEventListener('click', loadReport);
     selector.addEventListener('change', loadReport);
     exportBtn.addEventListener('click', () => {
@@ -359,10 +478,12 @@
       historyCheckbox.addEventListener('change', () => {
         report = null;
         exportBtn.disabled = true;
+        clearHistory('Pulsa Actualizar historial después de cambiar la privacidad del historial.');
         reportStatus.textContent = 'Pulsa Actualizar informe después de cambiar la privacidad del historial.';
       });
     }
     loadReport();
+    loadHistory();
   }
 
   let scheduled = false;
