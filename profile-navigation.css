@@ -280,3 +280,7 @@
 .sb-nav-only-visible[aria-pressed="true"]{background:#346e60;border-color:#b4f3d9;color:#fff}
 .sb-nav-only-visible:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-only-visible{flex:1}}
+
+/* Resumen de búsqueda, filtros y orden seleccionados */
+.sb-nav-active-filters{margin:4px 12px 9px;padding:9px 12px;border:1px solid #67548c;border-radius:10px;background:#241b37;color:#e8def8;font:600 14px/1.5 Rajdhani,Arial,sans-serif;overflow-wrap:anywhere}
+@media(max-width:550px){.sb-nav-active-filters{font-size:13px}}
