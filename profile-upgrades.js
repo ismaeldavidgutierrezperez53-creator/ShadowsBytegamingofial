@@ -18,7 +18,8 @@
   const meter=el('progress','sbp-meter');meter.max=100;meter.value=0;meter.setAttribute('aria-label','Porcentaje de perfil completado');
   const completion=el('p','sbp-completion','Revisando tu perfil…');
   const quick=el('div','sbp-actions');
-  quick.append(link('🎨 Personalizar perfil','#profile-form'),link('🏆 Mis logros','#/logros'),link('🎮 Mis videojuegos','#game-library'),link('👥 Seguidores','#account-follows'));
+  const jump=(label,selector)=>{const button=el('button','sbp-action',label);button.type='button';button.onclick=()=>root.querySelector(selector)?.scrollIntoView({behavior:'smooth',block:'start'});return button};
+  quick.append(jump('🎨 Personalizar perfil','#profile-form'),link('🏆 Mis logros','#/logros'),jump('🎮 Mis videojuegos','#game-library'),jump('👥 Seguidores','#account-follows'));
   const actions=el('div','sbp-actions');
   const publicLink=link('👁️ Ver perfil público','#/miembros');
   const copy=el('button','sbp-action','🔗 Copiar enlace');copy.type='button';
