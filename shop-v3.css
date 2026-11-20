@@ -62,3 +62,18 @@
 
 #reward-shop .shop-explorer-owned{background:#143e32;border-color:#5aaf95;color:#bcfbe6;margin-left:7px}
 #reward-shop .shop-explorer-group .shop-v2-reward .shop-explorer-owned{font-weight:700}
+
+/* Próximas recompensas: objetivo automático solo de lectura. */
+#reward-shop .shop-goals-panel{border-color:#8862ad;background:radial-gradient(circle at 94% 5%,#7d4eac30,transparent 55%),linear-gradient(130deg,#211332,#10101d)}
+#reward-shop .shop-goals-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-top:16px}
+#reward-shop .shop-goals-tile{display:flex;flex-direction:column;gap:9px;min-width:0;padding:17px;border:1px solid #785c95;border-radius:14px;background:#171229}
+#reward-shop .shop-goals-label{color:#e5c3ff;font-size:14px;font-weight:700}
+#reward-shop .shop-goals-tile h4{margin:0;color:#fff3ff;font-size:20px;overflow-wrap:anywhere}
+#reward-shop .shop-goals-tile p{margin:0;color:#eadcf2;font-size:15px}
+#reward-shop .shop-goals-tile progress{display:block;width:100%;height:12px;accent-color:#a96af2}
+#reward-shop .shop-goals-tile small{color:#cdb9df;line-height:1.4}
+#reward-shop .shop-goals-tile button{margin-top:auto;align-self:flex-start;min-height:42px;border:1px solid #a46ad1;border-radius:10px;background:#32204a;color:#f5e8ff;padding:9px 13px;cursor:pointer}
+#reward-shop .shop-goals-tile button:hover{background:#50316b}
+#reward-shop .shop-goals-tile button:focus-visible{outline:3px solid #d8b1ff;outline-offset:3px}
+#reward-shop .shop-explorer-group>.shop-v2-reward:focus{outline:3px solid #bb93ff;outline-offset:3px}
+@media(max-width:700px){#reward-shop .shop-goals-grid{grid-template-columns:1fr}#reward-shop .shop-goals-tile button{width:100%}}
