@@ -66,7 +66,7 @@
      const entry=el('div','shop-season-competition-admin-v8-player');
      entry.append(el('strong','','#'+row.place_no+' '+(row.is_me?'Tú':row.display_label)),
       el('span','',Number(row.score)+' puntos · '+Number(row.missions_completed)+' misiones'));
-     if(row.award_points)entry.append(el('small','','🥇 Premio adjudicado: +'+row.award_points+' puntos · '+(row.prize_name||'insignia')));
+     if(row.award_points)entry.append(el('small','',(['','🥇','🥈','🥉'][Number(row.place_no)]||'🏅')+' Premio adjudicado: +'+row.award_points+' puntos · '+(row.prize_name||'insignia')));
      scoreboard.append(entry);
     }
     show.disabled=false;show.textContent='Ocultar participantes';
