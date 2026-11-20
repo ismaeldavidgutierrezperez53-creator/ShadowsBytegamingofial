@@ -129,12 +129,26 @@
     const feedback=nav.querySelector('.sb-nav-bulk-feedback');
     if(feedback)feedback.textContent='✓ Se han quitado '+toRemove.length+' favoritos. Puedes usar ↶ Deshacer cambio de favoritos.';
    });
+   const hideVisibleResults=node('button','sb-nav-hide-visible-results','🙈 Ocultar resultados');
+   hideVisibleResults.type='button';
+   hideVisibleResults.addEventListener('click',()=>{
+    const items=[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector&&item.dataset.shortcutHidden!=='true');
+    const current=readHidden();
+    const toHide=[...new Set(items.map(item=>item.dataset.shortcutSelector))].filter(selector=>!current.includes(selector));
+    if(!toHide.length)return;
+    if(!window.confirm('¿Ocultar los '+toHide.length+' accesos visibles de los resultados? Tus favoritos y su orden se conservarán.'))return;
+    if(!writeHidden([...current,...toHide]))return;
+    links.dataset.signature='';
+    enhance(host,isOwn);
+    const feedback=nav.querySelector('.sb-nav-bulk-feedback');
+    if(feedback)feedback.textContent='✓ Se han ocultado '+toHide.length+' accesos. Puedes usar ↶ Deshacer último cambio en Gestionar accesos ocultos.';
+   });
    const resultCount=node('p','sb-nav-search-count');
    resultCount.setAttribute('role','status');
    const bulkFeedback=node('p','sb-nav-bulk-feedback');
    bulkFeedback.setAttribute('role','status');
    bulkFeedback.setAttribute('aria-live','polite');
-   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites,bulkFeedback);
+   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites,hideVisibleResults,bulkFeedback);
    const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
    let chosenLayout='grid';
    try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
@@ -266,6 +280,7 @@
     let visible=0;
     let addable=0;
     let removable=0;
+    let hideable=0;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const matchesText=normalize(item.dataset.searchLabel).includes(query);
      // Leer el estado actual de la estrella, incluso después de reordenar favoritos.
@@ -278,6 +293,7 @@
       visible++;
       if(!isFavorite)addable++;
       else removable++;
+      if(!isHidden)hideable++;
      }
     }
     const message=query||enabled||unstarredOnly||hiddenOnly?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
@@ -288,6 +304,9 @@
     const removeLabel=removable?'☆ Quitar resultados de favoritos ('+removable+')':'☆ No hay favoritos en los resultados';
     if(removeVisibleFavorites.textContent!==removeLabel)removeVisibleFavorites.textContent=removeLabel;
     if(removeVisibleFavorites.disabled!==(removable===0))removeVisibleFavorites.disabled=removable===0;
+    const hideLabel=hideable?'🙈 Ocultar resultados ('+hideable+')':'🙈 No hay resultados visibles para ocultar';
+    if(hideVisibleResults.textContent!==hideLabel)hideVisibleResults.textContent=hideLabel;
+    if(hideVisibleResults.disabled!==(hideable===0))hideVisibleResults.disabled=hideable===0;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||nav.dataset.sortMode!=='favorites';
