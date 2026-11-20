@@ -62,7 +62,7 @@
     }
 
 
-    const publicList=rows=>{
+    const publicList=(rows,id)=>{
       panel.hidden=false;
       content.replaceChildren();
       const list=create('div','sbgl-public-list');
@@ -79,6 +79,19 @@
         link.target='_blank';
         link.rel='noopener noreferrer nofollow ugc';
         link.referrerPolicy='no-referrer';
+        // Solo registra la acción de abrir un enlace público. Nunca bloquea la navegación.
+        link.addEventListener('click',event=>{
+          if(!event.isTrusted || navigator.globalPrivacyControl===true ||
+             navigator.doNotTrack==='1')return;
+          const slot=Number(item.slot);
+          if(!Number.isInteger(slot)||slot<1||slot>5||typeof sb==='undefined')return;
+          try{
+            Promise.resolve(sb.rpc('record_member_profile_link_click',
+              {target_member:id,p_slot:slot}))
+              .then(({error})=>{if(error)console.debug('Contador de enlaces no disponible:',error.message);})
+              .catch(()=>{});
+          }catch(_){}
+        });
         link.append(create('span','sbgl-platform-icon',platforms[item.platform].icon));
         link.append(create('span','',platforms[item.platform].name));
         if(item.is_featured===true)link.append(create('span','sbgl-featured-badge','⭐ Favorito'));
@@ -294,7 +307,7 @@
           const {data,error}=await sb.rpc('get_member_profile_links',{target_member:id});
           if(!active()||ticket!==revision)return;
           if(error)throw error;
-          publicList(Array.isArray(data)?data:[]);
+          publicList(Array.isArray(data)?data:[],id);
         }
       }catch(error){
         if(active()&&ticket===revision)
