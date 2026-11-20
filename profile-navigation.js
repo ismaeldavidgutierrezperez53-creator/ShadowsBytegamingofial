@@ -77,8 +77,8 @@
    search.placeholder='Buscar biblioteca, retos, estadísticas…';
    search.setAttribute('aria-label','Buscar secciones del perfil');
    search.autocomplete='off';
-   search.title='Atajos: / para buscar · Esc para limpiar';
-   const shortcutHint=node('span','sb-nav-shortcut-hint','⌨️ / buscar · Esc limpiar');
+   search.title='Atajos: / buscar · ↑ ↓ seleccionar · Enter abrir · Esc limpiar';
+   const shortcutHint=node('span','sb-nav-shortcut-hint','⌨️ / buscar · ↑ ↓ elegir · Enter abrir · Esc limpiar');
    shortcutHint.title='Pulsa / fuera de los campos de texto para enfocar este buscador';
    const searchFiltersKey='sb-profile-search-filters-'+(isOwn?'own':'public')+'-v1';
    try{
@@ -683,6 +683,23 @@
    });
    exportBox.append(downloadFilteredTxt);
    const controls=node('div','sb-nav-links');
+   controls.id='sb-nav-results-'+(isOwn?'own':'public');
+   search.setAttribute('aria-controls',controls.id);
+   let selectedShortcut=null;
+   const matchingShortcuts=()=>[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector);
+   const markShortcut=selector=>{
+    const matches=matchingShortcuts();
+    const selected=matches.find(item=>item.dataset.shortcutSelector===selector);
+    selectedShortcut=selected?selector:null;
+    for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
+     const highlighted=item===selected;
+     if(item.classList.contains('sb-nav-keyboard-selected')!==highlighted)item.classList.toggle('sb-nav-keyboard-selected',highlighted);
+    }
+    const activeId=selected?.querySelector('.sb-nav-link')?.id;
+    if(activeId)search.setAttribute('aria-activedescendant',activeId);
+    else search.removeAttribute('aria-activedescendant');
+    selected?.scrollIntoView({block:'nearest',behavior:'auto'});
+   };
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -724,6 +741,7 @@
       else restorable++;
      }
     }
+    if(selectedShortcut&&!matchingShortcuts().some(item=>item.dataset.shortcutSelector===selectedShortcut))markShortcut(null);
     const message=query||enabled||unstarredOnly||hiddenOnly||visibleOnly?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
     if(resultCount.textContent!==message)resultCount.textContent=message;
     const bulkLabel=addable?'⭐ Añadir resultados a favoritos ('+addable+')':'⭐ No hay resultados sin estrella';
@@ -815,6 +833,24 @@
     applyFilter();
    });
    search.addEventListener('keydown',event=>{
+    if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+     const matches=matchingShortcuts();
+     if(!matches.length)return;
+     event.preventDefault();
+     const current=matches.findIndex(item=>item.dataset.shortcutSelector===selectedShortcut);
+     const next=event.key==='ArrowDown'?(current+1)%matches.length:(current<0?matches.length-1:(current-1+matches.length)%matches.length);
+     markShortcut(matches[next].dataset.shortcutSelector);
+     return;
+    }
+    if(event.key==='Enter'){
+     const item=matchingShortcuts().find(row=>row.dataset.shortcutSelector===selectedShortcut);
+     const button=item?.querySelector('.sb-nav-link');
+     if(button){
+      event.preventDefault();
+      button.click();
+     }
+     return;
+    }
     if(event.key!=='Escape')return;
     if(search.value){
      search.value='';
@@ -823,7 +859,10 @@
     event.preventDefault();
     event.stopPropagation();
    });
-   search.addEventListener('input',applyFilter);
+   search.addEventListener('input',()=>{
+    if(selectedShortcut)markShortcut(null);
+    applyFilter();
+   });
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
    searchBox.append(shortcutHint);
    details.append(summary,searchBox,filterStatus,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
@@ -1164,6 +1203,7 @@
    item.classList.toggle('sb-nav-hidden-shortcut',isHidden);
    if(isHidden&&!showHidden)continue;
    const button=node('button','sb-nav-link',label);
+   button.id='sb-nav-result-'+(isOwn?'own':'public')+'-'+ordered.indexOf(ordered.find(entry=>entry[1]===selector));
    button.type='button';
    button.onclick=()=>{
     const target=host.querySelector(selector);
