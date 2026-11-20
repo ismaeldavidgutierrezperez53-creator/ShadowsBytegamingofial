@@ -1,0 +1,105 @@
+/* Encuestas: tarjetas de estadísticas y barras porcentuales anime. */
+#poll-admin-panel .poll-admin-insights{
+ margin:0 0 22px;padding:clamp(15px,2vw,21px);
+ border:1px solid #655082;border-radius:18px;
+ background:linear-gradient(115deg,rgba(50,26,73,.86),rgba(12,25,46,.85));
+}
+#poll-admin-panel .poll-admin-insights-head{
+ display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:12px;margin-bottom:17px;
+}
+#poll-admin-panel .poll-admin-insights-head h3{margin:0 0 4px;font-size:23px;color:#fff}
+#poll-admin-panel .poll-admin-insights-head p{margin:0;color:#c9bedb;font-size:15px}
+#poll-admin-panel .poll-insights-refresh,
+#poll-admin-panel .poll-results-toggle{
+ appearance:none;border:1px solid #8a5bb0;border-radius:10px;
+ color:#eaddff;background:#302146;font:700 15px Rajdhani,Arial,sans-serif;
+ cursor:pointer;padding:9px 13px;min-height:40px;
+}
+#poll-admin-panel .poll-insights-refresh:hover,
+#poll-admin-panel .poll-results-toggle:hover{
+ background:#4b2a69;border-color:#cd8df2;color:#fff;
+}
+#poll-admin-panel .poll-insights-stats{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:11px;
+}
+#poll-admin-panel .poll-insights-stat{
+ background:rgba(16,15,32,.68);border:1px solid #55456b;
+ border-radius:13px;padding:14px;display:flex;
+ flex-direction:column;gap:6px;min-width:0;
+}
+#poll-admin-panel .poll-insights-stat span{
+ font-size:14px;line-height:1.2;color:#d5c6e6;font-weight:700;
+}
+#poll-admin-panel .poll-insights-stat strong{
+ font:800 clamp(20px,2vw,27px)/1.15 Rajdhani,Arial,sans-serif;
+ color:#fbf8ff;overflow-wrap:anywhere;
+}
+#poll-admin-panel .poll-insights-note{
+ margin:14px 0 0;color:#bcb0d2;line-height:1.45;font-size:14px;
+}
+#poll-admin-panel .poll-admin-item{
+ flex-wrap:wrap;
+}
+#poll-admin-panel .poll-admin-item-control{
+ display:flex;flex-direction:column;gap:6px;
+ width:160px;flex:0 0 160px;
+}
+#poll-admin-panel .poll-admin-item-control label{margin-bottom:0}
+#poll-admin-panel .poll-results-toggle{padding:8px 9px;font-size:15px;line-height:1.2}
+#poll-admin-panel .poll-results-details{
+ flex:0 0 100%;width:100%;min-width:0;order:3;
+ border-top:1px solid #4f3a6a;margin-top:6px;padding:14px 0 2px;
+ color:#e8dcf7;overflow-wrap:anywhere;
+}
+#poll-admin-panel .poll-results-details[hidden]{display:none}
+#poll-admin-panel .poll-results-summary{
+ display:flex;justify-content:space-between;align-items:center;gap:8px;
+ flex-wrap:wrap;margin-bottom:13px;
+}
+#poll-admin-panel .poll-results-summary strong{
+ color:#8ae2fa;font-size:18px;
+}
+#poll-admin-panel .poll-results-summary span{
+ color:#d4c3e5;font-size:14px;
+}
+#poll-admin-panel .poll-results-chart{display:grid;gap:14px}
+#poll-admin-panel .poll-results-chart-item{min-width:0}
+#poll-admin-panel .poll-results-chart-label{
+ display:flex;justify-content:space-between;align-items:baseline;
+ gap:8px;margin-bottom:6px;flex-wrap:wrap;
+}
+#poll-admin-panel .poll-results-chart-label span{
+ font-size:16px;font-weight:700;color:#fff;overflow-wrap:anywhere;min-width:0;
+}
+#poll-admin-panel .poll-results-chart-label strong{
+ font-size:15px;font-weight:700;color:#c7e8ff;white-space:normal;
+}
+#poll-admin-panel .poll-results-chart-track{
+ height:13px;width:100%;border-radius:999px;
+ background:#100f22;border:1px solid #675078;overflow:hidden;
+}
+#poll-admin-panel .poll-results-chart-fill{
+ height:100%;border-radius:inherit;
+ background:linear-gradient(90deg,#a63fff,#6281ff,#20c7e7);
+ box-shadow:0 0 9px rgba(89,146,255,.5);
+ transition:width .38s ease;
+}
+#poll-admin-panel .poll-results-footnote{
+ color:#b9add0;margin:13px 0 0;font-size:14px;line-height:1.4;
+}
+@media(max-width:1000px){
+ #poll-admin-panel .poll-insights-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:610px){
+ #poll-admin-panel .poll-insights-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #poll-admin-panel .poll-insights-refresh{width:100%}
+ #poll-admin-panel .poll-admin-item-control{width:100%;flex:1 1 auto}
+ #poll-admin-panel .poll-results-details{padding:13px 0}
+}
+@media(max-width:360px){
+ #poll-admin-panel .poll-insights-stats{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+ #poll-admin-panel .poll-results-chart-fill{transition:none}
+}
