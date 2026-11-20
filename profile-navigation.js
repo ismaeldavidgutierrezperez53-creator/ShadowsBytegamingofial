@@ -277,6 +277,37 @@
     enhance(host,isOwn);
    });
    sortBox.append(redoFavorite);
+   const copyFavorites=node('button','sb-nav-copy-favorites','📋 Copiar mis accesos favoritos');
+   copyFavorites.type='button';
+   copyFavorites.addEventListener('click',async()=>{
+    const favorites=readFavorites();
+    const currentHidden=readHidden();
+    const entries=modules.filter(([_,selector,own])=>own===isOwn&&favorites.includes(selector)&&host.querySelector(selector));
+    if(!entries.length)return;
+    const mode=nav.dataset.sortMode;
+    const compare=(a,b)=>a[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim().localeCompare(b[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim(),'es',{sensitivity:'base'});
+    entries.sort((a,b)=>mode==='az'?compare(a,b):mode==='za'?compare(b,a):favorites.indexOf(a[1])-favorites.indexOf(b[1]));
+    const list='⭐ Mis accesos favoritos — Shadows Byte Gaming Official V2\n'+entries.map(([label,selector],i)=>(i+1)+'. '+label+(currentHidden.includes(selector)?' (oculto)':'')).join('\n');
+    try{
+     if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(list);
+     else{
+      const field=node('textarea','sb-nav-copy-fallback',list);
+      field.value=list;
+      field.setAttribute('readonly','');
+      field.style.position='fixed';
+      field.style.left='-9999px';
+      document.body.append(field);
+      field.select();
+      const copied=document.execCommand('copy');
+      field.remove();
+      if(!copied)throw new Error('No se pudo copiar');
+     }
+     copyFavorites.textContent='✓ Lista copiada ('+entries.length+')';
+    }catch(_){
+     copyFavorites.textContent='No se pudo copiar; revisa permisos';
+    }
+   });
+   sortBox.append(copyFavorites);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -501,6 +532,13 @@
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
+  const copyFavorites=nav.querySelector('.sb-nav-copy-favorites');
+  if(copyFavorites){
+   const count=available.filter(([_,selector])=>favorites.includes(selector)).length;
+   if(copyFavorites.disabled!==(count===0))copyFavorites.disabled=count===0;
+   const label='📋 Copiar mis accesos favoritos ('+count+')';
+   if(!copyFavorites.textContent.startsWith('✓')&&!copyFavorites.textContent.startsWith('No se pudo')&&copyFavorites.textContent!==label)copyFavorites.textContent=label;
+  }
   const hideNonFavorites=settings.querySelector('.sb-nav-hide-nonfavorites');
   if(hideNonFavorites){
    const favoritesVisible=available.some(([_,selector])=>favorites.includes(selector)&&!hidden.includes(selector));
