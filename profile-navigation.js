@@ -277,17 +277,24 @@
     enhance(host,isOwn);
    });
    sortBox.append(redoFavorite);
-   const copyFavorites=node('button','sb-nav-copy-favorites','📋 Copiar mis accesos favoritos');
-   copyFavorites.type='button';
-   copyFavorites.addEventListener('click',async()=>{
+   const buildFavoriteList=()=>{
     const favorites=readFavorites();
     const currentHidden=readHidden();
     const entries=modules.filter(([_,selector,own])=>own===isOwn&&favorites.includes(selector)&&host.querySelector(selector));
-    if(!entries.length)return;
     const mode=nav.dataset.sortMode;
-    const compare=(a,b)=>a[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim().localeCompare(b[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim(),'es',{sensitivity:'base'});
+    const clean=entry=>entry[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim();
+    const compare=(a,b)=>clean(a).localeCompare(clean(b),'es',{sensitivity:'base'});
     entries.sort((a,b)=>mode==='az'?compare(a,b):mode==='za'?compare(b,a):favorites.indexOf(a[1])-favorites.indexOf(b[1]));
-    const list='⭐ Mis accesos favoritos — Shadows Byte Gaming Official V2\n'+entries.map(([label,selector],i)=>(i+1)+'. '+label+(currentHidden.includes(selector)?' (oculto)':'')).join('\n');
+    return {
+     count:entries.length,
+     list:'⭐ Mis accesos favoritos — Shadows Byte Gaming Official V2\\n'+entries.map(([label,selector],i)=>(i+1)+'. '+label+(currentHidden.includes(selector)?' (oculto)':'')).join('\\n')
+    };
+   };
+   const copyFavorites=node('button','sb-nav-copy-favorites','📋 Copiar mis accesos favoritos');
+   copyFavorites.type='button';
+   copyFavorites.addEventListener('click',async()=>{
+    const {list,count}=buildFavoriteList();
+    if(!count)return;
     try{
      if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(list);
      else{
@@ -302,12 +309,34 @@
       field.remove();
       if(!copied)throw new Error('No se pudo copiar');
      }
-     copyFavorites.textContent='✓ Lista copiada ('+entries.length+')';
+     copyFavorites.textContent='✓ Lista copiada ('+count+')';
     }catch(_){
      copyFavorites.textContent='No se pudo copiar; revisa permisos';
     }
    });
    sortBox.append(copyFavorites);
+   const downloadFavorites=node('button','sb-nav-download-favorites','⬇ Descargar mis accesos favoritos');
+   downloadFavorites.type='button';
+   downloadFavorites.addEventListener('click',()=>{
+    const {list,count}=buildFavoriteList();
+    if(!count)return;
+    try{
+     const file=new Blob(['\\uFEFF',list],{type:'text/plain;charset=utf-8'});
+     const url=URL.createObjectURL(file);
+     const link=node('a');
+     link.href=url;
+     link.download='shadows-byte-accesos-favoritos-'+(isOwn?'mi-perfil':'perfil-publico')+'.txt';
+     link.style.display='none';
+     document.body.append(link);
+     link.click();
+     link.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1000);
+     downloadFavorites.textContent='✓ Archivo preparado ('+count+')';
+    }catch(_){
+     downloadFavorites.textContent='No se pudo preparar el archivo';
+    }
+   });
+   sortBox.append(downloadFavorites);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -536,6 +565,12 @@
   if(copyFavorites){
    const count=available.filter(([_,selector])=>favorites.includes(selector)).length;
    if(copyFavorites.disabled!==(count===0))copyFavorites.disabled=count===0;
+   const downloadFavorites=nav.querySelector('.sb-nav-download-favorites');
+   if(downloadFavorites){
+    if(downloadFavorites.disabled!==(count===0))downloadFavorites.disabled=count===0;
+    const downloadLabel='⬇ Descargar mis accesos favoritos ('+count+')';
+    if(!downloadFavorites.textContent.startsWith('✓')&&!downloadFavorites.textContent.startsWith('No se pudo')&&downloadFavorites.textContent!==downloadLabel)downloadFavorites.textContent=downloadLabel;
+   }
    const label='📋 Copiar mis accesos favoritos ('+count+')';
    if(!copyFavorites.textContent.startsWith('✓')&&!copyFavorites.textContent.startsWith('No se pudo')&&copyFavorites.textContent!==label)copyFavorites.textContent=label;
   }
