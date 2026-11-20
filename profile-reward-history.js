@@ -13,6 +13,7 @@
     welcome:{category:'reward',icon:'🎉',name:'Recompensa de bienvenida',desc:'Bonificación por unirse'},
     level:{category:'reward',icon:'🌟',name:'Premio por subir de nivel',desc:'Progresión de la comunidad'},
     monthly_box:{category:'reward',icon:'📦',name:'Premio mensual de cajas',desc:'Ranking de cajas misteriosas'},
+    competition_podium:{category:'reward',icon:'🏅',name:'Premio de reto o torneo',desc:'Insignia y puntos de clasificación'},
     daily:{category:'reward',icon:'📅',name:'Recompensa diaria',desc:'XP y bonificación diaria'},
     mission:{category:'reward',icon:'🎯',name:'Misión completada',desc:'Recompensas de misiones'},
     chest:{category:'reward',icon:'🎁',name:'Cofre de recompensas',desc:'Premio de cofre'},
@@ -55,6 +56,7 @@
     const spec=types[item.kind]||{category:'other',icon:'✨',name:'Movimiento',desc:'Puntos de la comunidad'};
     let name=spec.name;
     if(item.kind==='badge')name=badgeNames[item.ref]||spec.name;
+    else if(item.kind==='competition_podium'&&item.detail)name='🏅 '+String(item.detail).slice(0,110);
     else if(item.kind==='level' && /^\d+$/.test(String(item.ref||'')))
       name='🌟 Recompensa por nivel '+item.ref;
     else if(item.kind==='shop_purchase'&&item.detail)
