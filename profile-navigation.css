@@ -84,3 +84,9 @@
 .sb-nav-featured-count{min-width:42px;min-height:40px;border:1px solid #a783c2;border-radius:9px;background:#352248;color:white;font-weight:700;cursor:pointer}
 .sb-nav-featured-count[aria-pressed="true"]{color:#ffe4a0;border-color:#e4bb75;background:#604229}
 .sb-nav-featured-count:focus-visible{outline:3px solid #55dbff;outline-offset:2px}
+
+/* Botón independiente para ocultar o recuperar el escaparate de accesos */
+.sb-nav-featured-toggle{display:block;width:100%;margin:12px 0 3px;padding:9px 13px;min-height:42px;border:1px solid #a386be;border-radius:10px;background:#302240;color:#f5e7ff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer;text-align:left}
+.sb-nav-featured-toggle:hover{background:#553575}
+.sb-nav-featured-toggle:focus-visible{outline:3px solid #59d8ff;outline-offset:2px}
+.sb-nav-featured-toggle[aria-pressed="false"]{border-style:dashed;color:#dfcdea}
