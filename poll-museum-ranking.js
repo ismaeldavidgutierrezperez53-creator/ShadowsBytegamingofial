@@ -131,7 +131,8 @@
   root.append(status);
   container.append(root);
   const requested=new URLSearchParams(location.hash.split('?')[1]||'').get('museo');
-  if(requested==='ranking'||/^\d{4}-(0[1-9]|1[0-2])-01$/.test(requested||'')){
+  if(requested==='demo')demo.textContent=sample(root)?'✕ Ocultar muestra':'👁️ Probar clasificación';
+  if(requested==='ranking'||requested==='demo'||/^\d{4}-(0[1-9]|1[0-2])-01$/.test(requested||'')){
    root.tabIndex=-1;
    requestAnimationFrame(()=>{
     if(!root.isConnected)return;
