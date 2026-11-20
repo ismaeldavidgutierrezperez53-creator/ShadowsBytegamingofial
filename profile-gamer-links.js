@@ -38,7 +38,7 @@
     const panel=create('section','profile-panel sbgl-links');
     const heading=create('h2','','🔗 Mis enlaces gamer');
     const lead=create('p','sbgl-intro',own
-      ?'Añade hasta cinco enlaces a tus plataformas. Tú decides cuáles mostrar; solo se ven en un perfil público.'
+      ?'Añade hasta cinco enlaces. Ordena los guardados con ↑ y ↓ y destaca uno con ⭐. Solo se comparten los que tú hagas públicos.'
       :'Redes y plataformas que este miembro ha decidido compartir.');
     const message=create('p','sbgl-message',own?'Cargando tus enlaces…':'Consultando enlaces públicos…');
     message.setAttribute('role','status');
@@ -61,22 +61,31 @@
       return data?.user?.id||null;
     }
 
+
     const publicList=rows=>{
+      panel.hidden=false;
       content.replaceChildren();
       const list=create('div','sbgl-public-list');
-      for(const item of rows){
+      const sorted=rows.slice().sort((a,b)=>
+        Number(a.display_order??a.slot)-Number(b.display_order??b.slot)||
+        Number(a.slot)-Number(b.slot));
+      for(const item of sorted){
         if(item.is_public!==true||!platforms[item.platform])continue;
         const href=safeUrl(item.platform,item.url);
         if(!href)continue;
         const link=create('a','sbgl-public-link');
+        if(item.is_featured===true)link.classList.add('is-featured');
         link.href=href;
         link.target='_blank';
         link.rel='noopener noreferrer nofollow ugc';
         link.referrerPolicy='no-referrer';
         link.append(create('span','sbgl-platform-icon',platforms[item.platform].icon));
         link.append(create('span','',platforms[item.platform].name));
+        if(item.is_featured===true)link.append(create('span','sbgl-featured-badge','⭐ Favorito'));
         link.append(create('span','sbgl-external','↗'));
-        link.setAttribute('aria-label','Abrir '+platforms[item.platform].name+' en una pestaña nueva');
+        link.setAttribute('aria-label',
+          'Abrir '+platforms[item.platform].name+
+          (item.is_featured===true?', enlace favorito':'')+' en una pestaña nueva');
         list.append(link);
       }
       if(!list.childElementCount){
@@ -89,11 +98,23 @@
     function ownerEditor(id,rows){
       content.replaceChildren();
       const saved=new Map(rows.map(item=>[Number(item.slot),item]));
+      const sortedSaved=rows.slice().sort((a,b)=>
+        Number(a.display_order??a.slot)-Number(b.display_order??b.slot)||
+        Number(a.slot)-Number(b.slot));
+      const savedOrder=sortedSaved.map(item=>Number(item.slot));
+      const allSlots=[...savedOrder];
+      for(let slot=1;slot<=5;slot++)if(!saved.has(slot))allSlots.push(slot);
       const editor=create('div','sbgl-editor');
-      for(let slot=1;slot<=5;slot++){
+
+      const showStatus=text=>{if(active())message.textContent=text;};
+      for(const slot of allSlots){
         const initial=saved.get(slot);
         const row=create('div','sbgl-editor-row');
-        const rowLabel=create('strong','sbgl-row-title','Enlace '+slot+(initial?' · Guardado':' · Sin configurar'));
+        if(initial?.is_featured===true)row.classList.add('is-featured');
+        const rowLabel=create('strong','sbgl-row-title',
+          'Enlace '+slot+(initial?' · Guardado':' · Sin configurar')+
+          (initial?.is_featured===true?' · ⭐ Favorito':''));
+
         const fields=create('div','sbgl-fields');
         const platformLabel=create('label','sbgl-field','Plataforma');
         const platform=create('select');
@@ -118,70 +139,134 @@
         platform.addEventListener('change',()=>{url.placeholder=platforms[platform.value].example;});
         urlLabel.append(url);
         fields.append(platformLabel,urlLabel);
+
         const actions=create('div','sbgl-row-actions');
         const visibleLabel=create('label','sbgl-visible');
         const visible=create('input');
         visible.type='checkbox';
         visible.checked=initial?initial.is_public===true:true;
         visibleLabel.append(visible,document.createTextNode(' Mostrar en mi perfil público'));
+
+        const orderActions=create('div','sbgl-order-controls');
+        orderActions.setAttribute('role','group');
+        orderActions.setAttribute('aria-label','Orden del enlace '+slot);
+        const up=create('button','outline-btn mini sbgl-order-btn','↑ Subir');
+        const down=create('button','outline-btn mini sbgl-order-btn','↓ Bajar');
+        up.type='button';down.type='button';
+        orderActions.append(up,down);
+
+        const featured=create('button','outline-btn mini sbgl-favorite-btn',
+          initial?.is_featured===true?'⭐ Quitar favorito':'☆ Destacar');
+        featured.type='button';
+        featured.setAttribute('aria-pressed',String(initial?.is_featured===true));
+        featured.setAttribute('aria-label',
+          (initial?.is_featured===true?'Quitar favorito del':'Destacar como favorito el')+' enlace '+slot);
         const save=create('button','gradient-btn mini','💾 Guardar');
         save.type='button';
         const remove=create('button','outline-btn mini','Eliminar');
         remove.type='button';
-        remove.disabled=!initial;
+
         const status=create('small','sbgl-row-status','');
         status.setAttribute('role','status');
-        const setBusy=state=>{save.disabled=state;remove.disabled=state||!saved.has(slot);};
+        const updateButtons=busy=>{
+          const exists=saved.has(slot);
+          const position=savedOrder.indexOf(slot);
+          save.disabled=busy;
+          remove.disabled=busy||!exists;
+          up.disabled=busy||!exists||position<=0;
+          down.disabled=busy||!exists||position===savedOrder.length-1;
+          featured.disabled=busy||!exists;
+        };
+        updateButtons(false);
         const changed=()=>{status.textContent='Cambios sin guardar';};
         platform.addEventListener('change',changed);
         url.addEventListener('input',changed);
         visible.addEventListener('change',changed);
+
         save.addEventListener('click',async()=>{
           const normalized=safeUrl(platform.value,url.value.trim());
           if(!normalized){
             status.textContent='Introduce una URL HTTPS válida de '+platforms[platform.value].name+'.';
             url.focus();return;
           }
-          setBusy(true);
+          updateButtons(true);
           status.textContent='Guardando…';
           try{
+            // No se sobrescribe la posición ni la estrella al editar un enlace.
             const {error}=await sb.from('member_profile_links')
               .upsert({user_id:id,slot,platform:platform.value,url:normalized,
                 is_public:visible.checked,updated_at:new Date().toISOString()},
                 {onConflict:'user_id,slot'});
             if(error)throw error;
             if(!active())return;
-            url.value=normalized;
-            saved.set(slot,{slot,platform:platform.value,url:normalized,is_public:visible.checked});
-            rowLabel.textContent='Enlace '+slot+' · Guardado';
-            status.textContent=visible.checked?'Enlace guardado. Visible si tu perfil es público.':'Enlace guardado como oculto.';
+            await load();
+            showStatus('Enlace '+slot+' guardado. Ya puedes ordenarlo o marcarlo con ⭐.');
           }catch(err){
             if(active())status.textContent='No se pudo guardar: '+String(err.message||'Error desconocido');
-          }finally{if(active())setBusy(false);}
+          }finally{if(active())updateButtons(false);}
         });
+
         remove.addEventListener('click',async()=>{
           if(!saved.has(slot))return;
-          setBusy(true);status.textContent='Eliminando…';
+          updateButtons(true);status.textContent='Eliminando…';
           try{
             const {error}=await sb.from('member_profile_links').delete()
               .eq('user_id',id).eq('slot',slot);
             if(error)throw error;
             if(!active())return;
-            saved.delete(slot);
-            url.value='';
-            visible.checked=true;
-            rowLabel.textContent='Enlace '+slot+' · Sin configurar';
-            status.textContent='Enlace eliminado.';
+            await load();
+            showStatus('Enlace '+slot+' eliminado.');
           }catch(err){
             if(active())status.textContent='No se pudo eliminar: '+String(err.message||'Error desconocido');
-          }finally{if(active())setBusy(false);}
+          }finally{if(active())updateButtons(false);}
         });
-        actions.append(visibleLabel,save,remove);
+
+        const move=async direction=>{
+          if(!saved.has(slot))return;
+          updateButtons(true);
+          status.textContent='Guardando nuevo orden…';
+          try{
+            const {data,error}=await sb.rpc('move_member_profile_link',
+              {p_slot:slot,p_direction:direction});
+            if(error)throw error;
+            if(!active())return;
+            await load();
+            showStatus(data===true
+              ?'Nuevo orden guardado. También se aplicará en tu perfil público.'
+              :'Este enlace ya está en el extremo de la lista.');
+          }catch(err){
+            if(active())status.textContent='No se pudo cambiar el orden: '+String(err.message||'Error desconocido');
+          }finally{if(active())updateButtons(false);}
+        };
+        up.addEventListener('click',()=>move('up'));
+        down.addEventListener('click',()=>move('down'));
+
+        featured.addEventListener('click',async()=>{
+          if(!saved.has(slot))return;
+          const next=saved.get(slot)?.is_featured!==true;
+          updateButtons(true);
+          status.textContent='Guardando favorito…';
+          try{
+            const {data,error}=await sb.rpc('set_member_profile_link_featured',
+              {p_slot:slot,p_featured:next});
+            if(error)throw error;
+            if(data!==true)throw Error('No se pudo actualizar el favorito');
+            if(!active())return;
+            await load();
+            showStatus(next
+              ?'⭐ Enlace '+slot+' destacado. Solo aparecerá a otros si es público.'
+              :'El enlace '+slot+' ya no está destacado.');
+          }catch(err){
+            if(active())status.textContent='No se pudo cambiar el favorito: '+String(err.message||'Error desconocido');
+          }finally{if(active())updateButtons(false);}
+        });
+
+        actions.append(visibleLabel,orderActions,featured,save,remove);
         row.append(rowLabel,fields,actions,status);
         editor.append(row);
       }
       content.append(editor);
-      message.textContent=rows.length+' de 5 enlaces configurados. Puedes ocultarlos individualmente o eliminarlos.';
+      message.textContent=rows.length+' de 5 enlaces configurados. Usa ↑ y ↓ para ordenarlos; ⭐ destaca uno. Guarda primero los enlaces nuevos.';
     }
 
     async function load(){
@@ -193,7 +278,7 @@
         if(!id){message.textContent='Inicia sesión para gestionar tus enlaces.';return;}
         if(own){
           const {data,error}=await sb.from('member_profile_links')
-            .select('slot,platform,url,is_public').eq('user_id',id)
+            .select('slot,platform,url,is_public,display_order,is_featured').eq('user_id',id)
             .order('slot',{ascending:true}).limit(5);
           if(!active()||ticket!==revision)return;
           if(error)throw error;
