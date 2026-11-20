@@ -87,7 +87,10 @@ function previewCard(){
  const choices=make('div','poll-fame-theme-controls');
  const cards=make('div','poll-fame-grid');
  panel.append(choices,cards);
- const month=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit'}).format(new Date())+'-01';
+ const dateParts=new Intl.DateTimeFormat('en-US',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+ const currentYear=dateParts.find(part=>part.type==='year')?.value;
+ const currentMonth=dateParts.find(part=>part.type==='month')?.value;
+ const month=currentYear+'-'+currentMonth+'-01';
  function paint(theme){
   choices.replaceChildren();cards.replaceChildren();
   for(const style of themes){
