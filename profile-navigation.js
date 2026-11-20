@@ -37,8 +37,32 @@
    const desc=node('p','sb-nav-caption','Encuentra rápidamente cada apartado sin perder tu posición.');
    const details=node('details','sb-nav-details');
    const summary=node('summary','sb-nav-summary','Ver accesos rápidos');
+   const searchBox=node('div','sb-nav-searchbox');
+   const search=node('input','sb-nav-search');
+   search.type='search';
+   search.placeholder='Buscar biblioteca, retos, estadísticas…';
+   search.setAttribute('aria-label','Buscar secciones del perfil');
+   search.autocomplete='off';
+   const clear=node('button','sb-nav-search-clear','Limpiar');
+   clear.type='button';
+   const resultCount=node('p','sb-nav-search-count');
+   resultCount.setAttribute('role','status');
+   searchBox.append(search,clear);
    const controls=node('div','sb-nav-links');
-   details.append(summary,controls);
+   const applyFilter=()=>{
+    const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
+    const query=normalize(search.value);
+    let visible=0;
+    for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
+     const matched=normalize(item.dataset.searchLabel).includes(query);
+     item.hidden=!matched;
+     if(matched)visible++;
+    }
+    resultCount.textContent=query?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):'';
+   };
+   search.addEventListener('input',applyFilter);
+   clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
+   details.append(summary,searchBox,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
@@ -65,6 +89,7 @@
   const ordered=[...available].sort((a,b)=>Number(favorites.includes(b[1]))-Number(favorites.includes(a[1])));
   for(const [label,selector] of ordered){
    const item=node('div','sb-nav-favorite-item');
+   item.dataset.searchLabel=label;
    const button=node('button','sb-nav-link',label);
    button.type='button';
    button.onclick=()=>{
@@ -91,6 +116,8 @@
    item.append(button,star);
    links.append(item);
   }
+  const filterInput=nav.querySelector('.sb-nav-search');
+  if(filterInput)filterInput.dispatchEvent(new Event('input'));
  }
  let scheduled=false;
  function refresh(){
