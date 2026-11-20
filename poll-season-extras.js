@@ -133,7 +133,7 @@
   podium.append(places);
   host.prepend(podium);
  }
- function trophyCard(record,{memberId,own,isPublic,displayName,profile}={}){
+ function trophyCard(record,{memberId,own,isPublic,displayName,profile,pref}={}){
   const prize=monthlyPrizes.find(p=>p.position===Number(record.position));
   if(!prize)return null;
   const item=make('article','poll-month-trophy-card poll-month-trophy-'+prize.glow);
@@ -185,6 +185,7 @@
    }
   }
   window.SBPollHallOfFame?.enhanceTrophyCard(item,record,profile);
+  window.SBPollTrophyMuseum?.attachControls(item,{memberId,month:record.month_start,own,pref});
   return item;
  }
  function mountProfileTrophies(host,memberId,options={}){
@@ -227,6 +228,11 @@
     const {data:profileData,error:profileError}=await sb.from('profiles')
       .select('is_public,display_name,username,anime_card_style,favorite_anime,avatar_url').eq('id',memberId).maybeSingle();
     if(!section.isConnected)return;
+    const prefResult=own?await sb.from('member_poll_trophy_museum')
+     .select('month_start,is_featured').eq('user_id',memberId):{data:[],error:null};
+    if(!section.isConnected)return;
+    if(prefResult.error)console.warn('Favoritos de trofeos:',prefResult.error.message);
+    const museumPrefs=new Map((prefResult.data||[]).map(item=>[item.month_start,item]));
     const isPublic=!profileError&&profileData?.is_public===true;
     const displayName=profileData?.display_name||profileData?.username||'Un miembro';
     const summary=make('p','poll-month-trophy-summary',
@@ -237,7 +243,7 @@
     const grid=make('div','poll-month-trophy-grid');
     const max=6;
     awards.forEach((item,i)=>{
-     const card=trophyCard(item,{memberId,own,isPublic,displayName,profile:profileData});
+     const card=trophyCard(item,{memberId,own,isPublic,displayName,profile:profileData,pref:museumPrefs.get(item.month_start)});
      if(!card)return;
      if(i>=max)card.hidden=true;
      grid.append(card);
