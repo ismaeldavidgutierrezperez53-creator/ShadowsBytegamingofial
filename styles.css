@@ -1887,3 +1887,176 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  .private-direct-call-overlay .private-direct-screen-status{font-size:.77rem;padding:9px 10px}
  .private-direct-call-overlay .private-direct-screen-share:not([hidden]){flex-basis:100%}
 }
+
+
+/* Private anime chat improvements: backgrounds, private highlights, expiry, birthday cards. */
+#private-messages .private-chat-background-picker{min-width:165px}
+#private-messages .messages-panel[class*="private-chat-bg-"] .messages-history{
+ position:relative;
+ padding:16px 12px;
+ border:1px solid rgba(235,219,255,.3);
+ border-radius:18px;
+ min-height:250px;
+ background-color:#1e1938;
+ background-attachment:local;
+ background-size:cover;
+ box-shadow:inset 0 0 30px rgba(4,3,24,.22);
+}
+#private-messages .messages-panel.private-chat-bg-sakura-moon .messages-history{
+ background-image:
+  radial-gradient(circle at 76% 21%,rgba(255,239,234,.9) 0 29px,rgba(245,188,231,.2) 32px,transparent 62px),
+  radial-gradient(ellipse at 16% 72%,rgba(255,145,211,.18),transparent 48%),
+  repeating-linear-gradient(145deg,transparent 0 84px,rgba(250,166,204,.055) 85px 88px),
+  linear-gradient(135deg,#2a2047,#5a315f 65%,#2e284e);
+}
+#private-messages .messages-panel.private-chat-bg-neon-city .messages-history{
+ background-image:
+  repeating-linear-gradient(90deg,transparent 0 36px,rgba(79,203,242,.075) 38px 40px),
+  linear-gradient(0deg,rgba(242,67,219,.19),transparent 38%),
+  radial-gradient(ellipse at 51% 12%,rgba(109,81,255,.58),transparent 64%),
+  linear-gradient(160deg,#101431,#25143f 62%,#10182f);
+}
+#private-messages .messages-panel.private-chat-bg-galaxy-sky .messages-history{
+ background-image:
+  radial-gradient(circle at 15% 14%,#e7e5ff 0 1px,transparent 2px),
+  radial-gradient(circle at 80% 30%,#b0dbff 0 1px,transparent 2px),
+  radial-gradient(circle at 48% 68%,#f5c4fe 0 2px,transparent 3px),
+  radial-gradient(ellipse at 74% 58%,rgba(113,90,245,.38),transparent 56%),
+  radial-gradient(ellipse at 18% 30%,rgba(181,83,234,.28),transparent 52%),
+  linear-gradient(160deg,#11152e,#281b49,#11172d);
+ background-size:73px 81px,95px 91px,147px 119px,cover,cover,cover;
+}
+#private-messages .messages-panel.private-chat-bg-manga-ink .messages-history{
+ background-image:
+  repeating-linear-gradient(90deg,transparent 0 170px,rgba(213,208,241,.24) 171px 175px),
+  repeating-linear-gradient(0deg,transparent 0 144px,rgba(213,208,241,.21) 145px 149px),
+  repeating-radial-gradient(circle at 20% 40%,rgba(232,225,252,.1) 0 1px,transparent 1px 7px),
+  linear-gradient(150deg,#22212f,#3e3a49);
+}
+#private-messages .messages-panel.private-chat-bg-ocean-anime .messages-history{
+ background-image:
+  repeating-radial-gradient(ellipse at 50% 120%,transparent 0 46px,rgba(149,233,253,.12) 47px 52px),
+  radial-gradient(ellipse at 74% 11%,rgba(255,246,185,.57),transparent 22%),
+  linear-gradient(165deg,#1c3061,#114e73 62%,#13335d);
+}
+#private-messages .messages-panel[class*="private-chat-bg-"] .messages-history .message-bubble{
+ backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+ border:1px solid rgba(226,209,249,.26);
+ box-shadow:0 5px 15px rgba(4,4,20,.23);
+}
+#private-messages .private-chat-contact-card{
+ margin:9px 0 14px;padding:14px 15px;
+ border:1px solid rgba(203,171,248,.5);border-radius:15px;
+ background:linear-gradient(140deg,rgba(108,74,151,.22),rgba(39,47,91,.2));
+}
+#private-messages .private-chat-contact-heading{
+ display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+ margin-bottom:11px;
+}
+#private-messages .private-chat-contact-avatar{
+ display:grid;place-items:center;width:52px;height:52px;
+ flex:0 0 52px;border-radius:50%;overflow:hidden;
+ background:linear-gradient(135deg,#7d4dc2,#b967b9);border:2px solid #d9b5fa;
+ color:#fff;font-size:1.35rem;font-weight:700;
+}
+#private-messages .private-chat-contact-avatar img{width:100%;height:100%;object-fit:cover}
+#private-messages .private-chat-contact-identity{display:flex;flex-direction:column;gap:3px;min-width:115px;flex:1 1 150px}
+#private-messages .private-chat-contact-identity strong{font-size:.98rem}
+#private-messages .private-chat-contact-identity small{font-size:.72rem;color:#ceb9e9}
+#private-messages .private-chat-important-label{display:block;color:#f4d7ff;font-size:.87rem;margin:5px 0 8px}
+#private-messages .private-chat-contact-highlights{display:flex;flex-wrap:wrap;gap:7px}
+#private-messages .private-chat-contact-highlights small{font-size:.78rem;color:#cdbce2}
+#private-messages .private-chat-contact-highlight{
+ flex:1 1 190px;min-width:0;text-align:left;cursor:pointer;
+ padding:9px 11px;border-radius:9px;border:1px solid rgba(213,180,255,.55);
+ background:rgba(113,79,173,.22);color:inherit;font-size:.79rem;overflow-wrap:anywhere;
+}
+#private-messages .private-chat-contact-highlight:hover{background:rgba(151,88,212,.4)}
+#private-messages .private-chat-expiry{
+ display:block;color:#f3c2a5!important;font-size:.73rem;margin-top:5px;
+}
+#private-messages .private-chat-temporary-control{
+ display:flex;flex-direction:column;align-items:flex-start;
+ gap:6px;margin:10px 0;padding:10px 12px;
+ border-radius:12px;border:1px solid rgba(239,180,131,.43);
+ background:rgba(103,67,73,.18);font-size:.83rem;font-weight:700;
+}
+#private-messages .private-chat-temporary-control select{
+ padding:9px 11px;min-height:40px;min-width:175px;max-width:100%;
+ border-radius:9px;border:1px solid rgba(235,196,164,.5);
+ background:#291b37;color:#fff;font:inherit;
+}
+#private-messages .private-chat-temporary-control small{
+ font-size:.73rem;color:#e8c5ac;font-weight:400;line-height:1.4;
+}
+#private-messages .private-chat-birthday-preferences{
+ display:flex;flex-direction:column;align-items:flex-start;gap:9px;
+ padding:12px 10px;margin-top:14px;
+ border-radius:13px;border:1px solid rgba(242,182,239,.5);
+ background:linear-gradient(150deg,rgba(159,74,138,.17),rgba(90,60,137,.15));
+}
+#private-messages .private-chat-birthday-preferences>strong{font-size:.9rem;color:#ffe2fa}
+#private-messages .private-chat-birthday-preferences small{font-size:.74rem;color:#e4cbe3;line-height:1.4}
+#private-messages .private-chat-birthday-fields{display:flex;flex-wrap:wrap;gap:7px;width:100%}
+#private-messages .private-chat-birthday-fields select{
+ flex:1 1 82px;min-width:0;padding:9px 5px;min-height:40px;
+ border:1px solid rgba(242,187,230,.48);border-radius:9px;
+ background:#30203f;color:#fff;
+}
+#private-messages .private-chat-birthday-sharing{display:flex;align-items:flex-start;gap:7px;font-size:.75rem}
+#private-messages .private-chat-birthday-sharing input{width:16px;height:16px;accent-color:#ce84e9;flex:0 0 16px}
+#private-messages .private-chat-birthday-preferences button{
+ max-width:100%;padding:8px 10px;border-radius:9px;
+ border:1px solid rgba(246,183,231,.6);background:rgba(129,70,153,.4);
+ color:#fff;font-size:.77rem;cursor:pointer;
+}
+#private-messages .private-chat-birthday-banner{
+ padding:13px 15px;margin:10px 0 14px;
+ border-radius:14px;border:1px solid rgba(244,194,238,.7);
+ background:linear-gradient(135deg,rgba(155,72,146,.24),rgba(101,73,173,.19));
+}
+#private-messages .private-chat-birthday-banner[hidden],
+#private-messages .private-chat-birthday-actions[hidden]{display:none!important}
+#private-messages .private-chat-birthday-banner strong{font-size:1rem;color:#ffe6fa}
+#private-messages .private-chat-birthday-banner p{margin:8px 0;color:#f1d4f5;font-size:.87rem}
+#private-messages .private-chat-birthday-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+#private-messages .private-chat-birthday-actions select{
+ padding:9px;max-width:100%;min-width:130px;
+ border-radius:9px;background:#342247;border:1px solid rgba(249,183,235,.65);color:#fff;
+}
+#private-messages .private-chat-birthday-actions button{
+ padding:9px 13px;border-radius:10px;border:1px solid #f4afe2;
+ background:linear-gradient(120deg,#813f8d,#a449a2);
+ color:#fff;cursor:pointer;font:inherit;font-weight:600;font-size:.85rem;
+}
+#private-messages .private-chat-birthday-actions small{font-size:.76rem;color:#f8c6ec;flex:1 1 180px}
+#private-messages .message-bubble.private-chat-birthday-card{
+ width:min(100%,330px);max-width:85%;padding:17px 15px;
+ display:flex;align-items:center;flex-direction:column;gap:8px;text-align:center;
+ border:2px solid rgba(255,208,244,.75);
+ background:linear-gradient(150deg,#552e66,#844778 63%,#55366d);
+ box-shadow:0 8px 26px rgba(175,69,175,.26),inset 0 0 24px rgba(248,206,255,.09);
+}
+#private-messages .message-bubble.private-chat-birthday-star{
+ background:linear-gradient(150deg,#292d67,#48417b 56%,#7b508e);
+ border-color:#e9d594;
+}
+#private-messages .message-bubble.private-chat-birthday-gaming{
+ background:linear-gradient(150deg,#143d56,#285c71 54%,#3f4673);
+ border-color:#9bffe0;
+}
+#private-messages .private-chat-birthday-decoration{
+ font-size:2.2rem;letter-spacing:.11em;line-height:1.35;
+}
+#private-messages .private-chat-birthday-card>p{font-weight:700;font-size:1.02rem;line-height:1.5;color:#fff!important}
+#private-messages .private-chat-birthday-card>small{font-size:.71rem}
+@media(max-width:720px){
+ #private-messages .private-chat-contact-card{padding:11px}
+ #private-messages .private-chat-contact-heading .outline-btn{margin-left:auto}
+ #private-messages .private-chat-contact-identity{flex-basis:130px}
+ #private-messages .private-chat-theme-picker{min-width:0;flex:1 1 145px}
+ #private-messages .private-chat-temporary-control select{min-width:135px}
+}
+@media(prefers-reduced-motion:reduce){
+ #private-messages .private-chat-birthday-card{animation:none}
+}
