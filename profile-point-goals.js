@@ -152,6 +152,8 @@
     piece.style.setProperty('--start-x',String(9+(i*29)%82)+'%');
     piece.style.setProperty('--dx',Math.round(Math.cos(angle)*(85+i%4*16))+'px');
     piece.style.setProperty('--dy',Math.round(Math.sin(angle)*(68+i%3*15))+'px');
+    piece.style.setProperty('--dx-small',Math.round(Math.cos(angle)*(85+i%4*16)*.35)+'px');
+    piece.style.setProperty('--dy-small',Math.round(Math.sin(angle)*(68+i%3*15)*.35)+'px');
     piece.style.setProperty('--delay',String(i%6*85)+'ms');
     burst.append(piece);
    }
