@@ -45,3 +45,7 @@
 @keyframes sb-badge-twinkle{0%,100%{opacity:.48;transform:translateY(3px)}50%{opacity:1;transform:translateY(-4px) scale(1.15)}}
 @media(max-width:540px){.sb-badge-notify{bottom:max(84px,env(safe-area-inset-bottom));right:10px}.sb-badge-notify-panel,.sb-badge-unlock-toast{max-width:calc(100vw - 20px);padding:12px}.sb-badge-notify-toggle{padding:8px 12px}}
 @media(prefers-reduced-motion:reduce){.sb-badge-unlock-toast,.sb-badge-unlock-toast--gold,.sb-badge-unlock-toast--diamond,.sb-badge-unlock-sparkles{animation:none!important}}
+
+/* Recompensas de puntos acreditadas al desbloquear cada insignia */
+.sb-badge-notify-points{display:inline-flex;align-items:center;margin-top:4px;padding:4px 8px;max-width:100%;width:max-content;border:1px solid rgba(250,210,116,.7);border-radius:999px;background:rgba(153,97,35,.28);color:#ffdfa1;font:800 .84rem Rajdhani,Arial,sans-serif;white-space:normal;overflow-wrap:anywhere}
+.sb-badge-unlock-toast:has(.sb-badge-unlock-note) .sb-badge-unlock-note{font-weight:700;color:#ffebbf}
