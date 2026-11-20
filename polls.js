@@ -2,30 +2,97 @@
 const pollEscape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function renderCommunityPolls(){
  const host=document.getElementById('community-polls');if(!host)return;
- const [{data:polls,error},{data:{user}}]=await Promise.all([sb.from('community_polls').select('id,question,category,status,created_at').in('status',['published','closed']).order('created_at',{ascending:false}).limit(30),sb.auth.getUser()]);
+ const [{data:polls,error},{data:userResponse}]=await Promise.all([
+  sb.from('community_polls').select('id,question,category,status,created_at,featured,closes_at')
+    .in('status',['published','closed']).order('created_at',{ascending:false}).limit(30),
+  sb.auth.getUser()
+ ]);
  if(!host.isConnected)return;
- if(error){host.textContent='No se pudieron cargar las encuestas.';return}
- if(!polls?.length){host.textContent='Todavía no hay encuestas publicadas.';return}
- host.replaceChildren();
- for(const poll of polls){
-  const card=document.createElement('article');card.className='fan-card';card.style.marginBottom='18px';
-  const title=document.createElement('h3');title.textContent=poll.question;card.append(title);
-  const sub=document.createElement('p');sub.textContent=poll.category+' · '+(poll.status==='closed'?'Cerrada':'Abierta');card.append(sub);
-  const [{data:options},{data:counts},{data:mine}]=await Promise.all([
+ if(error){host.textContent='No se pudieron cargar las encuestas.';return;}
+ if(!polls?.length){host.textContent='Todavía no hay encuestas publicadas.';return;}
+ const user=userResponse?.user||null;
+ const categoryNames={anime:'Anime',manga:'Manga',gaming:'Gaming',personajes:'Personajes',otros:'Otros'};
+ // Retrieve votes and answer choices without reading any personal vote information.
+ const entries=await Promise.all(polls.map(async poll=>{
+  const [optionResult,countResult,mineResult]=await Promise.all([
    sb.from('community_poll_options').select('id,label').eq('poll_id',poll.id).order('sort_order'),
    sb.rpc('community_poll_results',{target_poll:poll.id}),
    user?sb.from('community_poll_votes').select('option_id').eq('poll_id',poll.id).eq('user_id',user.id).maybeSingle():Promise.resolve({data:null})
   ]);
-  if(!host.isConnected)return;
-  const total=(counts||[]).reduce((sum,x)=>sum+Number(x.votes),0);
-  for(const option of options||[]){
-   const votes=Number((counts||[]).find(x=>x.option_id===option.id)?.votes||0);
-   const row=document.createElement('div');row.style.cssText='margin:12px 0';
-   const button=document.createElement('button');button.type='button';button.className='outline-btn';button.style.cssText='width:100%;text-align:left;cursor:pointer';button.textContent=(mine?.option_id===option.id?'✓ ':'')+option.label+' — '+(total?Math.round(votes*100/total):0)+'% ('+votes+')';
-   button.disabled=!user||!!mine||poll.status!=='published';button.onclick=async()=>{button.disabled=true;const {error:e}=await sb.from('community_poll_votes').insert({poll_id:poll.id,option_id:option.id,user_id:user.id});if(e)alert('No se pudo votar: '+e.message);await renderCommunityPolls()};row.append(button);card.append(row);
+  const counts=countResult.error?[]:countResult.data||[];
+  const total=counts.reduce((sum,item)=>sum+Number(item.votes||0),0);
+  return {poll,options:optionResult.data||[],counts,total,mine:mineResult.data||null,
+          dataError:!!optionResult.error||!!countResult.error};
+ }));
+ if(!host.isConnected)return;
+ entries.sort((a,b)=>Number(!!b.poll.featured)-Number(!!a.poll.featured)||
+                         b.total-a.total||
+                         new Date(b.poll.created_at).getTime()-new Date(a.poll.created_at).getTime());
+ const popularIds=new Set(entries.filter(x=>!x.poll.featured&&x.total>0)
+   .slice(0,3).map(x=>x.poll.id));
+ host.replaceChildren();
+ const heading=document.createElement('div');heading.className='poll-community-heading';
+ const title=document.createElement('h2');title.textContent='🌟 Destacadas y populares';
+ const info=document.createElement('p');info.textContent='Encuestas destacadas por la administración y las más votadas.';
+ heading.append(title,info);host.append(heading);
+ const grid=document.createElement('div');grid.className='poll-community-grid';host.append(grid);
+ for(const entry of entries){
+  const {poll,options,counts,total,mine,dataError}=entry;
+  const expired=!!poll.closes_at&&new Date(poll.closes_at).getTime()<=Date.now();
+  const closed=poll.status==='closed'||expired;
+  const card=document.createElement('article');card.className='fan-card poll-community-card';
+  card.dataset.featured=String(!!poll.featured);
+  const tags=document.createElement('div');tags.className='poll-community-tags';
+  const category=document.createElement('span');category.className='poll-community-tag';
+  category.textContent=categoryNames[poll.category]||poll.category||'General';tags.append(category);
+  if(poll.featured){
+   const star=document.createElement('span');star.className='poll-community-tag';star.dataset.type='featured';
+   star.textContent='⭐ Destacada';tags.append(star);
+  }else if(popularIds.has(poll.id)){
+   const hot=document.createElement('span');hot.className='poll-community-tag';hot.dataset.type='popular';
+   hot.textContent='🔥 Popular';tags.append(hot);
   }
-  if(!user){const a=document.createElement('a');a.href='#/auth';a.textContent='Inicia sesión para votar';card.append(a)}
-  const count=document.createElement('p');count.textContent=total+' votos';card.append(count);host.append(card);
+  const state=document.createElement('span');state.className='poll-community-tag';
+  state.textContent=closed?'Cerrada':'Abierta';tags.append(state);
+  card.append(tags);
+  const question=document.createElement('h3');question.textContent=poll.question;card.append(question);
+  const meta=document.createElement('p');meta.className='poll-community-meta';
+  meta.textContent=closed?'Votación finalizada':'Elige una respuesta para participar';
+  card.append(meta);
+  if(dataError){
+   const err=document.createElement('p');err.textContent='No se pudieron cargar todos los resultados.';
+   card.append(err);
+  }
+  for(const option of options){
+   const votes=Number(counts.find(x=>x.option_id===option.id)?.votes||0);
+   const percentage=total?Math.round(votes*100/total):0;
+   const button=document.createElement('button');button.type='button';
+   button.className='poll-community-option';
+   if(mine?.option_id===option.id)button.classList.add('is-selected');
+   button.textContent=(mine?.option_id===option.id?'✓ ':'')+option.label+' · '+percentage+' % ('+votes+')';
+   button.disabled=dataError||!user||!!mine||closed;
+   button.onclick=async()=>{
+    button.disabled=true;
+    const {error:voteError}=await sb.from('community_poll_votes')
+     .insert({poll_id:poll.id,option_id:option.id,user_id:user.id});
+    if(voteError)alert('No se pudo votar: '+voteError.message);
+    await renderCommunityPolls();
+   };
+   card.append(button);
+  }
+  if(!user){
+   const link=document.createElement('a');link.href='#/auth';
+   link.className='poll-community-login';link.textContent='Inicia sesión para votar';card.append(link);
+  }
+  if(poll.closes_at){
+   const date=document.createElement('p');date.className='poll-community-deadline';
+   date.textContent='⏰ '+(closed?'Cierre: ':'Cierra: ')+new Intl.DateTimeFormat('es-ES',
+    {dateStyle:'medium',timeStyle:'short'}).format(new Date(poll.closes_at));
+   card.append(date);
+  }
+  const count=document.createElement('p');count.className='poll-community-tally';
+  count.textContent=total+' voto'+(total===1?'':'s');card.append(count);
+  grid.append(card);
  }
 }
 async function initPollAdmin(){
@@ -59,6 +126,7 @@ async function initPollAdmin(){
   '</div>'
  ].join('');
  dashboard.append(panel);
+ window.SBPollAdminAdvanced?.addCreateFields(panel);
  window.SBPollAdminInsights?.mount(panel);
  const form=panel.querySelector('#poll-admin-form');
  const status=panel.querySelector('#poll-admin-status');
@@ -101,12 +169,15 @@ async function initPollAdmin(){
   const values=new FormData(form);
   const question=String(values.get('question')||'').trim();
   if(question.length<5){showMessage('La pregunta debe tener al menos 5 caracteres.','error');form.querySelector('#poll-admin-question').focus();return;}
+  let advanced;
+  try{advanced=window.SBPollAdminAdvanced?.readCreate(form)||{closes_at:null,featured:false};}
+  catch(error){showMessage(error.message,'error');return;}
   publishing=true;publishButton.disabled=true;publishButton.textContent='Publicando…';
   showMessage('Guardando encuesta…');
   try{
    const {data:{user},error:authError}=await sb.auth.getUser();
    if(authError||user?.app_metadata?.role!=='admin'){showMessage('Necesitas permisos de administrador para publicar.','error');return;}
-   const {data:poll,error}=await sb.from('community_polls').insert({question,category:values.get('category'),status:'draft'}).select('id').single();
+   const {data:poll,error}=await sb.from('community_polls').insert({question,category:values.get('category'),status:'draft',...advanced}).select('id').single();
    if(error){showMessage('No se pudo crear la encuesta: '+error.message,'error');return;}
    const {error:optionError}=await sb.from('community_poll_options').insert(options.map((label,index)=>({poll_id:poll.id,label,sort_order:index})));
    if(optionError){showMessage('La encuesta quedó en borrador: '+optionError.message,'error');await loadPollAdminList();return;}
@@ -121,7 +192,7 @@ async function initPollAdmin(){
   listRoot.replaceChildren();
   const loading=document.createElement('p');loading.className='poll-admin-empty';loading.textContent='Cargando encuestas…';listRoot.append(loading);
   try{
-   const {data,error}=await sb.from('community_polls').select('id,question,category,status,created_at').order('created_at',{ascending:false}).limit(30);
+   const {data,error}=await sb.from('community_polls').select('id,question,category,status,created_at,closes_at,featured').order('created_at',{ascending:false}).limit(30);
    if(!panel.isConnected)return;
    if(error){listRoot.textContent='No se pudieron cargar las encuestas: '+error.message;listCount.textContent='Sin datos';return;}
    const polls=data||[];
@@ -159,7 +230,10 @@ async function initPollAdmin(){
      finally{select.disabled=false;}
     });
     control.append(label,select);
-    row.append(info,control);window.SBPollAdminInsights?.decorate(row,poll);listRoot.append(row);
+    row.append(info,control);
+    window.SBPollAdminInsights?.decorate(row,poll);
+    window.SBPollAdminAdvanced?.decorate(row,poll,loadPollAdminList);
+    listRoot.append(row);
    }
    window.SBPollAdminInsights?.renderSummary(panel,polls);
   }catch(error){
