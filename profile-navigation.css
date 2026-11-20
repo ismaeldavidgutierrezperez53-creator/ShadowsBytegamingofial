@@ -33,3 +33,11 @@
 .sb-nav-search-count:empty{display:none}
 .sb-nav-favorite-item[hidden]{display:none!important}
 @media(max-width:500px){.sb-nav-searchbox{flex-wrap:wrap}.sb-nav-search{flex-basis:100%}.sb-nav-search-clear{margin-left:auto}}
+
+/* Orden de favoritos sin arrastrar elementos ni afectar el modo compacto */
+.sb-nav-move{display:flex;gap:3px;align-items:stretch}
+.sb-nav-move-btn{width:35px;min-height:42px;border:1px solid #8c6cab;border-radius:9px;background:#291b3c;color:#fff;font-size:19px;font-weight:700;cursor:pointer}
+.sb-nav-move-btn:disabled{opacity:.35;cursor:default}
+.sb-nav-move-btn:not(:disabled):hover{background:#623784}
+.sb-nav-move-btn:focus-visible{outline:3px solid #55dbff;outline-offset:2px}
+@media(max-width:600px){.sb-nav-favorite-item{grid-column:1/-1}.sb-nav-move-btn{min-width:38px}}
