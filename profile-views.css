@@ -18,3 +18,7 @@
 .sb-views-arrow{margin-left:auto;font-size:.89rem;color:#dfbaff;white-space:nowrap}
 @media(max-width:540px){.sb-views-visitor{flex-wrap:wrap}.sb-views-arrow{margin-left:58px}.sb-views-toolbar{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){.sb-views-visitor{transition:none}}
+
+.sb-views-notifications-toggle{margin-top:12px;border-color:#6d9ce3;background:rgba(52,97,173,.14)}
+.sb-views-notifications-toggle input:disabled{opacity:.6;cursor:not-allowed}
+.sb-views-notification-status{margin:8px 0 16px}
