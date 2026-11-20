@@ -143,12 +143,27 @@
     const feedback=nav.querySelector('.sb-nav-bulk-feedback');
     if(feedback)feedback.textContent='✓ Se han ocultado '+toHide.length+' accesos. Puedes usar ↶ Deshacer último cambio en Gestionar accesos ocultos.';
    });
+   const restoreVisibleResults=node('button','sb-nav-restore-visible-results','↺ Restaurar resultados ocultos');
+   restoreVisibleResults.type='button';
+   restoreVisibleResults.addEventListener('click',()=>{
+    const matching=[...controls.querySelectorAll('.sb-nav-favorite-item')].filter(item=>!item.hidden&&item.dataset.shortcutSelector&&item.dataset.shortcutHidden==='true');
+    const current=readHidden();
+    const selected=new Set(matching.map(item=>item.dataset.shortcutSelector));
+    const toRestore=current.filter(selector=>selected.has(selector));
+    if(!toRestore.length)return;
+    if(!window.confirm('¿Restaurar los '+toRestore.length+' accesos ocultos de los resultados? Los demás accesos ocultos permanecerán igual.'))return;
+    if(!writeHidden(current.filter(selector=>!selected.has(selector))))return;
+    links.dataset.signature='';
+    enhance(host,isOwn);
+    const feedback=nav.querySelector('.sb-nav-bulk-feedback');
+    if(feedback)feedback.textContent='✓ Se han restaurado '+toRestore.length+' accesos. Puedes usar ↶ Deshacer último cambio en Gestionar accesos ocultos.';
+   });
    const resultCount=node('p','sb-nav-search-count');
    resultCount.setAttribute('role','status');
    const bulkFeedback=node('p','sb-nav-bulk-feedback');
    bulkFeedback.setAttribute('role','status');
    bulkFeedback.setAttribute('aria-live','polite');
-   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites,hideVisibleResults,bulkFeedback);
+   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites,hideVisibleResults,restoreVisibleResults,bulkFeedback);
    const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
    let chosenLayout='grid';
    try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
@@ -281,6 +296,7 @@
     let addable=0;
     let removable=0;
     let hideable=0;
+    let restorable=0;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const matchesText=normalize(item.dataset.searchLabel).includes(query);
      // Leer el estado actual de la estrella, incluso después de reordenar favoritos.
@@ -294,6 +310,7 @@
       if(!isFavorite)addable++;
       else removable++;
       if(!isHidden)hideable++;
+      else restorable++;
      }
     }
     const message=query||enabled||unstarredOnly||hiddenOnly?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
@@ -307,6 +324,9 @@
     const hideLabel=hideable?'🙈 Ocultar resultados ('+hideable+')':'🙈 No hay resultados visibles para ocultar';
     if(hideVisibleResults.textContent!==hideLabel)hideVisibleResults.textContent=hideLabel;
     if(hideVisibleResults.disabled!==(hideable===0))hideVisibleResults.disabled=hideable===0;
+    const restoreLabel=restorable?'↺ Restaurar resultados ocultos ('+restorable+')':'↺ No hay resultados ocultos para restaurar';
+    if(restoreVisibleResults.textContent!==restoreLabel)restoreVisibleResults.textContent=restoreLabel;
+    if(restoreVisibleResults.disabled!==(restorable===0))restoreVisibleResults.disabled=restorable===0;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||nav.dataset.sortMode!=='favorites';
