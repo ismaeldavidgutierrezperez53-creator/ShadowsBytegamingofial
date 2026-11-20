@@ -1,7 +1,7 @@
 /* Shadows Byte Gaming Official V2 — medallas de metas, decorativas y permanentes */
 (() => {
   'use strict';
-  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const medals={
     bronze:{icon:'🥉',label:'Medalla de Bronce',className:'bronze',description:'Meta de 100 a 999 puntos'},
     silver:{icon:'🥈',label:'Medalla de Plata',className:'silver',description:'Meta de 1.000 a 4.999 puntos'},
