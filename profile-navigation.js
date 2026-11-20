@@ -22,6 +22,7 @@
   ['👥 Conexiones gamer','.sbc-connections',true],
   ['🔗 Mis enlaces gamer','.sbgl-links',true],
   ['📊 Clics en mis enlaces','.sbgl-link-analytics',true],
+  ['🏆 Logros de enlaces gamer','.sbgl-badges',true],
   ['🏅 Retos de colección','.sbr-goals',true],
   ['🌟 Retos sociales','.sbs-challenges',true],
   ['🎨 Editar perfil','#profile-form',true],
@@ -31,7 +32,8 @@
   ['🏆 Logros','.member-achievements',false],
   ['📊 Estadísticas sociales','.member-profile-stats',false],
   ['💬 Comunidad','.member-social',false],
-  ['📷 Galería','.member-gallery-panel',false]
+  ['📷 Galería','.member-gallery-panel',false],
+  ['🏆 Insignias de enlaces','.sbgl-badges',false]
  ];
  function enhance(host,isOwn){
   const anchor=isOwn?host.querySelector('.profile-identity'):host.querySelector('.public-member-body > h1');
