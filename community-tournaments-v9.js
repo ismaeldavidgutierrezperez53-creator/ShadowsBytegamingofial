@@ -170,6 +170,12 @@
     }
    }
    insert(section);
+   const queryPart=location.hash.includes('?')?location.hash.slice(location.hash.indexOf('?')+1):'';
+   const requestedTournament=new URLSearchParams(queryPart).get('tournament');
+   if(requestedTournament){
+    const requestedCard=document.getElementById('community-tournament-'+requestedTournament);
+    if(requestedCard)requestedCard.scrollIntoView({behavior:reduced()?'auto':'smooth',block:'center'});
+   }
    if(lastMessage&&lastTournament){
     const card=document.getElementById('community-tournament-'+lastTournament);
     if(card){
