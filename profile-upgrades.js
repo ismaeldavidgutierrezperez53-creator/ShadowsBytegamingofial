@@ -3,13 +3,12 @@
  'use strict';
  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n};
  const link=(text,href)=>{const n=el('a','sbp-action',text);n.href=href;return n};
- const profileUrl=id=>location.origin+location.pathname+location.search+'#/perfil?id='+encodeURIComponent(id);
+ const profileUrl=id=>location.origin+location.pathname+'#/perfil?id='+encodeURIComponent(id);
  const formatCount=value=>Number.isFinite(Number(value))?String(value):'—';
  const safeClient=()=>typeof sb!=='undefined'&&sb&&sb.auth&&sb.from;
  function statusNote(root,message){const p=el('p','sbp-note',message);p.setAttribute('role','status');root.append(p);return p}
  async function enhanceAccount(root){
-  if(root.dataset.sbpDone || !root.querySelector('#profile-form'))return;
-  root.dataset.sbpDone='1';
+  if(!root.querySelector('#profile-form') || root.querySelector('.sbp-dashboard'))return;
   const body=root.querySelector('.profile-body');if(!body)return;
   const panel=el('section','profile-panel sbp-dashboard');
   panel.setAttribute('aria-label','Mi centro de perfil');
@@ -77,8 +76,7 @@
  function enhancePublic(root){
   const body=root.querySelector('.public-member-body');
   if(!body)return;
-  if(root.dataset.sbpDone){attachPublicLibraryFilter(body);return}
-  root.dataset.sbpDone='1';
+  if(root.querySelector('.sbp-public-tools')){attachPublicLibraryFilter(body);return}
   const qs=new URLSearchParams((location.hash.split('?')[1]||''));
   const id=qs.get('id');if(!id)return;
   const panel=el('section','profile-panel sbp-public-tools');
