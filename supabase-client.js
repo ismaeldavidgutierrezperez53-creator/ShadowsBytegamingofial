@@ -3523,7 +3523,15 @@ async function loadPrivateMessages(){
  if(!root.isConnected)return;
  if(error){root.textContent='No se pudieron cargar los mensajes: '+error.message;return;}
  const items=messages||[];
- const ids=[...new Set(items.flatMap(m=>[m.sender_id,m.recipient_id]).filter(id=>id!==me))];
+ const {data:allGiftRows,error:giftLoadError}=await sb.from('member_private_chat_gifts')
+  .select('id,sender_id,recipient_id,gift_code,created_at')
+  .order('created_at',{ascending:false}).limit(200);
+ if(giftLoadError)console.warn('Regalos privados:',giftLoadError.message);
+ const gifts=allGiftRows||[];
+ const ids=[...new Set([
+  ...items.flatMap(m=>[m.sender_id,m.recipient_id]),
+  ...gifts.flatMap(g=>[g.sender_id,g.recipient_id])
+ ].filter(id=>id!==me))];
  if(validId(requested)&&requested!==me&&!ids.includes(requested))ids.push(requested);
  const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username,is_public,avatar_url').in('id',ids):{data:[]};
  if(!root.isConnected)return;
@@ -3535,7 +3543,7 @@ async function loadPrivateMessages(){
   if(!latestMessageByPartner.has(partnerId))latestMessageByPartner.set(partnerId,message);
  }
  const publicIds=new Set((profiles||[]).filter(p=>p.is_public).map(p=>p.id));
- const partners=[...new Set(items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id))];
+ const partners=[...new Set([...items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id),...gifts.map(g=>g.sender_id===me?g.recipient_id:g.sender_id)])];
  if(validId(requested)&&requested!==me&&!partners.includes(requested))partners.unshift(requested);
  const {data:archiveRows,error:archiveError}=await sb.from('member_conversation_archives').select('partner_id').eq('user_id',me);
  if(archiveError)console.warn('No se pudo cargar el archivo de conversaciones:',archiveError.message);
@@ -3783,6 +3791,7 @@ async function loadPrivateMessages(){
   searchWrap.append(searchInput,searchClear,searchCount);
   const history=document.createElement('div');history.className='messages-history';
   const conversation=items.filter(m=>(m.sender_id===me&&m.recipient_id===active)||(m.recipient_id===me&&m.sender_id===active)).reverse();
+  const conversationGifts=gifts.filter(g=>(g.sender_id===me&&g.recipient_id===active)||(g.recipient_id===me&&g.sender_id===active));
   if(conversation.some(m=>m.sender_id===active&&m.recipient_id===me&&!m.is_read&&!m.deleted_at))unreadPartnerToMark=active;
   if(!conversation.length){const hint=document.createElement('p');hint.textContent='Todavía no hay mensajes en esta conversación.';history.append(hint);}
   const reactionIds=conversation.filter(m=>!m.deleted_at).map(m=>m.id);
@@ -3911,22 +3920,53 @@ async function loadPrivateMessages(){
     bubble.append(pinButton);
    }
    if(!m.deleted_at){const replyButton=document.createElement('button');replyButton.type='button';replyButton.className='private-chat-reply-button';replyButton.textContent='↩ Responder';replyButton.onclick=()=>{if(selectReply)selectReply(m);};bubble.append(replyButton);}
-   bubble.dataset.messageId=m.id;history.append(bubble);
+   bubble.dataset.messageId=m.id;bubble.dataset.chatTime=m.created_at;history.append(bubble);
+  }
+  if(conversationGifts.length){
+   const giftDescriptions={
+    sakura:['🌸','Flores de Sakura'],star:['⭐','Estrella mágica'],dragon:['🐲','Dragón anime'],
+    heart:['💖','Corazón kawaii'],crystal:['💎','Cristal celestial']
+   };
+   for(const gift of conversationGifts){
+    const [emoji,name]=giftDescriptions[gift.gift_code]||['🎁','Regalo anime'];
+    const giftBubble=document.createElement('article');
+    giftBubble.className='message-bubble private-direct-gift-bubble'+(gift.sender_id===me?' mine':'');
+    giftBubble.dataset.giftId=gift.id;giftBubble.dataset.giftName=name;giftBubble.dataset.chatTime=gift.created_at;
+    const symbol=document.createElement('span');symbol.className='private-direct-gift-emoji';symbol.textContent=emoji;symbol.setAttribute('aria-hidden','true');
+    const nameEl=document.createElement('strong');nameEl.textContent=(gift.sender_id===me?'Enviaste ':'Recibiste ')+name;
+    const timeEl=document.createElement('small');timeEl.textContent=new Date(gift.created_at).toLocaleString('es-ES');
+    giftBubble.append(symbol,nameEl,timeEl);history.append(giftBubble);
+   }
+   const dated=[...history.querySelectorAll('[data-chat-time]')].sort((a,b)=>new Date(a.dataset.chatTime)-new Date(b.dataset.chatTime));
+   history.replaceChildren();
+   let previousDay='';
+   for(const node of dated){
+    const date=new Date(node.dataset.chatTime);
+    const day=date.toDateString();
+    if(day!==previousDay){
+     previousDay=day;
+     const separator=document.createElement('div');separator.className='private-chat-day-divider';separator.setAttribute('role','separator');
+     const now=new Date(),yesterday=new Date(now);yesterday.setDate(now.getDate()-1);
+     separator.textContent=day===now.toDateString()?'Hoy':day===yesterday.toDateString()?'Ayer':date.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+     history.append(separator);
+    }
+    history.append(node);
+   }
   }
   const typingIndicator=document.createElement('p');typingIndicator.className='member-typing-indicator';typingIndicator.id='member-typing-indicator';typingIndicator.setAttribute('role','status');typingIndicator.setAttribute('aria-live','polite');
   const filterMessages=()=>{
    const query=searchInput.value.trim().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es');
    let found=0;
-   for(const bubble of history.querySelectorAll('[data-message-id]')){
+   for(const bubble of history.querySelectorAll('[data-message-id],[data-gift-id]')){
     const message=conversationById.get(bubble.dataset.messageId);
-    const content=message&&!message.deleted_at?(message.body||''):'';
+    const content=bubble.dataset.giftId?(bubble.dataset.giftName||'regalo anime'):message&&!message.deleted_at?(message.body||''):'';
     const normalized=content.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es');
     const match=!query||normalized.includes(query);
     bubble.hidden=!match;
     if(match)found++;
    }
    for(const separator of history.querySelectorAll('.private-chat-day-divider'))separator.hidden=!!query;
-   searchCount.textContent=query?(found+' resultado'+(found===1?'':'s')+' en los '+conversation.length+' mensajes cargados'):'';
+   searchCount.textContent=query?(found+' resultado'+(found===1?'':'s')+' entre '+(conversation.length+conversationGifts.length)+' mensajes y regalos cargados'):'';
    searchClear.hidden=!query;
   };
   searchInput.oninput=filterMessages;
