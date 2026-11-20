@@ -149,8 +149,12 @@
   const token=++generation;
   await priorRender();
   const host=document.getElementById('reward-shop');
-  const existing=host?.querySelector('#shop-purchase-missions');
+  const existing=host?.querySelector('#shop-purchase-missions')||
+   host?.querySelector('#shop-catalog-filters');
   if(!host?.isConnected||!existing||token!==generation)return;
+  const place=(panel)=>{
+   existing.insertAdjacentElement(existing.id==='shop-purchase-missions'?'afterend':'beforebegin',panel);
+  };
   try{
    const {data:{user},error:authError}=await sb.auth.getUser();
    if(authError||!user||token!==generation||!host.isConnected)return;
@@ -163,12 +167,12 @@
     const notice=el('section','shop-challenges-v6');
     notice.append(el('h3','','✨ Desafíos diarios, semanales y rachas'),
      el('p','shop-challenges-v6-error','No se pudieron consultar los desafíos: '+result.error.message));
-    existing.insertAdjacentElement('afterend',notice);return;
+    place(notice);return;
    }
    const current=new Map();
    for(const entry of equippedRes.data||[])current.set(entry.item_id,true);
    const panel=buildPanel(result.data||[],current,token);
-   existing.insertAdjacentElement('afterend',panel);
+   place(panel);
    const go=el('button','outline-btn mini shop-challenges-v6-shortcut','✨ Ver desafíos diarios y rachas');
    go.type='button';go.onclick=moveToChallenges;
    const currentShortcut=host.querySelector('.shop-explorer-shortcut');
@@ -178,7 +182,7 @@
    const notice=el('section','shop-challenges-v6');
    notice.append(el('h3','','✨ Desafíos diarios, semanales y rachas'),
     el('p','shop-challenges-v6-error','Error al cargar los desafíos: '+(error?.message||String(error))));
-   existing.insertAdjacentElement('afterend',notice);
+   place(notice);
   }
  };
 })();
