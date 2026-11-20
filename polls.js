@@ -1,6 +1,7 @@
 // Encuestas públicas y gestión administrativa.
 const pollEscape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function renderCommunityPolls(){
+ window.SBPollParticipation?.render();
  const host=document.getElementById('community-polls');if(!host)return;
  const [{data:polls,error},{data:userResponse}]=await Promise.all([
   sb.from('community_polls').select('id,question,category,status,created_at,featured,closes_at')
