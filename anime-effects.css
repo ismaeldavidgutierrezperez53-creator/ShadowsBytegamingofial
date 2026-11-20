@@ -13,3 +13,56 @@ body #app.sb-anime-route-enter{animation:sb-anime-enter .34s ease-out both}
 @keyframes sb-anime-twinkle{0%,15%{opacity:0;transform:scale(.3)}60%{opacity:.65}100%{opacity:.15;transform:scale(1.2)}}
 @media(max-width:700px){body :is(.hero h1,.page-hero h1,.section-title,.social h2){animation-duration:8s}body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card,.card){backdrop-filter:none;background-color:rgba(19,13,40,.9)}.sb-anime-sparkle:nth-child(n+11){display:none}}
 @media(prefers-reduced-motion:reduce){body :is(.hero h1,.page-hero h1,.section-title,.social h2,.gradient-btn,.news-details summary),body #app.sb-anime-route-enter{animation:none!important}.sb-anime-sparkles{display:none!important}}
+
+
+/* Anime V2: brillo holográfico que sigue suavemente al puntero en tarjetas. */
+@media (hover: hover) and (pointer: fine) {
+  body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card) {
+    position: relative;
+  }
+  body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(230px circle at var(--sb-holo-x,50%) var(--sb-holo-y,50%),color-mix(in srgb,var(--sb-user-neon,#ba6bff) 23%,transparent),transparent 78%);
+    clip-path: inset(0 round 14px);
+    transition: opacity .24s ease;
+  }
+  body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card):hover::after {
+    opacity: .9;
+  }
+  body :is(.gradient-btn,.sb-customize-toggle,.sb-nav-link):hover {
+    filter: brightness(1.12);
+    box-shadow: 0 0 16px var(--sb-user-glow,#ba6bff66),0 5px 20px #17032a55;
+  }
+}
+
+/* Pequeñas estrellas anime al pulsar botones. Son decorativas y no capturan eventos. */
+.sb-anime-v2-click-star {
+  position: fixed;
+  left: var(--sb-star-x);
+  top: var(--sb-star-y);
+  z-index: 10006;
+  pointer-events: none;
+  user-select: none;
+  color: var(--sb-user-neon,#ba6bff);
+  font: 700 var(--sb-star-size,16px)/1 Arial,sans-serif;
+  text-shadow: 0 0 7px #fff,0 0 13px currentColor;
+  opacity: 0;
+  animation: sb-anime-v2-star-burst .52s ease-out forwards;
+}
+@keyframes sb-anime-v2-star-burst {
+  0% { opacity: 0; transform: translate(-50%,-50%) scale(.35); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--sb-star-dx)),calc(-50% + var(--sb-star-dy))) scale(.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-anime-v2-click-star { display: none !important; }
+  body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card)::after { display:none!important; }
+}
+html[data-sb-motion="off"] .sb-anime-v2-click-star,
+html[data-sb-motion="off"] body :is(.news-card,.anime-card,.manga-card,.gaming-card,.community-card,.member-card,.feature-card,.content-card,.post-card,.category-card)::after { display:none!important; }
