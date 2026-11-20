@@ -374,29 +374,40 @@ async function renderRewardShop(){
    const bought=ownedIds.has(item.id),isEquipped=active.get(category)===item.id;
    const priceNow=actualPrice(item);
    const animeTheme=category==='anime_theme';
-   const button=document.createElement('button');button.className='gradient-btn mini';
+   const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';
    button.textContent=bought?(animeTheme?'✓ Desbloqueado':isEquipped?'✓ Equipado':'Equipar'):'Comprar · '+formatPts(priceNow);
-   button.disabled=(animeTheme&&bought)||isEquipped||(!bought&&Number(balance.data||0)<priceNow);
    const status=document.createElement('p');status.setAttribute('role','status');
+   let purchaseBusy=false;
+   const refreshBuyButton=()=>{
+    button.disabled=purchaseBusy||(animeTheme&&bought)||isEquipped||
+     (!bought&&Number(balance.data||0)<priceNow&&!couponInput.value.trim());
+   };
+   couponInput.addEventListener('input',refreshBuyButton);
+   refreshBuyButton();
    button.onclick=async()=>{
     if(button.disabled)return;
-    const couponCode=couponInput.value.trim().toUpperCase();
-    if(!bought&&couponCode){
-     button.disabled=true;status.textContent='Validando cupón…';
-     const {data:quote,error:previewError}=await sb.rpc('preview_shop_coupon',{requested_item:item.id,coupon_code:couponCode});
-     if(previewError){status.textContent='Cupón: '+previewError.message;button.disabled=false;return}
-     if(!confirm('¿Comprar '+item.name+' con '+couponCode+' por '+Number(quote.price).toLocaleString('es-ES')+' puntos? (Ahorro: '+Number(quote.discount).toLocaleString('es-ES')+' puntos)')){
-      status.textContent='Compra cancelada';button.disabled=false;return
+    purchaseBusy=true;refreshBuyButton();
+    try{
+     const couponCode=couponInput.value.trim().toUpperCase();
+     if(!bought&&couponCode){
+      status.textContent='Validando cupón…';
+      const {data:quote,error:previewError}=await sb.rpc('preview_shop_coupon',{requested_item:item.id,coupon_code:couponCode});
+      if(previewError){status.textContent='Cupón: '+previewError.message;return}
+      if(!confirm('¿Comprar '+item.name+' con '+couponCode+' por '+Number(quote.price).toLocaleString('es-ES')+' puntos? (Ahorro: '+Number(quote.discount).toLocaleString('es-ES')+' puntos)')){
+       status.textContent='Compra cancelada';return
+      }
+      const {data:ok,error}=await sb.rpc('buy_reward_shop_item_with_coupon',{requested_item:item.id,coupon_code:couponCode});
+      if(error){status.textContent='No se pudo canjear: '+error.message;return}
+      if(ok)await renderRewardShop();else status.textContent='Ya posees este artículo.';
+      return;
      }
-     const {data:ok,error}=await sb.rpc('buy_reward_shop_item_with_coupon',{requested_item:item.id,coupon_code:couponCode});
-     if(error){status.textContent='No se pudo canjear: '+error.message;button.disabled=false;return}
-     if(ok){await renderRewardShop()}else{status.textContent='Ya posees este artículo.';button.disabled=false}
-     return;
-    }
-    button.disabled=true;
-    const {data:ok,error}=bought&&!animeTheme?await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):await sb.rpc('buy_reward_shop_item',{requested_item:item.id});
-    if(error){status.textContent=error.message;button.disabled=false;return}
-    if(ok){await renderRewardShop()}else{status.textContent='La operación no se pudo completar.';button.disabled=false}
+     const {data:ok,error}=bought&&!animeTheme?
+      await sb.rpc('equip_reward_shop_item',{requested_item:item.id}):
+      await sb.rpc('buy_reward_shop_item',{requested_item:item.id});
+     if(error){status.textContent='No se pudo completar: '+error.message;return}
+     if(ok)await renderRewardShop();else status.textContent='La operación no se pudo completar.';
+    }catch(error){status.textContent='Error de conexión: '+(error?.message||String(error))}
+    finally{purchaseBusy=false;refreshBuyButton()}
    };
    card.append(button,status);const gift=document.createElement('button');gift.type='button';gift.className='outline-btn mini';gift.textContent=unavailable?'🔒 Regalo no disponible':'🎁 Regalar · '+formatPts(priceNow);gift.disabled=unavailable||Number(balance.data||0)<priceNow||!(members.data||[]).length;gift.style.marginLeft='8px';gift.onclick=async()=>{if(!recipient.value){status.textContent='Selecciona primero un miembro para recibir el regalo.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar '+item.name+' a '+who+' por '+formatPts(priceNow)+'?'))return;gift.disabled=true;const {data:ok,error}=await sb.rpc('send_reward_shop_gift',{requested_item:item.id,target_member:recipient.value});if(error){status.textContent=error.message;gift.disabled=false;return}if(ok){await renderRewardShop()}else{status.textContent='Ese miembro ya tiene el artículo.';gift.disabled=false}};card.append(gift);
    const wishButton=document.createElement('button');wishButton.type='button';wishButton.className='outline-btn mini shop-v3-wish';
