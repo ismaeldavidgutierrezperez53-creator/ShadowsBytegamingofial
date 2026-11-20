@@ -8,7 +8,7 @@ const adminModels = {
  'waifu-husbando':{label:'Waifu / Husbando',icon:'💜',catalogCategory:'waifu-husbando',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
  'pokedex':{label:'Pokédex en Español',icon:'⚡',catalogCategory:'pokedex',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
  'one-piece':{label:'Especial One Piece',icon:'🏴‍☠️',catalogCategory:'one-piece',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
- news:{label:'Noticias',icon:'📰',fields:{title:'Título',slug:'Slug',excerpt:'Resumen',content:'Contenido',cover_url:'URL de portada',status:'Estado',published_at:'Fecha de publicación'},options:{status:['draft','published']}},
+ news:{label:'Noticias',icon:'📰',fields:{title:'Título',slug:'Slug',excerpt:'Resumen',content:'Contenido',cover_url:'URL de portada',status:'Estado',is_featured:'⭐ Noticia destacada',published_at:'Fecha de publicación'},options:{status:['draft','published']}},
  billboard:{label:'Cartelera',icon:'🎬',fields:{title:'Título',description:'Descripción',category:'Categoría',image_url:'URL de imagen',destination_url:'URL de destino',starts_at:'Inicio',ends_at:'Fin',status:'Estado',sort_order:'Orden'},options:{category:['gaming','anime','event','stream','other'],status:['draft','published']}},
  events:{label:'Eventos',icon:'📅',fields:{title:'Título',description:'Descripción',image_url:'URL de imagen',location:'Ubicación',starts_at:'Inicio',ends_at:'Fin',status:'Estado'},options:{status:['draft','published','cancelled']}}
 };
@@ -30,7 +30,9 @@ function adminDateInput(value){
 function adminField(name,value,model){
  const id='admin-'+name,label=model.fields[name],options=model.options?.[name],val=value==null?'':String(value);
  const safe=escapeHTML;
- const control=options
+ const control=name==='is_featured'
+  ? '<input id="'+id+'" name="'+name+'" type="checkbox" value="true" '+(val==='true'?'checked':'')+' />'
+  :options
   ?'<select id="'+id+'" name="'+name+'">'+options.map(x=>'<option value="'+safe(x)+'" '+(x===val?'selected':'')+'>'+safe(x==='draft'?'Borrador':x==='published'?'Publicado':x==='cancelled'?'Cancelado':x)+'</option>').join('')+'</select>'
   :adminLargeFields.has(name)
    ?'<textarea id="'+id+'" name="'+name+'" rows="'+(name==='content'?7:3)+'" placeholder="Escribe aquí...">'+safe(val)+'</textarea>'
@@ -79,6 +81,7 @@ function adminForm(item={}){
   event.preventDefault();
   const form=event.currentTarget,button=document.getElementById('admin-save');
   const data=Object.fromEntries(new FormData(form).entries());
+  if(adminTable==='news')data.is_featured=form.elements.is_featured?.checked===true;
   for(const field of adminDateFields)if(field in data){
    const val=data[field].trim();
    data[field]=val?new Date(val).toISOString():null;
