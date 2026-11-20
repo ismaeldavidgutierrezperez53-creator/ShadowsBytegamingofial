@@ -50,9 +50,8 @@
    onlyFavorites.type='button';
    onlyFavorites.setAttribute('aria-pressed','false');
    onlyFavorites.addEventListener('click',()=>{
-    const enabled=onlyFavorites.getAttribute('aria-pressed')!=='true';
-    onlyFavorites.setAttribute('aria-pressed',String(enabled));
-    onlyFavorites.textContent=enabled?'★ Solo favoritos':'☆ Solo favoritos';
+    const enabled=nav.dataset.onlyFavorites!=='true';
+    nav.dataset.onlyFavorites=String(enabled);
     applyFilter();
    });
    const resultCount=node('p','sb-nav-search-count');
@@ -60,18 +59,23 @@
    searchBox.append(search,clear,onlyFavorites);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
-    const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
+    const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
     const query=normalize(search.value);
+    const enabled=nav.dataset.onlyFavorites==='true';
+    const label=enabled?'★ Solo favoritos':'☆ Solo favoritos';
+    if(onlyFavorites.textContent!==label)onlyFavorites.textContent=label;
+    if(onlyFavorites.getAttribute('aria-pressed')!==String(enabled))onlyFavorites.setAttribute('aria-pressed',String(enabled));
     let visible=0;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
      const matchesText=normalize(item.dataset.searchLabel).includes(query);
-     const matchesFavorites=onlyFavorites.getAttribute('aria-pressed')!=='true'||item.dataset.favorite==='true';
-     const matched=matchesText&&matchesFavorites;
+     // Leer el estado actual de la estrella, incluso después de reordenar favoritos.
+     const star=item.querySelector('.sb-nav-star');
+     const isFavorite=star?.getAttribute('aria-pressed')==='true';
+     const matched=matchesText&&(!enabled||isFavorite);
      if(item.hidden!==!matched)item.hidden=!matched;
      if(matched)visible++;
     }
-    const filtering=query||onlyFavorites.getAttribute('aria-pressed')==='true';
-    const message=filtering?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):'';
+    const message=query||enabled?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
     if(resultCount.textContent!==message)resultCount.textContent=message;
    };
    search.addEventListener('input',applyFilter);
