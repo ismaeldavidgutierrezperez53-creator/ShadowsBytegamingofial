@@ -38,12 +38,25 @@
       );
       refresh=el('button','outline-btn mini','↻ Actualizar insignias');
       refresh.type='button';
+      const seeNotices=el('button','outline-btn mini sbv-open-notifications','🔔 Ver avisos de logros');
+      seeNotices.type='button';
+      seeNotices.addEventListener('click',()=>{
+        const bell=document.querySelector('.sb-badge-notify-toggle');
+        if(bell){
+          if(bell.getAttribute('aria-expanded')!=='true')bell.click();
+          document.getElementById('sb-badge-notify-panel')?.scrollIntoView({
+            behavior:'smooth',block:'nearest'
+          });
+        }else{
+          output.textContent='La campana todavía no está disponible. Recarga la página.';
+        }
+      });
       output=el('p','sbv-status','Cargando vitrina…');
       output.setAttribute('role','status');
       output.setAttribute('aria-live','polite');
       list=el('div','sbv-selected');
       available=el('div','sbv-available');
-      editor.append(refresh,output,el('h3','','Insignias destacadas'),list,
+      editor.append(refresh,seeNotices,output,el('h3','','Insignias destacadas'),list,
         el('h3','','Insignias desbloqueadas disponibles'),available);
       const anchor=root.querySelector('.sbgl-badges')||identity;
       anchor.after(editor);
