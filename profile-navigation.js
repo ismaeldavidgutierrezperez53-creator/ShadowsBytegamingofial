@@ -8,6 +8,7 @@
   return item;
  };
  const visibilityUndo=new Map();
+ const favoriteUndo=new Map();
  const modules=[
   ['✨ Mi centro de perfil','.sbp-dashboard',true],
   ['🎴 Identidad gamer','.sbp-identity-card',true],
@@ -161,6 +162,22 @@
     else applyFilter();
    };
    sortBox.append(sortLabel,sortSelect,resetFilters);
+   const undoFavorite=node('button','sb-nav-undo-favorite','↶ Deshacer cambio de favoritos');
+   undoFavorite.type='button';
+   undoFavorite.addEventListener('click',()=>{
+    const previous=favoriteUndo.get(key);
+    if(!previous)return;
+    if(readFavorites().join('|')!==previous.after.join('|')){
+     favoriteUndo.delete(key);
+     enhance(host,isOwn);
+     return;
+    }
+    try{localStorage.setItem(key,JSON.stringify(previous.before))}catch(_){return}
+    favoriteUndo.delete(key);
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
+   sortBox.append(undoFavorite);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -303,6 +320,23 @@
     return Array.isArray(saved)?saved.filter(x=>typeof x==='string').slice(0,25):[];
    }catch(_){return []}
   };
+  const writeFavorites=next=>{
+   const before=readFavorites();
+   const normalized=[...new Set(next)].slice(0,25);
+   if(before.join('|')===normalized.join('|'))return false;
+   try{
+    localStorage.setItem(key,JSON.stringify(normalized));
+    favoriteUndo.set(key,{before,after:normalized});
+    return true;
+   }catch(_){return false}
+  };
+  const undoFavorite=nav.querySelector('.sb-nav-undo-favorite');
+  if(undoFavorite){
+   const previous=favoriteUndo.get(key);
+   const valid=!!previous&&readFavorites().join('|')===previous.after.join('|');
+   if(previous&&!valid)favoriteUndo.delete(key);
+   if(undoFavorite.disabled!==!valid)undoFavorite.disabled=!valid;
+  }
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
@@ -457,7 +491,7 @@
    star.onclick=()=>{
     const current=readFavorites();
     const nextList=current.includes(selector)?current.filter(x=>x!==selector):[...current,selector];
-    try{localStorage.setItem(key,JSON.stringify(nextList))}catch(_){}
+    if(!writeFavorites(nextList))return;
     links.dataset.signature='';
     enhance(host,isOwn);
    };
@@ -469,7 +503,7 @@
      const nextIndex=i+elDirection;
      if(i<0||nextIndex<0||nextIndex>=list.length)return;
      [list[i],list[nextIndex]]=[list[nextIndex],list[i]];
-     try{localStorage.setItem(key,JSON.stringify(list))}catch(_){}
+     if(!writeFavorites(list))return;
      links.dataset.signature='';
      enhance(host,isOwn);
      nav.querySelector('.sb-nav-details').open=true;
