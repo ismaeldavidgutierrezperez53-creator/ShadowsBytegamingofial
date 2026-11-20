@@ -206,3 +206,10 @@
 .sb-nav-download-favorites:disabled{opacity:.45;cursor:default}
 .sb-nav-download-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-download-favorites{width:100%}}
+
+/* Descargar favoritos en CSV compatible con Excel y hojas de cálculo */
+.sb-nav-download-csv{min-height:42px;padding:9px 13px;border:1px solid #9ebca9;border-radius:10px;background:#294a3c;color:#e9fff1;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-download-csv:hover:not(:disabled){background:#396653}
+.sb-nav-download-csv:disabled{opacity:.45;cursor:default}
+.sb-nav-download-csv:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-download-csv{width:100%}}
