@@ -41,6 +41,32 @@
     const notifyStatus = create('p', 'sb-views-hint sb-views-notification-status', 'Los avisos aparecerán en la campana y el centro de notificaciones. Máximo un aviso por visitante cada 24 horas.');
     notifyStatus.setAttribute('role', 'status');
     card.append(notifyStatus);
+    const statsPanel = create('section', 'sb-views-stats-panel');
+    statsPanel.setAttribute('aria-label', 'Estadísticas de visitas al perfil');
+    statsPanel.append(create('h3', '', '📊 Estadísticas de mi perfil'));
+    const statsGrid = create('div', 'sb-views-stats-grid');
+    const metricLabels = [
+      ['👁️', 'Visitas registradas', 'total_visits'],
+      ['👥', 'Visitantes únicos', 'unique_visitors'],
+      ['📅', 'Últimos 7 días', 'visitors_7d'],
+      ['🗓️', 'Últimos 30 días', 'visitors_30d']
+    ];
+    const metricValues = new Map();
+    for (const [symbol, label, key] of metricLabels) {
+      const tile = create('div', 'sb-views-metric');
+      const value = create('strong', 'sb-views-metric-value', '—');
+      const title = create('span', 'sb-views-metric-label', symbol + ' ' + label);
+      tile.append(value, title);
+      statsGrid.append(tile);
+      metricValues.set(key, value);
+    }
+    statsPanel.append(statsGrid);
+    statsPanel.append(create('p', 'sb-views-stats-explanation', 'Las visitas se cuentan una vez cada 10 minutos por miembro. Las cifras corresponden a visitas registradas con el historial activo y perfiles públicos.'));
+    statsPanel.append(create('h3', 'sb-views-frequent-title', '🌟 Visitantes frecuentes'));
+    const frequentList = create('div', 'sb-views-frequent-list');
+    const statsStatus = create('p', 'sb-views-stats-status', 'Cargando estadísticas…');
+    statsStatus.setAttribute('role', 'status');
+    statsPanel.append(statsStatus, frequentList);
     const toolbar = create('div', 'sb-views-toolbar');
     const count = create('strong', 'sb-views-count', 'Visitas recientes');
     const refresh = create('button', 'outline-btn mini', '↻ Actualizar');
@@ -50,16 +76,70 @@
     const status = create('p', 'sb-views-status', 'Cargando ajustes de privacidad…');
     status.setAttribute('role', 'status');
     const list = create('div', 'sb-views-list');
-    card.append(toolbar, status, list);
+    card.append(statsPanel, toolbar, status, list);
     const anchor = host.querySelector('.sbp-dashboard') || host.querySelector('.profile-identity');
     if (!anchor || !anchor.isConnected) { delete host.dataset.sbViewsMount; return; }
     anchor.after(card);
     host.dataset.sbViewsMount = 'ready';
     checkbox.disabled = true;
 
+    function resetStats() {
+      for (const value of metricValues.values()) value.textContent = '—';
+      frequentList.replaceChildren();
+      statsStatus.textContent = 'Activa el historial para consultar tus estadísticas.';
+    }
+
+    function renderStats(data, error) {
+      frequentList.replaceChildren();
+      if (error || !data || typeof data !== 'object') {
+        for (const value of metricValues.values()) value.textContent = '—';
+        statsStatus.textContent = 'No se pudieron cargar las estadísticas. Pulsa Actualizar para reintentarlo.';
+        return;
+      }
+      const toCount = value => {
+        const number = Number(value);
+        return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+      };
+      for (const [,,key] of metricLabels) {
+        metricValues.get(key).textContent = toCount(data[key]).toLocaleString('es-ES');
+      }
+      const frequent = Array.isArray(data.frequent_visitors) ? data.frequent_visitors.slice(0, 5) : [];
+      if (!frequent.length) {
+        statsStatus.textContent = 'Todavía no hay visitantes frecuentes. Aparecerán cuando alguien registre al menos 2 visitas.';
+        return;
+      }
+      statsStatus.textContent = 'Los miembros con más visitas válidas a tu perfil.';
+      for (const item of frequent) {
+        if (!uuid.test(String(item.viewer_id || ''))) continue;
+        const row = create('a', 'sb-views-frequent-person');
+        row.href = '#/perfil?id=' + encodeURIComponent(item.viewer_id);
+        const avatar = create('span', 'sb-views-avatar');
+        const name = String(item.display_name || item.username || 'Miembro');
+        if (/^https:\/\/[^\s]+$/i.test(String(item.avatar_url || ''))) {
+          const photo = create('img');
+          photo.src = item.avatar_url;
+          photo.alt = '';
+          photo.loading = 'lazy';
+          photo.referrerPolicy = 'no-referrer';
+          photo.onerror = () => photo.remove();
+          avatar.append(photo);
+        } else {
+          avatar.textContent = name.charAt(0).toUpperCase();
+        }
+        const body = create('span', 'sb-views-frequent-name');
+        body.append(create('strong', '', name));
+        const date = new Date(item.last_viewed_at);
+        body.append(create('small', '', Number.isNaN(date.getTime()) ? 'Visitante frecuente' : 'Última visita: ' + date.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })));
+        const count = toCount(item.visits_count);
+        row.append(avatar, body, create('span', 'sb-views-visit-badge', count + (count === 1 ? ' visita' : ' visitas')));
+        frequentList.append(row);
+      }
+    }
+
     async function loadVisitors() {
       list.replaceChildren();
       if (!checkbox.checked) {
+        resetStats();
         refresh.disabled = true;
         count.textContent = 'Visitas recientes';
         status.textContent = 'Historial desactivado. Actívalo para empezar a registrar visitas.';
@@ -67,8 +147,13 @@
       }
       refresh.disabled = true;
       status.textContent = 'Cargando visitas…';
-      const { data, error: loadError } = await sb.rpc('get_profile_visitors');
+      const [visitsResult, statsResult] = await Promise.all([
+        sb.rpc('get_profile_visitors'),
+        sb.rpc('get_profile_visit_stats')
+      ]);
       if (!card.isConnected || !checkbox.checked) return;
+      const { data, error: loadError } = visitsResult;
+      renderStats(statsResult.data, statsResult.error);
       refresh.disabled = false;
       if (loadError) {
         status.textContent = 'No se pudieron cargar las visitas. Inténtalo otra vez.';
@@ -125,6 +210,7 @@
       checkbox.checked = data === true;
       notificationToggle.disabled = !checkbox.checked;
       if (!checkbox.checked) {
+        resetStats();
         list.replaceChildren();
         count.textContent = 'Visitas recientes';
         status.textContent = 'Historial desactivado y visitas registradas eliminadas.';
