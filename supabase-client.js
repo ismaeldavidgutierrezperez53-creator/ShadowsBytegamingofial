@@ -1875,11 +1875,11 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const mediaTitle=document.createElement('h5');mediaTitle.textContent='🎛️ Calidad y fondos de vídeo';
  const quality=document.createElement('select');quality.setAttribute('aria-label','Calidad de vídeo');
  for(const [value,label] of [['auto','Calidad automática'],['low','Ahorro de datos (360p)'],['high','Alta calidad (720p)']]){const option=document.createElement('option');option.value=value;option.textContent=label;quality.append(option);}
- const background=document.createElement('select');background.setAttribute('aria-label','Fondo de anime');
- for(const [value,label] of [['none','Sin fondo'],['sakura','🌸 Sakura anime (marco)'],['night','🌌 Noche anime (marco)'],['neon','💜 Neón anime (marco)']]){const option=document.createElement('option');option.value=value;option.textContent=label;background.append(option);}
- const qualityInfo=document.createElement('p');qualityInfo.textContent='La calidad se adapta a la conexión. Los fondos decoran el marco sin sustituir tu entorno real.';
+ const background=document.createElement('select');background.setAttribute('aria-label','Efecto anime de mi vídeo');
+ for(const [value,label] of [['none','Sin efecto'],['sakura','🌸 Sakura'],['neon','💜 Neón'],['fire','🔥 Fuego'],['galaxy','🌌 Galaxia'],['night','🌙 Noche (estilo anterior)']]){const option=document.createElement('option');option.value=value;option.textContent=label;background.append(option);}
+ const qualityInfo=document.createElement('p');qualityInfo.textContent='La calidad se adapta a tu conexión. El efecto elegido decora solo el marco de tu vídeo, sin modificar la imagen de la cámara.';
  const localTile=local.parentElement;
- background.onchange=()=>{localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon');if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);};
+ background.onchange=()=>{localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon','video-bg-fire','video-bg-galaxy');if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);};
  quality.onchange=async()=>{const track=stream.getVideoTracks()[0];if(!track)return;const height=quality.value==='low'?360:quality.value==='high'?720:480;try{await track.applyConstraints({height:{ideal:height},frameRate:{ideal:quality.value==='low'?15:24,max:30}});qualityInfo.textContent='Calidad solicitada: '+quality.options[quality.selectedIndex].textContent+'. El navegador ajustará según disponibilidad.';}catch(e){qualityInfo.textContent='Tu cámara no admite ese ajuste: '+e.message;}};
  const {data:savedMedia}=await sb.from('member_group_video_preferences').select('quality,theme').eq('user_id',userId).maybeSingle();
  const saveMediaPreference=async()=>{const {error}=await sb.from('member_group_video_preferences').upsert({user_id:userId,quality:quality.value,theme:background.value,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)console.warn('Preferencias de vídeo:',error.message);};
