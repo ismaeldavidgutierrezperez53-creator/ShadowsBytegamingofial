@@ -102,6 +102,7 @@
           '<button type="button" class="sb-share-news" id="sb-share-news">🔗 Compartir noticia</button>' +
           '<span class="sb-share-status" id="sb-share-status" role="status"></span></footer>' +
         '</article>';
+      if (typeof window.sbNewsEnhanceArticle === 'function') window.sbNewsEnhanceArticle(n);
       document.title = title + ' | Shadows Byte Gaming Official';
       const share = document.getElementById('sb-share-news');
       if (share) share.addEventListener('click', async () => {
