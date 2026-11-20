@@ -82,7 +82,18 @@
     search.placeholder='Buscar recompensa o movimiento…';
     search.maxLength=100;
     search.setAttribute('aria-label','Buscar en el historial de puntos');
-    toolbar.append(reload,search);
+    const statsButton=make('button','outline-btn mini sbrh-stats-link','📊 Ver estadísticas');
+    statsButton.type='button';
+    statsButton.addEventListener('click',()=>{
+      const chart=host.querySelector('.sbrs-panel');
+      if(chart){
+        window.dispatchEvent(new Event('sb:open-reward-stats'));
+        chart.scrollIntoView({behavior:'smooth',block:'start'});
+      }else{
+        feedback.textContent='Las estadísticas todavía no se han cargado. Recarga la página.';
+      }
+    });
+    toolbar.append(reload,search,statsButton);
 
     const feedback=make('p','sbrh-feedback','Consultando movimientos…');
     feedback.setAttribute('role','status');
