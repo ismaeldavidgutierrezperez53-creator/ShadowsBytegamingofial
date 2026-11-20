@@ -115,3 +115,186 @@
   animation:none!important;transition:none!important;
  }
 }
+
+
+/* Vitrina anime animada. Solo se monta en el perfil público si la persona lo autoriza. */
+.profile-now-anime-card{
+ --moment-accent:#93e7ff;
+ --moment-accent-soft:rgba(91,196,242,.24);
+ position:relative;isolation:isolate;overflow:hidden;
+ min-width:0;padding:clamp(16px,2.7vw,25px);
+ border:1px solid rgba(188,161,255,.72);border-radius:18px;
+ background:
+  radial-gradient(ellipse at 80% 0%,var(--moment-accent-soft),transparent 48%),
+  radial-gradient(ellipse at 0% 100%,rgba(151,98,231,.2),transparent 60%),
+  linear-gradient(140deg,#151d3c,#2d244e 64%,#142f49);
+ box-shadow:0 9px 26px rgba(0,0,0,.25),inset 0 0 22px rgba(173,137,232,.06);
+ animation:profileNowCardEnter .65s ease-out both;
+}
+.profile-now-anime-card[data-mood="hype"]{
+ --moment-accent:#ffc08d;--moment-accent-soft:rgba(253,119,132,.26);
+}
+.profile-now-anime-card[data-mood="cozy"]{
+ --moment-accent:#efd0ff;--moment-accent-soft:rgba(187,143,251,.27);
+}
+.profile-now-anime-card[data-mood="focus"]{
+ --moment-accent:#b4fcd6;--moment-accent-soft:rgba(69,219,170,.24);
+}
+.profile-now-anime-card[data-mood="adventure"]{
+ --moment-accent:#ffdfa3;--moment-accent-soft:rgba(238,187,84,.22);
+}
+.profile-now-anime-card::before{
+ content:'';position:absolute;z-index:-1;inset:-20%;
+ pointer-events:none;
+ background:linear-gradient(115deg,transparent 37%,rgba(238,227,255,.11) 48%,transparent 60%);
+ transform:translateX(-75%);
+ animation:profileNowShimmer 10s linear infinite;
+}
+.profile-now-anime-card::after{
+ content:'';position:absolute;z-index:-1;inset:0;
+ border:2px solid var(--moment-accent);
+ border-radius:inherit;opacity:.24;
+ pointer-events:none;
+ animation:profileNowGlow 6s ease-in-out infinite;
+}
+.profile-now-anime-backdrop{
+ position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+}
+.profile-now-anime-sparkle{
+ position:absolute;color:var(--moment-accent);
+ opacity:.38;font-size:20px;
+ text-shadow:0 0 9px currentColor;
+ animation:profileNowFloat 7s ease-in-out infinite;
+}
+.profile-now-anime-sparkle-1{left:4%;top:13%;animation-delay:-.5s}
+.profile-now-anime-sparkle-2{left:88%;top:24%;animation-delay:-3s;font-size:30px}
+.profile-now-anime-sparkle-3{left:55%;top:5%;animation-delay:-4.8s;font-size:16px}
+.profile-now-anime-sparkle-4{left:78%;bottom:3%;top:auto;animation-delay:-1.8s}
+.profile-now-anime-sparkle-5{left:13%;bottom:4%;top:auto;animation-delay:-5s;font-size:25px}
+.profile-now-anime-card-head,.profile-now-anime-grid,.profile-now-anime-footer{
+ position:relative;z-index:1;
+}
+.profile-now-anime-card-head{
+ display:flex;align-items:flex-start;justify-content:space-between;
+ gap:13px;margin-bottom:17px;flex-wrap:wrap;
+}
+.profile-now-anime-heading{flex:1;min-width:min(100%,180px)}
+.profile-now-anime-eyebrow{
+ display:block;letter-spacing:1.7px;
+ font:900 11px Rajdhani,Arial,sans-serif;
+ color:var(--moment-accent);margin-bottom:5px;
+}
+.profile-now-anime-title{
+ font:900 clamp(21px,3vw,31px)/1.2 Rajdhani,Arial,sans-serif!important;
+ margin:0 0 7px!important;color:#fff!important;
+ text-shadow:0 0 15px rgba(181,145,239,.28);
+}
+.profile-now-anime-subtitle{
+ margin:0;color:#dcdaf1;font-size:13px;line-height:1.5;
+}
+.profile-now-anime-mood{
+ display:inline-flex;align-items:center;justify-content:center;
+ padding:9px 12px;border:1px solid var(--moment-accent);
+ border-radius:999px;max-width:100%;
+ color:#fff;background:rgba(32,39,69,.85);
+ box-shadow:0 0 15px var(--moment-accent-soft);
+ font-weight:800;font-size:13px;text-align:center;line-height:1.3;
+ animation:profileNowGlow 6s ease-in-out infinite;
+}
+.profile-now-anime-card .profile-now-anime-grid{
+ grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;
+}
+.profile-now-anime-card .profile-now-anime-tile{
+ min-height:115px;padding:17px 13px;position:relative;
+ border:1px solid rgba(184,184,249,.55);
+ background:linear-gradient(145deg,rgba(76,56,119,.64),rgba(27,45,77,.72));
+ box-shadow:inset 0 0 12px rgba(189,177,255,.055);
+ animation:profileNowTileIn .65s ease-out both;
+ animation-delay:calc(var(--profile-now-order,0) * 120ms + 100ms);
+ transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease;
+}
+.profile-now-anime-card .profile-now-anime-tile:hover{
+ border-color:var(--moment-accent);
+ transform:translateY(-3px);
+ box-shadow:0 7px 19px rgba(0,0,0,.18),0 0 13px var(--moment-accent-soft);
+}
+.profile-now-anime-icon{
+ filter:drop-shadow(0 0 8px var(--moment-accent-soft));
+ font-size:25px;
+ animation:profileNowFloat 7s ease-in-out infinite;
+}
+.profile-now-anime-card .profile-now-tile-heading{
+ color:var(--moment-accent);font-size:12px;
+}
+.profile-now-anime-card .profile-now-tile-value{
+ font-size:clamp(15px,2vw,18px);font-weight:900;
+ line-height:1.4;overflow-wrap:anywhere;
+}
+.profile-now-anime-footer{
+ margin-top:15px;display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:8px;
+}
+.profile-now-anime-signature{
+ color:#dbcaf2;font:800 12px Rajdhani,Arial,sans-serif;
+ letter-spacing:.5px;
+}
+.profile-now-anime-pause{
+ border:1px solid #b1d8e7;border-radius:9px;
+ background:rgba(18,36,58,.85);color:#f7fbff;
+ min-height:42px;padding:8px 12px;cursor:pointer;
+ font:800 13px Rajdhani,Arial,sans-serif;
+}
+.profile-now-anime-pause:hover{background:#3b4a76}
+.profile-now-anime-pause:focus-visible{outline:3px solid #a6ecff;outline-offset:2px}
+.profile-now-anime-card.is-paused,
+.profile-now-anime-card.is-paused *,
+.profile-now-anime-card.is-paused::before,
+.profile-now-anime-card.is-paused::after,
+.profile-now-anime-card.is-paused *::before,
+.profile-now-anime-card.is-paused *::after{
+ animation-play-state:paused!important;
+ transition:none!important;
+}
+@keyframes profileNowCardEnter{
+ from{opacity:.55;transform:translateY(12px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@keyframes profileNowTileIn{
+ from{opacity:.4;transform:translateY(9px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@keyframes profileNowFloat{
+ 0%,100%{transform:translateY(0);opacity:.38}
+ 50%{transform:translateY(-8px);opacity:.7}
+}
+@keyframes profileNowGlow{
+ 0%,100%{opacity:.34}
+ 50%{opacity:.68}
+}
+@keyframes profileNowShimmer{
+ 0%,22%{transform:translateX(-75%)}
+ 47%,100%{transform:translateX(85%)}
+}
+@media(max-width:880px){
+ .profile-now-anime-card .profile-now-anime-grid{grid-template-columns:1fr}
+ .profile-now-anime-card .profile-now-anime-tile{min-height:0}
+}
+@media(max-width:520px){
+ .profile-now-anime-card{padding:16px 13px}
+ .profile-now-anime-card-head{gap:10px}
+ .profile-now-anime-mood{font-size:12px}
+ .profile-now-anime-footer{align-items:stretch}
+ .profile-now-anime-pause{width:100%}
+ .profile-now-anime-sparkle-2,.profile-now-anime-sparkle-3{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .profile-now-anime-card,
+ .profile-now-anime-card *,
+ .profile-now-anime-card::before,
+ .profile-now-anime-card::after,
+ .profile-now-anime-card *::before,
+ .profile-now-anime-card *::after{
+  animation:none!important;transition:none!important;
+ }
+ .profile-now-anime-card .profile-now-anime-tile:hover{transform:none}
+}
