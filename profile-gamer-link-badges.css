@@ -1,0 +1,24 @@
+/* Shadows Byte V2 — cuatro logros de popularidad de enlaces gamer */
+.sbgl-badges{margin:18px 0;padding:18px;min-width:0;border:1px solid rgba(187,135,243,.42);border-radius:16px;background:linear-gradient(125deg,rgba(43,25,78,.83),rgba(24,32,66,.78))}
+.sbgl-badges[hidden]{display:none!important}
+.sbgl-badges h2{margin:1px 0 9px;font:700 clamp(1.25rem,2.5vw,1.58rem) Rajdhani,Arial,sans-serif;color:#f6eaff}
+.sbgl-badges-intro,.sbgl-badges-note,.sbgl-badges-status{margin:8px 0 14px;color:#d9c8ec;font-size:.89rem;line-height:1.55}
+.sbgl-badges-note{margin-top:19px;border-top:1px solid rgba(194,156,248,.22);padding-top:13px;font-size:.81rem}
+.sbgl-badges-status{min-height:1.3em}
+.sbgl-badges button{min-height:38px;cursor:pointer}
+.sbgl-badges button:disabled{opacity:.6;cursor:wait}
+.sbgl-badges-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sbgl-badge-card{display:flex;align-items:flex-start;gap:13px;min-width:0;border-radius:13px;padding:15px 13px;border:1px solid rgba(187,133,235,.28);background:rgba(100,62,153,.2)}
+.sbgl-badge-card.is-unlocked{border-color:rgba(238,190,97,.68);background:linear-gradient(120deg,rgba(135,84,32,.28),rgba(94,56,154,.22));box-shadow:0 0 13px rgba(235,184,99,.11)}
+.sbgl-badge-icon{flex:0 0 auto;font-size:2rem;line-height:1.2}
+.sbgl-badge-card.is-locked .sbgl-badge-icon{filter:grayscale(.7);opacity:.65}
+.sbgl-badge-content{flex:1 1 auto;min-width:0}
+.sbgl-badge-content h3{margin:1px 0 7px;color:#f7eaff;font:700 1.07rem/1.2 Rajdhani,Arial,sans-serif}
+.sbgl-badge-tier{color:#d9c2f0;font:600 .88rem Rajdhani,Arial,sans-serif;margin:0 0 8px}
+.sbgl-badge-state{color:#c9c0df;font-size:.81rem;line-height:1.4;margin:0 0 11px}
+.sbgl-badge-card.is-unlocked .sbgl-badge-state{color:#ffe5aa}
+.sbgl-badge-track{height:8px;border-radius:999px;overflow:hidden;background:rgba(167,123,224,.25)}
+.sbgl-badge-fill{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#8453d3,#e2a7ff);transition:width .25s ease}
+.sbgl-badge-card.is-unlocked .sbgl-badge-fill{background:linear-gradient(90deg,#b9812e,#f2ce73)}
+@media(max-width:650px){.sbgl-badges{padding:13px}.sbgl-badges-grid{grid-template-columns:1fr}.sbgl-badge-card{padding:13px}}
+@media(prefers-reduced-motion:reduce){.sbgl-badge-fill{transition:none}}
