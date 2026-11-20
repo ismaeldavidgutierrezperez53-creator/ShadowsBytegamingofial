@@ -192,12 +192,19 @@
           updateButtons(true);
           status.textContent='Guardando…';
           try{
-            // No se sobrescribe la posición ni la estrella al editar un enlace.
-            const {error}=await sb.from('member_profile_links')
-              .upsert({user_id:id,slot,platform:platform.value,url:normalized,
-                is_public:visible.checked,updated_at:new Date().toISOString()},
-                {onConflict:'user_id,slot'});
-            if(error)throw error;
+            // UPDATE conserva explícitamente orden y favorito; INSERT usa los valores por defecto.
+            const fields={platform:platform.value,url:normalized,
+              is_public:visible.checked,updated_at:new Date().toISOString()};
+            if(saved.has(slot)){
+              const {data,error}=await sb.from('member_profile_links')
+                .update(fields).eq('user_id',id).eq('slot',slot).select('slot');
+              if(error)throw error;
+              if(!data?.length)throw Error('El enlace ya no existe. Actualiza la sección.');
+            }else{
+              const {error}=await sb.from('member_profile_links')
+                .insert({user_id:id,slot,...fields,display_order:slot});
+              if(error)throw error;
+            }
             if(!active())return;
             await load();
             showStatus('Enlace '+slot+' guardado. Ya puedes ordenarlo o marcarlo con ⭐.');
