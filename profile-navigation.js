@@ -46,20 +46,32 @@
    search.autocomplete='off';
    const clear=node('button','sb-nav-search-clear','Limpiar');
    clear.type='button';
+   const onlyFavorites=node('button','sb-nav-only-favorites','☆ Solo favoritos');
+   onlyFavorites.type='button';
+   onlyFavorites.setAttribute('aria-pressed','false');
+   onlyFavorites.addEventListener('click',()=>{
+    const enabled=onlyFavorites.getAttribute('aria-pressed')!=='true';
+    onlyFavorites.setAttribute('aria-pressed',String(enabled));
+    onlyFavorites.textContent=enabled?'★ Solo favoritos':'☆ Solo favoritos';
+    applyFilter();
+   });
    const resultCount=node('p','sb-nav-search-count');
    resultCount.setAttribute('role','status');
-   searchBox.append(search,clear);
+   searchBox.append(search,clear,onlyFavorites);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim();
     const query=normalize(search.value);
     let visible=0;
     for(const item of controls.querySelectorAll('.sb-nav-favorite-item')){
-     const matched=normalize(item.dataset.searchLabel).includes(query);
-     item.hidden=!matched;
+     const matchesText=normalize(item.dataset.searchLabel).includes(query);
+     const matchesFavorites=onlyFavorites.getAttribute('aria-pressed')!=='true'||item.dataset.favorite==='true';
+     const matched=matchesText&&matchesFavorites;
+     if(item.hidden!==!matched)item.hidden=!matched;
      if(matched)visible++;
     }
-    const message=query?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):'';
+    const filtering=query||onlyFavorites.getAttribute('aria-pressed')==='true';
+    const message=filtering?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):'';
     if(resultCount.textContent!==message)resultCount.textContent=message;
    };
    search.addEventListener('input',applyFilter);
@@ -139,6 +151,7 @@
     target.addEventListener('animationend',()=>target.classList.remove('sb-nav-target'),{once:true});
    };
    const selected=favorites.includes(selector);
+   item.dataset.favorite=String(selected);
    const star=node('button','sb-nav-star'+(selected?' is-favorite':''),selected?'★':'☆');
    star.type='button';
    star.setAttribute('aria-label',(selected?'Quitar de favoritos: ':'Añadir a favoritos: ')+label);
