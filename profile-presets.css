@@ -16,3 +16,9 @@
 .sb-presets-list li{margin:3px 0}
 .sb-presets-apply{background:#5d347c}
 @media(max-width:550px){.sb-presets-choices,.sb-presets-actions{flex-direction:column}.sb-presets-btn{width:100%}}
+
+/* Plantilla personalizada guardada solo en este navegador */
+.sb-presets-custom{margin-top:14px;padding:13px;border:1px solid #9b75bf;border-radius:12px;background:#31203f}
+.sb-presets-custom h4{margin:0 0 7px;font-size:17px;color:#ffe4ac}
+.sb-presets-remove{background:#4a2c41;border-color:#b6849d}
+.sb-presets-remove:hover{background:#75415a}
