@@ -124,6 +124,8 @@ async function refreshAccountActions() {
  const {data:{session},error}=await sb.auth.getSession();
  if(error)console.warn('No se pudo comprobar la sesión:',error.message);
  const user=session?.user;
+ const adminMenuLink=document.getElementById('menu-admin-link');
+ if(adminMenuLink)adminMenuLink.hidden=user?.app_metadata?.role!=='admin';
  syncNotificationRealtime(user?.id||null);
  syncPrivateMessageRealtime(user?.id||null);
  if(liveAlertUserId!==user?.id){loadLiveAlertPreferences(user?.id||null);syncReportLiveAlerts(user?.id||null);}
