@@ -166,7 +166,12 @@
    const bulkFeedback=node('p','sb-nav-bulk-feedback');
    bulkFeedback.setAttribute('role','status');
    bulkFeedback.setAttribute('aria-live','polite');
-   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden,addVisibleFavorites,removeVisibleFavorites,hideVisibleResults,restoreVisibleResults,bulkFeedback);
+   searchBox.append(search,clear,onlyFavorites,onlyUnstarred,onlyHidden);
+   const bulkDetails=node('details','sb-nav-bulk-details');
+   const bulkSummary=node('summary','sb-nav-bulk-summary','⚙️ Gestionar resultados (4 acciones)');
+   const bulkTools=node('div','sb-nav-bulk-tools');
+   bulkTools.append(addVisibleFavorites,removeVisibleFavorites,hideVisibleResults,restoreVisibleResults);
+   bulkDetails.append(bulkSummary,bulkTools,bulkFeedback);
    const layoutKey='sb-profile-nav-layout-'+(isOwn?'own':'public')+'-v1';
    let chosenLayout='grid';
    try{chosenLayout=localStorage.getItem(layoutKey)==='list'?'list':'grid'}catch(_){}
@@ -585,7 +590,7 @@
    };
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
-   details.append(summary,searchBox,layoutBar,sortBox,exportDetails,resultCount,controls);
+   details.append(summary,searchBox,bulkDetails,layoutBar,sortBox,exportDetails,resultCount,controls);
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
