@@ -105,7 +105,25 @@
     links.dataset.signature='';
     enhance(host,isOwn);
    });
-   sortBox.append(sortLabel,sortSelect);
+   const resetFilters=node('button','sb-nav-reset-filters','↺ Limpiar filtros');
+   resetFilters.type='button';
+   resetFilters.title='Quitar búsqueda y filtro Solo favoritos, y volver a Favoritos primero';
+   resetFilters.onclick=()=>{
+    const hadSearch=Boolean(search.value);
+    const hadFavorites=nav.dataset.onlyFavorites==='true';
+    const hadSort=nav.dataset.sortMode!=='favorites';
+    if(!hadSearch&&!hadFavorites&&!hadSort)return;
+    search.value='';
+    nav.dataset.onlyFavorites='false';
+    if(hadSort){
+     nav.dataset.sortMode='favorites';
+     sortSelect.value='favorites';
+     try{localStorage.setItem(sortKey,'favorites')}catch(_){}
+     links.dataset.signature='';
+     enhance(host,isOwn);
+    }else applyFilter();
+   };
+   sortBox.append(sortLabel,sortSelect,resetFilters);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('es').trim();
@@ -126,6 +144,8 @@
     }
     const message=query||enabled?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
     if(resultCount.textContent!==message)resultCount.textContent=message;
+    const hasActiveFilters=Boolean(query)||enabled||nav.dataset.sortMode!=='favorites';
+    if(resetFilters.disabled===hasActiveFilters)resetFilters.disabled=!hasActiveFilters;
    };
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
