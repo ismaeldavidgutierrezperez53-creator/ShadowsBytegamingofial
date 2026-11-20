@@ -1,0 +1,59 @@
+/* Shadows Byte Gaming Official V2 · Competición de eventos V8 */
+#reward-shop .shop-competition-v8{margin-top:20px;padding:17px;border:1px solid #9671be;border-radius:15px;background:radial-gradient(circle at right top,#bf82fa1a,transparent 48%),#151321;color:#efe7fa}
+#reward-shop .shop-competition-v8-head{display:flex;gap:12px;justify-content:space-between;align-items:start;flex-wrap:wrap}
+#reward-shop .shop-competition-v8-head h5{margin:0 0 6px;font-size:21px;color:#f7e5ff}
+#reward-shop .shop-competition-v8-head p{margin:0;font-size:14px;line-height:1.5;color:#d4c6e3;max-width:720px}
+#reward-shop .shop-competition-v8-count{font-size:14px;white-space:nowrap;background:#35234a;border:1px solid #8263a5;border-radius:999px;padding:8px 12px;color:#e9d8fc}
+#reward-shop .shop-competition-v8-actions{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-top:13px}
+#reward-shop .shop-competition-v8-join{min-height:42px;max-width:100%;padding:10px 16px;border-radius:10px;cursor:pointer;white-space:normal}
+#reward-shop .shop-competition-v8-join:disabled{cursor:not-allowed;opacity:.72}
+#reward-shop .shop-competition-v8-registered{font-weight:700;font-size:14px;color:#b4f7d6}
+#reward-shop .shop-competition-v8-winner{font-size:14px;color:#ffe5a1}
+#reward-shop .shop-competition-v8-status{font-size:14px;color:#e4d0ed;line-height:1.5;min-height:8px;margin:9px 0 0}
+#reward-shop .shop-competition-v8-prizes{margin:13px 0;padding:13px;border-radius:12px;border:1px dashed #916cba;background:#271d33;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+#reward-shop .shop-competition-v8-prize-heading{grid-column:1/-1;margin:0;color:#f2dba7;font-size:14px;font-weight:700;line-height:1.35}
+#reward-shop .shop-competition-v8-prize{display:flex;flex-direction:column;gap:4px;min-width:0;align-items:center;text-align:center;padding:10px;background:#120e1b;border:1px solid #735a87;border-radius:9px}
+#reward-shop .shop-competition-v8-prize span:not(.shop-competition-v8-medal){font-size:14px;font-weight:800;color:#e8d2ff}
+#reward-shop .shop-competition-v8-prize small{font-size:12px;color:#c7b6d2;line-height:1.4}
+#reward-shop .shop-competition-v8-medal{font-size:27px;line-height:1.2}
+#reward-shop .shop-competition-v8-rank-heading{font-size:18px;color:#ecd6ff;margin:14px 0 10px}
+#reward-shop .shop-competition-v8-ranking{display:grid;gap:7px}
+#reward-shop .shop-competition-v8-player{display:flex;align-items:center;gap:10px;min-width:0;background:#20172d;border:1px solid #604976;border-radius:10px;padding:11px}
+#reward-shop .shop-competition-v8-player.is-me{border-color:#6fc5a1;background:#18352d}
+#reward-shop .shop-competition-v8-player.is-awarded{border-color:#a99258}
+#reward-shop .shop-competition-v8-place{font-size:23px;min-width:34px;color:#ffdea0}
+#reward-shop .shop-competition-v8-player-meta{display:grid;gap:3px;min-width:0;flex:1;overflow-wrap:anywhere}
+#reward-shop .shop-competition-v8-player-meta strong{font-size:15px;color:#f6ecff;line-height:1.3}
+#reward-shop .shop-competition-v8-player-meta small{font-size:12px;color:#c7b8d4}
+#reward-shop .shop-competition-v8-points{font-size:15px;color:#abf4d0;white-space:nowrap}
+#reward-shop .shop-competition-v8-award{font-size:12px;color:#ffe3a6;line-height:1.4}
+#reward-shop .shop-competition-v8-empty{font-size:14px;color:#cbb9d7;line-height:1.5}
+#reward-shop .shop-competition-v8-footnote{font-size:13px;color:#c9b8d7;line-height:1.5;margin:14px 0 0}
+#reward-shop .shop-competition-v8-toast{padding:12px;border-radius:11px;border:1px solid #6bc5a0;background:#1a4634;color:#c7ffe4;font-weight:700;margin:0 0 13px;line-height:1.5}
+#reward-shop .shop-competition-v8-error{color:#ffc2d6;font-size:14px}
+#admin-shop-root .shop-season-competition-admin-v8{margin-top:19px;padding:18px;min-width:0;border:1px solid #7954a0;border-radius:16px;background:linear-gradient(140deg,#241631,#131020)}
+#admin-shop-root .shop-season-competition-admin-v8 h3{font-size:22px;color:#f2dafa;margin:0 0 7px}
+#admin-shop-root .shop-season-competition-admin-v8 .sb-shop-admin__section-heading p{font-size:15px;color:#d0c0de;line-height:1.5;margin:0}
+#admin-shop-root .shop-season-competition-admin-v8-list{display:grid;gap:12px;margin-top:15px}
+#admin-shop-root .shop-season-competition-admin-v8-card{border:1px solid #6d5486;border-radius:13px;padding:15px;background:#1b1628}
+#admin-shop-root .shop-season-competition-admin-v8-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:13px;flex-wrap:wrap}
+#admin-shop-root .shop-season-competition-admin-v8-heading>div{display:grid;gap:5px}
+#admin-shop-root .shop-season-competition-admin-v8-heading strong{color:#f5e4ff;font-size:17px}
+#admin-shop-root .shop-season-competition-admin-v8-heading span{color:#bdf5da;font-size:13px}
+#admin-shop-root .shop-season-competition-admin-v8-count{background:#382a48;border:1px solid #8265a1;border-radius:999px;padding:6px 11px;white-space:nowrap}
+#admin-shop-root .shop-season-competition-admin-v8-dates{font-size:14px;color:#cfc1da;margin:10px 0}
+#admin-shop-root .shop-season-competition-admin-v8-actions{display:flex;gap:9px;flex-wrap:wrap}
+#admin-shop-root .shop-season-competition-admin-v8-actions button{min-height:43px;padding:10px 13px;border-radius:9px;cursor:pointer;white-space:normal}
+#admin-shop-root .shop-season-competition-admin-v8-actions button:disabled{cursor:not-allowed;opacity:.7}
+#admin-shop-root .shop-season-competition-admin-v8-status{min-height:16px;font-size:14px;color:#ddcbe9;line-height:1.5}
+#admin-shop-root .shop-season-competition-admin-v8-scoreboard{margin-top:12px;padding:11px;border:1px solid #5b486f;border-radius:11px;background:#151121;display:grid;gap:8px}
+#admin-shop-root .shop-season-competition-admin-v8-scoreboard[hidden]{display:none}
+#admin-shop-root .shop-season-competition-admin-v8-player{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center;gap:8px;border-bottom:1px solid #513d63;padding:8px 2px}
+#admin-shop-root .shop-season-competition-admin-v8-player:last-child{border-bottom:0}
+#admin-shop-root .shop-season-competition-admin-v8-player strong{font-size:14px;color:#f4e6ff}
+#admin-shop-root .shop-season-competition-admin-v8-player span{font-size:13px;color:#b4efdb}
+#admin-shop-root .shop-season-competition-admin-v8-player small{flex:1 1 100%;font-size:12px;color:#ffe0ad}
+#admin-shop-root .shop-season-competition-admin-v8-error{font-size:14px;color:#ffc7d3}
+@media(max-width:750px){#reward-shop .shop-competition-v8-prizes{grid-template-columns:1fr}#reward-shop .shop-competition-v8-prize{flex-direction:row;justify-content:flex-start;text-align:left}#reward-shop .shop-competition-v8-prize small{flex:1;text-align:right}}
+@media(max-width:520px){#reward-shop .shop-competition-v8{padding:13px}#reward-shop .shop-competition-v8-count{white-space:normal}#reward-shop .shop-competition-v8-player{flex-wrap:wrap}#reward-shop .shop-competition-v8-award{flex:1 1 100%}#admin-shop-root .shop-season-competition-admin-v8{padding:13px}#admin-shop-root .shop-season-competition-admin-v8-actions button{flex:1}}
+@media(prefers-reduced-motion:reduce){#reward-shop .shop-competition-v8 *,#admin-shop-root .shop-season-competition-admin-v8 *{animation:none!important;transition:none!important}}
