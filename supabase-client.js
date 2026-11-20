@@ -1787,7 +1787,7 @@ async function showPrivateGroupVideoLibrary(group,userId,thread,say){
 
 let multiVideoSession=null;
 async function joinMultiVideoRoom(room,group,userId,thread,say){
- if(multiVideoSession||groupCallSession){say('Finaliza tu llamada actual primero.');return;}
+ if(multiVideoSession||groupCallSession||privateDirectCallSession){say('Finaliza tu llamada actual primero.');return;}
  if(!navigator.mediaDevices?.getUserMedia||!window.RTCPeerConnection){say('Este navegador no permite videollamadas.');return;}
  let stream;
  try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});}
@@ -2712,7 +2712,7 @@ function stopGroupCallSession(){
  session.container?.remove();
 }
 async function startGroupPeerCall(group,userId,members,thread,say,kind,calleeId,incoming=null){
- if(groupCallSession){say('Finaliza la llamada actual antes de iniciar otra.');return;}
+ if(groupCallSession||multiVideoSession||privateDirectCallSession){say('Finaliza la llamada actual antes de iniciar otra.');return;}
  if(!window.RTCPeerConnection||!navigator.mediaDevices?.getUserMedia){say('Tu navegador no permite llamadas WebRTC.');return;}
  let stream;
  try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='video'});}
@@ -3537,10 +3537,14 @@ async function loadPrivateMessages(){
  if(!root.isConnected)return;
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
  const partnerProfiles=new Map((profiles||[]).map(p=>[p.id,p]));
- const latestMessageByPartner=new Map();
+ const latestMessageByPartner=new Map(),latestGiftByPartner=new Map();
  for(const message of items){
   const partnerId=message.sender_id===me?message.recipient_id:message.sender_id;
   if(!latestMessageByPartner.has(partnerId))latestMessageByPartner.set(partnerId,message);
+ }
+ for(const gift of gifts){
+  const partnerId=gift.sender_id===me?gift.recipient_id:gift.sender_id;
+  if(!latestGiftByPartner.has(partnerId))latestGiftByPartner.set(partnerId,gift);
  }
  const publicIds=new Set((profiles||[]).filter(p=>p.is_public).map(p=>p.id));
  const partners=[...new Set([...items.map(m=>m.sender_id===me?m.recipient_id:m.sender_id),...gifts.map(g=>g.sender_id===me?g.recipient_id:g.sender_id)])];
@@ -3614,13 +3618,17 @@ async function loadPrivateMessages(){
   }else avatar.textContent=displayName.slice(0,1).toUpperCase();
   const details=document.createElement('span');details.className='private-chat-partner-details';
   const name=document.createElement('strong');name.textContent=displayName;
-  const recent=latestMessageByPartner.get(id);
+  const recent=latestMessageByPartner.get(id),recentGift=latestGiftByPartner.get(id);
+  const latestIsGift=recentGift&&(!recent||new Date(recentGift.created_at)>new Date(recent.created_at));
   const preview=document.createElement('small');preview.className='private-chat-partner-preview';
-  if(recent){
-   const messagePreview=recent.deleted_at?'Mensaje eliminado':recent.body?.trim()||(recent.image_path?'📷 Imagen':recent.audio_path?'🎤 Audio':'Mensaje');
-   preview.textContent=(recent.sender_id===me?'Tú: ':'')+messagePreview;
+  if(recent||recentGift){
+   const giftIcons={sakura:'🌸',star:'⭐',dragon:'🐲',heart:'💖',crystal:'💎'};
+   const messagePreview=latestIsGift?'🎁 Regalo anime '+(giftIcons[recentGift.gift_code]||'🎁'):
+    recent.deleted_at?'Mensaje eliminado':recent.body?.trim()||(recent.image_path?'📷 Imagen':recent.audio_path?'🎤 Audio':'Mensaje');
+   const latest=latestIsGift?recentGift:recent;
+   preview.textContent=(latest.sender_id===me?'Tú: ':'')+messagePreview;
    const when=document.createElement('small');when.className='private-chat-partner-time';
-   when.textContent=new Date(recent.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
+   when.textContent=new Date(latest.created_at).toLocaleDateString('es-ES',{day:'2-digit',month:'short'});
    details.append(name,preview,when);
   }else{preview.textContent='Inicia una conversación';details.append(name,preview);}
   link.append(avatar,details);
