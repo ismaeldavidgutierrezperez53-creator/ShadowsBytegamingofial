@@ -1,0 +1,38 @@
+/* Shadows Byte Gaming Official V2 — historial privado de puntos */
+.sb-reward-history{margin:18px 0;padding:18px;border-radius:16px;border:1px solid rgba(179,127,234,.44);background:linear-gradient(130deg,rgba(36,23,77,.87),rgba(21,35,64,.83));min-width:0;overflow-wrap:anywhere}
+.sb-reward-history h2{margin:0 0 8px;color:#f4e6ff;font:800 clamp(1.23rem,2.5vw,1.58rem) Rajdhani,Arial,sans-serif}
+.sb-reward-history h3{margin:18px 0 10px;color:#f2ddff;font:800 1.16rem Rajdhani,Arial,sans-serif}
+.sbrh-description,.sbrh-feedback,.sbrh-note,.sbrh-shown,.sbrh-empty{color:#d8c5e9;font-size:.89rem;line-height:1.55;margin:10px 0}
+.sbrh-note{margin-top:19px;padding:12px 0 0;border-top:1px solid rgba(189,141,232,.26);font-size:.82rem}
+.sbrh-feedback{min-height:1.35em}
+.sbrh-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:13px 0 10px}
+.sbrh-toolbar button{min-height:39px;white-space:normal}
+.sbrh-toolbar button:disabled{opacity:.6;cursor:wait}
+.sbrh-search{flex:1 1 230px;min-width:0;max-width:500px;min-height:40px;padding:9px 12px;border:1px solid rgba(182,130,229,.55);border-radius:10px;color:#fcf2ff;background:rgba(16,20,42,.73);font:600 .9rem Rajdhani,Arial,sans-serif}
+.sbrh-search::placeholder{color:#c2afdb}
+.sbrh-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+.sbrh-tile{padding:14px;border:1px solid rgba(187,135,237,.28);border-radius:12px;background:rgba(124,84,179,.18);display:flex;min-width:0;flex-direction:column;gap:8px}
+.sbrh-tile span{font:700 .85rem Rajdhani,Arial,sans-serif;color:#dcc4ee}
+.sbrh-tile strong{font:800 clamp(1.13rem,2.9vw,1.75rem) Rajdhani,Arial,sans-serif;font-variant-numeric:tabular-nums;color:#f9edff;overflow-wrap:anywhere}
+.sbrh-tile:first-child{border-color:rgba(245,205,118,.55);background:rgba(161,110,53,.15)}
+.sbrh-tile:first-child strong{color:#ffecae}
+.sbrh-controls{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0 4px}
+.sbrh-controls button{min-height:38px;cursor:pointer}
+.sbrh-controls button[aria-pressed="true"]{border-color:#e2b8f9;background:linear-gradient(105deg,#8141bf,#a66bd4);color:#fff}
+.sbrh-entries{display:grid;gap:9px;max-height:600px;overflow-y:auto;overscroll-behavior:contain;padding:2px 5px 6px 0}
+.sbrh-entry{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid rgba(182,137,231,.29);border-radius:12px;padding:11px;background:rgba(106,67,155,.17);min-width:0}
+.sbrh-entry[data-kind="badge"]{border-color:rgba(232,194,107,.62);background:linear-gradient(105deg,rgba(160,109,47,.17),rgba(94,65,147,.15))}
+.sbrh-entry[data-kind="spend"]{border-color:rgba(228,154,177,.3)}
+.sbrh-entry-icon{font-size:1.8rem;line-height:1;align-self:start}
+.sbrh-entry-body{min-width:0;display:flex;flex-direction:column;gap:4px}
+.sbrh-entry-name{font:800 1rem Rajdhani,Arial,sans-serif;color:#faeeff;overflow-wrap:anywhere}
+.sbrh-entry-description{font:600 .82rem Rajdhani,Arial,sans-serif;color:#cdb7de}
+.sbrh-entry-values{text-align:right;display:flex;flex-direction:column;gap:4px;min-width:0}
+.sbrh-entry-amount{font:800 1.03rem Rajdhani,Arial,sans-serif;font-variant-numeric:tabular-nums}
+.sbrh-entry-amount.is-positive{color:#9aeec8}
+.sbrh-entry-amount.is-negative{color:#ffabbf}
+.sbrh-entry-values small{font:600 .75rem Rajdhani,Arial,sans-serif;color:#bfb2d9}
+.sbrh-empty{border:1px dashed rgba(201,158,240,.43);padding:16px;border-radius:10px}
+.sb-reward-history :is(button,input):focus-visible{outline:2px solid #a5f4f9;outline-offset:2px}
+@media(max-width:700px){.sb-reward-history{padding:13px}.sbrh-entry{grid-template-columns:auto minmax(0,1fr)}.sbrh-entry-values{grid-column:2;text-align:left}.sbrh-entry-values small{text-align:left}}
+@media(max-width:430px){.sbrh-totals{grid-template-columns:1fr}.sbrh-toolbar button{width:100%}.sbrh-controls button{flex:1 1 115px}.sbrh-entry{gap:9px}}
