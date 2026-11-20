@@ -65,3 +65,15 @@
 .sb-nav-featured-item{min-width:0}
 .sb-nav-featured-item .sb-nav-link{width:100%;text-align:center;overflow-wrap:anywhere;background:#503064}
 @media(max-width:650px){.sb-nav-featured-links{grid-template-columns:1fr}}
+
+/* Alternar accesos rápidos entre cuadrícula y lista */
+.sb-nav-layout-bar{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:5px 12px 12px}
+.sb-nav-layout-label{color:#d9c9e9;font-size:14px;font-weight:700;margin-right:5px}
+.sb-nav-layout-btn{min-height:40px;border:1px solid #9571b6;border-radius:10px;padding:8px 12px;background:#2d203e;color:white;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-layout-btn[aria-pressed="true"]{background:#65408b;border-color:#ccabeb}
+.sb-nav-layout-btn:hover{background:#583778}
+.sb-nav-layout-btn:focus-visible{outline:3px solid #65d9ff;outline-offset:2px}
+.sb-nav-panel[data-layout="grid"] .sb-nav-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.sb-nav-panel[data-layout="list"] .sb-nav-links{display:flex;flex-direction:column}
+.sb-nav-panel[data-layout="list"] .sb-nav-favorite-item{width:100%}
+@media(max-width:650px){.sb-nav-panel[data-layout="grid"] .sb-nav-links{grid-template-columns:1fr}}
