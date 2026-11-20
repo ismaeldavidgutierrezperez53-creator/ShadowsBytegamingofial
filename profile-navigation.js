@@ -296,7 +296,7 @@
    });
    sortBox.append(redoFavorite);
    const exportDetails=node('details','sb-nav-export-details');
-   const exportSummary=node('summary','sb-nav-export-summary','📁 Exportar accesos (8 herramientas)');
+   const exportSummary=node('summary','sb-nav-export-summary','📁 Exportar accesos (9 herramientas)');
    const exportBox=node('div','sb-nav-export-tools');
    exportDetails.append(exportSummary,exportBox);
    const exportOpenKey='sb-profile-export-menu-open-'+(isOwn?'own':'public')+'-v1';
@@ -481,6 +481,45 @@
     }
    });
    exportBox.append(copyAllShortcuts);
+   const downloadAllTxt=node('button','sb-nav-download-all-txt','⬇ Descargar todos los accesos TXT');
+   downloadAllTxt.type='button';
+   downloadAllTxt.addEventListener('click',()=>{
+    const favorites=readFavorites();
+    const hidden=readHidden();
+    const entries=modules.filter(([_,selector,own])=>own===isOwn&&host.querySelector(selector));
+    if(!entries.length)return;
+    const mode=nav.dataset.sortMode;
+    const clean=entry=>entry[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim();
+    const compare=(a,b)=>clean(a).localeCompare(clean(b),'es',{sensitivity:'base'});
+    entries.sort((a,b)=>{
+     if(mode==='az')return compare(a,b);
+     if(mode==='za')return compare(b,a);
+     const ia=favorites.indexOf(a[1]),ib=favorites.indexOf(b[1]);
+     if(ia<0&&ib<0)return 0;
+     if(ia<0)return 1;
+     if(ib<0)return -1;
+     return ia-ib;
+    });
+    const list='📋 Todos los accesos — Shadows Byte Gaming Official V2\n'+entries.map(([label,selector],index)=>
+     (index+1)+'. '+label+(favorites.includes(selector)?' ⭐':'')+(hidden.includes(selector)?' (oculto)':'')
+    ).join('\n');
+    try{
+     const blob=new Blob(['\uFEFF',list],{type:'text/plain;charset=utf-8'});
+     const url=URL.createObjectURL(blob);
+     const link=node('a');
+     link.href=url;
+     link.download='shadows-byte-todos-los-accesos-'+(isOwn?'mi-perfil':'perfil-publico')+'.txt';
+     link.style.display='none';
+     document.body.append(link);
+     link.click();
+     link.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1000);
+     downloadAllTxt.textContent='✓ TXT completo preparado ('+entries.length+')';
+    }catch(_){
+     downloadAllTxt.textContent='No se pudo preparar el TXT completo';
+    }
+   });
+   exportBox.append(downloadAllTxt);
    const downloadFilteredCsv=node('button','sb-nav-download-filtered-csv','🔎 Descargar resultados filtrados CSV');
    downloadFilteredCsv.type='button';
    downloadFilteredCsv.addEventListener('click',()=>{
@@ -814,6 +853,13 @@
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
+  const downloadAllTxt=nav.querySelector('.sb-nav-download-all-txt');
+  if(downloadAllTxt){
+   const count=available.length;
+   if(downloadAllTxt.disabled!==(count===0))downloadAllTxt.disabled=count===0;
+   const label='⬇ Descargar todos los accesos TXT ('+count+')';
+   if(!downloadAllTxt.textContent.startsWith('✓')&&!downloadAllTxt.textContent.startsWith('No se pudo')&&downloadAllTxt.textContent!==label)downloadAllTxt.textContent=label;
+  }
   const copyAllShortcuts=nav.querySelector('.sb-nav-copy-all-shortcuts');
   if(copyAllShortcuts){
    const count=available.length;
