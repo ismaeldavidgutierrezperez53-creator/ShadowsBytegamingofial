@@ -3810,7 +3810,48 @@ async function loadPrivateMessages(){
   };
   const giftNote=document.createElement('small');giftNote.textContent='Regalos decorativos gratuitos: no descuentan puntos ni modifican tu inventario.';
   giftSection.append(giftToggle,giftPicker,giftNote,giftFeedback);
-  chatExtras.append(callToolbar,notificationPanel,giftSection);
+  const callHistorySection=document.createElement('section');callHistorySection.className='private-direct-history';
+  const callHistoryToggle=document.createElement('button');callHistoryToggle.type='button';callHistoryToggle.className='private-direct-history-toggle';
+  callHistoryToggle.textContent='📅 Historial de llamadas';callHistoryToggle.setAttribute('aria-expanded','false');
+  const callHistoryList=document.createElement('div');callHistoryList.className='private-direct-history-list';callHistoryList.hidden=true;
+  const renderCallHistory=async()=>{
+   callHistoryList.replaceChildren();
+   const loading=document.createElement('p');loading.textContent='Consultando llamadas…';callHistoryList.append(loading);
+   const {data:records,error}=await sb.from('member_private_calls')
+    .select('id,caller_id,callee_id,kind,status,created_at,updated_at,accepted_at,ended_at,answer')
+    .or('caller_id.eq.'+active+',callee_id.eq.'+active)
+    .order('created_at',{ascending:false}).limit(50);
+   if(!callHistoryList.isConnected||callHistoryList.hidden)return;
+   callHistoryList.replaceChildren();
+   if(error){const warning=document.createElement('p');warning.textContent='No se pudo cargar el historial: '+error.message;callHistoryList.append(warning);return;}
+   if(!records?.length){const empty=document.createElement('p');empty.textContent='Todavía no hay llamadas con este miembro.';callHistoryList.append(empty);return;}
+   for(const record of records){
+    const outgoing=record.caller_id===me;
+    const incomingMissed=!outgoing&&((record.status==='ended'&&!record.answer)||(record.status==='ringing'&&Date.now()-new Date(record.created_at).getTime()>180000));
+    const call=document.createElement('article');call.className='private-direct-history-row'+(incomingMissed?' is-missed':'');
+    const type=document.createElement('span');type.textContent=(record.kind==='video'?'📹 Videollamada':'📞 Voz')+' · '+(outgoing?'Saliente':'Entrante');
+    const timing=document.createElement('small');timing.textContent=new Date(record.created_at).toLocaleString('es-ES',{dateStyle:'medium',timeStyle:'short'});
+    let detail='';const ended=record.ended_at||((record.status==='ended'||record.status==='declined')?record.updated_at:null);
+    if(record.status==='declined')detail='🚫 Rechazada';
+    else if(!record.answer&&(record.status==='ended'||incomingMissed))detail=incomingMissed?'📵 Perdida':'📵 Sin respuesta';
+    else if(record.status==='ringing')detail='📲 Sonando';
+    else if(record.status==='active')detail='🟢 En curso';
+    else if(record.accepted_at&&ended){
+     const secs=Math.max(0,Math.round((new Date(ended).getTime()-new Date(record.accepted_at).getTime())/1000));
+     detail='✅ Duración '+Math.floor(secs/60)+' min '+String(secs%60).padStart(2,'0')+' s';
+    }else detail='✅ Finalizada · duración anterior no registrada';
+    const status=document.createElement('small');status.textContent=detail;
+    call.append(type,timing,status);callHistoryList.append(call);
+   }
+  };
+  callHistoryToggle.onclick=()=>{
+   const visible=callHistoryList.hidden;
+   callHistoryList.hidden=!visible;
+   callHistoryToggle.setAttribute('aria-expanded',String(visible));
+   if(visible)renderCallHistory().catch(err=>{callHistoryList.textContent='Error del historial: '+err.message;});
+  };
+  callHistorySection.append(callHistoryToggle,callHistoryList);
+  chatExtras.append(callToolbar,notificationPanel,giftSection,callHistorySection);
   panel.append(chatHeader,chatExtras,blockControls);
   const searchWrap=document.createElement('div');searchWrap.className='private-chat-search';
   const searchInput=document.createElement('input');searchInput.type='search';searchInput.placeholder='🔎 Buscar mensajes en esta conversación…';searchInput.setAttribute('aria-label','Buscar mensajes en esta conversación');
