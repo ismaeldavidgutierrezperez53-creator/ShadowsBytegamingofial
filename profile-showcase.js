@@ -13,7 +13,7 @@
   grid.setAttribute('aria-live','polite');
   const message=make('p','sb-showcase-message','Cargando videojuegos…');
   panel.append(h,intro,message,grid);anchor.after(panel);
-  if(!window.sb || !sb.auth || !sb.from){message.textContent='La conexión de videojuegos no está disponible.';return}
+  if(typeof sb==='undefined' || !sb.auth || !sb.from){message.textContent='La conexión de videojuegos no está disponible.';return}
   async function load(){
    try{
     const {data:auth,error:authError}=await sb.auth.getUser();
