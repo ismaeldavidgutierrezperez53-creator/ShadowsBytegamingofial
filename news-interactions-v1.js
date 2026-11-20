@@ -105,7 +105,7 @@
         const childHtml=(children.get(c.id)||[]).map(reply=>renderComment(reply,depth+1)).join('');
         return '<article class="sb-news-comment'+(depth?' sb-news-comment-reply':'')+'" id="news-comment-'+esc(c.id)+'" tabindex="-1" data-depth="'+Math.min(depth,5)+'">'+
           '<div class="sb-news-comment-head"><strong>'+esc(name)+'</strong><time datetime="'+esc(c.created_at)+'">'+esc(date(c.created_at))+'</time></div>'+
-          '<p>'+esc(c.content).replace(/\\n/g,'<br>')+'</p>'+
+          '<p>'+esc(c.content).replace(/\n/g,'<br>')+'</p>'+
           '<div class="sb-news-comment-actions">'+
           (user?'<button type="button" class="sb-news-reply-btn" data-reply-id="'+esc(c.id)+'" data-reply-name="'+esc(name)+'">↩ Responder</button>':'')+
           (canDelete?'<button type="button" class="sb-news-delete-comment" data-comment-id="'+esc(c.id)+'" aria-label="Eliminar comentario">Eliminar</button>':'')+
