@@ -124,6 +124,7 @@
   for(const event of visible){
    const card=ui('article','shop-season-v7-event shop-season-v7-'+event.season);
    card.dataset.shopSeasonEventId=event.event_id;
+   card.dataset.shopSeasonStatus=event.status;
    card.tabIndex=-1;cardMap.set(event.event_id,card);
    const top=ui('div','shop-season-v7-event-header');
    const title=ui('div','shop-season-v7-event-heading');
