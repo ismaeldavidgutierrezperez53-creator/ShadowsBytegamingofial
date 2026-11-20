@@ -191,7 +191,7 @@ function setupNotificationPopover(userId){
 }
 async function loadNotificationPreview(userId){
  const root=document.getElementById('notification-preview');if(!root||!userId)return;
- const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
+ const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
  if(!root.isConnected)return;root.replaceChildren();
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
  if(!data?.length){root.textContent='Todavía no tienes notificaciones de la comunidad.';}
@@ -214,7 +214,7 @@ async function loadNotificationPreview(userId){
  for(const n of (data||[])){
   const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');if(n.kind==='follow')item.dataset.followActor=n.actor_id;
   const message=document.createElement('p');const photo=photos.has(n.post_id);
-  message.textContent=n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
+  message.textContent=n.kind==='tournament_full'?'🎟️ ¡Las cuatro plazas de «'+(n.tournament_title||'tu torneo')+'» están completas!':n.kind==='tournament_match'?'⚔️ Tienes un nuevo enfrentamiento ('+(n.match_stage==='semi'?'semifinal '+n.match_no:n.match_stage==='bronze'?'partido por el tercer puesto':'gran final')+') en «'+(n.tournament_title||'tu torneo')+'».':n.kind==='tournament_finished'?'🏆 «'+(n.tournament_title||'Tu torneo')+'» ha finalizado. ¡Consulta los ganadores y tus premios!':n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
    '❤️ '+(names.get(n.actor_id)||'Un miembro')+' dio Me gusta a tu trofeo de '+formatSeason(n.trophy_month)+'.':
    n.kind==='poll_museum_prize'?(()=>{
     const prize=museumPrizesByMonth.get(n.museum_month);
@@ -226,6 +226,7 @@ async function loadNotificationPreview(userId){
    })():n.kind==='poll_reminder'?'⏰ Recuerda votar: '+(pollNames.get(n.poll_id)||'Encuesta abierta')+' · Gana 15 puntos.':n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa ahora'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');item.append(message,date);
   if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
+  if(['tournament_full','tournament_match','tournament_finished'].includes(n.kind)&&n.tournament_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏆 Ver torneo';go.className='notification-jump';item.append(go);}
   if(n.kind==='news_reply'&&n.news_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='📰 Ver respuesta';go.className='notification-jump';item.append(go);}
   if(n.game_id){const go=document.createElement('a');go.href='#/perfil?id='+encodeURIComponent(userId)+'&game='+encodeURIComponent(n.game_id);go.textContent='🎮 Ver biblioteca';go.className='notification-jump';item.append(go);}
   if((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🗳️ Votar ahora';go.className='notification-jump';item.append(go)}
@@ -418,11 +419,11 @@ function showRealtimeNotificationToast(n){
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
- const labels={news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!'};
+ const labels={news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!',tournament_full:'🎟️ ¡Torneo completo! Las cuatro plazas están ocupadas',tournament_match:'⚔️ ¡Tienes un nuevo enfrentamiento asignado!',tournament_finished:'🏆 ¡Torneo finalizado! Consulta tus premios'};
  const toast=document.createElement('div');toast.className='sb-notification-toast';toast.setAttribute('role','status');
  const message=document.createElement('strong');message.textContent=labels[n.kind]||'🔔 Nueva notificación';
  const actions=document.createElement('div');actions.className='sb-notification-toast-actions';
- const open=document.createElement('a');open.className='gradient-btn mini';open.href=(n.kind==='news_reply'||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize'||n.kind==='poll_trophy_like'||((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id))?notificationDestination(n):'#/notificaciones';open.textContent=n.kind==='poll_season_prize'?'🏆 Ver premio':n.kind==='poll_museum_prize'?'🏛️ Ver ranking':n.kind==='poll_trophy_like'?'❤️ Ver trofeo':(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
+ const open=document.createElement('a');open.className='gradient-btn mini';open.href=(n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'||n.kind==='news_reply'||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize'||n.kind==='poll_trophy_like'||((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id))?notificationDestination(n):'#/notificaciones';open.textContent=n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'?'🏆 Ver torneo':n.kind==='poll_season_prize'?'🏆 Ver premio':n.kind==='poll_museum_prize'?'🏛️ Ver ranking':n.kind==='poll_trophy_like'?'❤️ Ver trofeo':(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
  const close=document.createElement('button');close.type='button';close.className='outline-btn mini';close.textContent='Cerrar';
  let timer;const dismiss=()=>{clearTimeout(timer);toast.remove();};close.onclick=dismiss;open.onclick=dismiss;
  actions.append(open,close);toast.append(message,actions);stack.append(toast);
@@ -1774,6 +1775,7 @@ async function appendFollowBackActions(root,notifications,userId){
  }
 }
 function notificationDestination(n){
+ if(['tournament_full','tournament_match','tournament_finished'].includes(n.kind)&&n.tournament_id)return '#/tienda?tournament='+encodeURIComponent(n.tournament_id);
  if(n.kind==='news_reply'&&n.news_id)return '#/noticia?id='+encodeURIComponent(n.news_id)+(n.news_comment_id?'&comment='+encodeURIComponent(n.news_comment_id):'');
  if(n.kind==='poll_trophy_like'&&n.trophy_month)return '#/cuenta?trofeo='+encodeURIComponent(n.trophy_month);
  if(n.kind==='poll_museum_prize')return '#/encuestas?museo='+encodeURIComponent(n.museum_month||'');
@@ -1791,7 +1793,7 @@ async function loadMemberNotifications(){
  if(!root.isConnected)return;root.replaceChildren();
  if(!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para ver tus notificaciones';root.append(link);return;}
  const [communityResult,reportsResult,messagesResult]=await Promise.all([
-  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_report_notifications').select('id,status,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100)
  ]);
@@ -1814,7 +1816,7 @@ async function loadMemberNotifications(){
  const museumPrizesByMonth=new Map((myMuseumPrizes||[]).map(row=>[row.month_start,row]));
  const formatSeason=month=>month?new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(month+'T12:00:00Z')):'la temporada';
  const items=[
-  ...community.map(n=>({...n,recipient_id:user.id,category:(n.kind==='poll'||n.kind==='poll_reminder'||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize')?'polls':n.kind==='profile_view'?'visits':'community',title:n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
+  ...community.map(n=>({...n,recipient_id:user.id,category:['tournament_full','tournament_match','tournament_finished'].includes(n.kind)?'tournaments':(n.kind==='poll'||n.kind==='poll_reminder'||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize')?'polls':n.kind==='profile_view'?'visits':'community',title:n.kind==='tournament_full'?'🎟️ Las cuatro plazas de «'+(n.tournament_title||'tu torneo')+'» están completas.':n.kind==='tournament_match'?'⚔️ Tienes un nuevo enfrentamiento ('+(n.match_stage==='semi'?'semifinal '+n.match_no:n.match_stage==='bronze'?'partido por el tercer puesto':'gran final')+') en «'+(n.tournament_title||'tu torneo')+'».':n.kind==='tournament_finished'?'🏆 «'+(n.tournament_title||'Tu torneo')+'» ha terminado. Consulta la clasificación y tus premios.':n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
   '❤️ '+(names.get(n.actor_id)||'Un miembro')+' dio Me gusta a tu trofeo de '+formatSeason(n.trophy_month)+'.':
   n.kind==='poll_museum_prize'?(()=>{
    const prize=museumPrizesByMonth.get(n.museum_month);
@@ -1830,7 +1832,7 @@ async function loadMemberNotifications(){
  const heading=document.createElement('h2');heading.textContent='🔔 Centro de notificaciones';root.append(heading);
  const controls=document.createElement('div');controls.className='notification-center-controls';
  const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar notificaciones');
- for(const [value,label] of [['all','Todas'],['community','Comunidad'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ for(const [value,label] of [['all','Todas'],['community','Comunidad'],['tournaments','🏆 Torneos'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
  const search=document.createElement('input');search.type='search';search.placeholder='Buscar notificaciones';search.setAttribute('aria-label','Buscar notificaciones');
  const dateFilter=document.createElement('select');dateFilter.setAttribute('aria-label','Filtrar por fecha');for(const [value,label] of [['all','Cualquier fecha'],['today','Hoy'],['week','Últimos 7 días'],['month','Últimos 30 días']]){const option=document.createElement('option');option.value=value;option.textContent=label;dateFilter.append(option);}
  const counters=document.createElement('p');counters.className='notification-center-counts';
@@ -1840,7 +1842,7 @@ async function loadMemberNotifications(){
  const list=document.createElement('div');root.append(list);
  const draw=()=>{
   list.replaceChildren();
-  const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Encuestas: '+unread.filter(n=>n.category==='polls').length+' · Visitas: '+unread.filter(n=>n.category==='visits').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length;
+  const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Torneos: '+unread.filter(n=>n.category==='tournaments').length+' · Encuestas: '+unread.filter(n=>n.category==='polls').length+' · Visitas: '+unread.filter(n=>n.category==='visits').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length;
   const now=Date.now();const limit=dateFilter.value==='today'?new Date().setHours(0,0,0,0):dateFilter.value==='week'?now-7*86400000:dateFilter.value==='month'?now-30*86400000:0;
   const visible=items.filter(n=>(filter.value==='archived'?!!n.dismissed_at:!n.dismissed_at)&&(filter.value==='all'||filter.value==='archived'||(filter.value==='unread'?!n.is_read:n.category===filter.value))&&n.title.toLocaleLowerCase('es').includes(search.value.trim().toLocaleLowerCase('es'))&&new Date(n.created_at).getTime()>=limit);
   summary.textContent=visible.length+' notificaciones';
