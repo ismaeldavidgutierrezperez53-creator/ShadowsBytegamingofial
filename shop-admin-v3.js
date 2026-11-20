@@ -111,7 +111,7 @@
   enabledLabel.append(enabled,element('span','','Cupón activo'));
   couponForm.append(field('Seleccionar cupón',existing),field('Código',code),field('Descuento (%)',percent),
    field('Inicio',couponStart),field('Fin',couponEnd),field('Límite total de usos (opcional)',max),enabledLabel);
-  const couponSave=element('button','gradient-btn','💾 Guardar cupón');couponSave.type='submit';
+  const couponSave=element('button','gradient-btn','💾 Guardar cupón');couponSave.type='button';couponSave.onclick=()=>couponForm.requestSubmit();
   const couponNew=element('button','outline-btn','＋ Nuevo código');couponNew.type='button';
   const couponActions=element('div','sb-shop-v3-actions');couponActions.append(couponSave,couponNew);
   const couponStatus=element('p','sb-shop-admin__status');couponStatus.setAttribute('role','status');
