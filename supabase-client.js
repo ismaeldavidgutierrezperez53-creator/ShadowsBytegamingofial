@@ -4278,7 +4278,43 @@ async function loadPrivateMessages(){
    jumpButton.onclick=()=>{searchInput.value='';filterMessages();const target=history.querySelector('[data-message-id="'+pinnedMessage.id+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('private-chat-highlight');setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);}};
    pinnedPanel.append(jumpButton);
   }
-  panel.append(pinnedPanel,searchWrap,history,typingIndicator);
+  const contactCard=document.createElement('section');contactCard.className='private-chat-contact-card';
+  const contactCardHeading=document.createElement('div');contactCardHeading.className='private-chat-contact-heading';
+  const contactAvatar=document.createElement('span');contactAvatar.className='private-chat-contact-avatar';
+  const contactProfile=partnerProfiles.get(active);
+  if(contactProfile?.avatar_url){
+   const img=document.createElement('img');img.src=contactProfile.avatar_url;img.alt='';img.loading='lazy';img.onerror=()=>{img.remove();contactAvatar.textContent=(names.get(active)||'M').slice(0,1);};
+   contactAvatar.append(img);
+  }else contactAvatar.textContent=(names.get(active)||'M').slice(0,1);
+  const contactIdentity=document.createElement('div');contactIdentity.className='private-chat-contact-identity';
+  const contactName=document.createElement('strong');contactName.textContent=names.get(active)||'Miembro';
+  const contactSubtitle=document.createElement('small');contactSubtitle.textContent='👤 Ficha privada del contacto · tus mensajes importantes';
+  contactIdentity.append(contactName,contactSubtitle);
+  const publicLink=document.createElement('a');publicLink.href='#/perfil?id='+encodeURIComponent(active);
+  publicLink.className='outline-btn mini';publicLink.textContent='Ver perfil';publicLink.hidden=!publicIds.has(active);
+  contactCardHeading.append(contactAvatar,contactIdentity,publicLink);
+  const importantHeading=document.createElement('strong');importantHeading.className='private-chat-important-label';
+  importantHeading.textContent='📌 Destacados de este contacto';
+  const importantList=document.createElement('div');importantList.className='private-chat-contact-highlights';
+  if(!pinnedMessages.length){
+   const note=document.createElement('small');note.textContent='Pulsa 📌 Fijar en un mensaje para destacarlo aquí. Solo tú puedes ver esta lista.';
+   importantList.append(note);
+  }else for(const pinnedMessage of [...pinnedMessages].reverse().slice(0,4)){
+   const summary=document.createElement('button');summary.type='button';summary.className='private-chat-contact-highlight';
+   const value=pinnedMessage.body?.trim()||(pinnedMessage.image_path?'📷 Imagen':pinnedMessage.audio_path?'🎤 Audio':'Mensaje');
+   summary.textContent=(pinnedMessage.sender_id===me?'Tú: ':'Contacto: ')+value.slice(0,110);
+   summary.onclick=()=>{
+    const target=history.querySelector('[data-message-id="'+pinnedMessage.id+'"]');
+    if(!target)return;
+    searchInput.value='';filterMessages();
+    target.scrollIntoView({behavior:'smooth',block:'center'});
+    target.classList.add('private-chat-highlight');
+    setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);
+   };
+   importantList.append(summary);
+  }
+  contactCard.append(contactCardHeading,importantHeading,importantList);
+  panel.append(contactCard,pinnedPanel,searchWrap,history,typingIndicator);
   subscribePrivateTyping(me,active,typingIndicator);
   if(publicIds.has(active)&&!blockedByMe.has(active)&&!blockedMe.has(active)){
    const form=document.createElement('form');form.className='social-form messages-compose';
