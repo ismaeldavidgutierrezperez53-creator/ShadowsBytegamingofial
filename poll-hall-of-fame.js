@@ -78,10 +78,11 @@ function previewCard(){
  const panel=make('div','poll-fame-preview-dialog');
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
  panel.setAttribute('aria-label','Vista previa de tarjetas anime de campeones');
+ const previousFocus=document.activeElement;
  const header=make('div','poll-fame-preview-head');
  header.append(make('h3',null,'🎴 Tarjetas anime personalizadas'));
  const close=make('button',null,'✕ Cerrar');
- close.type='button';close.onclick=()=>overlay.remove();
+ close.type='button';
  header.append(close);panel.append(header);
  panel.append(make('p','poll-fame-preview-disclaimer','Vista previa de diseño: no entrega premios ni crea ganadores.'));
  const choices=make('div','poll-fame-theme-controls');
@@ -105,7 +106,7 @@ function previewCard(){
  }
  paint('sakura');
  const key=e=>{if(e.key==='Escape'){e.preventDefault();stop();}};
- const stop=()=>{overlay.remove();document.removeEventListener('keydown',key,true);};
+ const stop=()=>{overlay.remove();document.removeEventListener('keydown',key,true);if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});};
  close.onclick=stop;overlay.onclick=e=>{if(e.target===overlay)stop();};
  overlay.append(panel);document.body.append(overlay);
  document.addEventListener('keydown',key,true);close.focus();
@@ -124,9 +125,16 @@ function mount(container){
  intro.append(make('h3',null,'🏛️ Salón de la Fama'));
  intro.append(make('p',null,'Todos los campeones mensuales de Encuestas. Los resultados son definitivos; los perfiles privados se muestran de forma anónima.'));
  header.append(intro);
+ const actions=make('div','poll-fame-header-actions');
  const preview=make('button','poll-fame-preview-button','🎴 Probar tarjetas anime');
  preview.type='button';preview.onclick=previewCard;
- header.append(preview);shell.append(header);
+ const certificate=make('button','poll-fame-preview-button','🖼️ Probar certificado PNG');
+ certificate.type='button';
+ const exampleStatus=make('span','poll-fame-example-status','');
+ exampleStatus.setAttribute('role','status');
+ certificate.onclick=()=>window.SBPollAwardCertificate?.downloadPreview(exampleStatus);
+ actions.append(preview,certificate,exampleStatus);
+ header.append(actions);shell.append(header);
  const entries=make('div','poll-fame-seasons');
  const feedback=make('p','poll-fame-feedback','Cargando temporadas cerradas…');
  feedback.setAttribute('role','status');
