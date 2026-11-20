@@ -1817,13 +1817,24 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
 
  const profileMap=new Map((memberProfiles||[]).map(p=>[p.id,p]));
  const participantThemes=new Map();
- const themeNames={sakura:'🌸 Sakura',neon:'💜 Neón',fire:'🔥 Fuego',galaxy:'🌌 Galaxia',night:'🌙 Noche',aurora:'🌈 Aurora mística',ember:'🐉 Dragón de brasas',celestial:'👑 Nebulosa celestial'};
+ const themeNames={sakura:'🌸 Sakura',neon:'💜 Neón',fire:'🔥 Fuego',galaxy:'🌌 Galaxia',night:'🌙 Noche',aurora:'🌈 Aurora mística',ember:'🐉 Dragón de brasas',celestial:'👑 Nebulosa celestial',welcome_spark:'🌟 Estrella del inicio',moon_blade:'🌙 Espada lunar',storm_spirit:'⚡ Espíritu tormenta',dragon_sky:'🐲 Dragón del cielo',phoenix:'🔥 Fénix dorado VIP',royal_cosmos:'💎 Trono cósmico VIP'};
  const premiumVideoThemes=[
   {id:'theme_aurora',value:'aurora',label:'🌈 Aurora mística'},
   {id:'theme_ember',value:'ember',label:'🐉 Dragón de brasas'},
-  {id:'theme_celestial',value:'celestial',label:'👑 Nebulosa celestial'}
+  {id:'theme_celestial',value:'celestial',label:'👑 Nebulosa celestial'},
+  {id:'theme_phoenix',value:'phoenix',label:'🔥 Fénix dorado VIP',vip:true},
+  {id:'theme_royal_cosmos',value:'royal_cosmos',label:'💎 Trono cósmico VIP',vip:true}
+ ];
+ const freeVideoThemes=[
+  {value:'welcome_spark',label:'🌟 Estrella del inicio',level:1,source:'welcome'},
+  {value:'moon_blade',label:'🌙 Espada lunar',level:2,source:'level'},
+  {value:'storm_spirit',label:'⚡ Espíritu tormenta',level:4,source:'level'},
+  {value:'dragon_sky',label:'🐲 Dragón del cielo',level:7,source:'level'}
  ];
  const premiumVideoOwned=new Set();
+ const freeVideoOwned=new Set();
+ const participantBadgeMap=new Map();
+ let lastVideoBadgeRefresh=0;
  let activeParticipantIds=new Set([userId]);
  const updateVideoThemeTags=()=>{
   for(const tile of videos.children){
@@ -1909,6 +1920,11 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    const theme=participantThemes.get(id);
    if(theme&&themeNames[theme]){const themeChip=document.createElement('small');themeChip.className='group-video-theme-chip';themeChip.textContent='✨ '+themeNames[theme];details.append(themeChip);}
    if(profile?.featured_badge){const badge=document.createElement('small');badge.className='group-video-member-badge';badge.textContent='🏅 '+profile.featured_badge;details.append(badge);}
+   const earnedBadges=participantBadgeMap.get(id)||[];
+   for(const badgeLabel of earnedBadges.slice(0,2)){
+    const badge=document.createElement('small');badge.className='group-video-earned-badge';badge.textContent=badgeLabel;details.append(badge);
+   }
+   if(earnedBadges.length>2){const extra=document.createElement('small');extra.textContent='+'+(earnedBadges.length-2)+' insignias';details.append(extra);}
    item.append(avatar,details);participantList.append(item);
   }
   updateVideoThemeTags();
@@ -1919,18 +1935,25 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const quality=document.createElement('select');quality.setAttribute('aria-label','Calidad de vídeo');
  for(const [value,label] of [['auto','Calidad automática'],['low','Ahorro de datos (360p)'],['high','Alta calidad (720p)']]){const option=document.createElement('option');option.value=value;option.textContent=label;quality.append(option);}
  const background=document.createElement('select');background.setAttribute('aria-label','Efecto anime de mi vídeo');
- for(const [value,label] of [['none','Sin efecto'],['sakura','🌸 Sakura'],['neon','💜 Neón'],['fire','🔥 Fuego'],['galaxy','🌌 Galaxia'],['night','🌙 Noche (estilo anterior)'],['aurora','🌈 Aurora mística (exclusivo)'],['ember','🐉 Dragón de brasas (exclusivo)'],['celestial','👑 Nebulosa celestial (exclusivo)']]){const option=document.createElement('option');option.value=value;option.textContent=label;background.append(option);}
+ for(const [value,label] of [['none','Sin efecto'],['sakura','🌸 Sakura'],['neon','💜 Neón'],['fire','🔥 Fuego'],['galaxy','🌌 Galaxia'],['night','🌙 Noche (estilo anterior)'],['aurora','🌈 Aurora mística (exclusivo)'],['ember','🐉 Dragón de brasas (exclusivo)'],['celestial','👑 Nebulosa celestial (exclusivo)'],['welcome_spark','🌟 Estrella del inicio (bienvenida)'],['moon_blade','🌙 Espada lunar (nivel 2)'],['storm_spirit','⚡ Espíritu tormenta (nivel 4)'],['dragon_sky','🐲 Dragón del cielo (nivel 7)'],['phoenix','🔥 Fénix dorado VIP'],['royal_cosmos','💎 Trono cósmico VIP']]){const option=document.createElement('option');option.value=value;option.textContent=label;background.append(option);}
  const qualityInfo=document.createElement('p');qualityInfo.textContent='La calidad se adapta a tu conexión. El efecto elegido decora solo el marco de tu vídeo, sin modificar la imagen de la cámara.';
  const localTile=local.parentElement;
  background.onchange=()=>{
-  if(premiumVideoThemes.some(item=>item.value===background.value)&&!premiumVideoOwned.has(background.value)){
-   qualityInfo.textContent='🔒 Debes desbloquear este efecto exclusivo antes de utilizarlo.';
+  if((premiumVideoThemes.some(item=>item.value===background.value)&&!premiumVideoOwned.has(background.value))||
+     (freeVideoThemes.some(item=>item.value===background.value)&&!freeVideoOwned.has(background.value))){
+   qualityInfo.textContent='🔒 Aún no tienes este efecto. Consulta las recompensas de bienvenida, nivel o tienda VIP.';
    background.value='none';
   }
-  localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon','video-bg-fire','video-bg-galaxy','video-bg-aurora','video-bg-ember','video-bg-celestial');
+  localTile.classList.remove('video-bg-sakura','video-bg-night','video-bg-neon','video-bg-fire','video-bg-galaxy','video-bg-aurora','video-bg-ember','video-bg-celestial','video-bg-welcome_spark','video-bg-moon_blade','video-bg-storm_spirit','video-bg-dragon_sky','video-bg-phoenix','video-bg-royal_cosmos');
   if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);
  };
  quality.onchange=async()=>{const track=stream.getVideoTracks()[0];if(!track)return;const height=quality.value==='low'?360:quality.value==='high'?720:480;try{await track.applyConstraints({height:{ideal:height},frameRate:{ideal:quality.value==='low'?15:24,max:30}});qualityInfo.textContent='Calidad solicitada: '+quality.options[quality.selectedIndex].textContent+'. El navegador ajustará según disponibilidad.';}catch(e){qualityInfo.textContent='Tu cámara no admite ese ajuste: '+e.message;}};
+ const {error:initialRewardSyncError}=await sb.rpc('sync_video_theme_rewards');
+ if(initialRewardSyncError)console.warn('No se pudieron sincronizar los regalos de vídeo:',initialRewardSyncError.message);
+ const {data:initialFreeRewards,error:initialFreeRewardsError}=await sb.from('member_video_theme_unlocks').select('theme').eq('user_id',userId);
+ if(initialFreeRewardsError)console.warn('No se pudieron cargar los efectos de nivel:',initialFreeRewardsError.message);
+ for(const reward of initialFreeRewards||[])freeVideoOwned.add(reward.theme);
+ for(const option of background.options)if(freeVideoThemes.some(item=>item.value===option.value))option.disabled=!freeVideoOwned.has(option.value);
  const {data:initialPremiumPurchases,error:initialPremiumError}=await sb.from('member_shop_purchases').select('item_id').eq('user_id',userId).in('item_id',premiumVideoThemes.map(item=>item.id));
  if(initialPremiumError)console.warn('No se pudieron comprobar los temas desbloqueados:',initialPremiumError.message);
  for(const row of initialPremiumPurchases||[]){const item=premiumVideoThemes.find(theme=>theme.id===row.item_id);if(item)premiumVideoOwned.add(item.value);}
@@ -1961,8 +1984,72 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  updateThemeButtons();
  const effectsTitle=document.createElement('h5');effectsTitle.textContent='✨ Elige el efecto anime de tu cámara';
  mediaSettings.classList.add('group-video-theme-picker');
- const premiumVideoSection=document.createElement('section');premiumVideoSection.className='group-video-premium-themes';
- const premiumTitle=document.createElement('h5');premiumTitle.textContent='🏆 Efectos exclusivos: puntos y niveles';
+ const freeRewardSection=document.createElement('section');freeRewardSection.className='group-video-free-rewards';
+ const freeRewardTitle=document.createElement('h5');freeRewardTitle.textContent='🎁 Bienvenida y efectos por nivel';
+ const freeRewardInfo=document.createElement('p');freeRewardInfo.textContent='Sin coste: se desbloquean al entrar o alcanzar el nivel requerido.';
+ const freeRewardGrid=document.createElement('div');freeRewardGrid.className='group-video-free-grid';
+ const freeRewardRefresh=document.createElement('button');freeRewardRefresh.type='button';freeRewardRefresh.textContent='🔄 Comprobar recompensas de nivel';
+ freeRewardSection.append(freeRewardTitle,freeRewardInfo,freeRewardGrid,freeRewardRefresh);
+ const badgeSection=document.createElement('section');badgeSection.className='group-video-reward-badges';
+ const badgeTitle=document.createElement('h5');badgeTitle.textContent='🎖️ Mis insignias de efectos';
+ const badgeList=document.createElement('div');badgeList.className='group-video-badge-list';
+ badgeList.textContent='Cargando insignias…';
+ badgeSection.append(badgeTitle,badgeList);
+ const refreshVideoBadges=async(ids=activeParticipantIds)=>{
+  const members=[...ids];if(!members.length)return;
+  const {data,error}=await sb.from('member_video_theme_badges').select('user_id,badge_label,theme').in('user_id',members).order('unlocked_at',{ascending:true}).limit(200);
+  if(error){console.warn('No se pudieron consultar las insignias de vídeo:',error.message);if(members.includes(userId))badgeList.textContent='No se pudieron cargar las insignias.';return;}
+  for(const id of members)participantBadgeMap.set(id,[]);
+  for(const badge of data||[]){
+   const labels=participantBadgeMap.get(badge.user_id)||[];
+   labels.push(badge.badge_label);participantBadgeMap.set(badge.user_id,labels);
+  }
+  renderVideoParticipants(activeParticipantIds);
+  badgeList.replaceChildren();
+  const mine=participantBadgeMap.get(userId)||[];
+  if(!mine.length)badgeList.textContent='Todavía no tienes insignias de efectos.';
+  for(const label of mine){const span=document.createElement('span');span.className='group-video-earned-badge';span.textContent=label;badgeList.append(span);}
+ };
+ const refreshFreeRewards=async()=>{
+  freeRewardRefresh.disabled=true;
+  try{
+   const sync=await sb.rpc('sync_video_theme_rewards');
+   if(sync.error){freeRewardInfo.textContent='⚠️ No se pudieron comprobar los niveles: '+sync.error.message;return;}
+   const [ownedResult,xpResult]=await Promise.all([
+    sb.from('member_video_theme_unlocks').select('theme').eq('user_id',userId),
+    sb.rpc('community_member_xp',{target_member:userId})
+   ]);
+   if(ownedResult.error||xpResult.error){freeRewardInfo.textContent='⚠️ No se pudo cargar tu progreso.';return;}
+   const level=Math.min(50,Math.floor(Math.sqrt(Math.max(0,Number(xpResult.data)||0)/100))+1);
+   freeVideoOwned.clear();
+   for(const item of ownedResult.data||[])freeVideoOwned.add(item.theme);
+   for(const option of background.options)if(freeVideoThemes.some(item=>item.value===option.value))option.disabled=!freeVideoOwned.has(option.value);
+   freeRewardInfo.textContent='⭐ Nivel '+level+' · La bienvenida se entrega una vez y los premios de nivel son permanentes.';
+   freeRewardGrid.replaceChildren();
+   for(const item of freeVideoThemes){
+    const card=document.createElement('article');card.className='group-video-free-card';
+    const name=document.createElement('strong');name.textContent=item.label;
+    const description=document.createElement('small');description.textContent=item.source==='welcome'?'🎁 Regalo gratuito de bienvenida':'🏆 Se obtiene al alcanzar nivel '+item.level;
+    const button=document.createElement('button');button.type='button';
+    const owned=freeVideoOwned.has(item.value);
+    button.textContent=owned?'✨ Usar efecto':'🔒 Necesitas nivel '+item.level;
+    button.disabled=!owned;
+    button.onclick=()=>{
+     if(!freeVideoOwned.has(item.value))return;
+     background.value=item.value;
+     background.dispatchEvent(new Event('change',{bubbles:true}));
+     updateThemeButtons();
+     freeRewardInfo.textContent='✅ Efecto seleccionado: '+item.label;
+    };
+    card.append(name,description,button);freeRewardGrid.append(card);
+   }
+   await refreshVideoBadges();
+  }catch(e){freeRewardInfo.textContent='⚠️ Error en recompensas: '+e.message;}
+  finally{freeRewardRefresh.disabled=false;}
+ };
+ freeRewardRefresh.onclick=()=>{refreshFreeRewards().catch(console.warn);};
+  const premiumVideoSection=document.createElement('section');premiumVideoSection.className='group-video-premium-themes';
+ const premiumTitle=document.createElement('h5');premiumTitle.textContent='💎 Tienda anime VIP · Efectos exclusivos';
  const premiumStatus=document.createElement('p');premiumStatus.textContent='Consultando tu nivel, saldo y efectos comprados…';premiumStatus.setAttribute('role','status');
  const premiumCards=document.createElement('div');premiumCards.className='group-video-premium-grid';
  const refreshPremium=document.createElement('button');refreshPremium.type='button';refreshPremium.textContent='🔄 Actualizar puntos y efectos';
@@ -1993,7 +2080,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    premiumCards.replaceChildren();
    for(const theme of premiumVideoThemes){
     const product=(itemsRes.data||[]).find(item=>item.id===theme.id);
-    const card=document.createElement('article');card.className='group-video-premium-card';card.dataset.theme=theme.value;
+    const card=document.createElement('article');card.className='group-video-premium-card';card.dataset.theme=theme.value;if(theme.vip)card.classList.add('is-vip');
     const heading=document.createElement('strong');heading.textContent=theme.label;card.append(heading);
     if(!product){const unavailable=document.createElement('small');unavailable.textContent='No disponible por ahora';card.append(unavailable);premiumCards.append(card);continue;}
     const owned=premiumVideoOwned.has(theme.value);
@@ -2015,7 +2102,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
       if(buyError){premiumStatus.textContent='⚠️ No se pudo desbloquear: '+buyError.message;button.disabled=false;return;}
       await refreshPremiumVideoThemes();
       if(premiumVideoOwned.has(theme.value))choosePremiumTheme(theme.value);
-      premiumStatus.textContent=data===false?'✅ Este efecto ya estaba comprado.':'🎉 ¡Efecto desbloqueado y seleccionado!';
+      await refreshVideoBadges();
+      premiumStatus.textContent=data===false?'✅ Este efecto ya estaba comprado.':'🎉 ¡Efecto desbloqueado, insignia conseguida y seleccionado!';
      };
     }
     card.append(info,button);premiumCards.append(card);
@@ -2024,7 +2112,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   finally{refreshPremium.disabled=false;}
  };
  refreshPremium.onclick=()=>{refreshPremiumVideoThemes().catch(console.warn);};
- mediaSettings.append(effectsTitle,effectsBar,premiumVideoSection,mediaTitle,quality,background,qualityInfo);
+ mediaSettings.append(effectsTitle,effectsBar,freeRewardSection,premiumVideoSection,badgeSection,mediaTitle,quality,background,qualityInfo);
+ refreshFreeRewards().catch(console.warn);
  refreshPremiumVideoThemes().catch(console.warn);
  const actions=document.createElement('div');actions.className='group-call-actions';
  const invites=document.createElement('div');invites.className='group-video-invites';
@@ -2518,6 +2607,10 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
    if(!roomState||roomState.status!=='open'){say('La sala de vídeo se ha cerrado.');await leaveRoom();return;}
    const {data:participants}=await sb.from('member_group_video_participants').select('user_id,anime_theme').eq('room_id',room.id);
    const active=new Set((participants||[]).map(p=>p.user_id));
+   if(Date.now()>lastVideoBadgeRefresh){
+    lastVideoBadgeRefresh=Date.now()+12000;
+    refreshVideoBadges(active).catch(console.warn);
+   }
    for(const p of participants||[])participantThemes.set(p.user_id,p.anime_theme||'none');
    for(const id of participantThemes.keys())if(!active.has(id))participantThemes.delete(id);
    renderVideoParticipants(active);
