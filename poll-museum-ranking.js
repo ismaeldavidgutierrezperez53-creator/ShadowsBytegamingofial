@@ -130,6 +130,15 @@
   status.setAttribute('role','status');
   root.append(status);
   container.append(root);
+  const requested=new URLSearchParams(location.hash.split('?')[1]||'').get('museo');
+  if(requested==='ranking'||/^\d{4}-(0[1-9]|1[0-2])-01$/.test(requested||'')){
+   root.tabIndex=-1;
+   requestAnimationFrame(()=>{
+    if(!root.isConnected)return;
+    root.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+    root.focus({preventScroll:true});
+   });
+  }
   async function reload(){
    try{
     const [liveData,trophyData,monthData]=await Promise.all([
