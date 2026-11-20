@@ -77,3 +77,10 @@
 .sb-nav-panel[data-layout="list"] .sb-nav-links{display:flex;flex-direction:column}
 .sb-nav-panel[data-layout="list"] .sb-nav-favorite-item{width:100%}
 @media(max-width:650px){.sb-nav-panel[data-layout="grid"] .sb-nav-links{grid-template-columns:1fr}}
+
+/* Control de cantidad de accesos favoritos destacados */
+.sb-nav-featured-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sb-nav-featured-label{font-size:14px;color:#e2cee9;font-weight:700}
+.sb-nav-featured-count{min-width:42px;min-height:40px;border:1px solid #a783c2;border-radius:9px;background:#352248;color:white;font-weight:700;cursor:pointer}
+.sb-nav-featured-count[aria-pressed="true"]{color:#ffe4a0;border-color:#e4bb75;background:#604229}
+.sb-nav-featured-count:focus-visible{outline:3px solid #55dbff;outline-offset:2px}
