@@ -1,0 +1,233 @@
+/* Temporadas anime: reloj, podio y galería mensual de trofeos */
+#poll-participation .poll-anime-countdown-host{
+ margin:0 0 18px;padding:17px 18px;border-radius:16px;
+ border:1px solid rgba(109,207,248,.65);
+ background:radial-gradient(ellipse at 20% 0%,rgba(111,52,174,.32),transparent 55%),
+ linear-gradient(120deg,rgba(18,31,66,.92),rgba(46,20,67,.88));
+ box-shadow:0 0 25px rgba(77,161,232,.12),inset 0 0 25px rgba(100,65,211,.09);
+}
+#poll-participation .poll-anime-countdown-title{
+ color:#dbf7ff;font-weight:900;text-transform:uppercase;
+ letter-spacing:1px;font-size:15px;margin-bottom:12px;
+}
+#poll-participation .poll-anime-countdown-grid{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+}
+#poll-participation .poll-anime-countdown-cell{
+ display:grid;justify-items:center;gap:5px;min-width:0;
+ border:1px solid rgba(129,151,249,.56);border-radius:12px;
+ background:linear-gradient(155deg,rgba(29,46,91,.91),rgba(37,19,65,.97));
+ padding:11px 7px;box-shadow:inset 0 0 16px rgba(131,103,247,.1);
+}
+#poll-participation .poll-anime-countdown-cell strong{
+ font:900 clamp(23px,4.8vw,39px)/1.12 Orbitron,Rajdhani,sans-serif;
+ font-variant-numeric:tabular-nums;letter-spacing:1px;color:#e6faff;
+ text-shadow:0 0 15px rgba(89,214,255,.5);
+}
+#poll-participation .poll-anime-countdown-cell span{
+ color:#c5c7f1;font-size:12px;font-weight:800;letter-spacing:.25px;
+}
+#poll-participation .poll-anime-countdown-description{
+ margin:13px 0 0;font-size:13px;line-height:1.5;color:#c9dbf7;
+}
+#poll-participation .poll-anime-podium{
+ display:block;min-width:0;margin:13px 0 17px;
+ padding:17px 12px;border:1px solid rgba(127,95,178,.72);
+ border-radius:17px;
+ background:radial-gradient(ellipse at center top,rgba(138,64,209,.24),transparent 66%),#100e2b;
+ overflow:hidden;
+}
+#poll-participation .poll-anime-podium-heading{
+ text-align:center;margin-bottom:24px;
+}
+#poll-participation .poll-anime-podium-heading h5{
+ color:#fff;font:900 clamp(20px,2.4vw,26px)/1.25 Rajdhani,Arial,sans-serif;margin:0 0 6px;
+ text-shadow:0 0 17px rgba(188,112,255,.52);
+}
+#poll-participation .poll-anime-podium-heading p{
+ color:#c7b9df;font-size:13px;margin:0;
+}
+#poll-participation .poll-anime-podium-places{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ align-items:end;gap:8px;
+}
+#poll-participation .poll-anime-podium-place{
+ position:relative;min-width:0;display:flex;flex-direction:column;
+ align-items:center;gap:8px;padding:13px 8px 0;
+ border:1px solid rgba(135,126,188,.61);border-radius:14px 14px 8px 8px;
+ isolation:isolate;background:linear-gradient(160deg,rgba(39,35,73,.91),rgba(19,21,48,.92));
+ box-shadow:0 5px 22px rgba(0,0,0,.15);
+ animation:poll-anime-podium-enter .58s ease-out both;
+}
+#poll-participation .poll-anime-podium-place:nth-child(1){animation-delay:.08s}
+#poll-participation .poll-anime-podium-place:nth-child(2){animation-delay:.20s}
+#poll-participation .poll-anime-podium-place:nth-child(3){animation-delay:.32s}
+#poll-participation .poll-anime-podium-gold{
+ border-color:#d9a34a;box-shadow:0 0 24px rgba(255,196,72,.19);
+ background:linear-gradient(160deg,rgba(103,63,49,.66),rgba(28,23,53,.97));
+}
+#poll-participation .poll-anime-podium-silver{
+ border-color:#99b8dd;background:linear-gradient(160deg,rgba(57,70,105,.72),rgba(24,24,52,.97));
+}
+#poll-participation .poll-anime-podium-bronze{
+ border-color:#bd8b70;background:linear-gradient(160deg,rgba(93,50,48,.65),rgba(26,22,48,.95));
+}
+#poll-participation .poll-anime-podium-crest{
+ display:block;font-size:clamp(33px,5vw,50px);line-height:1.1;
+ filter:drop-shadow(0 0 9px rgba(255,199,122,.35));
+ animation:poll-anime-podium-float 3.5s ease-in-out infinite;
+}
+#poll-participation .poll-anime-podium-sparkles{
+ position:absolute;top:-12px;left:0;right:0;text-align:center;
+ font-size:15px;letter-spacing:8px;color:#f9d5ff;pointer-events:none;
+ text-shadow:0 0 16px #e3a5ff;
+ animation:poll-anime-podium-sparkle 2.8s ease-in-out infinite;
+}
+#poll-participation .poll-anime-podium-ribbon{
+ color:#f6dfab;font-size:11px;text-align:center;line-height:1.35;font-weight:800;min-height:30px;
+}
+#poll-participation .poll-anime-podium-identity{
+ flex:1;min-width:0;display:grid;justify-items:center;align-content:center;
+ gap:6px;text-align:center;min-height:94px;width:100%;
+}
+#poll-participation .poll-anime-podium-name{
+ font-size:clamp(12px,1.5vw,16px);line-height:1.3;color:#fff;
+ font-weight:900;overflow-wrap:anywhere;text-decoration:none;
+}
+#poll-participation .poll-anime-podium-name:hover{
+ text-decoration:underline;color:#b4edff;
+}
+#poll-participation .poll-anime-podium-votes{
+ color:#a8edff;font-size:12px;white-space:normal;
+}
+#poll-participation .poll-anime-podium-prize{
+ color:#b7f7ce;font-size:12px;line-height:1.4;
+}
+#poll-participation .poll-anime-podium-private{
+ color:#decbea;font-weight:700;font-size:12px;line-height:1.35;
+}
+#poll-participation .poll-anime-podium-private-note{
+ color:#a89ebc;font-size:11px;line-height:1.3;
+}
+#poll-participation .poll-anime-podium-base{
+ display:grid;place-items:center;margin-top:7px;width:calc(100% + 16px);
+ min-height:43px;border-radius:0 0 7px 7px;
+ background:linear-gradient(100deg,rgba(108,83,171,.42),rgba(75,62,111,.5));
+ border-top:1px solid rgba(205,175,239,.32);
+}
+#poll-participation .poll-anime-podium-gold .poll-anime-podium-base{
+ min-height:68px;background:linear-gradient(110deg,rgba(191,122,37,.55),rgba(117,71,36,.42));
+}
+#poll-participation .poll-anime-podium-bronze .poll-anime-podium-base{min-height:32px}
+#poll-participation .poll-anime-podium-base strong{
+ color:#fff;font:900 24px Orbitron,Rajdhani,sans-serif;
+ text-shadow:0 0 10px rgba(255,255,255,.3);
+}
+.profile-body .poll-month-trophy-gallery,
+.public-member-body .poll-month-trophy-gallery{
+ position:relative;margin:20px 0;padding:clamp(16px,3vw,24px);
+ border:1px solid rgba(213,160,74,.57);border-radius:16px;
+ background:radial-gradient(ellipse at 0 0,rgba(145,85,199,.22),transparent 62%),
+ linear-gradient(128deg,rgba(29,26,55,.93),rgba(21,23,45,.94));
+ box-shadow:0 13px 30px rgba(7,9,30,.17);
+ min-width:0;grid-column:1/-1;
+}
+.profile-body .poll-month-trophy-gallery h2,
+.public-member-body .poll-month-trophy-gallery h2{
+ color:#fff;font:800 clamp(22px,3vw,27px)/1.25 Rajdhani,Arial,sans-serif;
+ margin:0 0 9px;
+}
+.poll-month-trophy-intro{
+ color:#d0c1e8;font-size:14px;line-height:1.5;margin:0 0 14px;
+}
+.poll-month-trophy-status{
+ color:#d5c8e5;font-size:15px;line-height:1.5;
+}
+.poll-month-trophy-summary{
+ color:#acf3d7;font-size:15px;font-weight:800;margin:0 0 15px;line-height:1.45;
+}
+.poll-month-trophy-grid{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));
+ gap:13px;
+}
+.poll-month-trophy-card{
+ position:relative;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:6px;text-align:center;
+ overflow:hidden;min-width:0;border:1px solid #b39e7a;border-radius:14px;
+ padding:19px 13px;background:linear-gradient(145deg,#473342,#201e3b);
+ box-shadow:0 8px 24px rgba(12,10,36,.22);
+ animation:poll-trophy-appear .55s cubic-bezier(.22,.8,.28,1) both;
+}
+.poll-month-trophy-card:nth-child(2){animation-delay:.08s}
+.poll-month-trophy-card:nth-child(3){animation-delay:.16s}
+.poll-month-trophy-card[hidden]{display:none!important}
+.poll-month-trophy-gold{border-color:#e5ba64;background:linear-gradient(140deg,#58422d,#30233c)}
+.poll-month-trophy-silver{border-color:#accaf0;background:linear-gradient(140deg,#364c67,#26263d)}
+.poll-month-trophy-bronze{border-color:#c49575;background:linear-gradient(140deg,#624235,#302338)}
+.poll-month-trophy-shine{
+ position:absolute;top:8px;right:8px;color:#f9eecb;
+ opacity:.8;letter-spacing:3px;font-size:13px;
+ animation:poll-trophy-shine 2.8s ease-in-out infinite;
+}
+.poll-month-trophy-icon{
+ font-size:55px;line-height:1.1;
+ filter:drop-shadow(0 0 14px rgba(255,211,122,.38));
+ animation:poll-anime-podium-float 4s ease-in-out infinite;
+}
+.poll-month-trophy-content{display:grid;gap:6px;justify-items:center}
+.poll-month-trophy-name{font-size:17px;color:#fff;line-height:1.25}
+.poll-month-trophy-month{font-size:14px;color:#ecd5ff}
+.poll-month-trophy-detail{font-size:13px;font-weight:800;color:#b3f8db}
+.poll-month-trophy-more{
+ min-height:40px;margin-top:14px;padding:10px 14px;cursor:pointer;
+ border:1px solid #9b7dc9;border-radius:10px;
+ color:#f8eaff;background:#3a294e;
+ font:800 15px Rajdhani,Arial,sans-serif;
+}
+.poll-month-trophy-more:hover{background:#593b75}
+@keyframes poll-anime-podium-enter{
+ from{opacity:0;transform:translateY(22px) scale(.95)}
+ to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes poll-anime-podium-float{
+ 0%,100%{transform:translateY(0)}
+ 50%{transform:translateY(-5px)}
+}
+@keyframes poll-anime-podium-sparkle{
+ 0%,100%{opacity:.3;transform:translateY(0)}
+ 50%{opacity:1;transform:translateY(-4px)}
+}
+@keyframes poll-trophy-appear{
+ from{opacity:0;transform:translateY(14px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@keyframes poll-trophy-shine{
+ 0%,100%{opacity:.35;transform:rotate(-10deg)}
+ 50%{opacity:1;transform:rotate(12deg)}
+}
+@media(max-width:600px){
+ #poll-participation .poll-anime-podium{padding:12px 7px}
+ #poll-participation .poll-anime-podium-places{gap:5px}
+ #poll-participation .poll-anime-podium-place{padding:10px 4px 0}
+ #poll-participation .poll-anime-podium-ribbon{font-size:10px}
+ #poll-participation .poll-anime-podium-votes{font-size:11px}
+ #poll-participation .poll-anime-podium-prize{font-size:11px}
+ #poll-participation .poll-anime-podium-crest{font-size:31px}
+ #poll-participation .poll-anime-countdown-host{padding:13px}
+ #poll-participation .poll-anime-countdown-cell{padding:9px 3px}
+ #poll-participation .poll-anime-countdown-cell strong{font-size:clamp(19px,6vw,32px)}
+ #poll-participation .poll-anime-countdown-cell span{font-size:11px}
+}
+@media(max-width:360px){
+ #poll-participation .poll-anime-countdown-grid{gap:5px}
+ #poll-participation .poll-anime-countdown-cell strong{font-size:18px}
+ #poll-participation .poll-anime-podium-private-note{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ #poll-participation .poll-anime-podium-place,
+ #poll-participation .poll-anime-podium-crest,
+ #poll-participation .poll-anime-podium-sparkles,
+ .poll-month-trophy-card,
+ .poll-month-trophy-icon,
+ .poll-month-trophy-shine{animation:none!important;transition:none!important}
+}
