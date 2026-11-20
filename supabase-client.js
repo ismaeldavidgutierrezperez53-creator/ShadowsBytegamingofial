@@ -1949,17 +1949,38 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   if(background.value!=='none')localTile.classList.add('video-bg-'+background.value);
  };
  quality.onchange=async()=>{const track=stream.getVideoTracks()[0];if(!track)return;const height=quality.value==='low'?360:quality.value==='high'?720:480;try{await track.applyConstraints({height:{ideal:height},frameRate:{ideal:quality.value==='low'?15:24,max:30}});qualityInfo.textContent='Calidad solicitada: '+quality.options[quality.selectedIndex].textContent+'. El navegador ajustará según disponibilidad.';}catch(e){qualityInfo.textContent='Tu cámara no admite ese ajuste: '+e.message;}};
- const {error:initialRewardSyncError}=await sb.rpc('sync_video_theme_rewards');
- if(initialRewardSyncError)console.warn('No se pudieron sincronizar los regalos de vídeo:',initialRewardSyncError.message);
- const {data:initialFreeRewards,error:initialFreeRewardsError}=await sb.from('member_video_theme_unlocks').select('theme').eq('user_id',userId);
- if(initialFreeRewardsError)console.warn('No se pudieron cargar los efectos de nivel:',initialFreeRewardsError.message);
- for(const reward of initialFreeRewards||[])freeVideoOwned.add(reward.theme);
- for(const option of background.options)if(freeVideoThemes.some(item=>item.value===option.value))option.disabled=!freeVideoOwned.has(option.value);
- const {data:initialPremiumPurchases,error:initialPremiumError}=await sb.from('member_shop_purchases').select('item_id').eq('user_id',userId).in('item_id',premiumVideoThemes.map(item=>item.id));
- if(initialPremiumError)console.warn('No se pudieron comprobar los temas desbloqueados:',initialPremiumError.message);
- for(const row of initialPremiumPurchases||[]){const item=premiumVideoThemes.find(theme=>theme.id===row.item_id);if(item)premiumVideoOwned.add(item.value);}
- for(const option of background.options)if(premiumVideoThemes.some(theme=>theme.value===option.value))option.disabled=!premiumVideoOwned.has(option.value);
- const {data:savedMedia}=await sb.from('member_group_video_preferences').select('quality,theme').eq('user_id',userId).maybeSingle();
+ // Do not await rewards or shop: the call must connect even if reward services are slow.
+ const hasRestrictedVideoTheme=(value)=>premiumVideoThemes.some(t=>t.value===value)||freeVideoThemes.some(t=>t.value===value);
+ for(const option of background.options)if(hasRestrictedVideoTheme(option.value))option.disabled=true;
+ let savedMedia=null;
+ const loadVideoSettingsInBackground=async()=>{
+  try{
+   const [{data:settings,error:settingsError},{data:ownedPremium,error:premiumError}]=await Promise.all([
+    sb.from('member_group_video_preferences').select('quality,theme').eq('user_id',userId).maybeSingle(),
+    sb.from('member_shop_purchases').select('item_id').eq('user_id',userId).in('item_id',premiumVideoThemes.map(t=>t.id))
+   ]);
+   if(settingsError)console.warn('Preferencias de vídeo:',settingsError.message);
+   if(premiumError)console.warn('Compras de vídeo:',premiumError.message);
+   for(const row of ownedPremium||[]){const item=premiumVideoThemes.find(t=>t.id===row.item_id);if(item)premiumVideoOwned.add(item.value);}
+   savedMedia=settings||null;
+   const {error:syncError}=await sb.rpc('sync_video_theme_rewards');
+   if(syncError)console.warn('Recompensas de vídeo:',syncError.message);
+   const {data:unlocks,error:unlockError}=await sb.from('member_video_theme_unlocks').select('theme').eq('user_id',userId);
+   if(unlockError)console.warn('Efectos de nivel:',unlockError.message);
+   for(const reward of unlocks||[])freeVideoOwned.add(reward.theme);
+   for(const option of background.options)if(hasRestrictedVideoTheme(option.value))option.disabled=!(premiumVideoOwned.has(option.value)||freeVideoOwned.has(option.value));
+   if(savedMedia){
+    quality.value=savedMedia.quality||'auto';
+    const selected=savedMedia.theme||'none';
+    if(!hasRestrictedVideoTheme(selected)||premiumVideoOwned.has(selected)||freeVideoOwned.has(selected)){
+     if(background.value==='none'){background.value=selected;background.onchange();updateThemeButtons();publishVideoTheme().catch(console.warn);}
+    }
+    if(quality.value!=='auto')quality.onchange();
+   }
+   refreshFreeRewards().catch(console.warn);
+   refreshPremiumVideoThemes().catch(console.warn);
+  }catch(e){console.warn('No se pudieron cargar las recompensas, pero la llamada sigue operativa:',e);}
+ };
  const publishVideoTheme=async()=>{
   participantThemes.set(userId,background.value);
   renderVideoParticipants(activeParticipantIds);
@@ -1969,7 +1990,6 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const saveMediaPreference=async()=>{const {error}=await sb.from('member_group_video_preferences').upsert({user_id:userId,quality:quality.value,theme:background.value,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)console.warn('Preferencias de vídeo:',error.message);};
  quality.addEventListener('change',saveMediaPreference);background.addEventListener('change',saveMediaPreference);
  background.addEventListener('change',()=>{publishVideoTheme().catch(console.warn);});
- if(savedMedia){quality.value=savedMedia.quality||'auto';background.value=savedMedia.theme||'none';background.onchange();if(quality.value!=='auto')quality.onchange();}
  publishVideoTheme().catch(console.warn);
  const effectsBar=document.createElement('div');effectsBar.className='group-video-theme-options';
  const themeButtons=new Map();
@@ -2114,8 +2134,6 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  };
  refreshPremium.onclick=()=>{refreshPremiumVideoThemes().catch(console.warn);};
  mediaSettings.append(effectsTitle,effectsBar,freeRewardSection,premiumVideoSection,badgeSection,mediaTitle,quality,background,qualityInfo);
- refreshFreeRewards().catch(console.warn);
- refreshPremiumVideoThemes().catch(console.warn);
  const actions=document.createElement('div');actions.className='group-call-actions';
  const invites=document.createElement('div');invites.className='group-video-invites';
  const inviteSelect=document.createElement('select');inviteSelect.setAttribute('aria-label','Invitar miembro');
@@ -2388,6 +2406,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
  actions.append(mic,camera,share,leave);
  actions.append(voiceIndicatorControls);panel.append(title,mediaSettings,videos,participantPanel,actions,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
+ // Start rewards in the background after the room UI is visible.
+ loadVideoSettingsInBackground().catch(e=>console.warn('Recompensas de vídeo:',e));
  const viewBar=document.createElement('div');viewBar.className='group-call-actions';
  const gridView=document.createElement('button');gridView.textContent='▦ Cuadrícula';
  const focusView=document.createElement('button');focusView.textContent='▣ Destacar vídeo';
