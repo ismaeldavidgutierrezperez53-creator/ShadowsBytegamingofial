@@ -231,6 +231,21 @@
     enhance(host,isOwn);
    });
    settings.append(restoreAll);
+   const hideNonFavorites=node('button','sb-nav-hide-nonfavorites','☆ Ocultar los no favoritos');
+   hideNonFavorites.type='button';
+   hideNonFavorites.addEventListener('click',()=>{
+    const currentFavorites=readFavorites();
+    const currentHidden=readHidden();
+    const actual=modules.filter(item=>item[2]===isOwn&&host.querySelector(item[1])).map(item=>item[1]);
+    const visibleFavorites=actual.filter(selector=>currentFavorites.includes(selector)&&!currentHidden.includes(selector));
+    const toHide=actual.filter(selector=>!currentFavorites.includes(selector)&&!currentHidden.includes(selector));
+    if(!visibleFavorites.length||!toHide.length)return;
+    if(!window.confirm('¿Ocultar '+toHide.length+' accesos sin estrella? Tus '+visibleFavorites.length+' favoritos visibles permanecerán disponibles. Puedes deshacerlo desde Restaurar todos.'))return;
+    try{localStorage.setItem(hiddenKey,JSON.stringify([...new Set([...currentHidden,...toHide])].slice(0,25)))}catch(_){return}
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
+   settings.append(hideNonFavorites);
    const details=nav.querySelector('.sb-nav-details');
    details.after(settings);
   }
@@ -255,6 +270,18 @@
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
+  const hideNonFavorites=settings.querySelector('.sb-nav-hide-nonfavorites');
+  if(hideNonFavorites){
+   const favoritesVisible=available.some(([_,selector])=>favorites.includes(selector)&&!hidden.includes(selector));
+   const nonFavoritesVisible=available.filter(([_,selector])=>!favorites.includes(selector)&&!hidden.includes(selector)).length;
+   const shouldShow=showHidden;
+   if(hideNonFavorites.hidden===shouldShow)hideNonFavorites.hidden=!shouldShow;
+   const shouldDisable=!favoritesVisible||nonFavoritesVisible===0;
+   if(hideNonFavorites.disabled!==shouldDisable)hideNonFavorites.disabled=shouldDisable;
+   const title=nonFavoritesVisible?'☆ Ocultar los no favoritos ('+nonFavoritesVisible+')':'☆ No hay accesos sin estrella visibles';
+   if(hideNonFavorites.textContent!==title)hideNonFavorites.textContent=title;
+   hideNonFavorites.title=!favoritesVisible?'Marca primero algún acceso visible como favorito':nonFavoritesVisible?'Ocultar los accesos sin estrella con confirmación':'Todos los accesos sin estrella ya están ocultos';
+  }
   const stats=nav.querySelector('.sb-nav-stats');
   if(stats){
    const counts={
