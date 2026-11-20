@@ -148,6 +148,23 @@
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
+  const featuredVisibilityKey='sb-profile-featured-visible-'+(isOwn?'own':'public')+'-v1';
+  let featuredVisible=true;
+  try{featuredVisible=localStorage.getItem(featuredVisibilityKey)!=='no'}catch(_){}
+  let featuredToggle=nav.querySelector('.sb-nav-featured-toggle');
+  if(!featuredToggle){
+   featuredToggle=node('button','sb-nav-featured-toggle');
+   featuredToggle.type='button';
+   featuredToggle.addEventListener('click',()=>{
+    const next=featuredToggle.getAttribute('aria-pressed')!=='true';
+    try{localStorage.setItem(featuredVisibilityKey,next?'yes':'no')}catch(_){}
+    enhance(host,isOwn);
+   });
+   nav.querySelector('.sb-nav-details').after(featuredToggle);
+  }
+  const toggleLabel=featuredVisible?'👁 Ocultar accesos destacados':'👁 Mostrar accesos destacados';
+  if(featuredToggle.textContent!==toggleLabel)featuredToggle.textContent=toggleLabel;
+  if(featuredToggle.getAttribute('aria-pressed')!==String(featuredVisible))featuredToggle.setAttribute('aria-pressed',String(featuredVisible));
   const featured=nav.querySelector('.sb-nav-featured')||node('section','sb-nav-featured');
   if(!featured.isConnected){
    featured.setAttribute('aria-label','Mis accesos destacados');
@@ -210,7 +227,8 @@
     featured.append(shortcuts,featuredControls);
    }
   }
-  if(featured.hidden!==(featuredCandidates.length===0))featured.hidden=featuredCandidates.length===0;
+  const shouldHideFeatured=!featuredVisible||featuredCandidates.length===0;
+  if(featured.hidden!==shouldHideFeatured)featured.hidden=shouldHideFeatured;
   const signature=available.map(x=>x[1]).join('|')+'#'+favorites.join('|')+'#'+hidden.join('|')+'#'+showHidden;
   if(links.dataset.signature===signature)return;
   links.dataset.signature=signature;
