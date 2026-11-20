@@ -9,7 +9,8 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # No cancelar una publicación en curso por cada cambio nuevo.
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
