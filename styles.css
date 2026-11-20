@@ -2182,3 +2182,23 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  .community-contest-prizes,.admin-competition-award-panel{padding:11px}
  .admin-competition-award-panel button{width:100%}
 }
+
+
+/* Primer reto anime: acceso al editor y explicación de participación. */
+.community-anime-challenge-action{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.community-anime-challenge-action small{color:#e5d1f7;line-height:1.45}
+.community-anime-challenge-write{
+ display:inline-flex;align-items:center;justify-content:center;min-height:44px;
+ padding:10px 15px;border-radius:12px;border:1px solid #edbbff;
+ background:linear-gradient(120deg,#6233b5,#b12ca4);
+ box-shadow:0 4px 18px #0e062b66;
+ color:white!important;text-decoration:none!important;font-weight:750;
+}
+.community-anime-challenge-write:hover{filter:brightness(1.13)}
+.community-anime-challenge-write:focus-visible{outline:3px solid #ffe2ff;outline-offset:3px}
+.community-anime-draft-instructions{
+ padding:12px 14px;border-radius:12px;
+ background:rgba(97,42,142,.26);border:1px solid rgba(187,141,243,.45);
+ color:#f5e8ff;line-height:1.5
+}
+@media(max-width:620px){.community-anime-challenge-write{width:100%}}
