@@ -36,6 +36,18 @@
    nav.setAttribute('aria-label','Navegar por las secciones del perfil');
    const title=node('h2','','🗺️ Explorar secciones del perfil');
    const desc=node('p','sb-nav-caption','Encuentra rápidamente cada apartado sin perder tu posición.');
+   const stats=node('div','sb-nav-stats');
+   stats.setAttribute('aria-label','Resumen de accesos del perfil');
+   const statFields={};
+   for(const [key,label] of [['total','📂 Disponibles'],['favorites','⭐ Favoritos'],['hidden','🙈 Ocultos'],['results','🔎 Resultados']]){
+    const badge=node('span','sb-nav-stat');
+    badge.append(node('span','sb-nav-stat-label',label));
+    const number=node('strong','sb-nav-stat-number','0');
+    badge.append(number);
+    badge.classList.add('sb-nav-stat-'+key);
+    statFields[key]=number;
+    stats.append(badge);
+   }
    const details=node('details','sb-nav-details');
    const summary=node('summary','sb-nav-summary','Ver accesos rápidos');
    const searchBox=node('div','sb-nav-searchbox');
@@ -144,6 +156,8 @@
     }
     const message=query||enabled?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):''; 
     if(resultCount.textContent!==message)resultCount.textContent=message;
+    const visibleResult=String(visible);
+    if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||nav.dataset.sortMode!=='favorites';
     if(resetFilters.disabled===hasActiveFilters)resetFilters.disabled=!hasActiveFilters;
    };
@@ -153,7 +167,7 @@
    const top=node('button','sb-nav-top','↑ Volver al inicio del perfil');
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
-   nav.append(title,desc,details,top);
+   nav.append(title,desc,stats,details,top);
    anchor.after(nav);
   }
   const links=nav.querySelector('.sb-nav-links');
@@ -194,6 +208,18 @@
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
+  const stats=nav.querySelector('.sb-nav-stats');
+  if(stats){
+   const counts={
+    total:available.length,
+    favorites:available.filter(([_,selector])=>favorites.includes(selector)).length,
+    hidden:available.filter(([_,selector])=>hidden.includes(selector)).length
+   };
+   for(const [name,value] of Object.entries(counts)){
+    const field=stats.querySelector('.sb-nav-stat-'+name+' .sb-nav-stat-number');
+    if(field&&field.textContent!==String(value))field.textContent=String(value);
+   }
+  }
   const sortMode=['favorites','az','za'].includes(nav.dataset.sortMode)?nav.dataset.sortMode:'favorites';
   const sortSelect=nav.querySelector('.sb-nav-sort-select');
   if(sortSelect&&sortSelect.value!==sortMode)sortSelect.value=sortMode;
