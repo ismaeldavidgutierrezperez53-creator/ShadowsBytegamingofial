@@ -448,6 +448,40 @@
     }
    });
    sortBox.append(downloadFilteredCsv);
+   const copyFiltered=node('button','sb-nav-copy-filtered','📋 Copiar resultados filtrados');
+   copyFiltered.type='button';
+   copyFiltered.addEventListener('click',async()=>{
+    const items=[...controls.querySelectorAll('.sb-nav-favorite-item')]
+     .filter(item=>!item.hidden&&item.dataset.shortcutSelector);
+    if(!items.length)return;
+    const favorites=readFavorites();
+    const hidden=readHidden();
+    const list='🔎 Resultados del perfil — Shadows Byte Gaming Official V2\n'+items.map((item,i)=>{
+     const selector=item.dataset.shortcutSelector;
+     return (i+1)+'. '+(item.dataset.searchLabel||'')+
+      (favorites.includes(selector)?' ⭐':'')+
+      (hidden.includes(selector)?' (oculto)':'');
+    }).join('\n');
+    try{
+     if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(list);
+     else{
+      const field=node('textarea','sb-nav-copy-fallback',list);
+      field.value=list;
+      field.setAttribute('readonly','');
+      field.style.position='fixed';
+      field.style.left='-9999px';
+      document.body.append(field);
+      field.select();
+      const copied=document.execCommand('copy');
+      field.remove();
+      if(!copied)throw new Error('No se pudo copiar');
+     }
+     copyFiltered.textContent='✓ Resultados copiados ('+items.length+')';
+    }catch(_){
+     copyFiltered.textContent='No se pudo copiar; revisa permisos';
+    }
+   });
+   sortBox.append(copyFiltered);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -503,6 +537,9 @@
     const filteredLabel='🔎 Descargar resultados filtrados CSV ('+visible+')';
     if(downloadFilteredCsv.disabled!==(visible===0))downloadFilteredCsv.disabled=visible===0;
     if(downloadFilteredCsv.textContent!==filteredLabel)downloadFilteredCsv.textContent=filteredLabel;
+    const copyFilteredLabel='📋 Copiar resultados filtrados ('+visible+')';
+    if(copyFiltered.disabled!==(visible===0))copyFiltered.disabled=visible===0;
+    if(!copyFiltered.textContent.startsWith('✓')&&!copyFiltered.textContent.startsWith('No se pudo')&&copyFiltered.textContent!==copyFilteredLabel)copyFiltered.textContent=copyFilteredLabel;
     const visibleResult=String(visible);
     if(statFields.results.textContent!==visibleResult)statFields.results.textContent=visibleResult;
     const hasActiveFilters=Boolean(query)||enabled||unstarredOnly||hiddenOnly||nav.dataset.sortMode!=='favorites';
