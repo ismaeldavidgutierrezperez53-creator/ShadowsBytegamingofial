@@ -31,6 +31,16 @@
     card.append(privacy);
     const explanation = create('p', 'sb-views-hint', 'Al activarlo, otros miembros que también lo tengan activado podrán saber cuándo visitas sus perfiles. Si lo desactivas, se borran tus visitas registradas y las recibidas.');
     card.append(explanation);
+    const alertPrivacy = create('label', 'sb-views-toggle sb-views-notifications-toggle');
+    const notificationToggle = create('input');
+    notificationToggle.type = 'checkbox';
+    notificationToggle.disabled = true;
+    notificationToggle.setAttribute('aria-label', 'Avisarme cuando alguien visite mi perfil');
+    alertPrivacy.append(notificationToggle, create('span', '', '🔔 Avisarme cuando visiten mi perfil'));
+    card.append(alertPrivacy);
+    const notifyStatus = create('p', 'sb-views-hint sb-views-notification-status', 'Los avisos aparecerán en la campana y el centro de notificaciones. Máximo un aviso por visitante cada 24 horas.');
+    notifyStatus.setAttribute('role', 'status');
+    card.append(notifyStatus);
     const toolbar = create('div', 'sb-views-toolbar');
     const count = create('strong', 'sb-views-count', 'Visitas recientes');
     const refresh = create('button', 'outline-btn mini', '↻ Actualizar');
@@ -113,6 +123,7 @@
         return;
       }
       checkbox.checked = data === true;
+      notificationToggle.disabled = !checkbox.checked;
       if (!checkbox.checked) {
         list.replaceChildren();
         count.textContent = 'Visitas recientes';
@@ -121,8 +132,25 @@
         await loadVisitors();
       }
     });
+    notificationToggle.addEventListener('change', async () => {
+      const requested = notificationToggle.checked;
+      notificationToggle.disabled = true;
+      notifyStatus.textContent = 'Guardando preferencia de avisos…';
+      const { data, error: notificationError } = await sb.rpc('set_profile_view_notifications', { new_notify: requested });
+      if (!card.isConnected) return;
+      if (notificationError) {
+        notificationToggle.checked = !requested;
+        notifyStatus.textContent = 'No se pudo guardar la preferencia. Inténtalo de nuevo.';
+      } else {
+        notificationToggle.checked = data === true;
+        notifyStatus.textContent = data === true
+          ? 'Avisos activados. Como máximo recibirás uno por visitante cada 24 horas.'
+          : 'Avisos desactivados. El historial de visitas seguirá funcionando.';
+      }
+      notificationToggle.disabled = !checkbox.checked;
+    });
     const { data: preferences, error: settingsError } = await sb.from('member_profile_view_settings')
-      .select('enabled').eq('user_id', user.id).maybeSingle();
+      .select('enabled,notify_on_view').eq('user_id', user.id).maybeSingle();
     if (!card.isConnected) return;
     if (settingsError) {
       status.textContent = 'No se pudieron leer los ajustes de privacidad.';
@@ -130,6 +158,8 @@
     }
     checkbox.checked = preferences?.enabled === true;
     checkbox.disabled = false;
+    notificationToggle.checked = preferences?.notify_on_view !== false;
+    notificationToggle.disabled = !checkbox.checked;
     await loadVisitors();
   }
 
