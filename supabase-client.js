@@ -3933,7 +3933,7 @@ async function loadPrivateMessages(){
  filterConversationList();
  const panel=document.createElement('section');panel.className='messages-panel';
  let unreadPartnerToMark=null;
- let loadChatTheme=null,refreshPartnerActivity=null,loadPrivateChatNotifications=null;
+ let loadChatTheme=null,refreshPartnerActivity=null,loadPrivateChatNotifications=null,loadPartnerBirthday=null;
  if(!active){panel.textContent='Selecciona un miembro desde su perfil para comenzar.';}
  else if(!names.has(active)&&!items.some(m=>m.sender_id===active||m.recipient_id===active)){panel.textContent='Este miembro no tiene un perfil público disponible.';}
  else {
@@ -4130,7 +4130,51 @@ async function loadPrivateMessages(){
   };
   callHistorySection.append(callHistoryToggle,callHistoryList);
   chatExtras.append(callToolbar,notificationPanel,giftSection,callHistorySection);
-  panel.append(chatHeader,chatExtras,blockControls);
+  const birthdayBanner=document.createElement('section');birthdayBanner.className='private-chat-birthday-banner';birthdayBanner.hidden=true;
+  const birthdayHeading=document.createElement('strong');birthdayHeading.textContent='🎂 Cumpleaños anime';
+  const birthdayNote=document.createElement('p');
+  const birthdayActions=document.createElement('div');birthdayActions.className='private-chat-birthday-actions';
+  const birthdayStyle=document.createElement('select');birthdayStyle.setAttribute('aria-label','Estilo de tarjeta anime');
+  for(const [value,label] of [['sakura','🌸 Sakura'],['star','⭐ Estrella'],['gaming','🎮 Gamer']]){
+   const option=document.createElement('option');option.value=value;option.textContent=label;birthdayStyle.append(option);
+  }
+  const birthdaySend=document.createElement('button');birthdaySend.type='button';birthdaySend.textContent='💌 Enviar tarjeta anime';
+  const birthdaySendStatus=document.createElement('small');birthdaySendStatus.setAttribute('role','status');
+  birthdayActions.append(birthdayStyle,birthdaySend,birthdaySendStatus);
+  birthdayBanner.append(birthdayHeading,birthdayNote,birthdayActions);
+  const dateInMadrid=()=>{
+   const fields=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',day:'numeric',month:'numeric'})
+    .formatToParts(new Date());
+   return {day:Number(fields.find(p=>p.type==='day')?.value),month:Number(fields.find(p=>p.type==='month')?.value)};
+  };
+  birthdaySend.onclick=async()=>{
+   if(!publicIds.has(active)||blockedByMe.has(active)||blockedMe.has(active))return;
+   birthdaySend.disabled=true;birthdaySendStatus.textContent='Enviando felicitación…';
+   const {error}=await sb.from('member_direct_messages').insert({
+    sender_id:me,recipient_id:active,body:'🎂',
+    message_kind:'birthday',birthday_style:birthdayStyle.value
+   });
+   if(error){birthdaySend.disabled=false;birthdaySendStatus.textContent='No se pudo enviar: '+error.message;return;}
+   birthdaySendStatus.textContent='✅ Tarjeta enviada. ¡Felicidades!';
+   await loadPrivateMessages();
+  };
+  loadPartnerBirthday=async()=>{
+   if(blockedByMe.has(active)||blockedMe.has(active))return;
+   const {data,error}=await sb.from('member_chat_birthday_preferences')
+    .select('birth_day,birth_month,share_birthday').eq('user_id',active).maybeSingle();
+   if(error){console.warn('Cumpleaños del contacto:',error.message);return;}
+   if(!birthdayBanner.isConnected||!data?.share_birthday)return;
+   birthdayBanner.hidden=false;
+   const today=dateInMadrid();
+   const isBirthday=data.birth_day===today.day&&data.birth_month===today.month;
+   const monthNames=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+   birthdayNote.textContent=isBirthday?'🎉 ¡Hoy es el cumpleaños de '+(names.get(active)||'este miembro')+'! Elige una tarjeta especial para felicitarle.':
+    '🎈 Su cumpleaños es el '+data.birth_day+' de '+monthNames[data.birth_month-1]+'. Las tarjetas estarán disponibles ese día.';
+   const alreadySent=items.some(m=>m.sender_id===me&&m.recipient_id===active&&m.message_kind==='birthday'&&new Date(m.created_at).toLocaleDateString('en-GB',{timeZone:'Europe/Madrid'})===new Date().toLocaleDateString('en-GB',{timeZone:'Europe/Madrid'}));
+   birthdayActions.hidden=!isBirthday||alreadySent||!publicIds.has(active);
+   if(alreadySent)birthdaySendStatus.textContent='✅ Ya has enviado tu felicitación de hoy.';
+  };
+  panel.append(chatHeader,chatExtras,birthdayBanner,blockControls);
   const searchWrap=document.createElement('div');searchWrap.className='private-chat-search';
   const searchInput=document.createElement('input');searchInput.type='search';searchInput.placeholder='🔎 Buscar mensajes en esta conversación…';searchInput.setAttribute('aria-label','Buscar mensajes en esta conversación');
   const searchClear=document.createElement('button');searchClear.type='button';searchClear.textContent='Limpiar';searchClear.hidden=true;
@@ -4163,9 +4207,15 @@ async function loadPrivateMessages(){
     history.append(separator);
    }
    const bubble=document.createElement('div');bubble.className='message-bubble'+(m.sender_id===me?' mine':'');
+   if(m.message_kind==='birthday')bubble.classList.add('private-chat-birthday-card','private-chat-birthday-'+m.birthday_style);
    const text=document.createElement('p');text.textContent=m.deleted_at?'Mensaje eliminado':m.body;if(m.deleted_at)text.className='private-chat-deleted';
    const date=document.createElement('small');date.textContent=new Date(m.created_at).toLocaleString('es-ES');
    if(m.reply_to_id){const original=conversationById.get(m.reply_to_id);const quote=document.createElement('div');quote.className='private-chat-reply-quote';quote.textContent=!original?'↪ Mensaje anterior':original.deleted_at?'↪ Mensaje eliminado':'↪ '+(original.sender_id===me?'Tú: ':'Miembro: ')+(original.body?.trim()|| (original.image_path?'📷 Imagen':original.audio_path?'🎤 Audio':'Mensaje'));if(original){quote.title='Ir al mensaje original';quote.tabIndex=0;quote.setAttribute('role','button');const jump=()=>{const target=history.querySelector('[data-message-id="'+original.id+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('private-chat-highlight');setTimeout(()=>target.classList.remove('private-chat-highlight'),1800);}};quote.onclick=jump;quote.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();jump();}};}bubble.append(quote);}
+   if(m.message_kind==='birthday'&&!m.deleted_at){
+    const decoration=document.createElement('div');decoration.className='private-chat-birthday-decoration';
+    decoration.textContent=m.birthday_style==='gaming'?'🎮 🎂 🏆':m.birthday_style==='star'?'⭐ 🎂 ✨':'🌸 🎂 🌸';
+    decoration.setAttribute('aria-hidden','true');bubble.append(decoration);
+   }
    bubble.append(text);
    if(!m.deleted_at){
     const paths=[m.image_path,...(Array.isArray(m.image_paths)?m.image_paths:[])].filter(Boolean);
@@ -4204,7 +4254,7 @@ async function loadPrivateMessages(){
    if(m.edited_at&&!m.deleted_at){const edited=document.createElement('small');edited.className='private-chat-edited';edited.textContent=' · Editado';edited.title='Editado el '+new Date(m.edited_at).toLocaleString('es-ES');bubble.append(edited);}
    if(m.sender_id===me&&!m.deleted_at){
     const receipt=document.createElement('small');receipt.className='message-read-receipt'+(m.is_read?' is-read':'');receipt.textContent=m.is_read?'✓✓ Leído':'✓ Enviado';receipt.setAttribute('aria-label',m.is_read?'Mensaje leído':'Mensaje enviado');bubble.append(receipt);
-    if(m.body?.trim()){
+    if(m.body?.trim()&&m.message_kind!=='birthday'){
      const edit=document.createElement('button');edit.type='button';edit.className='private-chat-edit';edit.textContent='✏️ Editar';
      edit.onclick=()=>{
       if(bubble.querySelector('.private-chat-edit-form'))return;
@@ -4509,6 +4559,7 @@ async function loadPrivateMessages(){
  loadChatTheme?.().catch(console.warn);
  refreshPartnerActivity?.().catch(console.warn);
  loadPrivateChatNotifications?.().catch(console.warn);
+ loadPartnerBirthday?.().catch(console.warn);
  if(active&&!blockedByMe.has(active)&&!blockedMe.has(active)&&panel.querySelector('.private-chat-personal-header'))showIncomingPrivateCall(me,active,names.get(active)||'Miembro',panel).catch(console.warn);
  privateChatActivityInterval=setInterval(()=>{
   if(!root.isConnected||!location.hash.startsWith('#/mensajes')){
