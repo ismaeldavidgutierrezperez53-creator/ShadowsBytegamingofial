@@ -1,0 +1,124 @@
+/* Shadows Byte Gaming Official V2 — Anime motion V3
+   Complementa los pétalos, brillos holográficos y estrellas existentes.
+   Los efectos son puramente visuales y no impiden usar los controles. */
+
+/* 1. Transición anime al cambiar de sección (rutas #/...). */
+#app.sb-anime-route-enter {
+  animation: sb-v3-route-arrive .44s cubic-bezier(.19,.75,.25,1) both;
+}
+@keyframes sb-v3-route-arrive {
+  0%   { opacity: .72; filter: brightness(1.12); transform: translateY(12px) scale(.996); }
+  65%  { opacity: 1; filter: brightness(1.02); }
+  100% { opacity: 1; filter: none; transform: translateY(0) scale(1); }
+}
+/* Estela diagonal breve, creada solo en cambios de ruta. */
+.sb-v3-route-streak {
+  position: fixed;
+  top: max(76px, 16vh);
+  left: 0;
+  width: min(58vw, 520px);
+  height: 3px;
+  z-index: 900;
+  border-radius: 999px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  background: linear-gradient(90deg,transparent,var(--sb-user-neon,#ba6bff),#6be5ff,transparent);
+  box-shadow: 0 0 10px var(--sb-user-glow,#ba6bff66),0 0 22px #65d6ff77;
+  transform: translateX(-110vw) skewX(-25deg);
+  animation: sb-v3-route-streak .6s ease-out both;
+}
+@keyframes sb-v3-route-streak {
+  0% {opacity:0;transform:translateX(-110vw) skewX(-25deg)}
+  28% {opacity:.85}
+  100% {opacity:0;transform:translateX(160vw) skewX(-25deg)}
+}
+
+/* 2. Efectos anime para avatares y tarjetas de identidad de los perfiles. */
+:is(.profile-avatar,.public-member-avatar,.member-avatar,.sbp-identity-avatar) {
+  box-shadow: 0 0 0 1px var(--sb-user-glow,#ba6bff66), 0 0 12px #aa6cff55;
+  animation: sb-v3-avatar-aura 4.3s ease-in-out infinite;
+}
+@keyframes sb-v3-avatar-aura {
+  0%,100% {box-shadow:0 0 0 1px var(--sb-user-glow,#ba6bff66),0 0 10px #aa6cff44}
+  50% {box-shadow:0 0 0 2px var(--sb-user-neon,#ba6bff),0 0 23px var(--sb-user-glow,#ba6bff66)}
+}
+:is(.profile-cover,.public-member-cover) {
+  position: relative;
+  isolation: isolate;
+}
+:is(.profile-cover,.public-member-cover)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 80% 25%,var(--sb-user-glow,#ba6bff66),transparent 54%);
+  opacity: .2;
+  animation: sb-v3-profile-aurora 6s ease-in-out infinite alternate;
+}
+:is(.profile-cover,.public-member-cover) > * {
+  position: relative;
+  z-index: 1;
+}
+@keyframes sb-v3-profile-aurora {
+  0% {opacity:.16}
+  100% {opacity:.5}
+}
+.sbp-identity-card {
+  animation: sb-v3-identity-border 5s ease-in-out infinite;
+}
+@keyframes sb-v3-identity-border {
+  0%,100% {box-shadow: 0 9px 23px #0004,0 0 3px var(--sbp-accent,#ba6bff)}
+  50% {box-shadow: 0 9px 25px #0004,0 0 18px var(--sbp-accent,#ba6bff)}
+}
+
+/* 3. Nueva carga de energía para los botones importantes. */
+:is(.gradient-btn,.outline-btn,.sbp-action,.sb-nav-link,.sb-customize-toggle) {
+  transition: filter .2s ease, box-shadow .2s ease, transform .16s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(.gradient-btn,.outline-btn,.sbp-action,.sb-nav-link,.sb-customize-toggle):not(:disabled):not([aria-disabled="true"]):hover {
+    animation: sb-v3-button-energy .85s ease-out 1;
+  }
+}
+@keyframes sb-v3-button-energy {
+  0%,100% {box-shadow:0 0 10px var(--sb-user-glow,#ba6bff66)}
+  45% {box-shadow:0 0 22px var(--sb-user-neon,#ba6bff),0 0 8px #78e4ff88}
+}
+:is(.gradient-btn,.outline-btn,.sbp-action,.sb-nav-link,.sb-customize-toggle):not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(.975);
+  filter: brightness(1.17);
+}
+
+/* Accesibilidad y uso móvil. */
+@media (max-width: 700px) {
+  .sb-v3-route-streak {width: 45vw;height: 2px;animation-duration: .46s}
+  :is(.profile-avatar,.public-member-avatar,.member-avatar,.sbp-identity-avatar) {
+    animation-duration: 5.5s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app.sb-anime-route-enter,
+  .sb-v3-route-streak,
+  :is(.profile-avatar,.public-member-avatar,.member-avatar,.sbp-identity-avatar),
+  :is(.profile-cover,.public-member-cover)::after,
+  .sbp-identity-card,
+  :is(.gradient-btn,.outline-btn,.sbp-action,.sb-nav-link,.sb-customize-toggle) {
+    animation: none !important;
+    transition: none !important;
+  }
+  #app.sb-anime-route-enter {opacity: 1!important;filter:none!important;transform:none!important}
+  .sb-v3-route-streak {display:none!important}
+}
+html[data-sb-motion="off"] #app.sb-anime-route-enter,
+html[data-sb-motion="off"] :is(.profile-avatar,.public-member-avatar,.member-avatar,.sbp-identity-avatar),
+html[data-sb-motion="off"] :is(.profile-cover,.public-member-cover)::after,
+html[data-sb-motion="off"] .sbp-identity-card,
+html[data-sb-motion="off"] :is(.gradient-btn,.outline-btn,.sbp-action,.sb-nav-link,.sb-customize-toggle) {
+  animation: none !important;
+  transition: none !important;
+}
+html[data-sb-motion="off"] #app.sb-anime-route-enter {opacity:1!important;filter:none!important;transform:none!important}
+html[data-sb-motion="off"] .sb-v3-route-streak {display:none!important}
