@@ -292,7 +292,10 @@
         item.setAttribute('aria-label', item.title);
         const bar = el('span', 'sb-views-monthly-bar');
         bar.style.height = visitsForDay ? Math.max(7, Math.round(visitsForDay / max * 100)) + '%' : '0%';
-        item.append(el('strong', '', format(visitsForDay)), bar, el('small', '', dateNumber));
+        const track = el('span', 'sb-views-monthly-track');
+        track.setAttribute('aria-hidden', 'true');
+        track.append(bar);
+        item.append(el('strong', '', format(visitsForDay)), track, el('small', '', dateNumber));
         dailyChart.append(item);
       }
     }
