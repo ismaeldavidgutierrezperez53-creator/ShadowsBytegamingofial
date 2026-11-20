@@ -81,3 +81,16 @@
 #admin-shop-root .sb-shop-admin__metric strong{font:700 clamp(19px,2.6vw,26px) Rajdhani,Arial,sans-serif;color:#f7e7ff;overflow-wrap:anywhere}
 @media(max-width:850px){#admin-shop-root .sb-shop-admin__toolbar select{flex:1 1 180px}#admin-shop-root .sb-shop-admin__result-count{margin-left:0}#admin-shop-root .sb-shop-admin__item-actions{width:100%}#admin-shop-root .sb-shop-admin__item-actions button{flex:1 1 auto}}
 @media(max-width:600px){#admin-shop-root .sb-shop-admin__toolbar{display:grid;grid-template-columns:1fr 1fr}#admin-shop-root .sb-shop-admin__toolbar select:first-child,#admin-shop-root .sb-shop-admin__result-count{grid-column:1/-1}#admin-shop-root .sb-shop-admin__overview{grid-template-columns:1fr}#admin-shop-root .sb-shop-admin__item-actions{display:grid;grid-template-columns:1fr 1fr}}
+
+
+/* Tienda V2 · merchandising */
+#admin-shop-root .sb-shop-admin__merch-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+#admin-shop-root .sb-shop-admin__merch .sb-shop-admin__section-heading{display:flex;align-items:flex-start;flex-direction:column}
+#admin-shop-root .sb-shop-admin__merch-form .sb-shop-admin__toggle{grid-column:1/-1}
+#admin-shop-root .sb-shop-admin__merch-actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:18px}
+#admin-shop-root .sb-shop-admin__merch-actions button{border-radius:11px;min-height:46px;font:700 17px Rajdhani,Arial,sans-serif;padding:10px 20px;cursor:pointer}
+#admin-shop-root .sb-shop-admin__merch-actions .outline-btn{background:#21172d;border:1px solid #8765ae;color:#ebddff}
+#admin-shop-root .sb-shop-admin__merch-actions button:disabled{opacity:.55;cursor:not-allowed}
+#admin-shop-root .sb-shop-admin__item-actions .sb-shop-admin__promote{background:#2d2540;color:#ffdf9d;border-color:#a28543}
+#admin-shop-root .sb-shop-admin__item-actions button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:690px){#admin-shop-root .sb-shop-admin__merch-form{grid-template-columns:1fr}#admin-shop-root .sb-shop-admin__merch-form .sb-shop-admin__toggle{grid-column:1}#admin-shop-root .sb-shop-admin__merch-actions button{flex:1}}
