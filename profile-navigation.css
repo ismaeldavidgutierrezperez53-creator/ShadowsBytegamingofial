@@ -227,3 +227,10 @@
 .sb-nav-download-filtered-csv:disabled{opacity:.45;cursor:default}
 .sb-nav-download-filtered-csv:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-download-filtered-csv{width:100%}}
+
+/* Copiar únicamente los accesos que coinciden con los filtros actuales */
+.sb-nav-copy-filtered{min-height:42px;padding:9px 13px;border:1px solid #9cb7c9;border-radius:10px;background:#294959;color:#eaf8ff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-copy-filtered:hover:not(:disabled){background:#386577}
+.sb-nav-copy-filtered:disabled{opacity:.45;cursor:default}
+.sb-nav-copy-filtered:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-copy-filtered{width:100%}}
