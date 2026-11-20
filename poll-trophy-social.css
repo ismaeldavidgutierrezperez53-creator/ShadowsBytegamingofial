@@ -149,3 +149,19 @@
  animation:none!important;transition:none!important
  }
 }
+
+/* Temporary, no-cost preview of locked styles. */
+.poll-museum-shop-try{
+ margin-top:2px;cursor:pointer;
+ background:transparent;border:1px dashed #acb7ee;
+ color:#dcf4ff;border-radius:9px;padding:8px 11px;
+ min-height:38px;font:800 13px Rajdhani,Arial,sans-serif;
+}
+.poll-museum-shop-try:hover{background:rgba(90,125,188,.28)}
+.poll-trophy-museum[data-preview-style=yes] .poll-museum-grid-preview .poll-museum-card{
+ border-color:var(--premium,#acdcff)!important;
+ box-shadow:0 0 25px var(--premium-halo,rgba(120,195,255,.3));
+}
+.poll-trophy-museum[data-preview-style=yes] .poll-museum-grid-preview .poll-museum-medal{
+ filter:drop-shadow(0 0 13px var(--premium,#b3eeff));
+}
