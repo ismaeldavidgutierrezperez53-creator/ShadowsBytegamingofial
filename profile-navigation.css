@@ -160,3 +160,10 @@
 .sb-nav-only-unstarred[aria-pressed="true"]{background:#665035;border-color:#f0c891;color:#ffedcb}
 .sb-nav-only-unstarred:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-only-unstarred{flex:1}}
+
+/* Añadir en bloque los accesos incluidos en los resultados actuales */
+.sb-nav-add-visible-favorites{min-height:43px;padding:8px 12px;border:1px solid #d2b66d;border-radius:10px;background:#59432d;color:#fff0c2;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-add-visible-favorites:hover:not(:disabled){background:#725837}
+.sb-nav-add-visible-favorites:disabled{opacity:.45;cursor:default}
+.sb-nav-add-visible-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-add-visible-favorites{width:100%}}
