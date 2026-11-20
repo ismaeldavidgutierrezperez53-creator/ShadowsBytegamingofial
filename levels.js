@@ -372,6 +372,10 @@ async function renderRewardShop(){
    }
    const description=document.createElement('p');description.textContent=item.description;card.append(description);if(item.image_url&&/^https:\/\//.test(item.image_url)){const img=document.createElement('img');img.src=item.image_url;img.alt='Imagen de '+item.name;img.loading='lazy';img.style.cssText='width:100px;height:100px;object-fit:cover;border-radius:12px;display:block;margin:8px 0';card.append(img)}
    const bought=ownedIds.has(item.id),isEquipped=active.get(category)===item.id;
+   if(bought){
+    const purchasedTag=document.createElement('span');purchasedTag.className='shop-v2-flag shop-explorer-owned';
+    purchasedTag.textContent='✅ En mi colección';card.append(purchasedTag);
+   }
    const priceNow=actualPrice(item);
    const animeTheme=category==='anime_theme';
    const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';
