@@ -18,7 +18,7 @@
 
   // Los enlaces son accesibles tanto desde Inicio como desde Noticias.
   newsCards = function (items) {
-    const visible = Array.isArray(items) ? items.filter(n => n && (n.status == null || n.status === 'published')) : [];
+    const visible = Array.isArray(items) ? items.filter(n => n && (n.status == null || n.status === 'published')).sort((a,b) => Number(!!b.is_featured)-Number(!!a.is_featured)) : [];
     if (!visible.length) return '<div class="empty">Aún no hay noticias publicadas</div>';
     return '<div class="content-grid news-grid">' + visible.map(n => {
       const title = String(n.title || 'Noticia');
@@ -32,13 +32,14 @@
       const imageHTML = img && url ? '<a class="sb-news-cover-link" href="' + escape(url) +
         '" aria-label="Leer ' + escape(title) + '">' + img + '</a>' : img;
       const dateHTML = date ? '<time class="news-date" datetime="' + escape(n.published_at) + '">📅 ' + escape(date) + '</time>' : '';
+      const featuredHTML = n.is_featured ? '<span class="sb-news-featured-badge">⭐ Destacada</span>' : '';
       const titleHTML = '<h3>' + (url ? '<a class="sb-news-title-link" href="' + escape(url) + '">' +
         escape(title) + '</a>' : escape(title)) + '</h3>';
       const readHTML = url
         ? '<a class="sb-news-read-btn" href="' + escape(url) +
           '" aria-label="Leer noticia completa: ' + escape(title) + '">Leer noticia completa <span aria-hidden="true">›</span></a>'
         : '<p class="sb-news-unavailable">No se puede abrir esta noticia.</p>';
-      return '<article class="auth-card news-card">' + imageHTML + dateHTML + titleHTML +
+      return '<article class="auth-card news-card' + (n.is_featured ? ' sb-news-featured-card' : '') + '">' + imageHTML + featuredHTML + dateHTML + titleHTML +
         (excerpt ? '<p>' + escape(excerpt) + '</p>' : '') + readHTML + '</article>';
     }).join('') + '</div>';
   };
@@ -72,7 +73,7 @@
 
     try {
       const { data: n, error } = await sb.from('news')
-        .select('id,title,excerpt,content,cover_url,published_at,status')
+        .select('id,title,excerpt,content,cover_url,published_at,status,is_featured')
         .eq('id', id).eq('status', 'published').maybeSingle();
       if (!host.isConnected || location.hash !== currentHash) return;
       if (error) throw error;
@@ -89,6 +90,7 @@
       host.innerHTML =
         '<article class="sb-full-news">' +
           '<header class="sb-full-news-header"><span class="sb-full-news-kicker">📰 SHADOWS BYTE · NOTICIAS</span>' +
+          (n.is_featured ? '<span class="sb-news-featured-badge">⭐ Noticia destacada</span>' : '') +
           '<h1>' + escape(title) + '</h1>' +
           (date ? '<time datetime="' + escape(n.published_at) + '">📅 ' + escape(date) + '</time>' : '') +
           '</header>' +
