@@ -16,7 +16,7 @@
   };
   const root=el('aside','sb-badge-notify');
   root.setAttribute('aria-label','Notificaciones de insignias');
-  root.hidden=true;
+  root.hidden=false;
   const trigger=el('button','sb-badge-notify-toggle','🔔 Logros');
   trigger.type='button';
   trigger.setAttribute('aria-expanded','false');
@@ -30,13 +30,16 @@
   panel.setAttribute('aria-label','Mis notificaciones de logros');
   const panelTitle=el('h2','','🏆 Notificaciones de insignias');
   const subtitle=el('p','sb-badge-notify-help','Solo tú puedes ver estos avisos. No afectan a los logros obtenidos.');
+  const feedback=el('p','sb-badge-notify-feedback','Consultando tus logros…');
+  feedback.setAttribute('role','status');
+  feedback.setAttribute('aria-live','polite');
   const list=el('div','sb-badge-notify-list');
   const footer=el('div','sb-badge-notify-footer');
   const refreshBtn=el('button','outline-btn mini','↻ Actualizar');
   const myProfileBtn=el('button','outline-btn mini','🎖️ Mi vitrina');
   refreshBtn.type='button';myProfileBtn.type='button';
   footer.append(refreshBtn,myProfileBtn);
-  panel.append(panelTitle,subtitle,list,footer);
+  panel.append(panelTitle,subtitle,feedback,list,footer);
   const toast=el('section','sb-badge-unlock-toast');
   toast.hidden=true;
   toast.setAttribute('role','status');
@@ -74,7 +77,11 @@
     data=[];
     announced.clear();
     toastKey=null;
-    root.hidden=true;
+    root.hidden=false;
+    list.replaceChildren(el('p','sb-badge-notify-empty',
+      'Inicia sesión para consultar tus insignias y las recompensas que hayas obtenido.'));
+    feedback.textContent='Inicia sesión para consultar las notificaciones.';
+    count.hidden=true;
     toast.hidden=true;
     panel.hidden=true;
     trigger.setAttribute('aria-expanded','false');
@@ -133,7 +140,7 @@
     list.replaceChildren();
     if(!data.length){
       list.append(el('p','sb-badge-notify-empty',
-        'Todavía no tienes avisos. Recibirás uno cuando consigas una insignia nueva.'));
+        'Todavía no tienes avisos: las notificaciones y los puntos aparecerán cuando desbloquees una insignia (el primer logro requiere 10 clics en tus enlaces públicos).'));
       return;
     }
     for(const record of data.slice(0,20)){
@@ -238,7 +245,12 @@
     const ticket=++generation;
     try{
       const auth=await sb.auth.getUser();
-      if(auth.error||!auth.data?.user?.id){
+      if(auth.error){
+        reset();
+        feedback.textContent='No se pudo comprobar tu sesión. Pulsa ↻ Actualizar para volver a intentar.';
+        return;
+      }
+      if(!auth.data?.user?.id){
         reset();return;
       }
       const nextUser=auth.data.user.id;
@@ -252,12 +264,19 @@
       if(!Array.isArray(records))throw Error('Lista de notificaciones no válida');
       data=records.filter(x=>x&&badges[x.key]).slice(0,50);
       root.hidden=false;
+      feedback.textContent=data.length
+        ?'Tienes '+number(data.length)+' avisos de insignias.'
+        :'No hay notificaciones pendientes de desbloqueos.';
       drawList();
       if(!toastKey){
         const latest=data.find(x=>!x.read_at&&!announced.has(x.key));
         if(latest)drawToast(latest);
       }
     }catch(error){
+      root.hidden=false;
+      feedback.textContent='No se pudieron cargar los avisos. Comprueba tu conexión y pulsa ↻ Actualizar.';
+      list.replaceChildren(el('p','sb-badge-notify-empty',
+        'El historial está temporalmente no disponible; tus logros y puntos no se han borrado.'));
       console.debug('Notificaciones de insignias:',error);
     }finally{
       loading=false;
@@ -275,6 +294,9 @@
   function init(){
     if(!document.body)return;
     document.body.append(root);
+    feedback.textContent='Inicia sesión para ver los avisos.';
+    list.replaceChildren(el('p','sb-badge-notify-empty',
+      'Abre la campana para consultar tus insignias. Si aún no tienes ninguna, aquí verás cómo obtenerlas.'));
     refresh();
     // Poll while the page is open; badges are earned when someone else clicks.
     setInterval(()=>{if(document.visibilityState==='visible')refresh();},45000);
