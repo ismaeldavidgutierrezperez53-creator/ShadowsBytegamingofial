@@ -96,8 +96,11 @@
       el('span','',badge.name)
     );
     header.append(symbol,copy);
+    const points=Number(record.reward_points)||0;
     const desc=el('p','sb-badge-unlock-note',
-      'Has conseguido un nuevo logro en Shadows Byte Gaming Official.');
+      points>0
+        ?'🎁 +'+number(points)+' puntos acreditados en tu saldo de la tienda por este logro.'
+        :'Has conseguido un nuevo logro en Shadows Byte Gaming Official.');
     const buttons=el('div','sb-badge-unlock-actions');
     const add=el('button','sb-badge-unlock-add','🎖️ Añadir a mi vitrina');
     const dismiss=el('button','sb-badge-unlock-dismiss','Entendido');
@@ -148,6 +151,11 @@
             day:'numeric',month:'short',year:'numeric'
           })));
         }
+      }
+      const reward=Number(record.reward_points)||0;
+      if(reward>0){
+        copy.append(el('span','sb-badge-notify-points',
+          '🎁 +'+number(reward)+' puntos acreditados'));
       }
       head.append(copy);
       if(!record.read_at)head.append(el('span','sb-badge-notify-new','Nuevo'));
