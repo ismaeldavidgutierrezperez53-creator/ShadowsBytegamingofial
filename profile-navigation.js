@@ -86,6 +86,7 @@
     const saved=localStorage.getItem(sortKey);
     if(['favorites','az','za'].includes(saved))sortMode=saved;
    }catch(_){}
+   nav.dataset.sortMode=sortMode;
    const sortBox=node('div','sb-nav-sortbox');
    const sortLabel=node('label','sb-nav-sort-label','Ordenar accesos:');
    const sortSelect=node('select','sb-nav-sort-select');
