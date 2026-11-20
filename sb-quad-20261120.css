@@ -1,0 +1,46 @@
+/* Shadows Byte V2 — navegación, edición, comunidad y lectura (v1).
+   Complemento no destructivo para las funciones existentes. */
+
+/* 1. Búsqueda en el menú; no interfiere con la búsqueda general. */
+.topbar #nav .sb-menu-filter{order:1;display:grid;gap:5px;padding:11px 12px;border:1px solid #71469c;border-radius:13px;background:#20122f}
+.topbar #nav .sb-menu-filter label{display:block;color:#f0d9ff;font:700 16px Rajdhani,Arial,sans-serif}
+.topbar #nav .sb-menu-filter input[type=search]{width:100%;min-width:0;min-height:44px;border:1px solid #9865c9;border-radius:10px;padding:9px 13px;background:#0f0a21;color:#fff;font:600 16px Rajdhani,Arial,sans-serif}
+.topbar #nav .sb-menu-filter input::placeholder{color:#baa4d0}
+.topbar #nav .sb-menu-filter-output{min-height:16px;color:#d9c7e9;font:600 14px Rajdhani,Arial,sans-serif;margin:0}
+.topbar #nav.sb-menu-searching :is(.menu-quick-links,.sb-next-recents){display:none!important}
+.topbar #nav .menu-column[hidden],.topbar #nav .menu-column a[hidden]{display:none!important}
+.topbar #nav .sb-menu-filter input:focus-visible{outline:3px solid #6bdeff;outline-offset:2px}
+
+/* 2. Estado de cambios en el formulario principal del perfil. */
+.sb-profile-unsaved{display:flex;align-items:center;gap:7px;min-height:36px;margin:10px 0;padding:7px 11px;border-radius:10px;border:1px solid #537e69;background:#173529;color:#ddffea;font:700 15px Rajdhani,Arial,sans-serif}
+.sb-profile-unsaved[data-dirty=true]{border-color:#d39b4a;background:#392913;color:#ffe8b6}
+.sb-profile-unsaved[data-saving=true]{border-color:#7aa4d6;background:#182c43;color:#e0f2ff}
+
+/* 3. Publicaciones largas expandibles, con texto completo accesible al pedirlo. */
+.community-bookmark-feed .social-post .social-post-body.sb-post-collapsed{
+  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;
+  overflow:hidden;overflow-wrap:anywhere;
+}
+.community-bookmark-feed .social-post .sb-post-more{display:inline-flex;align-items:center;justify-content:center;min-height:42px;margin:5px 0 11px;padding:7px 12px;border:1px solid #9870bd;border-radius:9px;background:#332044;color:#f8eaff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.community-bookmark-feed .social-post .sb-post-more:hover{background:#553271}
+.community-bookmark-feed .social-post .sb-post-more:focus-visible{outline:3px solid #6bdeff;outline-offset:2px}
+
+/* 4. Modo lectura reversible desde Personalizar; respeta el tema seleccionado. */
+.sb-reading-setting{padding:12px;margin:12px 0;border:1px solid #7651a0;border-radius:12px;background:#251637}
+.sb-reading-setting label{display:block;margin:0 0 7px;color:#f4e3ff;font:700 16px Rajdhani,Arial,sans-serif}
+.sb-reading-setting select{width:100%;min-height:44px;padding:9px;border:1px solid #9c70ce;border-radius:9px;color:#fff;background:#19102d;font:600 16px Rajdhani,Arial,sans-serif}
+.sb-reading-setting p{margin:6px 0 0;color:#d4c3e6;font-size:13px}
+.sb-reading-setting select:focus-visible{outline:3px solid #6bdeff;outline-offset:2px}
+html[data-sb-reading=on] body :is(.social-post-body,.public-member-bio,.news-full-content,.description,.page > p,.profile-panel > p){font-size:max(1.06rem,18px);line-height:1.72;overflow-wrap:anywhere}
+html[data-sb-reading=on] body :is(.news-full-content,.social-post-body,.public-member-bio){max-width:75ch}
+html[data-sb-reading=on] .sb-anime-sparkles,
+html[data-sb-reading=on] .sb-sakura-layer{opacity:.15}
+html[data-sb-reading=on] .sb-v3-route-streak{display:none!important}
+@media(max-width:600px){
+  .topbar #nav .sb-menu-filter{padding:10px}
+  .sb-profile-unsaved{font-size:14px}
+  .community-bookmark-feed .social-post .sb-post-more{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  html[data-sb-reading=on] :is(.social-post-body,.public-member-bio,.news-full-content){transition:none!important}
+}
