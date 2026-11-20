@@ -105,6 +105,7 @@ function awardCard(award,memberId,profile,{featured=false,own=false}={}){
  const rank=medals[Number(award.position)];
  if(!rank)return null;
  const card=create('article','poll-museum-card poll-museum-'+rank.color);
+ card.dataset.trophyMonth=award.month_start;
  card.dataset.animeTheme=safeTheme(profile?.anime_card_style);
  if(featured)card.classList.add('is-featured');
  const ornament=create('span','poll-museum-sparkles','✦ ✧ ✦');
@@ -159,6 +160,7 @@ function previewCards(target){
   card.append(create('span','poll-museum-medal',r.icon));
   card.append(create('strong','poll-museum-award-title',r.name));
   card.append(create('span','poll-museum-preview-stamp','EJEMPLO · NO OFICIAL'));
+  card.append(create('span','poll-museum-like-count','❤️ 0 Me gusta · Vista previa'));
   grid.append(card);
  }
  target.append(grid);
@@ -183,6 +185,7 @@ function mount(host,memberId,{own=false}={}){
  status.setAttribute('role','status');
  root.append(body,status);
  host.append(root);
+ window.SBPollTrophySocial?.mountStyles(root,memberId,{own});
  let epoch=0;
  async function refresh(){
   const rev=++epoch;
@@ -241,6 +244,7 @@ function mount(host,memberId,{own=false}={}){
    if(other.length===0)grid.append(create('p','poll-museum-all-featured','Tu trofeo destacado ya está en la vitrina principal.'));
    favoritesSection.append(grid);body.append(favoritesSection);
    status.textContent='Vitrina actualizada · '+favorites.length+' trofeo'+(favorites.length===1?'':'s')+' favorito'+(favorites.length===1?'':'s')+'.';
+   window.SBPollTrophySocial?.mountLikes(root,memberId,{own,profile});
   }catch(error){
    if(!root.isConnected||rev!==epoch)return;
    body.replaceChildren();
