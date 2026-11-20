@@ -23,18 +23,17 @@
   return data;
  };
  const buildMatch=(match)=>{
-  const card=e('article','community-tournament-v9-match'+(match.winner_id?' is-complete':''));
+  const card=e('article','community-tournament-v9-match'+(match.completed?' is-complete':''));
   const phase=match.stage==='semi'?'Semifinal '+match.match_no:
     match.stage==='bronze'?'Partido por el bronce':'Gran final';
   const top=e('div','community-tournament-v9-match-top');
-  top.append(e('strong','',phase),e('span','',match.winner_id?'✓ Finalizado':'Pendiente'));
+  top.append(e('strong','',phase),e('span','',match.completed?'✓ Finalizado':'Pendiente'));
   card.append(top);
   for(const which of [1,2]){
    const user=e('div','community-tournament-v9-fighter');
    const name=which===1?match.player1_label:match.player2_label;
-   const id=which===1?match.player1_id:match.player2_id;
    const isMe=which===1?match.player1_is_me:match.player2_is_me;
-   const winner=match.winner_id&&match.winner_id===id;
+   const winner=which===1?!!match.player1_won:!!match.player2_won;
    if(winner)user.classList.add('is-winner');
    if(isMe)user.classList.add('is-me');
    user.append(e('span','',winner?'🏅':which===1?'⚔️':'🛡️'),
@@ -42,7 +41,7 @@
    if(winner)user.append(e('strong','','Ganador'));
    card.append(user);
   }
-  if(!match.winner_id)card.append(e('small','','El administrador confirmará el resultado después del enfrentamiento.'));
+  if(!match.completed)card.append(e('small','','El administrador confirmará el resultado después del enfrentamiento.'));
   return card;
  };
  const tournamentCard=(t,matches,rank,token)=>{
@@ -158,7 +157,7 @@
    else{
     const content=await Promise.all(tournaments.map(async t=>{
      const [matches,ranking]=await Promise.all([
-      sb.rpc('get_community_tournament_matches',{p_id:t.tournament_id}),
+      sb.rpc('get_public_community_tournament_matches',{p_id:t.tournament_id}),
       sb.rpc('get_community_tournament_ranking',{p_id:t.tournament_id})
      ]);
      return {t,matches:matches.data||[],ranking:ranking.data||[],error:matches.error?.message||ranking.error?.message};
