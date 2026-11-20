@@ -1,0 +1,73 @@
+/* Shadows Byte Gaming Official V2 — calendario y temporadas anime V7 */
+#reward-shop .shop-season-v7{scroll-margin-top:110px;margin:27px 0;padding:22px;border:1px solid #8059ae;border-radius:20px;background:radial-gradient(circle at 95% 5%,#9e65f524,transparent 48%),linear-gradient(140deg,#21152d,#11101d);color:#f4edff;box-shadow:0 13px 34px #0004}
+#reward-shop .shop-season-v7-header{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:21px}
+#reward-shop .shop-season-v7-header h3{font-size:27px;color:#f6ddff;line-height:1.2;margin:0 0 9px}
+#reward-shop .shop-season-v7-header p{font-size:15px;line-height:1.55;color:#d1c0dc;margin:0;max-width:700px}
+#reward-shop .shop-season-v7-summary{display:flex;gap:9px;flex-wrap:wrap}
+#reward-shop .shop-season-v7-summary-item{display:grid;gap:3px;min-width:83px;text-align:center;padding:10px;border:1px solid #6b4b8a;border-radius:11px;background:#ffffff09}
+#reward-shop .shop-season-v7-summary-item strong{color:#b8f6e0;font-size:23px;line-height:1.1}
+#reward-shop .shop-season-v7-summary-item span{color:#cdbbdb;font-size:12px}
+#reward-shop .shop-season-v7-calendar{scroll-margin-top:115px;border:1px solid #6f548c;border-radius:15px;padding:17px;background:#160f22;margin:0 0 20px}
+#reward-shop .shop-season-v7-calendar-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:13px}
+#reward-shop .shop-season-v7-calendar-head h4{margin:0;font-size:21px;color:#edd9fc}
+#reward-shop .shop-season-v7-navigation{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#reward-shop .shop-season-v7-navigation button{font-size:13px;border-radius:8px;padding:8px 11px;min-height:38px;cursor:pointer;background:#352449;border:1px solid #785d95;color:#f2e6ff}
+#reward-shop .shop-season-v7-navigation button:hover{background:#47315d}
+#reward-shop .shop-season-v7-month-label{font-size:16px;min-width:140px;text-align:center;text-transform:capitalize;color:#f0d9fc}
+#reward-shop .shop-season-v7-weekdays,#reward-shop .shop-season-v7-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+#reward-shop .shop-season-v7-weekdays{margin:8px 0}
+#reward-shop .shop-season-v7-weekdays span{text-align:center;font-size:13px;font-weight:800;color:#cbb7db}
+#reward-shop .shop-season-v7-day{position:relative;display:grid;place-items:center;min-width:0;aspect-ratio:1.5;padding:7px 2px;border-radius:9px;border:1px solid #55426b;background:#1f172d;color:#d5ccdf;font-size:15px}
+#reward-shop .shop-season-v7-day:disabled{opacity:.7;cursor:default}
+#reward-shop .shop-season-v7-day.has-event{border-color:#af82cf;background:#4a3167;color:#fff;cursor:pointer;font-weight:800}
+#reward-shop .shop-season-v7-day.has-event:hover{background:#614184}
+#reward-shop .shop-season-v7-day.is-live{background:#20564a;border-color:#65e2b5}
+#reward-shop .shop-season-v7-day.is-today{outline:2px solid #f9d799;outline-offset:-3px}
+#reward-shop .shop-season-v7-dot{width:5px;height:5px;border-radius:50%;background:#f4d1ff;position:absolute;bottom:5px}
+#reward-shop .shop-season-v7-calendar-note{font-size:12px;color:#d2bedf;line-height:1.5;margin:12px 0 0}
+#reward-shop .shop-season-v7-events{display:grid;gap:16px}
+#reward-shop .shop-season-v7-event{scroll-margin-top:115px;outline-offset:4px;border:1px solid #7c589c;border-radius:17px;padding:20px;min-width:0;background:linear-gradient(120deg,#2b1b40,#151323)}
+#reward-shop .shop-season-v7-christmas{border-color:#66a8a6;background:radial-gradient(circle at 95% 5%,#50c6bb21,transparent 40%),linear-gradient(130deg,#1b3340,#171426)}
+#reward-shop .shop-season-v7-halloween{border-color:#b87854;background:radial-gradient(circle at 95% 0%,#dc7c3128,transparent 42%),linear-gradient(130deg,#342032,#181423)}
+#reward-shop .shop-season-v7-anniversary{border-color:#cdac6d;background:linear-gradient(135deg,#493242,#1a1724)}
+#reward-shop .shop-season-v7-focus{outline:2px solid #f3dbff}
+#reward-shop .shop-season-v7-event-header{display:flex;gap:11px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#reward-shop .shop-season-v7-event-heading{display:flex;gap:10px;align-items:center;min-width:0}
+#reward-shop .shop-season-v7-event-emoji{font-size:33px}
+#reward-shop .shop-season-v7-event-heading h4{font-size:23px;color:#f9eaff;line-height:1.2;margin:0;overflow-wrap:anywhere}
+#reward-shop .shop-season-v7-state{font-size:13px;font-weight:800;padding:6px 10px;border-radius:999px;border:1px solid #796189;background:#372747;color:#dccbe9}
+#reward-shop .shop-season-v7-state-live{color:#b6f9de;border-color:#58bb91;background:#234c3b}
+#reward-shop .shop-season-v7-state-upcoming{color:#ffe6b4;border-color:#ad8750;background:#45331e}
+#reward-shop .shop-season-v7-event-desc{color:#d8c9e5;font-size:15px;line-height:1.5;margin:12px 0}
+#reward-shop .shop-season-v7-event-dates{display:flex;gap:12px 24px;flex-wrap:wrap;color:#e3d5ed;font-size:14px}
+#reward-shop .shop-season-v7-show-month{cursor:pointer;padding:8px 12px;margin:12px 0;border:1px solid #9980b7;border-radius:9px;background:#39274c;color:#f3e4ff}
+#reward-shop .shop-season-v7-missions-title{font-size:19px;color:#f2dafd;margin:12px 0}
+#reward-shop .shop-season-v7-missions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#reward-shop .shop-season-v7-mission{min-width:0;display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid #6b5381;border-radius:13px;background:#161220}
+#reward-shop .shop-season-v7-mission.is-ready{border-color:#60d9b2;background:#193329}
+#reward-shop .shop-season-v7-mission.is-claimed{border-color:#517c6d;background:#1b2829}
+#reward-shop .shop-season-v7-mission-name{font-size:17px;color:#f5dfff;line-height:1.3}
+#reward-shop .shop-season-v7-mission-description{color:#d4c5e0;font-size:14px;line-height:1.5;margin:0;flex:1}
+#reward-shop .shop-season-v7-mission-stats{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px;color:#d5c8df}
+#reward-shop .shop-season-v7-mission-stats strong{font-size:15px;color:#abf2d7}
+#reward-shop .shop-season-v7-meter{width:100%;height:10px;border:0;border-radius:999px;overflow:hidden;appearance:none;background:#150d1b}
+#reward-shop .shop-season-v7-meter::-webkit-progress-bar{background:#150d1b}
+#reward-shop .shop-season-v7-meter::-webkit-progress-value{background:linear-gradient(90deg,#9f72ec,#42d5a9)}
+#reward-shop .shop-season-v7-meter::-moz-progress-bar{background:linear-gradient(90deg,#9f72ec,#42d5a9)}
+#reward-shop .shop-season-v7-mission-reward{display:grid;gap:5px;padding:10px;border-radius:10px;border:1px dashed #9872a9;background:#ffffff08}
+#reward-shop .shop-season-v7-points{font-size:14px;color:#aaf6d7;font-weight:800}
+#reward-shop .shop-season-v7-exclusive{font-size:13px;color:#f8dcaa;line-height:1.4}
+#reward-shop .shop-season-v7-claim,#reward-shop .shop-season-v7-equip{align-self:flex-start;min-height:40px;max-width:100%;padding:9px 12px;border-radius:10px;cursor:pointer;white-space:normal}
+#reward-shop .shop-season-v7-claim:disabled,#reward-shop .shop-season-v7-equip:disabled{opacity:.65;cursor:not-allowed}
+#reward-shop .shop-season-v7-equip{border:1px solid #9565c0;color:#f7eaff;background:#402758}
+#reward-shop .shop-season-v7-action-status{font-size:13px;line-height:1.4;color:#dfcbe9;margin:0;min-height:16px}
+#reward-shop .shop-season-v7-success{background:#184536;color:#c0ffe0;border:1px solid #59be97;padding:13px 15px;border-radius:11px;font-weight:700;line-height:1.5}
+#reward-shop .shop-season-v7-empty{font-size:15px;color:#d8c8df;line-height:1.5}
+#reward-shop .shop-season-v7-footer{font-size:13px;line-height:1.55;color:#cebddc;margin:16px 0 0}
+#reward-shop .shop-season-v7-error{color:#ffcbd6;font-size:15px}
+#reward-shop .shop-season-v7-shortcut{display:inline-flex;align-items:center;justify-content:center;margin:6px 8px 14px 0;max-width:100%;min-height:40px;padding:9px 15px;border:1px solid #a477d1;border-radius:10px;background:#37244f;color:#f2e7fb;font-weight:700;cursor:pointer;white-space:normal}
+#reward-shop .shop-season-v7-shortcut:hover{background:#50376c}
+@media(max-width:1120px){#reward-shop .shop-season-v7-missions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:770px){#reward-shop .shop-season-v7-missions{grid-template-columns:minmax(0,1fr)}#reward-shop .shop-season-v7-header{display:grid}#reward-shop .shop-season-v7-summary{justify-content:flex-start}#reward-shop .shop-season-v7-month-label{min-width:100px}}
+@media(max-width:550px){#reward-shop .shop-season-v7{padding:14px}#reward-shop .shop-season-v7-calendar{padding:11px}#reward-shop .shop-season-v7-event{padding:14px}#reward-shop .shop-season-v7-day{font-size:13px;aspect-ratio:1.05}#reward-shop .shop-season-v7-weekdays,#reward-shop .shop-season-v7-days{gap:4px}#reward-shop .shop-season-v7-navigation{width:100%;gap:5px}#reward-shop .shop-season-v7-navigation button{padding:6px 8px}#reward-shop .shop-season-v7-mission .shop-season-v7-claim,#reward-shop .shop-season-v7-mission .shop-season-v7-equip{align-self:stretch;width:100%}}
+@media(prefers-reduced-motion:reduce){#reward-shop .shop-season-v7 *,#reward-shop .shop-season-v7{animation:none!important;transition:none!important}}
