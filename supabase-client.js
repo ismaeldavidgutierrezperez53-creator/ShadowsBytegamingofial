@@ -123,8 +123,8 @@ async function ensurePublicMemberProfile(user){
  if(!user?.id||publicProfileBootstrap.has(user.id))return;
  publicProfileBootstrap.add(user.id);
  const meta=user.user_metadata||{};
- const displayName=String(meta.display_name||meta.full_name||meta.name||'').replace(/\\s+/g,' ').trim().slice(0,60);
- const avatarUrl=typeof meta.avatar_url==='string'&&/^https:\\/\\/[^\\s]+$/i.test(meta.avatar_url)?meta.avatar_url:null;
+ const displayName=String(meta.display_name||meta.full_name||meta.name||'').replace(/\s+/g,' ').trim().slice(0,60);
+ const avatarUrl=typeof meta.avatar_url==='string'&&/^https:\/\/[^\s]+$/i.test(meta.avatar_url)?meta.avatar_url:null;
  try{
   const {data,error}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
   if(error)throw error;
