@@ -260,3 +260,10 @@
 .sb-nav-bulk-details:not([open]) .sb-nav-bulk-tools{display:none}
 .sb-nav-bulk-details .sb-nav-bulk-feedback{margin:0 12px 10px}
 @media(max-width:550px){.sb-nav-bulk-tools{display:grid;grid-template-columns:minmax(0,1fr)}.sb-nav-bulk-tools>button{width:100%}}
+
+/* Copia completa de los accesos del perfil, incluidos ocultos */
+.sb-nav-copy-all-shortcuts{min-height:42px;padding:9px 13px;border:1px solid #96b9bb;border-radius:10px;background:#294a4d;color:#e8ffff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-copy-all-shortcuts:hover:not(:disabled){background:#376367}
+.sb-nav-copy-all-shortcuts:disabled{opacity:.45;cursor:default}
+.sb-nav-copy-all-shortcuts:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-copy-all-shortcuts{width:100%}}
