@@ -8,3 +8,10 @@
 .sb-profile-backup-notice{font-size:14px;color:#dfcbea;overflow-wrap:anywhere}
 .sb-profile-backup-notice:empty{display:none}
 @media(max-width:550px){.sb-profile-backup-actions{flex-direction:column}.sb-profile-backup-btn{width:100%}}
+
+.sb-profile-backup-preview{margin:13px 0;padding:14px;border:1px solid #9b78c1;border-radius:12px;background:#2c1d41}
+.sb-profile-backup-preview[hidden]{display:none!important}
+.sb-profile-backup-preview h4{margin:0 0 8px;font-size:17px;color:#f6eaff}
+.sb-profile-backup-reset{border-color:#bb829b;background:#443045}
+.sb-profile-backup-reset:hover{background:#75455a}
+.sb-profile-backup-preview .sb-profile-backup-actions{margin-top:12px}
