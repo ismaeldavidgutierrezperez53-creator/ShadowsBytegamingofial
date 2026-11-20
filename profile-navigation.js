@@ -47,14 +47,24 @@
   }
   const links=nav.querySelector('.sb-nav-links');
   const summary=nav.querySelector('.sb-nav-summary');
+  const key='sb-profile-favorite-sections-'+(isOwn?'own':'public')+'-v1';
+  const readFavorites=()=>{
+   try{
+    const saved=JSON.parse(localStorage.getItem(key)||'[]');
+    return Array.isArray(saved)?saved.filter(x=>typeof x==='string').slice(0,25):[];
+   }catch(_){return []}
+  };
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
-  const signature=available.map(x=>x[1]).join('|');
+  const favorites=readFavorites();
+  const signature=available.map(x=>x[1]).join('|')+'#'+favorites.join('|');
   if(links.dataset.signature===signature)return;
   links.dataset.signature=signature;
   links.replaceChildren();
   summary.textContent='Ver accesos rápidos ('+available.length+')';
-  for(const [label,selector] of available){
+  const ordered=[...available].sort((a,b)=>Number(favorites.includes(b[1]))-Number(favorites.includes(a[1])));
+  for(const [label,selector] of ordered){
+   const item=node('div','sb-nav-favorite-item');
    const button=node('button','sb-nav-link',label);
    button.type='button';
    button.onclick=()=>{
@@ -63,10 +73,23 @@
     target.dispatchEvent(new Event('sb:profile-expand'));
     target.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
     target.classList.add('sb-nav-target');
-    // Solo una indicación visual, sin cambios de información.
     target.addEventListener('animationend',()=>target.classList.remove('sb-nav-target'),{once:true});
    };
-   links.append(button);
+   const selected=favorites.includes(selector);
+   const star=node('button','sb-nav-star'+(selected?' is-favorite':''),selected?'★':'☆');
+   star.type='button';
+   star.setAttribute('aria-label',(selected?'Quitar de favoritos: ':'Añadir a favoritos: ')+label);
+   star.setAttribute('aria-pressed',String(selected));
+   star.title=selected?'Quitar de favoritos':'Marcar como favorito';
+   star.onclick=()=>{
+    const current=readFavorites();
+    const nextList=current.includes(selector)?current.filter(x=>x!==selector):[...current,selector];
+    try{localStorage.setItem(key,JSON.stringify(nextList))}catch(_){}
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   };
+   item.append(button,star);
+   links.append(item);
   }
  }
  let scheduled=false;
