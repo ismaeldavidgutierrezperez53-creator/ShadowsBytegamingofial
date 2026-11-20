@@ -55,36 +55,170 @@
     const note=el('p','sbpm-note',isOwner
       ?'No se conceden puntos extra. Al completar una meta, la medalla se guarda automáticamente en Supabase. Se muestran las 50 medallas más recientes.'
       :'Las medallas son reconocimientos visuales; no representan premios canjeables.');
-    panel.append(h2,intro,toolbar,status,summary,historyTitle,history,note);
+    // Personalización exclusiva del propietario: la galería histórica no cambia.
+    let editor=null,editorStatus=null,featuredList=null,availableList=null;
+    if(isOwner){
+      editor=el('section','sbpm-editor');
+      editor.setAttribute('aria-label','Personalizar mi vitrina de medallas');
+      editor.append(
+        el('h3','','✨ Mi vitrina de medallas favoritas'),
+        el('p','sbpm-editor-intro',
+          'Destaca hasta 3 medallas que hayas ganado. Elige cuáles mostrar, cambia su orden o quítalas sin perder los logros.')
+      );
+      editorStatus=el('p','sbpm-editor-status','Cargando medallas favoritas…');
+      editorStatus.setAttribute('role','status');
+      editorStatus.setAttribute('aria-live','polite');
+      featuredList=el('div','sbpm-featured-list');
+      availableList=el('div','sbpm-available-list');
+      editor.append(editorStatus,el('h4','','⭐ Destacadas en mi perfil'),featuredList,
+        el('h4','','🏅 Medallas disponibles'),availableList);
+    }
+    panel.append(h2,intro,toolbar,status,summary);
+    if(editor)panel.append(editor);
+    panel.append(historyTitle,history,note);
     const anchor=isOwner
       ?(root.querySelector('.sbpg-panel')||root.querySelector('.sbrs-panel')||identity)
       :(root.querySelector('.sbgl-badges')||identity);
     anchor.after(panel);
 
-    let last=0;
+    let last=0,busy=false,memberId=null,unlocked=[],selectedIds=[],selectedRecords=[];
     const active=()=>root.isConnected&&panel.isConnected&&
       location.hash.split('?')[0]===(isOwner?'#/cuenta':'#/perfil');
 
     function drawStrip(items){
       strip.replaceChildren();
-      if(!items.length){strip.hidden=true;return;}
+      if(!items.length){
+        strip.hidden=!isOwner;
+        if(isOwner){
+          strip.hidden=false;
+          strip.append(el('small','sbpm-strip-caption','🎖️ Medallas favoritas'),
+            el('small','sbpm-strip-empty','Todavía no has destacado ninguna medalla.'));
+        }
+        return;
+      }
       strip.hidden=false;
-      strip.append(el('small','sbpm-strip-caption','🎖️ Medallas por metas'));
+      strip.append(el('small','sbpm-strip-caption','✨ Medallas favoritas'));
       const tray=el('div','sbpm-strip-tray');
       tray.setAttribute('role','list');
       for(const item of items.slice(0,3)){
-        const t=medals[item.tier];
-        const chip=el('span','sbpm-strip-chip sbpm--'+t.className,
-          t.icon+' '+toNumber(item.target_points)+' pts');
-        chip.title=t.label+' · Meta completada: '+toNumber(item.target_points)+' puntos';
+        const tier=medals[item.tier];
+        const chip=el('span','sbpm-strip-chip sbpm--'+tier.className,
+          tier.icon+' '+toNumber(item.target_points)+' pts');
+        chip.title=tier.label+' · Meta completada: '+toNumber(item.target_points)+' puntos';
         chip.setAttribute('role','listitem');
         tray.append(chip);
       }
       strip.append(tray);
     }
 
+    function detailsFor(ids){
+      const all=new Map([...unlocked,...selectedRecords].map(item=>[Number(item.goal_id),item]));
+      return ids.map(id=>all.get(id)).filter(valid);
+    }
+
+    function drawEditor(){
+      if(!isOwner||!editor||!active())return;
+      featuredList.replaceChildren();
+      availableList.replaceChildren();
+      const highlighted=detailsFor(selectedIds);
+      if(!selectedIds.length){
+        featuredList.append(el('p','sbpm-editor-empty',
+          'No has elegido medallas favoritas. Selecciona una medalla de la lista inferior.'));
+      }
+      highlighted.forEach((item,index)=>{
+        const tier=medals[item.tier];
+        const row=el('div','sbpm-featured-row sbpm--'+tier.className);
+        row.append(el('strong','',tier.icon+' '+tier.label+' · '+toNumber(item.target_points)+' puntos'));
+        const actions=el('div','sbpm-editor-actions');
+        const up=el('button','outline-btn mini','↑ Subir');
+        const down=el('button','outline-btn mini','↓ Bajar');
+        const remove=el('button','outline-btn mini','Quitar');
+        [up,down,remove].forEach(button=>{button.type='button';button.disabled=busy;});
+        up.disabled=busy||index===0;
+        down.disabled=busy||index===highlighted.length-1;
+        up.setAttribute('aria-label','Subir '+tier.label+' de '+toNumber(item.target_points)+' puntos');
+        down.setAttribute('aria-label','Bajar '+tier.label+' de '+toNumber(item.target_points)+' puntos');
+        remove.setAttribute('aria-label','Quitar '+tier.label+' de la vitrina');
+        up.addEventListener('click',()=>{
+          if(busy||index===0)return;
+          const next=selectedIds.slice();
+          [next[index-1],next[index]]=[next[index],next[index-1]];
+          save(next,'Orden de medallas guardado.');
+        });
+        down.addEventListener('click',()=>{
+          if(busy||index===highlighted.length-1)return;
+          const next=selectedIds.slice();
+          [next[index],next[index+1]]=[next[index+1],next[index]];
+          save(next,'Orden de medallas guardado.');
+        });
+        remove.addEventListener('click',()=>{
+          if(!busy)save(selectedIds.filter(id=>id!==Number(item.goal_id)),
+            'Medalla quitada de la vitrina; permanece en tu medallero.');
+        });
+        actions.append(up,down,remove);
+        row.append(actions);
+        featuredList.append(row);
+      });
+      const selected=new Set(selectedIds);
+      const candidates=unlocked.filter(item=>!selected.has(Number(item.goal_id)));
+      if(!candidates.length){
+        availableList.append(el('p','sbpm-editor-empty',
+          unlocked.length===0
+            ?'Todavía no has completado ninguna meta. Completa una para desbloquear tu primera medalla.'
+            :selectedIds.length>=unlocked.length
+              ?'Todas tus medallas disponibles están destacadas.'
+              :'No hay más medallas recientes para añadir.'));
+      }else{
+        for(const item of candidates){
+          const tier=medals[item.tier];
+          const row=el('div','sbpm-available-row sbpm--'+tier.className);
+          row.append(el('span','',tier.icon+' '+tier.label+' · '+toNumber(item.target_points)+' puntos'));
+          const add=el('button','gradient-btn mini','+ Añadir');
+          add.type='button';
+          add.disabled=busy||selectedIds.length>=3;
+          add.setAttribute('aria-label','Destacar '+tier.label+' por '+toNumber(item.target_points)+' puntos');
+          add.addEventListener('click',()=>{
+            if(!busy&&selectedIds.length<3)
+              save([...selectedIds,Number(item.goal_id)],'Medalla añadida a la vitrina.');
+          });
+          row.append(add);
+          availableList.append(row);
+        }
+      }
+      featuredList.append(el('small','sbpm-editor-limit',
+        selectedIds.length+' de 3 medallas destacadas. La vitrina respeta la visibilidad y los bloqueos del perfil.'));
+    }
+
+    async function save(next,message){
+      if(!isOwner||busy||!memberId||!active())return;
+      if(!Array.isArray(next)||next.length>3||new Set(next).size!==next.length)return;
+      busy=true;
+      ++last;
+      editorStatus.textContent='Guardando medallas favoritas…';
+      drawEditor();
+      try{
+        const auth=await sb.auth.getUser();
+        if(auth.error||auth.data?.user?.id!==memberId)
+          throw Error('La sesión ha cambiado. Inicia sesión de nuevo.');
+        const {data,error}=await sb.rpc('set_my_point_goal_showcase',{p_goal_ids:next});
+        if(error||!data?.saved)throw error||Error('No se pudo confirmar el guardado.');
+        if(!active())return;
+        selectedIds=next.slice();
+        selectedRecords=detailsFor(selectedIds);
+        drawStrip(selectedRecords);
+        window.dispatchEvent(new Event('sb:point-medal-showcase-updated'));
+        editorStatus.textContent=message;
+      }catch(error){
+        if(active())editorStatus.textContent='No se pudieron guardar los cambios: '+
+          String(error.message||'Error desconocido');
+      }finally{
+        busy=false;
+        if(active())drawEditor();
+      }
+    }
+
     function draw(items){
-      drawStrip(items);
+      drawStrip(selectedRecords);
       panel.hidden=!isOwner&&items.length===0;
       if(panel.hidden)return;
       status.textContent=items.length
@@ -106,6 +240,7 @@
       if(!items.length){
         history.append(el('p','sbpm-empty',
           'Completa tu primera meta para desbloquear una medalla. Puedes crearla en «🏆 Mis metas de puntos».'));
+        if(isOwner)drawEditor();
         return;
       }
       for(const item of items){
@@ -122,28 +257,40 @@
         row.append(details);
         history.append(row);
       }
+      if(isOwner)drawEditor();
     }
 
     async function load(){
+      if(busy)return;
       const ticket=++last;
       if(isOwner)refresh.disabled=true;
       status.textContent='Consultando medallas…';
       try{
         if(typeof sb==='undefined'||!sb?.auth||!sb?.rpc)throw Error('Supabase no disponible');
-        let memberId;
+        let targetMember;
         if(isOwner){
           const session=await sb.auth.getUser();
           if(session.error||!session.data?.user?.id)throw Error('Inicia sesión');
-          memberId=session.data.user.id;
+          targetMember=session.data.user.id;
         }else{
-          memberId=new URLSearchParams(location.hash.split('?')[1]||'').get('id');
-          if(!uuid.test(String(memberId)))throw Error('Perfil no disponible');
+          targetMember=new URLSearchParams(location.hash.split('?')[1]||'').get('id');
+          if(!uuid.test(String(targetMember)))throw Error('Perfil no disponible');
         }
-        const {data,error}=await sb.rpc('get_member_point_goal_medals',{target_member:memberId});
+        const [medalResponse,showcaseResponse]=await Promise.all([
+          sb.rpc('get_member_point_goal_medals',{target_member:targetMember}),
+          sb.rpc('get_member_point_goal_showcase',{target_member:targetMember})
+        ]);
         if(ticket!==last||!active())return;
-        if(error)throw error;
-        if(!Array.isArray(data))throw Error('Respuesta de medallas no válida');
-        draw(data.filter(valid).slice(0,50));
+        if(medalResponse.error)throw medalResponse.error;
+        if(showcaseResponse.error)throw showcaseResponse.error;
+        if(!Array.isArray(medalResponse.data)||!Array.isArray(showcaseResponse.data))
+          throw Error('Los datos de las medallas están incompletos.');
+        memberId=targetMember;
+        unlocked=medalResponse.data.filter(valid).slice(0,50);
+        selectedRecords=showcaseResponse.data.filter(valid).slice(0,3);
+        selectedIds=selectedRecords.map(item=>Number(item.goal_id));
+        draw(unlocked);
+        if(isOwner)editorStatus.textContent=selectedIds.length+' de 3 medallas destacadas. Puedes cambiar el orden o quitarlas.';
       }catch(error){
         if(ticket!==last||!active())return;
         status.textContent='No se pudieron cargar las medallas. '+(isOwner?'Pulsa ↻ Actualizar.':'');
