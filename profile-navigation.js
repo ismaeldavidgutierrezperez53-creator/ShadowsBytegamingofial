@@ -368,6 +368,51 @@
     }
    });
    sortBox.append(downloadCsv);
+   const downloadAllCsv=node('button','sb-nav-download-all-csv','📑 Descargar todos los accesos CSV');
+   downloadAllCsv.type='button';
+   downloadAllCsv.addEventListener('click',()=>{
+    const favorites=readFavorites();
+    const hidden=readHidden();
+    const entries=modules.filter(([_,selector,own])=>own===isOwn&&host.querySelector(selector));
+    const mode=nav.dataset.sortMode;
+    const clean=entry=>entry[0].replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+/,'').trim();
+    const compare=(a,b)=>clean(a).localeCompare(clean(b),'es',{sensitivity:'base'});
+    entries.sort((a,b)=>{
+     if(mode==='az')return compare(a,b);
+     if(mode==='za')return compare(b,a);
+     const ia=favorites.indexOf(a[1]),ib=favorites.indexOf(b[1]);
+     if(ia<0&&ib<0)return 0;
+     if(ia<0)return 1;
+     if(ib<0)return -1;
+     return ia-ib;
+    });
+    if(!entries.length)return;
+    const csvCell=value=>{
+     let raw=String(value);
+     if(/^\s*[=+@-]/.test(raw))raw="'"+raw;
+     return '"'+raw.replace(/"/g,'""')+'"';
+    };
+    const rows=[['Orden','Acceso','Favorito','Estado'],...entries.map(([label,selector],index)=>[
+     String(index+1),label,favorites.includes(selector)?'Sí':'No',hidden.includes(selector)?'Oculto':'Visible'
+    ])];
+    const csv='sep=;\r\n'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
+    try{
+     const blob=new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'});
+     const url=URL.createObjectURL(blob);
+     const link=node('a');
+     link.href=url;
+     link.download='shadows-byte-todos-los-accesos-'+(isOwn?'mi-perfil':'perfil-publico')+'.csv';
+     link.style.display='none';
+     document.body.append(link);
+     link.click();
+     link.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1000);
+     downloadAllCsv.textContent='✓ CSV completo preparado ('+entries.length+')';
+    }catch(_){
+     downloadAllCsv.textContent='No se pudo preparar el CSV completo';
+    }
+   });
+   sortBox.append(downloadAllCsv);
    const controls=node('div','sb-nav-links');
    const applyFilter=()=>{
     if(bulkFeedback.textContent)bulkFeedback.textContent='';
@@ -592,6 +637,13 @@
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
+  const downloadAllCsv=nav.querySelector('.sb-nav-download-all-csv');
+  if(downloadAllCsv){
+   const count=available.length;
+   if(downloadAllCsv.disabled!==(count===0))downloadAllCsv.disabled=count===0;
+   const label='📑 Descargar todos los accesos CSV ('+count+')';
+   if(!downloadAllCsv.textContent.startsWith('✓')&&!downloadAllCsv.textContent.startsWith('No se pudo')&&downloadAllCsv.textContent!==label)downloadAllCsv.textContent=label;
+  }
   const copyFavorites=nav.querySelector('.sb-nav-copy-favorites');
   if(copyFavorites){
    const count=available.filter(([_,selector])=>favorites.includes(selector)).length;
