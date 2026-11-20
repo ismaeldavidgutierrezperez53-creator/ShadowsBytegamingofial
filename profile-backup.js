@@ -12,8 +12,11 @@
   ...prefixes.flatMap(prefix=>['own','public'].map(type=>prefix+type+'-v1')),
   'sb-profile-compact-v1',
   'sb-profile-nav-layout-own-v1',
-  'sb-profile-nav-layout-public-v1'
+  'sb-profile-nav-layout-public-v1',
+  'sb-profile-preset-custom-own-v1'
  ];
+ const customKey='sb-profile-preset-custom-own-v1';
+ const allowedCustom=new Set(['.sbp-dashboard','.sbp-identity-card','.sbd-discovery','.sb-showcase','.sba-timeline','#profile-form','#game-library','.sbg-stats','.sbr-goals','.sbc-connections','.sbs-challenges','.sb-profile-views']);
  const isLayoutKey=key=>key.startsWith('sb-profile-nav-layout-');
  const element=(tag,cls,text)=>{const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=text;return x};
  const safeArray=value=>Array.isArray(value)?[...new Set(value.filter(v=>typeof v==='string'&&allowedSelectors.has(v)))].slice(0,25):[];
@@ -22,8 +25,13 @@
    const raw=localStorage.getItem(key);
    if(key==='sb-profile-compact-v1')return raw==='yes'?'yes':'no';
    if(isLayoutKey(key))return raw==='list'?'list':'grid';
+   if(key===customKey){
+    const value=JSON.parse(raw||'null');
+    if(!value||!Array.isArray(value.sections))return null;
+    return {sections:[...new Set(value.sections.filter(v=>typeof v==='string'&&allowedCustom.has(v)))].slice(0,20)};
+   }
    return safeArray(JSON.parse(raw||'[]'));
-  }catch(_){return key==='sb-profile-compact-v1'?'no':isLayoutKey(key)?'grid':[]}
+  }catch(_){return key==='sb-profile-compact-v1'?'no':isLayoutKey(key)?'grid':key===customKey?null:[]}
  }
  function mount(host){
   const nav=host.querySelector('.sb-nav-panel');
@@ -31,7 +39,7 @@
   const section=element('section','sb-profile-backup');
   section.setAttribute('aria-label','Guardar y recuperar organización del perfil');
   section.append(element('h3','','💾 Copia de mi organización'));
-  section.append(element('p','sb-profile-backup-help','Guarda favoritos, su orden, accesos ocultos, modo compacto y vista de lista/cuadrícula en un archivo. No incluye mensajes, datos de cuenta ni videojuegos.'));
+  section.append(element('p','sb-profile-backup-help','Guarda favoritos, su orden, accesos ocultos, modo compacto, vista de lista/cuadrícula y tu plantilla personalizada en un archivo. No incluye mensajes, datos de cuenta ni videojuegos.'));
   const actions=element('div','sb-profile-backup-actions');
   const exportButton=element('button','sb-profile-backup-btn','⬇ Exportar configuración');
   exportButton.type='button';
@@ -64,7 +72,8 @@
     for(const key of keys){
      const value=pendingImport[key];
      // Las copias antiguas no tienen el modo de presentación: se conserva el actual.
-     if(value===null)continue;
+     if(value===undefined||value===null&&key!==customKey)continue;
+     if(key===customKey&&value===null){localStorage.removeItem(key);continue}
      localStorage.setItem(key,key==='sb-profile-compact-v1'||isLayoutKey(key)?value:JSON.stringify(value));
     }
     dismissPreview();
@@ -73,7 +82,7 @@
    }catch(_){notice.textContent='No se pudo guardar la configuración en este navegador.'}
   };
   resetButton.onclick=()=>{
-   if(!window.confirm('¿Restablecer el organizador? Se eliminarán tus favoritos, accesos ocultos, preferencia de modo compacto y vistas de lista/cuadrícula en este navegador. No afecta a tu cuenta.'))return;
+   if(!window.confirm('¿Restablecer el organizador? Se eliminarán tus favoritos, accesos ocultos, preferencia de modo compacto, vistas de lista/cuadrícula y plantilla personalizada en este navegador. No afecta a tu cuenta.'))return;
    try{
     keys.forEach(key=>localStorage.removeItem(key));
     dismissPreview();
@@ -110,6 +119,11 @@
      if(key==='sb-profile-compact-v1'){
       if(value!=='yes'&&value!=='no')throw Error('Modo compacto inválido');
       validated[key]=value;
+     }else if(key===customKey){
+      if(value===undefined){validated[key]=undefined;continue}
+      if(value===null){validated[key]=null;continue}
+      if(!value||typeof value!=='object'||Array.isArray(value)||!Array.isArray(value.sections)||value.sections.length>20||value.sections.some(v=>typeof v!=='string'||!allowedCustom.has(v)))throw Error('Plantilla inválida');
+      validated[key]={sections:[...new Set(value.sections)]};
      }else if(isLayoutKey(key)){
       // Compatibilidad con copias v1 exportadas antes de introducir lista/cuadrícula.
       if(value===undefined){validated[key]=null;continue}
@@ -125,7 +139,9 @@
     const publicFav=validated['sb-profile-favorite-sections-public-v1'].length;
     const hidden=validated['sb-profile-hidden-shortcuts-own-v1'].length+validated['sb-profile-hidden-shortcuts-public-v1'].length;
     const layoutName=value=>value===null?'sin cambios':value==='list'?'lista':'cuadrícula';
-    previewSummary.textContent='Archivo: '+selected.name+' · '+ownFav+' favoritos en Mi cuenta, '+publicFav+' favoritos públicos, '+hidden+' accesos ocultos. Modo compacto: '+(validated['sb-profile-compact-v1']==='yes'?'activado':'desactivado')+'. Vista en Mi cuenta: '+layoutName(validated['sb-profile-nav-layout-own-v1'])+'. Vista en perfiles públicos: '+layoutName(validated['sb-profile-nav-layout-public-v1'])+'. Se sustituirán las preferencias indicadas en este navegador.';
+    const custom=validated[customKey];
+    const customSummary=custom===undefined?'sin cambios':custom===null?'no incluida':custom.sections.length+' secciones guardadas';
+    previewSummary.textContent='Plantilla personalizada: '+customSummary+'. Archivo: '+selected.name+' · '+ownFav+' favoritos en Mi cuenta, '+publicFav+' favoritos públicos, '+hidden+' accesos ocultos. Modo compacto: '+(validated['sb-profile-compact-v1']==='yes'?'activado':'desactivado')+'. Vista en Mi cuenta: '+layoutName(validated['sb-profile-nav-layout-own-v1'])+'. Vista en perfiles públicos: '+layoutName(validated['sb-profile-nav-layout-public-v1'])+'. Se sustituirán las preferencias indicadas en este navegador.';
     preview.hidden=false;
     notice.textContent='Revisa la vista previa antes de aplicar los cambios.';
    }catch(_){dismissPreview();notice.textContent='El archivo es inválido o no se pudo importar.'}
