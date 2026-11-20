@@ -60,8 +60,11 @@ async function renderCommunityPolls(){
   card.append(tags);
   const question=document.createElement('h3');question.textContent=poll.question;card.append(question);
   const meta=document.createElement('p');meta.className='poll-community-meta';
-  meta.textContent=closed?'Votación finalizada':'Elige una respuesta para participar';
+  meta.textContent=closed?'Votación finalizada':mine?'Ya has participado en esta encuesta':'Elige una respuesta para participar';
   card.append(meta);
+  const reward=document.createElement('p');reward.className='poll-community-reward';
+  reward.textContent=mine?'✅ Has obtenido +15 puntos por participar':closed?'🎁 Los participantes han obtenido 15 puntos por su voto':'🎁 ¡Vota y gana 15 puntos de experiencia!';
+  card.append(reward);
   if(dataError){
    const err=document.createElement('p');err.textContent='No se pudieron cargar todos los resultados.';
    card.append(err);
@@ -79,6 +82,11 @@ async function renderCommunityPolls(){
     const {error:voteError}=await sb.from('community_poll_votes')
      .insert({poll_id:poll.id,option_id:option.id,user_id:user.id});
     if(voteError)alert('No se pudo votar: '+voteError.message);
+    else {
+     // Una vez votado, el recordatorio deja de aparecer como pendiente.
+     await sb.from('member_notifications').update({is_read:true})
+      .eq('recipient_id',user.id).eq('poll_id',poll.id).eq('kind','poll_reminder').eq('is_read',false);
+    }
     await renderCommunityPolls();
    };
    card.append(button);
@@ -119,7 +127,7 @@ async function initPollAdmin(){
  panel.id='poll-admin-panel';
  panel.className='admin-panel poll-admin-panel';
  panel.innerHTML=[
-  '<div class="poll-admin-header"><div><span class="poll-admin-kicker">COMUNIDAD · PARTICIPACIÓN</span><h2>📊 Encuestas</h2><p>Crea preguntas para tu comunidad y controla cuándo pueden votar.</p></div><a class="poll-admin-view" href="#/encuestas">Ver encuestas ↗</a></div>',
+  '<div class="poll-admin-header"><div><span class="poll-admin-kicker">COMUNIDAD · PARTICIPACIÓN</span><h2>📊 Encuestas</h2><p>Crea preguntas para tu comunidad y controla cuándo pueden votar. Cada voto suma 15 puntos y quienes aún no hayan votado reciben un único recordatorio pasadas 24 horas.</p></div><a class="poll-admin-view" href="#/encuestas">Ver encuestas ↗</a></div>',
   '<div class="poll-admin-grid">',
    '<div class="poll-admin-box poll-admin-create">',
     '<div class="poll-admin-box-title"><span class="poll-admin-heading-icon" aria-hidden="true">✨</span><div><h3>Nueva encuesta</h3><p>Configura una pregunta y entre 2 y 6 opciones.</p></div></div>',
