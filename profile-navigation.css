@@ -41,3 +41,12 @@
 .sb-nav-move-btn:not(:disabled):hover{background:#623784}
 .sb-nav-move-btn:focus-visible{outline:3px solid #55dbff;outline-offset:2px}
 @media(max-width:600px){.sb-nav-favorite-item{grid-column:1/-1}.sb-nav-move-btn{min-width:38px}}
+
+/* Personalizar accesos: solo afecta al menú local, nunca a secciones públicas */
+.sb-nav-visibility-settings{display:flex;justify-content:flex-end;margin:10px 0 0}
+.sb-nav-visibility-toggle,.sb-nav-hide-btn{border:1px solid #9272b3;border-radius:10px;background:#302041;color:#fff;cursor:pointer;font:700 14px Rajdhani,Arial,sans-serif;min-height:40px;padding:8px 12px}
+.sb-nav-hide-btn{background:#39283e;border-color:#986d8d}
+.sb-nav-hidden-shortcut{border:1px dashed #a580b3;border-radius:10px;padding:4px}
+.sb-nav-visibility-toggle:focus-visible,.sb-nav-hide-btn:focus-visible{outline:3px solid #62d9ff;outline-offset:2px}
+.sb-nav-visibility-toggle:hover,.sb-nav-hide-btn:hover{background:#5e3978}
+@media(max-width:600px){.sb-nav-hide-btn{min-width:70px}.sb-nav-visibility-settings{justify-content:stretch}.sb-nav-visibility-toggle{width:100%}}
