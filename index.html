@@ -92,12 +92,20 @@
   <link rel="stylesheet" href="anime-customizer.css?v=20261119-7" />
   <link rel="stylesheet" href="anime-motion-v3.css?v=20261120-v1" />
   <link rel="stylesheet" href="button-contrast.css?v=20261120-contrast-v1" />
+  <link rel="stylesheet" href="menu-responsive-v3.css?v=20261120-1" />
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="#/" aria-label="Shadows Byte Gaming Official — inicio"><img src="anime-favicon.png?v=20261120-anime-v1" alt="Logo Shadows Byte Gaming Official" width="52" height="52" style="width:52px;height:52px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 8px #b63bff88)" /><b>SHADOWS BYTE<small>GAMING OFFICIAL</small></b></a>
-    <button class="menu-toggle" aria-label="Abrir menú" id="menuToggle" aria-expanded="false" aria-controls="nav">☰ <span aria-hidden="true">Menú</span></button>
+    <button class="menu-toggle" type="button" aria-label="Abrir menú" id="menuToggle" aria-expanded="false" aria-controls="nav"><span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label" aria-hidden="true">Menú</span></button>
     <nav id="nav" aria-label="Menú principal">
+      <div class="menu-head">
+        <div><h2>✨ Menú de navegación</h2><p>Elige una sección de Shadows Byte</p></div>
+        <button class="menu-close" type="button" aria-label="Cerrar menú">×</button>
+      </div>
+      <div class="menu-quick-links" role="group" aria-label="Accesos rápidos">
+        <a href="#/">🏠 Inicio</a><a href="#/anime">🌸 Anime</a><a href="#/comunidad">🎮 Comunidad</a><a href="#/cuenta">👤 Mi cuenta</a>
+      </div>
       <div class="menu-links-grid">
         <section class="menu-column" aria-label="Explorar">
           <strong>🌸 Explorar</strong>
@@ -163,56 +171,55 @@
   <script src="social-links.js?v=20261118-social-v1"></script>
   <script src="whatsapp-widget.js?v=20261118-whatsapp-greeting-v5"></script>
   <script>
-    // Highlight the selected link inside the single navigation panel.
+    // Navegación adaptable y accesible. Anula el manejador antiguo de app.js.
     (function(){
+      const header=document.querySelector('.topbar');
+      const toggle=document.getElementById('menuToggle');
       const nav=document.getElementById('nav');
-      if(!nav)return;
+      if(!header||!toggle||!nav)return;
+      const closeButton=nav.querySelector('.menu-close');
+      const icon=toggle.querySelector('.menu-toggle-icon');
+      const label=toggle.querySelector('.menu-toggle-label');
       const syncActive=()=>{
         const route=(location.hash.slice(1)||'/').split('?')[0];
-        nav.querySelectorAll('.menu-column a[href^="#/"]').forEach(a=>{
-          if(a.getAttribute('href').slice(1)===route)a.setAttribute('aria-current','page');
-          else a.removeAttribute('aria-current');
+        nav.querySelectorAll('a[href^="#/"]').forEach(link=>{
+          if(link.getAttribute('href').slice(1)===route)link.setAttribute('aria-current','page');
+          else link.removeAttribute('aria-current');
         });
       };
-      window.addEventListener('hashchange',syncActive);
-      syncActive();
-    })();
-    // Mobile navigation: keep menu accessible and close after selection.
-    (function () {
-      const header = document.querySelector('.topbar');
-      const toggle = document.getElementById('menuToggle');
-      const nav = document.getElementById('nav');
-      if (!header || !toggle || !nav) return;
-      const sync = () => {
-        const opened = header.classList.contains('open');
-        toggle.setAttribute('aria-expanded', String(opened));
-        toggle.setAttribute('aria-label', opened ? 'Cerrar menú' : 'Abrir menú');
+      const setOpen=(opened,options={})=>{
+        header.classList.toggle('open',opened);
+        document.body.classList.toggle('sb-menu-open',opened);
+        toggle.setAttribute('aria-expanded',String(opened));
+        toggle.setAttribute('aria-label',opened?'Cerrar menú':'Abrir menú');
+        if(icon)icon.textContent=opened?'×':'☰';
+        if(label)label.textContent=opened?'Cerrar':'Menú';
+        if(options.focusToggle)toggle.focus();
+        if(opened&&options.focusFirst)nav.querySelector('.menu-quick-links a')?.focus();
       };
-      toggle.addEventListener('click', () => requestAnimationFrame(sync));
-      nav.addEventListener('click', e => {
-        if (e.target.closest('a')) {
-          header.classList.remove('open');
-          sync();
+      // app.js sigue ofreciendo el resto del router, pero no controla el menú.
+      toggle.onclick=null;
+      toggle.addEventListener('click',event=>{
+        const opened=!header.classList.contains('open');
+        setOpen(opened,{focusFirst:opened&&event.detail===0});
+      });
+      closeButton?.addEventListener('click',()=>setOpen(false,{focusToggle:true}));
+      nav.addEventListener('click',event=>{
+        if(event.target.closest('a[href]'))setOpen(false);
+      });
+      header.querySelector('.brand')?.addEventListener('click',()=>setOpen(false));
+      window.addEventListener('hashchange',()=>{syncActive();setOpen(false)});
+      document.addEventListener('click',event=>{
+        if(header.classList.contains('open')&&!header.contains(event.target))setOpen(false);
+      });
+      document.addEventListener('keydown',event=>{
+        if(event.key==='Escape'&&header.classList.contains('open')){
+          event.preventDefault();
+          setOpen(false,{focusToggle:true});
         }
       });
-      window.addEventListener('hashchange', () => {
-        header.classList.remove('open');
-        sync();
-      });
-      document.addEventListener('click', e => {
-        if (header.classList.contains('open') && !header.contains(e.target)) {
-          header.classList.remove('open');
-          sync();
-        }
-      });
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-          header.classList.remove('open');
-          sync();
-          toggle.focus();
-        }
-      });
-      sync();
+      syncActive();
+      setOpen(false);
     })();
     // Normalize legacy account links, including links inserted by cached navigation code.
     document.addEventListener('click', function(event) {
