@@ -86,7 +86,13 @@
   links.dataset.signature=signature;
   links.replaceChildren();
   summary.textContent='Ver accesos rápidos ('+available.length+')';
-  const ordered=[...available].sort((a,b)=>Number(favorites.includes(b[1]))-Number(favorites.includes(a[1])));
+  const ordered=[...available].sort((a,b)=>{
+   const ia=favorites.indexOf(a[1]),ib=favorites.indexOf(b[1]);
+   if(ia<0&&ib<0)return 0;
+   if(ia<0)return 1;
+   if(ib<0)return -1;
+   return ia-ib;
+  });
   for(const [label,selector] of ordered){
    const item=node('div','sb-nav-favorite-item');
    item.dataset.searchLabel=label;
@@ -114,6 +120,32 @@
     enhance(host,isOwn);
    };
    item.append(button,star);
+   if(selected){
+    const move=elDirection=>{
+     const list=readFavorites();
+     const i=list.indexOf(selector);
+     const nextIndex=i+elDirection;
+     if(i<0||nextIndex<0||nextIndex>=list.length)return;
+     [list[i],list[nextIndex]]=[list[nextIndex],list[i]];
+     try{localStorage.setItem(key,JSON.stringify(list))}catch(_){}
+     links.dataset.signature='';
+     enhance(host,isOwn);
+     nav.querySelector('.sb-nav-details').open=true;
+    };
+    const i=favorites.indexOf(selector);
+    const arrows=node('span','sb-nav-move');
+    const up=node('button','sb-nav-move-btn','↑');
+    up.type='button';up.disabled=i===0;
+    up.setAttribute('aria-label','Subir '+label);
+    up.title='Subir favorito';
+    up.onclick=()=>move(-1);
+    const down=node('button','sb-nav-move-btn','↓');
+    down.type='button';down.disabled=i===favorites.length-1;
+    down.setAttribute('aria-label','Bajar '+label);
+    down.title='Bajar favorito';
+    down.onclick=()=>move(1);
+    arrows.append(up,down);item.append(arrows);
+   }
    links.append(item);
   }
   const filterInput=nav.querySelector('.sb-nav-search');
