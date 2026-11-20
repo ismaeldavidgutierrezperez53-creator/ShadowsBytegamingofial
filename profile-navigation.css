@@ -110,3 +110,9 @@
 .sb-nav-stat-label{font-size:13px;color:#eadcf1;overflow-wrap:anywhere}
 .sb-nav-stat-number{font:700 21px Rajdhani,Arial,sans-serif;color:#ffe6ab}
 @media(max-width:640px){.sb-nav-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Filtro temporal de accesos ocultos, compatible con favoritos y búsqueda */
+.sb-nav-only-hidden{min-height:43px;padding:8px 12px;border:1px solid #b79abf;border-radius:10px;background:#382742;color:#fff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-only-hidden[aria-pressed="true"]{background:#65415b;border-color:#e2afcb;color:#ffeaf6}
+.sb-nav-only-hidden:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-only-hidden{flex:1}}
