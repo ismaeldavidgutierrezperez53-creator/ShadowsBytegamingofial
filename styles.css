@@ -1210,3 +1210,111 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  .group-multi-video .group-video-tile:is(.video-bg-aurora,.video-bg-ember,.video-bg-celestial){animation:none}
 }
+
+
+/* Welcome, level and VIP video effect store (2026-11-20). */
+.group-multi-video .group-video-free-rewards,
+.group-multi-video .group-video-reward-badges{
+ padding:13px;margin:10px 0;
+ border:1px solid rgba(148,229,248,.42);
+ border-radius:14px;
+ background:linear-gradient(135deg,rgba(14,49,77,.7),rgba(47,23,78,.7));
+}
+.group-multi-video .group-video-free-rewards h5,
+.group-multi-video .group-video-reward-badges h5{
+ margin:0 0 9px;color:#f3f1ff;font-size:1rem;
+}
+.group-multi-video .group-video-free-rewards p{margin:0 0 10px}
+.group-multi-video .group-video-free-grid{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));
+ gap:10px;margin:8px 0 12px;
+}
+.group-multi-video .group-video-free-card{
+ display:flex;flex-direction:column;align-items:stretch;gap:8px;
+ min-width:0;border:1px solid rgba(159,212,255,.5);
+ border-radius:12px;padding:12px;background:rgba(18,36,70,.65);
+}
+.group-multi-video .group-video-free-card small{color:#e3e8ff;line-height:1.35}
+.group-multi-video .group-video-free-card button,
+.group-multi-video .group-video-free-rewards>button{
+ min-height:44px;padding:9px 11px;
+ border:1px solid rgba(121,237,249,.6);border-radius:10px;
+ color:#fff;font-weight:700;
+ background:linear-gradient(120deg,#275c89,#673b9a);cursor:pointer;
+}
+.group-multi-video .group-video-free-card button:disabled{
+ cursor:not-allowed;opacity:.7;
+ background:rgba(53,53,84,.7);
+}
+.group-multi-video .group-video-free-card button:focus-visible,
+.group-multi-video .group-video-free-rewards>button:focus-visible{
+ outline:3px solid #fff;outline-offset:2px;
+}
+.group-multi-video .group-video-badge-list{
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+}
+.group-multi-video .group-video-earned-badge{
+ display:inline-flex;align-items:center;width:max-content;max-width:100%;
+ padding:4px 9px;border-radius:999px;
+ border:1px solid rgba(253,222,128,.68);
+ color:#fff2b5;background:linear-gradient(130deg,rgba(113,70,22,.62),rgba(77,48,112,.72));
+ font-size:.78rem;line-height:1.4;overflow-wrap:anywhere;
+}
+.group-multi-video .group-video-premium-card.is-vip{
+ border-color:rgba(246,201,105,.8);
+ background:linear-gradient(145deg,rgba(95,49,99,.72),rgba(89,64,22,.72));
+ box-shadow:inset 0 0 16px rgba(254,212,108,.1);
+}
+.group-multi-video .group-video-premium-card.is-vip strong{color:#ffebb5}
+.group-multi-video .group-video-tile:is(.video-bg-welcome_spark,.video-bg-moon_blade,.video-bg-storm_spirit,.video-bg-dragon_sky,.video-bg-phoenix,.video-bg-royal_cosmos){
+ position:relative;border-width:3px!important;background-size:200% 200%!important;
+ animation:sb-video-rare-glow 5.6s ease-in-out infinite;
+}
+.group-multi-video .group-video-tile.video-bg-welcome_spark{
+ border-color:#fcd875!important;
+ background:linear-gradient(125deg,#544eaa,#f2be79,#a45bbf,#5549a3)!important;
+ box-shadow:0 0 24px rgba(247,208,116,.45)!important;
+}
+.group-multi-video .group-video-tile.video-bg-moon_blade{
+ border-color:#a2bbff!important;
+ background:linear-gradient(125deg,#1a2963,#708dcf,#414a98,#b8c7f6)!important;
+ box-shadow:0 0 24px rgba(134,165,255,.52)!important;
+}
+.group-multi-video .group-video-tile.video-bg-storm_spirit{
+ border-color:#8bf9ff!important;
+ background:linear-gradient(125deg,#132a63,#496bb1,#2ab7cc,#5032a8)!important;
+ box-shadow:0 0 27px rgba(85,231,254,.53)!important;
+}
+.group-multi-video .group-video-tile.video-bg-dragon_sky{
+ border-color:#88f7bc!important;
+ background:linear-gradient(130deg,#153d60,#2d7c75,#5584cd,#3e2f87)!important;
+ box-shadow:0 0 26px rgba(100,255,170,.53)!important;
+}
+.group-multi-video .group-video-tile.video-bg-phoenix{
+ border-color:#ffd277!important;
+ background:linear-gradient(130deg,#842819,#f08d31,#f4c76b,#7a2e5e)!important;
+ box-shadow:0 0 28px rgba(255,165,67,.63),0 0 17px rgba(252,205,90,.32)!important;
+}
+.group-multi-video .group-video-tile.video-bg-royal_cosmos{
+ border-color:#e6a8ff!important;
+ background:linear-gradient(135deg,#352377,#784abc,#bc79d4,#247cbe,#65468f)!important;
+ box-shadow:0 0 32px rgba(203,129,255,.7),0 0 14px rgba(128,236,255,.32)!important;
+}
+.group-multi-video .group-video-tile.video-bg-welcome_spark::before{content:"🌟 ✧ ✦";}
+.group-multi-video .group-video-tile.video-bg-moon_blade::before{content:"🌙 ✧ 🗡️";}
+.group-multi-video .group-video-tile.video-bg-storm_spirit::before{content:"⚡ ✦ ⚡";}
+.group-multi-video .group-video-tile.video-bg-dragon_sky::before{content:"🐲 ✧ ✦";}
+.group-multi-video .group-video-tile.video-bg-phoenix::before{content:"🔥 ✧ 👑";}
+.group-multi-video .group-video-tile.video-bg-royal_cosmos::before{content:"💎 ✦ 👑";}
+@keyframes sb-video-rare-glow{
+ 0%,100%{background-position:0% 50%}
+ 50%{background-position:100% 50%}
+}
+@media(max-width:540px){
+ .group-multi-video .group-video-free-grid{grid-template-columns:1fr}
+ .group-multi-video .group-video-free-rewards,
+ .group-multi-video .group-video-reward-badges{padding:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ .group-multi-video .group-video-tile:is(.video-bg-welcome_spark,.video-bg-moon_blade,.video-bg-storm_spirit,.video-bg-dragon_sky,.video-bg-phoenix,.video-bg-royal_cosmos){animation:none}
+}
