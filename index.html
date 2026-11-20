@@ -229,8 +229,14 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       document.querySelector('.topbar')?.classList.remove('open');
-      document.getElementById('menuToggle')?.setAttribute('aria-expanded','false');
-      document.getElementById('menuToggle')?.setAttribute('aria-label','Abrir menú');
+      document.body.classList.remove('sb-menu-open');
+      const menuToggle = document.getElementById('menuToggle');
+      menuToggle?.setAttribute('aria-expanded','false');
+      menuToggle?.setAttribute('aria-label','Abrir menú');
+      const menuIcon = menuToggle?.querySelector('.menu-toggle-icon');
+      const menuLabel = menuToggle?.querySelector('.menu-toggle-label');
+      if(menuIcon) menuIcon.textContent='☰';
+      if(menuLabel) menuLabel.textContent='Menú';
       if (location.hash === '#/cuenta') {
         if (typeof render === 'function') render();
       } else {
