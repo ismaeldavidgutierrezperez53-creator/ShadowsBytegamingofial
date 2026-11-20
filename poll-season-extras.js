@@ -133,7 +133,7 @@
   podium.append(places);
   host.prepend(podium);
  }
- function trophyCard(record){
+ function trophyCard(record,{memberId,own,isPublic,displayName}={}){
   const prize=monthlyPrizes.find(p=>p.position===Number(record.position));
   if(!prize)return null;
   const item=make('article','poll-month-trophy-card poll-month-trophy-'+prize.glow);
@@ -149,6 +149,34 @@
    esNumber.format(Number(record.votes_count)||0)+' votos · +'+
    esNumber.format(Number(record.points)||0)+' puntos'));
   item.append(shine,icon,content);
+  item.dataset.trophyMonth=record.month_start;
+  if(memberId){
+   const actions=make('div','poll-month-trophy-buttons');
+   const feedback=make('p','poll-month-trophy-share-feedback','');
+   feedback.setAttribute('role','status');
+   if(own){
+    const ceremony=make('button',null,'👑 Ver mi ceremonia');
+    ceremony.type='button';
+    ceremony.setAttribute('aria-label','Ver ceremonia del trofeo '+prize.name+' de '+monthText(record.month_start));
+    ceremony.onclick=()=>window.SBPollAwardCeremony?.openForWinner(memberId,record.month_start,feedback);
+    actions.append(ceremony);
+   }
+   if(isPublic){
+    const share=make('button',null,own?'🔗 Compartir mi trofeo':'🔗 Compartir trofeo');
+    share.type='button';
+    share.setAttribute('aria-label','Compartir trofeo '+prize.name+' de '+monthText(record.month_start));
+    share.onclick=()=>window.SBPollAwardCeremony?.shareTrophy({
+     memberId,record,displayName,feedback
+    });
+    actions.append(share);
+   }else if(own){
+    feedback.textContent='Tu perfil es privado. Hazlo público para compartir tu trofeo.';
+   }
+   if(actions.children.length){
+    item.append(actions);
+    actions.append(feedback);
+   }
+  }
   return item;
  }
  function mountProfileTrophies(host,memberId,options={}){
@@ -188,6 +216,11 @@
      link.href='#/encuestas';section.append(link);
      return;
     }
+    const {data:profileData,error:profileError}=await sb.from('profiles')
+      .select('is_public,display_name,username').eq('id',memberId).maybeSingle();
+    if(!section.isConnected)return;
+    const isPublic=!profileError&&profileData?.is_public===true;
+    const displayName=profileData?.display_name||profileData?.username||'Un miembro';
     const summary=make('p','poll-month-trophy-summary',
      '🏅 '+awards.length+' trofeo'+(awards.length===1?'':'s')+
      ' · '+esNumber.format(awards.reduce((n,r)=>n+(Number(r.points)||0),0))+
@@ -196,17 +229,24 @@
     const grid=make('div','poll-month-trophy-grid');
     const max=6;
     awards.forEach((item,i)=>{
-     const card=trophyCard(item);
+     const card=trophyCard(item,{memberId,own,isPublic,displayName});
      if(!card)return;
      if(i>=max)card.hidden=true;
      grid.append(card);
     });
     section.append(grid);
+    const requestedMonth=new URLSearchParams(location.hash.split('?')[1]||'').get('trofeo');
+    const requestedCard=requestedMonth&&[...grid.children].find(card=>card.dataset.trophyMonth===requestedMonth);
+    if(requestedCard)requestedCard.hidden=false;
     if(awards.length>max){
-     let expanded=false;
+     let expanded=!!requestedCard;
      const button=make('button','poll-month-trophy-more','Ver todos los trofeos ('+awards.length+')');
      button.type='button';
-     button.setAttribute('aria-expanded','false');
+     if(expanded){
+      [...grid.children].forEach(card=>card.hidden=false);
+      button.textContent='Ver menos trofeos';
+     }
+     button.setAttribute('aria-expanded',String(expanded));
      button.onclick=()=>{
       expanded=!expanded;
       for(const [i,card] of [...grid.children].entries())card.hidden=!expanded&&i>=max;
@@ -214,6 +254,15 @@
       button.setAttribute('aria-expanded',String(expanded));
      };
      section.append(button);
+    }
+    if(requestedCard){
+     requestedCard.classList.add('poll-month-trophy-highlight');
+     requestedCard.tabIndex=-1;
+     requestAnimationFrame(()=>{
+      if(!requestedCard.isConnected)return;
+      requestedCard.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
+      requestedCard.focus({preventScroll:true});
+     });
     }
    }catch(error){
     if(section.isConnected){
