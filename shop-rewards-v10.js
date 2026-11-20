@@ -251,7 +251,7 @@
    if(authError||!user||!checkCurrent(ticket,host))return;
    const [ach,qty,levels,history,balance,items,members,postcards]=await Promise.all([
     sb.rpc('shop_sync_purchase_badges'),
-    sb.from('member_shop_purchases').select('id',{count:'exact',head:true}).eq('user_id',user.id).gt('price_paid',0),
+    sb.rpc('shop_total_paid_purchases'),
     sb.rpc('shop_level_exclusive_catalog'),
     sb.rpc('shop_my_history',{p_limit:150}),
     sb.rpc('reward_shop_balance'),
@@ -261,7 +261,7 @@
    ]);
    if(!checkCurrent(ticket,host))return;
    if(ach.error||qty.error)banner(host,'🏅 Logros de compras',ach.error?.message||qty.error?.message);
-   else put(host,achievementsPanel(ach.data||[],qty.count||0));
+   else put(host,achievementsPanel(ach.data||[],qty.data||0));
    if(levels.error)banner(host,'⭐ Premios de nivel',levels.error.message);
    else put(host,levelPanel(levels.data||[],ticket,host));
    if(items.error||members.error||balance.error||postcards.error){
