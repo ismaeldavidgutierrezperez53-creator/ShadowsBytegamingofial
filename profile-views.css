@@ -41,3 +41,19 @@
 .sb-views-visit-badge{margin-left:auto;padding:6px 11px;border-radius:999px;background:rgba(186,107,253,.2);color:#eed9ff;white-space:nowrap;font:700 .9rem Rajdhani,Arial,sans-serif}
 @media(max-width:720px){.sb-views-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sb-views-stats-panel{padding:12px}}
 @media(max-width:380px){.sb-views-frequent-person{flex-wrap:wrap}.sb-views-visit-badge{margin-left:0}}
+
+/* Gráfico semanal de visitas: responsive y sin dependencias externas */
+.sb-views-week-chart{margin:20px 0 22px;padding:16px;border:1px solid rgba(166,121,249,.28);border-radius:14px;background:linear-gradient(145deg,rgba(40,26,75,.56),rgba(14,23,49,.55));min-width:0}
+.sb-views-week-chart h3{margin:0 0 10px;color:#f4e7ff}
+.sb-views-chart-status{font-size:.92rem;color:#d7c4ef;min-height:1.35em;margin:6px 0 10px}
+.sb-views-chart-bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:clamp(3px,1.2vw,13px);margin-top:8px;min-width:0}
+.sb-views-chart-column{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0;text-align:center;gap:5px}
+.sb-views-chart-value{font-family:Rajdhani,Arial,sans-serif;color:#f3e3ff;font-size:clamp(.82rem,1.8vw,1.12rem);font-variant-numeric:tabular-nums}
+.sb-views-chart-track{position:relative;display:block;overflow:hidden;width:100%;height:clamp(100px,16vw,170px);border:1px solid rgba(191,142,248,.2);border-radius:10px;background:rgba(103,69,156,.1)}
+.sb-views-chart-fill{position:absolute;bottom:0;left:0;right:0;min-height:0;border-radius:9px 9px 4px 4px;background:linear-gradient(0deg,#6f40ed,#c88aff);box-shadow:0 0 14px rgba(162,102,255,.4);transition:height .25s ease}
+.sb-views-chart-fill.is-empty{box-shadow:none}
+.sb-views-chart-weekday{color:#f5eaff;font-weight:700;font-size:clamp(.72rem,1.65vw,.94rem);text-transform:capitalize}
+.sb-views-chart-date{color:#c9b6e0;font-size:clamp(.57rem,1.4vw,.76rem);line-height:1.15;overflow-wrap:anywhere}
+.sb-views-chart-help{font-size:.79rem;line-height:1.45;color:#c9b6e0;margin:14px 0 0}
+@media(max-width:540px){.sb-views-week-chart{padding:12px 8px}.sb-views-chart-bars{gap:4px}.sb-views-chart-date{font-size:.62rem}.sb-views-chart-track{height:110px;border-radius:6px}.sb-views-chart-fill{border-radius:5px 5px 2px 2px}}
+@media(prefers-reduced-motion:reduce){.sb-views-chart-fill{transition:none}}
