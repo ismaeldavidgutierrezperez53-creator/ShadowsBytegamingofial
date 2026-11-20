@@ -42,6 +42,9 @@ async function renderCommunityPolls(){
   const closed=poll.status==='closed'||expired;
   const card=document.createElement('article');card.className='fan-card poll-community-card';
   card.dataset.featured=String(!!poll.featured);
+  card.dataset.pollId=poll.id;
+  card.id='poll-'+poll.id;
+  card.tabIndex=-1;
   const tags=document.createElement('div');tags.className='poll-community-tags';
   const category=document.createElement('span');category.className='poll-community-tag';
   category.textContent=categoryNames[poll.category]||poll.category||'General';tags.append(category);
@@ -93,6 +96,20 @@ async function renderCommunityPolls(){
   const count=document.createElement('p');count.className='poll-community-tally';
   count.textContent=total+' voto'+(total===1?'':'s');card.append(count);
   grid.append(card);
+ }
+ const query=location.hash.split('?')[1]||'';
+ const selectedPoll=new URLSearchParams(query).get('poll');
+ if(selectedPoll&&/^[0-9a-f-]{36}$/i.test(selectedPoll)){
+  const target=grid.querySelector('[data-poll-id="'+selectedPoll+'"]');
+  if(target){
+   target.classList.add('poll-community-target');
+   requestAnimationFrame(()=>{
+    if(!target.isConnected)return;
+    const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'});
+    target.focus({preventScroll:true});
+   });
+  }
  }
 }
 async function initPollAdmin(){
