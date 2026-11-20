@@ -731,7 +731,7 @@ async function adminInitRewardShop(){
  const merchHint=make('p','sb-shop-admin__hint sb-shop-admin__field--wide','El precio de oferta debe ser menor que el precio normal. Para quitar una oferta, deja los tres campos vacíos y guarda.');
  merchForm.append(salePriceWrap,saleStartWrap,saleEndWrap,merchHint);
  const merchActions=make('div','sb-shop-admin__merch-actions');
- const merchSave=make('button','gradient-btn','💾 Guardar promoción');merchSave.type='submit';
+ const merchSave=make('button','gradient-btn','💾 Guardar promoción');merchSave.type='button';
  const merchClear=make('button','outline-btn','Quitar oferta');merchClear.type='button';
  merchActions.append(merchSave,merchClear);
  const merchStatus=make('p','sb-shop-admin__status');merchStatus.setAttribute('role','status');merchStatus.setAttribute('aria-live','polite');
