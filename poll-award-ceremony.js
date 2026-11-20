@@ -57,7 +57,7 @@ function shareTrophy({memberId,record,displayName,feedback}){
 function show(record,id,displayName,isPublic,demo=false){
  const rank=ranks[Number(record.position)];if(!rank)return;
  close();
- const previous=document.activeElement;
+ const previous=dialogState?.previous?.isConnected?dialogState.previous:document.activeElement;
  const overlay=el('div','poll-ceremony-overlay');
  const panel=el('section','poll-ceremony-panel poll-ceremony-'+rank.theme);
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
