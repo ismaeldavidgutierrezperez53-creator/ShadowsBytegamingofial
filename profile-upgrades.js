@@ -75,7 +75,8 @@
  }
  function enhancePublic(root){
   const body=root.querySelector('.public-member-body');
-  if(!body || root.dataset.sbpDone)return;
+  if(!body)return;
+  if(root.dataset.sbpDone){attachPublicLibraryFilter(body);return}
   root.dataset.sbpDone='1';
   const qs=new URLSearchParams((location.hash.split('?')[1]||''));
   const id=qs.get('id');if(!id)return;
@@ -101,9 +102,13 @@
   targets.forEach(([label,selector])=>{const a=el('button','sbp-action',label);a.type='button';a.onclick=()=>{const dest=body.querySelector(selector);if(dest)dest.scrollIntoView({behavior:'smooth',block:'start'});else note.textContent='Esta sección no está disponible en este perfil.'};nav.append(a)});
   panel.append(actions,nav);
   const title=body.querySelector('h1');if(title)title.after(panel);else body.prepend(panel);
+  attachPublicLibraryFilter(body);
+ }
+ function attachPublicLibraryFilter(body){
   const library=body.querySelector('.public-game-library');
-  if(!library)return;
-  const libraryHeading=library.querySelector('h2');if(!libraryHeading)return;
+  if(!library || library.dataset.sbpFilter==='1')return;
+  const libraryHeading=library.querySelector('h2');if(!libraryHeading || !library.querySelector('.public-game-library-grid'))return;
+  library.dataset.sbpFilter='1';
   const search=el('input','sbp-library-search');search.type='search';search.placeholder='Buscar un videojuego o plataforma…';search.setAttribute('aria-label','Buscar en biblioteca compartida');
   const filter=el('select','sbp-library-filter');filter.setAttribute('aria-label','Filtrar por estado');
   [['all','Todos'],['playing','Jugando'],['completed','Terminados'],['wishlist','Quiero jugar']].forEach(([v,label])=>{const opt=el('option','',label);opt.value=v;filter.append(opt)});
