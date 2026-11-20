@@ -47,3 +47,22 @@
 @media(max-width:650px){.sbpg-panel{padding:13px}.sbpg-form{padding:12px}.sbpg-form-controls button{flex:1 1 135px}.sbpg-presets button{flex:1 1 110px}}
 @media(max-width:420px){.sbpg-stats{grid-template-columns:1fr}.sbpg-celebration{bottom:105px;left:10px;width:calc(100vw - 20px)}.sbpg-presets button{flex:1 1 100%}}
 @media(prefers-reduced-motion:reduce){.sbpg-progress::-webkit-progress-value,.sbpg-progress::-moz-progress-bar{transition:none!important}.sbpg-celebration{animation:none!important}}
+
+/* Medallas y celebración animada al completar una meta de puntos */
+.sbpg-history-row.sbpg-history-row--bronze{border-color:rgba(228,166,123,.55)}
+.sbpg-history-row.sbpg-history-row--silver{border-color:rgba(212,229,249,.64)}
+.sbpg-history-row.sbpg-history-row--gold{border-color:rgba(255,219,127,.68);background:rgba(162,120,54,.16)}
+.sbpg-history-row.sbpg-history-row--diamond{border-color:rgba(127,241,252,.7);background:rgba(54,133,166,.18)}
+.sbpg-new-medal-name{align-self:flex-start;padding:7px 12px;border:1px solid rgba(253,222,145,.73);border-radius:999px;background:rgba(189,129,51,.23);font-weight:800!important;color:#fff1c1!important;margin:0!important}
+.sbpg-celebration--bronze{border-color:#e9b287}
+.sbpg-celebration--silver{border-color:#e4edff}
+.sbpg-celebration--gold{border-color:#ffe8a9;box-shadow:0 0 35px rgba(255,219,126,.54),0 15px 40px rgba(5,7,23,.65)}
+.sbpg-celebration--diamond{border-color:#a0f9ff;box-shadow:0 0 35px rgba(132,244,250,.53),0 15px 40px rgba(5,7,23,.65)}
+.sbpg-celebration-content{position:relative;z-index:1}
+.sbpg-celebration>button{position:relative;z-index:2}
+.sbpg-confetti-burst{position:absolute;inset:0;pointer-events:none;z-index:0}
+.sbpg-confetti-piece{position:absolute;left:50%;top:38%;display:block;color:#ffe3a4;font-size:1.1rem;line-height:1;opacity:0;will-change:transform,opacity;animation:sbpg-confetti-pop 1.05s cubic-bezier(.12,.67,.26,1) var(--delay,0ms) both}
+.sbpg-confetti-piece:nth-child(3n){color:#81e5ff}
+.sbpg-confetti-piece:nth-child(4n){color:#ffc6ec}
+@keyframes sbpg-confetti-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}14%{opacity:1}75%{opacity:.9}100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),calc(-50% + var(--dy,0px))) scale(.7) rotate(280deg)}}
+@media(prefers-reduced-motion:reduce){.sbpg-confetti-piece{animation:none!important;display:none!important}}
