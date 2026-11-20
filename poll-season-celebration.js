@@ -131,9 +131,9 @@
   if(!host?.isConnected)return;
   const existing=host.querySelector('.poll-season-celebration.is-preview');
   if(existing){existing.remove();return;}
-  host.querySelector('.poll-season-celebration.is-final')?.remove();
+  const final=host.querySelector('.poll-season-celebration.is-final');
   const banner=buildBanner(season,ranking,true);
-  host.insertBefore(banner,host.firstChild);
+  host.insertBefore(banner,final?final.nextSibling:host.firstChild);
   addConfetti(banner);
   if(!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
    banner.scrollIntoView({behavior:'smooth',block:'center'});
