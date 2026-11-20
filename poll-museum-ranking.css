@@ -1,0 +1,117 @@
+
+/* Ranking de popularidad de trofeos: neón anime, podium e historial. */
+#poll-participation .poll-museum-ranking{
+ margin:22px 0 12px;padding:clamp(14px,3vw,24px);
+ border-radius:20px;border:1px solid #8e75cb;
+ background:radial-gradient(ellipse at 15% 0%,rgba(137,83,210,.35),transparent 60%),
+ linear-gradient(125deg,#16182f,#232041 56%,#1c3047);
+ color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.2);
+}
+#poll-participation .poll-museum-ranking *{box-sizing:border-box}
+#poll-participation .poll-museum-ranking-header{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+ margin-bottom:15px;
+}
+#poll-participation .poll-museum-ranking-eyebrow{
+ display:block;color:#9de8f4;font-size:11px;font-weight:900;letter-spacing:1.5px;margin-bottom:7px;
+}
+#poll-participation .poll-museum-ranking-header h3{
+ font:900 clamp(22px,3.2vw,30px)/1.25 Rajdhani,Arial,sans-serif;
+ color:#fff;margin:0 0 8px;
+}
+#poll-participation .poll-museum-ranking-header p{
+ font-size:14px;line-height:1.5;color:#e8d9f5;margin:0;
+ max-width:700px;
+}
+#poll-participation .poll-museum-ranking-button{
+ cursor:pointer;min-height:43px;padding:9px 15px;
+ border:1px solid #9de8ff;border-radius:11px;
+ background:#3b315e;color:#fff;font:800 14px Rajdhani,Arial,sans-serif;
+}
+#poll-participation .poll-museum-ranking-button:hover{background:#635093}
+#poll-participation .poll-museum-ranking-prizes{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 17px;
+}
+#poll-participation .poll-museum-ranking-prize{
+ display:grid;gap:6px;align-items:start;min-width:0;
+ padding:12px 13px;text-align:center;
+ border:1px solid rgba(200,171,238,.55);border-radius:11px;
+ background:rgba(55,41,80,.55);
+}
+#poll-participation .poll-museum-ranking-prize strong{color:#fff;font-size:15px;line-height:1.3}
+#poll-participation .poll-museum-ranking-prize span{color:#aff4d1;font-size:13px}
+#poll-participation .poll-museum-ranking-panels{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;
+}
+#poll-participation .poll-museum-ranking-panel,
+#poll-participation .poll-museum-ranking-history{
+ min-width:0;border:1px solid rgba(173,156,219,.55);border-radius:14px;
+ padding:14px 12px;background:rgba(18,28,54,.72);
+}
+#poll-participation .poll-museum-ranking-panel h4,
+#poll-participation .poll-museum-ranking-history h4{
+ font:900 clamp(18px,2.5vw,22px)/1.3 Rajdhani,Arial,sans-serif;color:#fff;
+ margin:0 0 8px;
+}
+#poll-participation .poll-museum-ranking-help{
+ font-size:13px;color:#cdc3e6;line-height:1.45;margin:0 0 12px;
+}
+#poll-participation .poll-museum-ranking-list{display:grid;gap:8px;min-width:0}
+#poll-participation .poll-museum-ranking-row{
+ display:flex;gap:9px;min-width:0;align-items:center;
+ padding:11px 9px;border-radius:10px;
+ border:1px solid rgba(140,129,194,.55);
+ background:linear-gradient(120deg,rgba(58,43,93,.65),rgba(23,40,66,.73));
+}
+#poll-participation .poll-museum-ranking-place{
+ display:inline-flex;justify-content:center;align-items:center;flex:none;
+ min-width:34px;font-size:24px;
+}
+#poll-participation .poll-museum-ranking-member{
+ display:grid;gap:4px;min-width:0;flex:1;
+}
+#poll-participation .poll-museum-ranking-name{
+ font-size:14px;font-weight:900;color:#fff;line-height:1.35;
+ text-decoration:none;overflow-wrap:anywhere;
+}
+#poll-participation a.poll-museum-ranking-name:hover{
+ color:#a6eafc;text-decoration:underline;
+}
+#poll-participation .poll-museum-ranking-detail{
+ font-size:12px;color:#d3c8e8;line-height:1.35;overflow-wrap:anywhere;
+}
+#poll-participation .poll-museum-ranking-score{
+ white-space:nowrap;font-size:14px;font-weight:900;color:#fbc3df;
+}
+#poll-participation .poll-museum-ranking-history{margin-top:15px}
+#poll-participation .poll-museum-ranking-select{
+ width:min(100%,290px);padding:9px 13px;
+ border:1px solid #aba6e1;border-radius:10px;
+ color:#fff;background:#34294e;min-height:43px;margin:0 0 14px;
+}
+#poll-participation .poll-museum-ranking-empty{
+ font-size:14px;line-height:1.45;color:#dcd0ef;margin:8px 0;
+}
+#poll-participation .poll-museum-ranking-status{
+ font-size:13px;color:#b8f7de;margin:11px 0 0;
+}
+#poll-participation .poll-museum-ranking-sample{
+ margin-top:17px;padding:14px;border:1px dashed #e0b4e8;border-radius:12px;
+ background:rgba(79,48,100,.23);
+}
+#poll-participation .poll-museum-ranking-sample-note{
+ color:#f3c5dd;font-weight:900;font-size:12px;margin:0 0 10px;
+}
+@media(max-width:720px){
+ #poll-participation .poll-museum-ranking-panels{grid-template-columns:1fr}
+ #poll-participation .poll-museum-ranking-prizes{grid-template-columns:1fr}
+}
+@media(max-width:420px){
+ #poll-participation .poll-museum-ranking{padding:12px}
+ #poll-participation .poll-museum-ranking-row{gap:7px;padding:9px 6px}
+ #poll-participation .poll-museum-ranking-place{font-size:19px;min-width:25px}
+ #poll-participation .poll-museum-ranking-score{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ #poll-participation .poll-museum-ranking *{animation:none!important;transition:none!important}
+}
