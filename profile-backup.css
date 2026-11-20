@@ -1,0 +1,10 @@
+.sb-profile-backup{margin-top:15px;padding:15px;border:1px solid #715291;border-radius:13px;background:#1c1730}
+.sb-profile-backup h3{margin:0 0 8px;font-size:18px}
+.sb-profile-backup-help{font-size:14px;color:#d4c2e5;margin:7px 0 12px}
+.sb-profile-backup-actions{display:flex;gap:9px;flex-wrap:wrap}
+.sb-profile-backup-btn{min-height:42px;padding:9px 13px;border:1px solid #a778d1;border-radius:10px;background:#392450;color:#fff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-profile-backup-btn:hover{background:#633985}
+.sb-profile-backup-btn:focus-visible{outline:3px solid #65d9ff;outline-offset:2px}
+.sb-profile-backup-notice{font-size:14px;color:#dfcbea;overflow-wrap:anywhere}
+.sb-profile-backup-notice:empty{display:none}
+@media(max-width:550px){.sb-profile-backup-actions{flex-direction:column}.sb-profile-backup-btn{width:100%}}
