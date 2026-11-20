@@ -8,8 +8,8 @@
   style.textContent = `
     #sb-anime-back-to-top {
       position: fixed;
-      right: 22px;
-      bottom: 100px;
+      left: 16px;
+      bottom: 78px;
       z-index: 9997;
       width: 56px;
       height: 56px;
@@ -51,7 +51,7 @@
       font-size: 13px;
     }
     @media (max-width: 600px) {
-      #sb-anime-back-to-top { right: 16px; bottom: 88px; width: 50px; height: 50px; font-size: 27px; }
+      #sb-anime-back-to-top { left: 10px; bottom: 70px; width: 50px; height: 50px; font-size: 27px; }
     }
     @media (prefers-reduced-motion: reduce) {
       #sb-anime-back-to-top { transition: none; }
