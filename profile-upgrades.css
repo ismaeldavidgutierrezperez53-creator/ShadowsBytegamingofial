@@ -1,0 +1,22 @@
+/* Shadow Byte V2 — extensiones de perfiles y biblioteca */
+.sbp-dashboard,.sbp-public-tools{background:linear-gradient(130deg,rgba(67,26,104,.42),rgba(15,18,44,.85));border:1px solid rgba(178,105,255,.42);border-radius:20px;padding:22px;margin:20px 0;min-width:0}
+.sbp-dashboard h2,.sbp-public-tools h2{margin:0 0 8px;font-size:clamp(21px,3vw,27px)}
+.sbp-muted,.sbp-note{color:#d0c4de;font-size:15px;overflow-wrap:anywhere}
+.sbp-note:empty{display:none}
+.sbp-meter{display:block;width:100%;height:13px;accent-color:#b65cf5;margin:16px 0 6px}
+.sbp-completion{font-weight:700;color:#eacbff}
+.sbp-actions,.sbp-section-nav{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.sbp-action{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 13px;border:1px solid #8552ad;border-radius:11px;background:#2a1b42;color:#f5eaff;text-decoration:none;font:700 16px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sbp-action:hover{background:#4f267a;border-color:#c38aff}
+.sbp-action:focus-visible{outline:3px solid #45d8ff;outline-offset:3px}
+.sbp-action[aria-disabled=true]{opacity:.68}
+.sbp-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.sbp-stat{padding:13px;border-radius:12px;background:#131023;border:1px solid #463257;display:flex;flex-direction:column;gap:4px}
+.sbp-stat strong{font:700 24px Orbitron,Arial,sans-serif;color:#fff}
+.sbp-stat span{color:#c9b8d6;font-size:14px}
+.sbp-library-controls{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.sbp-library-controls input,.sbp-library-controls select{background:#130f24;border:1px solid #70438c;border-radius:10px;color:#fff;padding:11px 13px;min-height:42px;font:inherit}
+.sbp-library-search{flex:1;min-width:180px}
+.public-game-library-item[hidden],.public-game-library-group[hidden]{display:none!important}
+@media(max-width:680px){.sbp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sbp-dashboard,.sbp-public-tools{padding:16px}.sbp-library-controls{flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.sbp-action{transition:none}html:has(.sbp-section-nav){scroll-behavior:auto}}
