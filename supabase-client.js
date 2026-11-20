@@ -2091,7 +2091,7 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
   refreshPremium.disabled=true;
   try{
    const [itemsRes,purchasesRes,balanceRes,xpRes]=await Promise.all([
-    sb.from('reward_shop_items').select('id,name,price,required_level,value').in('id',premiumVideoThemes.map(item=>item.id)).eq('active',true),
+    sb.from('reward_shop_items').select('id,name,price,required_level,value,sale_price,sale_starts_at,sale_ends_at').in('id',premiumVideoThemes.map(item=>item.id)).eq('active',true),
     sb.from('member_shop_purchases').select('item_id').eq('user_id',userId).in('item_id',premiumVideoThemes.map(item=>item.id)),
     sb.rpc('reward_shop_balance'),
     sb.rpc('community_member_xp',{target_member:userId})
@@ -2111,19 +2111,22 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
     const heading=document.createElement('strong');heading.textContent=theme.label;card.append(heading);
     if(!product){const unavailable=document.createElement('small');unavailable.textContent='No disponible por ahora';card.append(unavailable);premiumCards.append(card);continue;}
     const owned=premiumVideoOwned.has(theme.value);
-    const info=document.createElement('small');info.textContent='Nivel '+product.required_level+' · '+product.price+' puntos'+(owned?' · ✅ Desbloqueado':'');
+    const inOffer=product.sale_price!=null && product.sale_starts_at && product.sale_ends_at &&
+     Date.now()>=new Date(product.sale_starts_at).getTime() && Date.now()<new Date(product.sale_ends_at).getTime();
+    const priceNow=inOffer?Number(product.sale_price):Number(product.price);
+    const info=document.createElement('small');info.textContent='Nivel '+product.required_level+' · '+priceNow+' puntos'+(inOffer?' · 🔥 Oferta (antes '+product.price+')':'')+(owned?' · ✅ Desbloqueado':'');
     const button=document.createElement('button');button.type='button';
     if(owned){
      button.textContent=background.value===theme.value?'✅ Efecto seleccionado':'✨ Usar efecto';
      button.onclick=()=>{choosePremiumTheme(theme.value);premiumStatus.textContent='✅ Has elegido '+product.name+'.';refreshPremiumVideoThemes().catch(console.warn);};
     }else if(level<product.required_level){
      button.textContent='🔒 Necesitas nivel '+product.required_level;button.disabled=true;
-    }else if(balance<product.price){
-     button.textContent='🔒 Faltan '+(product.price-balance)+' puntos';button.disabled=true;
+    }else if(balance<priceNow){
+     button.textContent='🔒 Faltan '+(priceNow-balance)+' puntos';button.disabled=true;
     }else{
-     button.textContent='🔓 Desbloquear por '+product.price+' puntos';
+     button.textContent='🔓 Desbloquear por '+priceNow+' puntos';
      button.onclick=async()=>{
-      if(!confirm('¿Desbloquear '+product.name+' por '+product.price+' puntos?'))return;
+      if(!confirm('¿Desbloquear '+product.name+' por '+priceNow+' puntos?'))return;
       button.disabled=true;
       const {data,error:buyError}=await sb.rpc('buy_reward_shop_item',{requested_item:theme.id});
       if(buyError){premiumStatus.textContent='⚠️ No se pudo desbloquear: '+buyError.message;button.disabled=false;return;}
