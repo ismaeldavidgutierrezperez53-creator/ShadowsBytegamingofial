@@ -174,3 +174,7 @@
 .sb-nav-remove-visible-favorites:disabled{opacity:.45;cursor:default}
 .sb-nav-remove-visible-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:500px){.sb-nav-remove-visible-favorites{width:100%}}
+
+/* Confirmación accesible de operaciones en lote sobre favoritos */
+.sb-nav-bulk-feedback{flex-basis:100%;margin:4px 0 0;color:#cbf9dd;font:700 14px Rajdhani,Arial,sans-serif}
+.sb-nav-bulk-feedback:empty{display:none}
