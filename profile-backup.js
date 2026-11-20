@@ -33,11 +33,45 @@
   exportButton.type='button';
   const importButton=element('button','sb-profile-backup-btn','⬆ Importar configuración');
   importButton.type='button';
+  const resetButton=element('button','sb-profile-backup-btn sb-profile-backup-reset','↺ Restablecer organización');
+  resetButton.type='button';
   const file=element('input','sb-profile-backup-file');
   file.type='file';file.accept='.json,application/json';file.hidden=true;
   file.setAttribute('aria-label','Seleccionar archivo de configuración del perfil');
   const notice=element('p','sb-profile-backup-notice','');
   notice.setAttribute('role','status');
+  const preview=element('div','sb-profile-backup-preview');
+  preview.hidden=true;
+  const previewTitle=element('h4','','Vista previa de la importación');
+  const previewSummary=element('p','sb-profile-backup-help');
+  const previewActions=element('div','sb-profile-backup-actions');
+  const applyButton=element('button','sb-profile-backup-btn','✓ Aplicar configuración');
+  applyButton.type='button';
+  const cancelButton=element('button','sb-profile-backup-btn','Cancelar');
+  cancelButton.type='button';
+  previewActions.append(applyButton,cancelButton);
+  preview.append(previewTitle,previewSummary,previewActions);
+  let pendingImport=null;
+  const dismissPreview=()=>{pendingImport=null;preview.hidden=true;previewSummary.textContent=''};
+  cancelButton.onclick=()=>{dismissPreview();notice.textContent='Importación cancelada.'};
+  applyButton.onclick=()=>{
+   if(!pendingImport)return;
+   try{
+    for(const key of keys)localStorage.setItem(key,key==='sb-profile-compact-v1'?pendingImport[key]:JSON.stringify(pendingImport[key]));
+    dismissPreview();
+    notice.textContent='Configuración importada. Actualizando el organizador.';
+    location.reload();
+   }catch(_){notice.textContent='No se pudo guardar la configuración en este navegador.'}
+  };
+  resetButton.onclick=()=>{
+   if(!window.confirm('¿Restablecer el organizador? Se eliminarán tus favoritos, accesos ocultos y preferencia de modo compacto en este navegador. No afecta a tu cuenta.'))return;
+   try{
+    keys.forEach(key=>localStorage.removeItem(key));
+    dismissPreview();
+    notice.textContent='Organización restablecida. Actualizando el organizador.';
+    location.reload();
+   }catch(_){notice.textContent='No se pudo restablecer el organizador.'}
+  };
   exportButton.onclick=()=>{
    try{
     const preferences={};
@@ -51,7 +85,7 @@
     notice.textContent='Configuración exportada. Guarda el archivo en un lugar seguro.';
    }catch(_){notice.textContent='No se pudo exportar la configuración.'}
   };
-  importButton.onclick=()=>{file.value='';file.click()};
+  importButton.onclick=()=>{dismissPreview();file.value='';file.click()};
   file.onchange=async()=>{
    const selected=file.files?.[0];
    if(!selected)return;
@@ -72,14 +106,17 @@
       validated[key]=safeArray(value);
      }
     }
-    if(!window.confirm('¿Importar esta configuración? Sustituirá tus favoritos y accesos ocultos guardados en este navegador.'))return;
-    for(const key of keys)localStorage.setItem(key,key==='sb-profile-compact-v1'?validated[key]:JSON.stringify(validated[key]));
-    notice.textContent='Configuración importada. Se actualizará el organizador.';
-    location.reload();
-   }catch(_){notice.textContent='El archivo es inválido o no se pudo importar.'}
+    pendingImport=validated;
+    const ownFav=validated['sb-profile-favorite-sections-own-v1'].length;
+    const publicFav=validated['sb-profile-favorite-sections-public-v1'].length;
+    const hidden=validated['sb-profile-hidden-shortcuts-own-v1'].length+validated['sb-profile-hidden-shortcuts-public-v1'].length;
+    previewSummary.textContent='Archivo: '+selected.name+' · '+ownFav+' favoritos en Mi cuenta, '+publicFav+' favoritos públicos, '+hidden+' accesos ocultos. Modo compacto: '+(validated['sb-profile-compact-v1']==='yes'?'activado':'desactivado')+'. Se sustituirán las preferencias guardadas en este navegador.';
+    preview.hidden=false;
+    notice.textContent='Revisa la vista previa antes de aplicar los cambios.';
+   }catch(_){dismissPreview();notice.textContent='El archivo es inválido o no se pudo importar.'}
   };
-  actions.append(exportButton,importButton,file);
-  section.append(actions,notice);
+  actions.append(exportButton,importButton,resetButton,file);
+  section.append(actions,preview,notice);
   nav.append(section);
  }
  let pending=false;
