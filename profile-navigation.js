@@ -72,6 +72,32 @@
   const links=nav.querySelector('.sb-nav-links');
   const summary=nav.querySelector('.sb-nav-summary');
   const key='sb-profile-favorite-sections-'+(isOwn?'own':'public')+'-v1';
+  const hiddenKey='sb-profile-hidden-shortcuts-'+(isOwn?'own':'public')+'-v1';
+  const readHidden=()=>{
+   try{
+    const saved=JSON.parse(localStorage.getItem(hiddenKey)||'[]');
+    return Array.isArray(saved)?saved.filter(x=>typeof x==='string'&&modules.some(m=>m[1]===x)).slice(0,25):[];
+   }catch(_){return []}
+  };
+  let showHidden=nav.dataset.showHidden==='yes';
+  const settings=nav.querySelector('.sb-nav-visibility-settings')||node('div','sb-nav-visibility-settings');
+  if(!settings.isConnected){
+   const toggle=node('button','sb-nav-visibility-toggle');
+   toggle.type='button';
+   toggle.addEventListener('click',()=>{
+    nav.dataset.showHidden=nav.dataset.showHidden==='yes'?'no':'yes';
+    links.dataset.signature='';
+    enhance(host,isOwn);
+   });
+   settings.append(toggle);
+   const details=nav.querySelector('.sb-nav-details');
+   details.after(settings);
+  }
+  const hidden=readHidden();
+  const visibilityToggle=settings.querySelector('.sb-nav-visibility-toggle');
+  const visibilityLabel=showHidden?'Ocultar ajustes de accesos':'Gestionar accesos ocultos';
+  if(visibilityToggle.textContent!==visibilityLabel)visibilityToggle.textContent=visibilityLabel;
+  visibilityToggle.setAttribute('aria-expanded',String(showHidden));
   const readFavorites=()=>{
    try{
     const saved=JSON.parse(localStorage.getItem(key)||'[]');
@@ -81,11 +107,11 @@
   const relevant=modules.filter(item=>item[2]===isOwn);
   const available=relevant.filter(([label,selector])=>host.querySelector(selector));
   const favorites=readFavorites();
-  const signature=available.map(x=>x[1]).join('|')+'#'+favorites.join('|');
+  const signature=available.map(x=>x[1]).join('|')+'#'+favorites.join('|')+'#'+hidden.join('|')+'#'+showHidden;
   if(links.dataset.signature===signature)return;
   links.dataset.signature=signature;
   links.replaceChildren();
-  summary.textContent='Ver accesos rápidos ('+available.length+')';
+  summary.textContent='Ver accesos rápidos ('+(available.length-hidden.filter(x=>available.some(a=>a[1]===x)).length)+')';
   const ordered=[...available].sort((a,b)=>{
    const ia=favorites.indexOf(a[1]),ib=favorites.indexOf(b[1]);
    if(ia<0&&ib<0)return 0;
@@ -96,6 +122,10 @@
   for(const [label,selector] of ordered){
    const item=node('div','sb-nav-favorite-item');
    item.dataset.searchLabel=label;
+   const isHidden=hidden.includes(selector);
+   item.dataset.shortcutHidden=String(isHidden);
+   item.classList.toggle('sb-nav-hidden-shortcut',isHidden);
+   if(isHidden&&!showHidden)continue;
    const button=node('button','sb-nav-link',label);
    button.type='button';
    button.onclick=()=>{
@@ -145,6 +175,20 @@
     down.title='Bajar favorito';
     down.onclick=()=>move(1);
     arrows.append(up,down);item.append(arrows);
+   }
+   if(showHidden){
+    const toggle=node('button','sb-nav-hide-btn',isHidden?'Mostrar':'Ocultar');
+    toggle.type='button';
+    toggle.title=isHidden?'Restaurar acceso rápido':'Ocultar solo este acceso rápido';
+    toggle.setAttribute('aria-label',(isHidden?'Restaurar ':'Ocultar ')+label+' en accesos rápidos');
+    toggle.onclick=()=>{
+     const current=readHidden();
+     const next=isHidden?current.filter(x=>x!==selector):[...current,selector];
+     try{localStorage.setItem(hiddenKey,JSON.stringify(next))}catch(_){}
+     links.dataset.signature='';
+     enhance(host,isOwn);
+    };
+    item.append(toggle);
    }
    links.append(item);
   }
