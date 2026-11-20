@@ -230,7 +230,7 @@
       if(!active())return;
       if(!reset)return loadMore();
       const ticket=++request;
-      loading=true;refresh.disabled=true;
+      loading=true;loadingMore=false;refresh.disabled=true;
       status.textContent='Consultando la colección en Supabase…';
       try{
         if(typeof sb==='undefined'||!sb?.rpc||!sb?.auth)throw Error('Supabase no disponible');
@@ -282,13 +282,19 @@
     async function loadMore(){
       if(!active()||!memberId||loading||loadingMore||items.length>=total)return;
       loadingMore=true;more.disabled=true;
+      const ticket=request;
       status.textContent='Cargando más trofeos…';
       try{
         const {data,error}=await sb.rpc('get_member_anime_trophy_gallery',{
           target_member:memberId,p_offset:items.length,p_limit:24
         });
+        if(ticket!==request||!active())return;
         if(error)throw error;
-        if(!active()||!data?.visible||!Array.isArray(data.awards))
+        if(data?.visible===false){
+          panel.hidden=true;items=[];tierData=[];total=0;publicSharing=false;
+          return;
+        }
+        if(!data?.visible||!Array.isArray(data.awards))
           throw Error('La colección ya no está disponible');
         if(!data.awards.length&&items.length<total)
           throw Error('No se han podido cargar más trofeos');
@@ -298,11 +304,13 @@
         drawAwards();
         status.textContent='Se muestran '+number(items.length)+' de '+number(total)+' medallas.';
       }catch(error){
-        if(active())status.textContent='Error al cargar más trofeos: '+
+        if(ticket===request&&active())status.textContent='Error al cargar más trofeos: '+
           String(error?.message||'Vuelve a intentarlo');
       }finally{
-        loadingMore=false;
-        if(active())drawAwards();
+        if(ticket===request){
+          loadingMore=false;
+          if(active()&&!panel.hidden)drawAwards();
+        }
       }
     }
     const themeChanged=event=>{
@@ -315,9 +323,10 @@
     };
     window.addEventListener('sb:medal-theme-changed',themeChanged);
     window.addEventListener('sb:medal-motion-changed',motionChanged);
+    const onGoalUpdated=()=>load(true);
     if(isOwner){
-      window.addEventListener('sb:point-goal-updated',()=>load(true));
-      window.addEventListener('sb:point-goal-medal-unlocked',()=>load(true));
+      window.addEventListener('sb:point-goal-updated',onGoalUpdated);
+      window.addEventListener('sb:point-goal-medal-unlocked',onGoalUpdated);
     }
     const app=document.getElementById('app');
     if(app){
@@ -326,6 +335,10 @@
         ++request;
         window.removeEventListener('sb:medal-theme-changed',themeChanged);
         window.removeEventListener('sb:medal-motion-changed',motionChanged);
+        if(isOwner){
+          window.removeEventListener('sb:point-goal-updated',onGoalUpdated);
+          window.removeEventListener('sb:point-goal-medal-unlocked',onGoalUpdated);
+        }
         observer.disconnect();
       });
       observer.observe(app,{childList:true,subtree:true});
