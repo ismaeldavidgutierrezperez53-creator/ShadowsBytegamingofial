@@ -1541,3 +1541,105 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
   animation:none;
  }
 }
+
+
+/* Chat individual V3: optional activity, multi-photo gallery, quick replies and anime themes. */
+#private-messages .private-chat-share-status{
+ display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:650;
+ padding:11px;border-radius:11px;border:1px solid rgba(192,150,242,.32);
+ background:rgba(94,65,126,.13);font-size:.84rem;
+}
+#private-messages .private-chat-share-status input{width:17px;height:17px;accent-color:#b27af1;flex:0 0 17px}
+#private-messages .private-chat-sharing-info{display:block;margin:0 0 9px;padding:0 4px;color:#cdb9df;font-size:.76rem}
+#private-messages .private-chat-personal-header{
+ display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:13px;
+ margin:0 0 14px;padding:12px 14px;border-radius:15px;
+ border:1px solid rgba(196,152,242,.3);background:rgba(119,81,165,.1);
+}
+#private-messages .private-chat-heading-text{flex:1 1 220px;min-width:0}
+#private-messages .private-chat-heading-text h2{margin:0 0 5px;font-size:1.18rem;overflow-wrap:anywhere}
+#private-messages .private-chat-connection-status{
+ display:block;font-size:.78rem;color:#c7b5d9;overflow-wrap:anywhere;
+}
+#private-messages .private-chat-connection-status.is-online{color:#aaf8c4;font-weight:700}
+#private-messages .private-chat-theme-picker{
+ display:flex;flex-direction:column;gap:5px;min-width:170px;font-size:.78rem;font-weight:700;
+}
+#private-messages .private-chat-theme-picker select{
+ display:block;width:100%;min-height:39px;padding:7px 10px;
+ border:1px solid rgba(204,178,254,.6);border-radius:10px;
+ background:#251a42;color:#fff;font:inherit;cursor:pointer;
+}
+#private-messages .private-chat-gallery{display:block;margin:10px 0;max-width:100%}
+#private-messages .private-chat-gallery .private-chat-photo{display:block;max-width:100%;height:auto;cursor:zoom-in}
+#private-messages .private-chat-gallery.is-multi{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+ width:min(100%,360px);
+}
+#private-messages .private-chat-gallery.is-multi .private-chat-photo{
+ display:block;width:100%;height:100%;aspect-ratio:1/1;
+ object-fit:cover;border-radius:10px;background:rgba(173,150,203,.19);
+ border:1px solid rgba(189,153,255,.35);
+}
+#private-messages .private-chat-quick-replies{
+ display:flex;align-items:center;flex-wrap:wrap;gap:7px;
+ margin:8px 0 10px;
+}
+#private-messages .private-chat-quick-replies small{
+ display:block;width:100%;color:#e4cdfa;font-size:.78rem;font-weight:700;
+}
+#private-messages .private-chat-quick-replies button{
+ border:1px solid rgba(198,154,255,.5);border-radius:999px;
+ background:rgba(117,82,174,.25);color:inherit;padding:7px 11px;
+ font-size:.8rem;cursor:pointer;
+ transition:background .15s,transform .15s;
+}
+#private-messages .private-chat-quick-replies button:hover{
+ background:rgba(150,93,210,.45);transform:translateY(-1px);
+}
+#private-messages .private-chat-quick-replies button:focus-visible,
+#private-messages .private-chat-theme-picker select:focus-visible,
+#private-messages .private-chat-share-status input:focus-visible{
+ outline:2px solid #c9ebff;outline-offset:2px;
+}
+/* Theme styling stays scoped to a single conversation and never alters site-wide colors. */
+#private-messages .messages-panel.private-chat-theme-sakura{
+ background:radial-gradient(ellipse at 85% 8%,rgba(255,124,191,.18),transparent 56%),linear-gradient(155deg,#271c3b,#211528);
+ border-color:rgba(251,148,205,.57);
+}
+#private-messages .private-chat-theme-sakura .message-bubble{
+ background:#41283e;border:1px solid rgba(255,180,221,.23);
+}
+#private-messages .private-chat-theme-sakura .message-bubble.mine{background:#683552}
+#private-messages .private-chat-theme-sakura .private-chat-personal-header{border-color:rgba(251,148,205,.48);background:rgba(193,80,137,.1)}
+#private-messages .messages-panel.private-chat-theme-neon{
+ background:radial-gradient(circle at 92% 7%,rgba(125,76,255,.23),transparent 49%),linear-gradient(150deg,#100e2b,#1e133c);
+ border-color:rgba(183,111,250,.8);
+}
+#private-messages .private-chat-theme-neon .message-bubble{background:#282049;border:1px solid rgba(157,124,255,.33)}
+#private-messages .private-chat-theme-neon .message-bubble.mine{background:#4a2470;box-shadow:0 0 13px rgba(162,65,255,.18)}
+#private-messages .private-chat-theme-neon .private-chat-personal-header{border-color:rgba(169,126,252,.52);background:rgba(93,48,175,.14)}
+#private-messages .messages-panel.private-chat-theme-galaxy{
+ background:radial-gradient(ellipse at 80% 2%,rgba(87,152,250,.24),transparent 48%),radial-gradient(circle at 8% 87%,rgba(154,72,213,.17),transparent 43%),linear-gradient(160deg,#101b35,#161127);
+ border-color:rgba(122,187,255,.66);
+}
+#private-messages .private-chat-theme-galaxy .message-bubble{background:#1c3455;border:1px solid rgba(125,182,245,.3)}
+#private-messages .private-chat-theme-galaxy .message-bubble.mine{background:#385382}
+#private-messages .private-chat-theme-galaxy .private-chat-personal-header{border-color:rgba(125,182,245,.44);background:rgba(59,112,167,.17)}
+#private-messages .messages-panel.private-chat-theme-sunset{
+ background:radial-gradient(ellipse at 75% 0%,rgba(255,142,87,.18),transparent 52%),linear-gradient(155deg,#342033,#21182b);
+ border-color:rgba(245,165,105,.61);
+}
+#private-messages .private-chat-theme-sunset .message-bubble{background:#493043;border:1px solid rgba(248,178,120,.27)}
+#private-messages .private-chat-theme-sunset .message-bubble.mine{background:#814b51}
+#private-messages .private-chat-theme-sunset .private-chat-personal-header{border-color:rgba(245,165,105,.5);background:rgba(175,83,70,.15)}
+@media(max-width:680px){
+ #private-messages .private-chat-personal-header{gap:10px;padding:10px}
+ #private-messages .private-chat-theme-picker{min-width:0;width:100%}
+ #private-messages .private-chat-gallery.is-multi{gap:5px}
+ #private-messages .private-chat-quick-replies button{font-size:.77rem}
+}
+@media(prefers-reduced-motion:reduce){
+ #private-messages .private-chat-quick-replies button{transition:none}
+ #private-messages .private-chat-quick-replies button:hover{transform:none}
+}
