@@ -60,6 +60,7 @@
    button.onclick=()=>{
     const target=host.querySelector(selector);
     if(!target)return;
+    target.dispatchEvent(new Event('sb:profile-expand'));
     target.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
     target.classList.add('sb-nav-target');
     // Solo una indicación visual, sin cambios de información.
