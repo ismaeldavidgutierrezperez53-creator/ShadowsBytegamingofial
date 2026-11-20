@@ -55,7 +55,7 @@
   const start=document.createElement('input');start.type='datetime-local';
   const end=document.createElement('input');end.type='datetime-local';
   availabilityForm.append(field('Artículo',itemSelect),field('Disponible desde (opcional)',start),field('Disponible hasta (opcional)',end));
-  const scheduleButton=element('button','gradient-btn','💾 Guardar disponibilidad');scheduleButton.type='submit';
+  const scheduleButton=element('button','gradient-btn','💾 Guardar disponibilidad');scheduleButton.type='button';
   const clearSchedule=element('button','outline-btn','Quitar límite');clearSchedule.type='button';
   const buttons=element('div','sb-shop-v3-actions');buttons.append(scheduleButton,clearSchedule);
   const scheduleStatus=element('p','sb-shop-admin__status');scheduleStatus.setAttribute('role','status');
