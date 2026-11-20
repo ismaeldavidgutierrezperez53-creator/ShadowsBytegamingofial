@@ -66,7 +66,8 @@
 .topbar #nav .menu-column{display:flex;flex-direction:column;gap:3px;min-width:0;padding:16px;border:1px solid #583677;border-radius:16px;background:linear-gradient(160deg,#251337,#150f25)}
 .topbar #nav .menu-column strong,.topbar #nav .menu-account>strong{display:block;color:#e1b6ff;font:700 18px Rajdhani,Arial,sans-serif;padding:0 9px 9px}
 .topbar #nav .menu-column a{display:block!important;padding:10px 11px!important;min-height:42px;text-decoration:none;font:600 17px Rajdhani,Arial,sans-serif;color:#efe5fa;border-radius:9px;white-space:normal;border:0!important}
-.topbar #nav .menu-column a:hover,.topbar #nav .menu-column a[aria-current="page"]{color:#fff;background:#512b70}
+.topbar #nav .menu-column a[hidden]{display:none!important}
+ .topbar #nav .menu-column a:hover,.topbar #nav .menu-column a[aria-current="page"]{color:#fff;background:#512b70}
 .topbar #nav a:focus-visible,.topbar #nav button:focus-visible{outline:2px solid #38d0ff;outline-offset:2px}
 .topbar #nav .menu-account{padding:16px;border:1px solid #583677;border-radius:16px;background:#1c112b}
 .topbar #nav #account-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0}
@@ -138,11 +139,11 @@
         </section>
         <section class="menu-column" aria-label="Comunidad y actividades">
           <strong>🎮 Comunidad</strong>
-          <a href="#/comunidad">Comunidad</a><a href="#/miembros">Miembros</a><a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/encuestas">Encuestas</a><a href="#/favoritos">Favoritos</a><a href="#/logros">Logros y niveles</a>
+          <a href="#/comunidad">Comunidad</a><a href="#/miembros">Miembros</a><a href="#/cartelera">Cartelera</a><a href="#/eventos">Eventos</a><a href="#/encuestas">Encuestas</a><a href="#/tienda">🏪 Tienda de recompensas</a><a href="#/favoritos">Favoritos</a><a href="#/logros">Logros y niveles</a>
         </section>
         <section class="menu-column" aria-label="Tu espacio">
           <strong>✨ Tu espacio</strong>
-          <a href="#/cuenta">Mi cuenta</a><a href="#/mensajes">Mensajes</a><a href="#/notificaciones">Notificaciones</a><a href="#/no-molestar">No molestar</a><a href="#/contacto">Contacto</a><a href="#/admin">Administración</a>
+          <a href="#/cuenta">Mi cuenta</a><a href="#/mensajes">Mensajes</a><a href="#/notificaciones">Notificaciones</a><a href="#/no-molestar">No molestar</a><a href="#/contacto">Contacto</a><a id="menu-admin-link" href="#/admin" hidden>Administración</a>
         </section>
       </div>
       <div class="menu-account">
