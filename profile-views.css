@@ -57,3 +57,23 @@
 .sb-views-chart-help{font-size:.79rem;line-height:1.45;color:#c9b6e0;margin:14px 0 0}
 @media(max-width:540px){.sb-views-week-chart{padding:12px 8px}.sb-views-chart-bars{gap:4px}.sb-views-chart-date{font-size:.62rem}.sb-views-chart-track{height:110px;border-radius:6px}.sb-views-chart-fill{border-radius:5px 5px 2px 2px}}
 @media(prefers-reduced-motion:reduce){.sb-views-chart-fill{transition:none}}
+
+/* Panel avanzado: selección de 7/30 días, comparativas y desplazamiento accesible */
+.sb-views-period-tools{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:4px 0 14px}
+.sb-views-period-tools strong{font-size:.9rem;color:#d8c8ee;margin-right:4px}
+.sb-views-period-btn{border:1px solid rgba(186,130,244,.62);border-radius:10px;min-width:76px}
+.sb-views-period-btn[aria-pressed="true"]{border-color:#e0b1ff;background:linear-gradient(120deg,#7734c7,#9955dc);color:#fff;box-shadow:0 0 12px rgba(153,85,220,.35)}
+.sb-views-comparison-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:8px 0 16px}
+.sb-views-comparison-tile{display:grid;gap:6px;align-content:center;min-width:0;border:1px solid rgba(185,137,240,.35);border-radius:12px;padding:12px 10px;background:rgba(62,40,100,.3)}
+.sb-views-comparison-tile small{font-size:.83rem;line-height:1.35;color:#cfbfe6}
+.sb-views-comparison-value{font:800 clamp(1.05rem,2.1vw,1.5rem)/1.2 Rajdhani,Arial,sans-serif;color:#f4e7ff;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.sb-views-comparison-value.sb-views-is-up{color:#a0efc0}
+.sb-views-comparison-value.sb-views-is-down{color:#ffb3bd}
+.sb-views-chart-viewport{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;padding:0 0 8px;scrollbar-color:#a46ae1 #23163a}
+.sb-views-chart-bars[data-period="30"]{grid-template-columns:repeat(30,minmax(23px,1fr));min-width:920px;gap:5px}
+.sb-views-chart-bars[data-period="30"] .sb-views-chart-track{height:126px}
+.sb-views-chart-bars[data-period="30"] .sb-views-chart-value{font-size:.82rem}
+.sb-views-chart-bars[data-period="30"] .sb-views-chart-weekday{font-size:.71rem}
+.sb-views-chart-bars[data-period="30"] .sb-views-chart-date{font-size:.66rem}
+@media(max-width:720px){.sb-views-comparison-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sb-views-comparison-tile{padding:12px 9px}.sb-views-period-tools{gap:7px}}
+@media(max-width:440px){.sb-views-period-tools strong{flex:1 0 100%}.sb-views-chart-viewport{margin-top:4px}}
