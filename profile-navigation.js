@@ -59,6 +59,11 @@
     stats.append(badge);
    }
    const details=node('details','sb-nav-details');
+   const detailsOpenKey='sb-profile-shortcuts-menu-open-'+(isOwn?'own':'public')+'-v1';
+   try{details.open=localStorage.getItem(detailsOpenKey)==='true'}catch(_){}
+   details.addEventListener('toggle',()=>{
+    try{localStorage.setItem(detailsOpenKey,String(details.open))}catch(_){}
+   });
    const summary=node('summary','sb-nav-summary','Ver accesos rápidos');
    const searchBox=node('div','sb-nav-searchbox');
    const search=node('input','sb-nav-search');
