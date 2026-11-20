@@ -132,6 +132,7 @@
     anchor.after(panel);
 
     let last=0,busy=false,memberId=null,unlocked=[],selectedIds=[],selectedRecords=[];
+    let focusedMedalId=null;
     let themeKey='neon',themeBusy=false;
     let motionEnabled=true,motionBusy=false;
     const reducedMotion=()=>typeof window.matchMedia==='function'&&
@@ -187,6 +188,9 @@
         if(error||!data?.saved||data.enabled!==nextEnabled)
           throw error||Error('No se pudo confirmar el cambio de efectos.');
         if(active()){
+          window.dispatchEvent(new CustomEvent('sb:medal-motion-changed',{
+            detail:{enabled:motionEnabled}
+          }));
           motionStatus.textContent=(motionEnabled
             ?'✅ Efectos animados activados y guardados.'
             :'✅ Efectos animados desactivados y guardados.')+
@@ -363,6 +367,15 @@
       }
     }
 
+    function focusMedal(){
+      if(!isOwner||!active()||!focusedMedalId)return;
+      const target=history.querySelector('[data-goal-id="'+focusedMedalId+'"]');
+      if(target){
+        target.classList.add('sbpm-medal-focused');
+        target.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    }
+
     function draw(items){
       drawStrip(selectedRecords);
       panel.hidden=!isOwner&&items.length===0;
@@ -393,6 +406,7 @@
         const tier=medals[item.tier];
         const row=el('article','sbpm-medal-card sbpm--'+tier.className);
         row.setAttribute('role','listitem');
+        row.dataset.goalId=String(item.goal_id);
         row.append(el('div','sbpm-medal-icon',tier.icon));
         const details=el('div','sbpm-medal-details');
         details.append(
@@ -403,7 +417,10 @@
         row.append(details);
         history.append(row);
       }
-      if(isOwner)drawEditor();
+      if(isOwner){
+        drawEditor();
+        focusMedal();
+      }
     }
 
     async function load(){
@@ -466,6 +483,16 @@
     }
 
     if(isOwner){
+      const showGoalMedal=event=>{
+        const id=Number(event?.detail?.goalId);
+        if(!active()||!Number.isSafeInteger(id)||id<=0)return;
+        focusedMedalId=id;
+        panel.scrollIntoView({behavior:'smooth',block:'start'});
+        // Refresh if a newly awarded medal has not appeared in this panel yet.
+        if(history.querySelector('[data-goal-id="'+id+'"]'))focusMedal();
+        else load();
+      };
+      window.addEventListener('sb:show-goal-medal',showGoalMedal);
       refresh.addEventListener('click',load);
       window.addEventListener('sb:point-goal-updated',load);
       window.addEventListener('sb:point-goal-medal-unlocked',load);
@@ -475,6 +502,7 @@
           if(panel.isConnected)return;
           window.removeEventListener('sb:point-goal-updated',load);
           window.removeEventListener('sb:point-goal-medal-unlocked',load);
+          window.removeEventListener('sb:show-goal-medal',showGoalMedal);
           observer.disconnect();
         });
         observer.observe(app,{childList:true,subtree:true});
