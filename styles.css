@@ -1867,3 +1867,23 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(prefers-reduced-motion:reduce){
  #private-messages .private-direct-history-toggle::after{transition:none}
 }
+
+
+/* Reliable individual screen sharing: readable permission/connection state. */
+.private-direct-call-overlay .private-direct-screen-status{
+ margin:0;padding:10px 12px;
+ border-radius:11px;border:1px solid rgba(119,179,252,.48);
+ background:rgba(44,85,142,.21);color:#e4f3ff;
+ font-size:.8rem;line-height:1.5;overflow-wrap:anywhere;
+}
+.private-direct-call-overlay .private-direct-screen-status[hidden]{display:none!important}
+.private-direct-call-overlay .private-direct-screen-share:not([hidden]){
+ font-weight:750;min-height:42px;
+}
+.private-direct-call-overlay .private-direct-screen-share:focus-visible{
+ outline:3px solid #d0f2ff;outline-offset:2px;
+}
+@media(max-width:720px){
+ .private-direct-call-overlay .private-direct-screen-status{font-size:.77rem;padding:9px 10px}
+ .private-direct-call-overlay .private-direct-screen-share:not([hidden]){flex-basis:100%}
+}
