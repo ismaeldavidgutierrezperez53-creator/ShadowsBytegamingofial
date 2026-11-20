@@ -305,3 +305,11 @@
 .sb-nav-selection-status{margin:2px 12px 8px;padding:8px 12px;border-left:3px solid #55dbff;border-radius:6px;background:#1d293b;color:#eafaff;font:700 14px/1.4 Rajdhani,Arial,sans-serif;overflow-wrap:anywhere}
 .sb-nav-selection-status:empty{display:none}
 @media(max-width:550px){.sb-nav-selection-status{font-size:13px}}
+
+/* Controles táctiles para recorrer los resultados filtrados del perfil */
+.sb-nav-selection-controls{display:flex;gap:8px;flex-wrap:wrap;margin:0 12px 10px}
+.sb-nav-selection-controls button{min-height:42px;padding:9px 15px;border:1px solid #75b9ce;border-radius:10px;background:#26445c;color:#edfaff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-selection-controls button:hover:not(:disabled){background:#365d78}
+.sb-nav-selection-controls button:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+.sb-nav-selection-controls button:disabled{opacity:.45;cursor:default}
+@media(max-width:550px){.sb-nav-selection-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.sb-nav-selection-controls button{min-width:0}}
