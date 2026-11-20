@@ -1804,26 +1804,46 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  }
  const local=document.createElement('video');local.autoplay=true;local.muted=true;local.playsInline=true;local.srcObject=stream;videoTile(userId,local);
  const videoAudioMonitors=new Map();let voiceContext=null;
+ const voiceIndicatorControls=document.createElement('div');voiceIndicatorControls.className='group-video-voice-controls';
+ const voiceIndicatorButton=document.createElement('button');voiceIndicatorButton.type='button';voiceIndicatorButton.textContent='🎤 Activar indicador de voz';
+ const voiceIndicatorStatus=document.createElement('small');voiceIndicatorStatus.setAttribute('role','status');
+ voiceIndicatorStatus.textContent='Pulsa Activar para iluminar tu marco cuando hables.';
+ voiceIndicatorControls.append(voiceIndicatorButton,voiceIndicatorStatus);
+ const resumeVoiceIndicator=async()=>{
+  try{
+   if(!voiceContext){voiceIndicatorStatus.textContent='⚠️ El navegador no admite el indicador de voz.';return;}
+   if(voiceContext.state==='suspended')await voiceContext.resume();
+   voiceIndicatorStatus.textContent=voiceContext.state==='running'?'✅ Indicador de voz activo. Habla con el micrófono encendido.':'⚠️ No se pudo iniciar el indicador. Comprueba los permisos del navegador.';
+   voiceIndicatorButton.textContent=voiceContext.state==='running'?'🎤 Indicador de voz activo':'🎤 Activar indicador de voz';
+  }catch(e){voiceIndicatorStatus.textContent='⚠️ No se pudo activar: '+e.message;}
+ };
+ voiceIndicatorButton.onclick=resumeVoiceIndicator;
  const monitorVoice=(id,media)=>{
   if(videoAudioMonitors.has(id)||!media?.getAudioTracks?.().length)return;
   try{
-   voiceContext ||= new (window.AudioContext||window.webkitAudioContext)();
+   const AudioContextCtor=window.AudioContext||window.webkitAudioContext;
+   if(!AudioContextCtor)return;
+   voiceContext ||= new AudioContextCtor();
    const source=voiceContext.createMediaStreamSource(new MediaStream(media.getAudioTracks()));
-   const analyser=voiceContext.createAnalyser();analyser.fftSize=256;source.connect(analyser);
-   videoAudioMonitors.set(id,{source,analyser,samples:new Uint8Array(analyser.frequencyBinCount)});
+   const analyser=voiceContext.createAnalyser();analyser.fftSize=512;source.connect(analyser);
+   videoAudioMonitors.set(id,{source,analyser,samples:new Float32Array(analyser.fftSize),speakingFrames:0});
   }catch(e){console.warn('Indicador de voz no disponible:',e.message);}
  };
  monitorVoice(userId,stream);
  const voiceIndicatorTimer=setInterval(()=>{
-  if(!panel.isConnected)return;
+  if(!panel.isConnected||voiceContext?.state!=='running')return;
   for(const [id,monitor] of videoAudioMonitors){
    const tile=[...videos.children].find(el=>el.dataset.memberId===id);
    if(!tile)continue;
-   monitor.analyser.getByteFrequencyData(monitor.samples);
-   const volume=monitor.samples.reduce((a,b)=>a+b,0)/monitor.samples.length;
-   tile.classList.toggle('group-video-speaking',volume>22);
+   const track=id===userId?stream.getAudioTracks()[0]:null;
+   if(track&&!track.enabled){tile.classList.remove('group-video-speaking');monitor.speakingFrames=0;continue;}
+   monitor.analyser.getFloatTimeDomainData(monitor.samples);
+   let sum=0;for(const sample of monitor.samples)sum+=sample*sample;
+   const rms=Math.sqrt(sum/monitor.samples.length);
+   monitor.speakingFrames=rms>0.018?Math.min(monitor.speakingFrames+2,5):Math.max(monitor.speakingFrames-1,0);
+   tile.classList.toggle('group-video-speaking',monitor.speakingFrames>0);
   }
- },180);
+ },120);
  const participantPanel=document.createElement('section');participantPanel.className='group-video-activity group-video-participant-roster';
  participantPanel.setAttribute('aria-label','Participantes de la videollamada');
  const participantHeading=document.createElement('h5');participantHeading.textContent='👥 Participantes (1)';
@@ -2136,7 +2156,8 @@ async function joinMultiVideoRoom(room,group,userId,thread,say){
  camera.onclick=()=>{const track=stream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
  const share=document.createElement('button');share.type='button';share.textContent='🖥️ Compartir pantalla';
  const leave=document.createElement('button');leave.type='button';leave.textContent='🔴 Salir de la sala';
- actions.append(mic,camera,share,leave);panel.append(title,videos,participantPanel,actions,mediaSettings,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
+ actions.append(mic,camera,share,leave);
+ actions.append(voiceIndicatorControls);panel.append(title,videos,participantPanel,actions,mediaSettings,invites,moderator,accessPanel,activity,extras);thread.prepend(panel);
  const viewBar=document.createElement('div');viewBar.className='group-call-actions';
  const gridView=document.createElement('button');gridView.textContent='▦ Cuadrícula';
  const focusView=document.createElement('button');focusView.textContent='▣ Destacar vídeo';
