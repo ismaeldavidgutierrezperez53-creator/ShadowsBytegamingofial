@@ -3333,6 +3333,177 @@ function createPrivateVoicePlayer(label='Mensaje de voz'){
  return {root,audio,setSource,setDurationHint,setError,reset};
 }
 
+
+let privateDirectCallSession=null;
+function closePrivateDirectCall(){
+ const session=privateDirectCallSession;
+ if(!session)return;
+ privateDirectCallSession=null;
+ clearInterval(session.timer);
+ session.pc?.close();
+ session.localStream?.getTracks().forEach(track=>track.stop());
+ if(session.localMedia)session.localMedia.srcObject=null;
+ if(session.remoteMedia)session.remoteMedia.srcObject=null;
+ session.overlay?.remove();
+}
+async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null}){
+ if(privateDirectCallSession||groupCallSession||multiVideoSession)throw new Error('Finaliza la llamada que tienes abierta antes de iniciar otra.');
+ if(!window.RTCPeerConnection||!navigator.mediaDevices?.getUserMedia)throw new Error('Este navegador no admite llamadas WebRTC.');
+ if(kind!=='audio'&&kind!=='video')throw new Error('Tipo de llamada no admitido.');
+ let localStream;
+ try{localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='video'});}
+ catch(e){throw new Error('Permiso de micrófono o cámara: '+e.message);}
+ if(privateDirectCallSession){localStream.getTracks().forEach(t=>t.stop());throw new Error('Ya hay otra llamada abierta.');}
+ const overlay=document.createElement('aside');overlay.className='private-direct-call-overlay';
+ overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label','Llamada individual');
+ const title=document.createElement('strong');title.textContent=(kind==='video'?'📹 Videollamada':'📞 Llamada de voz')+' con '+partnerName;
+ const state=document.createElement('p');state.className='private-direct-call-state';state.setAttribute('role','status');
+ state.textContent=incoming?'⏳ Aceptando llamada…':'📲 Llamando…';
+ const mediaBox=document.createElement('div');mediaBox.className='private-direct-call-videos';
+ const localMedia=document.createElement('video');localMedia.autoplay=true;localMedia.playsInline=true;localMedia.muted=true;localMedia.defaultMuted=true;
+ localMedia.setAttribute('muted','');localMedia.srcObject=localStream;localMedia.hidden=kind!=='video';
+ localMedia.setAttribute('aria-label','Tu cámara');
+ const remoteMedia=document.createElement(kind==='video'?'video':'audio');
+ remoteMedia.autoplay=true;remoteMedia.controls=true;
+ if(kind==='video')remoteMedia.playsInline=true;
+ remoteMedia.setAttribute('aria-label','Audio y vídeo del otro miembro');
+ mediaBox.append(localMedia,remoteMedia);
+ const actions=document.createElement('div');actions.className='private-direct-call-actions';
+ const mic=document.createElement('button');mic.type='button';mic.textContent='🎙️ Silenciar';
+ mic.onclick=()=>{const track=localStream.getAudioTracks()[0];if(track){track.enabled=!track.enabled;mic.textContent=track.enabled?'🎙️ Silenciar':'🔇 Activar micrófono';}};
+ const camera=document.createElement('button');camera.type='button';camera.hidden=kind!=='video';camera.textContent='📷 Apagar cámara';
+ camera.onclick=()=>{const track=localStream.getVideoTracks()[0];if(track){track.enabled=!track.enabled;camera.textContent=track.enabled?'📷 Apagar cámara':'📷 Encender cámara';}};
+ const listen=document.createElement('button');listen.type='button';listen.textContent='🔊 Activar sonido';
+ listen.onclick=async()=>{
+  remoteMedia.muted=false;
+  try{await remoteMedia.play();state.textContent='🔊 Sonido remoto activado';}
+  catch(e){state.textContent='No se pudo reproducir el sonido: '+e.message;}
+ };
+ const hang=document.createElement('button');hang.type='button';hang.className='private-direct-call-hang';hang.textContent='🔴 Colgar';
+ actions.append(mic,camera,listen,hang);
+ const hint=document.createElement('small');hint.textContent='Conexión privada entre navegadores. Algunas redes requieren TURN para conectar.';
+ overlay.append(title,state,mediaBox,actions,hint);
+ document.body.append(overlay);
+ const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+ localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
+ const session={pc,localStream,localMedia,remoteMedia,overlay,timer:null,call:incoming};
+ privateDirectCallSession=session;
+ let call=incoming,seenIce=0,busy=false,closed=false;
+ const localIce=[],remoteIce=[];
+ const updateStatus=()=>{
+  if(privateDirectCallSession!==session)return;
+  if(pc.connectionState==='connected')state.textContent='🟢 Conexión establecida';
+  else if(pc.connectionState==='failed')state.textContent='⚠️ No se puede establecer la conexión. Puede ser necesario un servidor TURN.';
+  else if(pc.connectionState==='disconnected')state.textContent='⚠️ Se perdió la conexión. Comprueba tu red.';
+  else if(pc.connectionState==='connecting')state.textContent='⏳ Conectando audio y vídeo…';
+ };
+ pc.onconnectionstatechange=updateStatus;
+ pc.ontrack=event=>{
+  remoteMedia.srcObject=event.streams?.[0]||new MediaStream([event.track]);
+  remoteMedia.play().catch(()=>{state.textContent='Pulsa «Activar sonido» para escuchar al otro miembro.';});
+ };
+ const sendIce=async candidate=>{
+  if(!call?.id){localIce.push(candidate);return;}
+  const {error}=await sb.from('member_private_call_ice').insert({call_id:call.id,sender_id:me,candidate});
+  if(error)console.warn('ICE individual:',error.message);
+ };
+ pc.onicecandidate=event=>{if(event.candidate)sendIce(event.candidate.toJSON()).catch(console.warn);};
+ const flushIce=async()=>{
+  if(!pc.remoteDescription)return;
+  while(remoteIce.length){
+   try{await pc.addIceCandidate(new RTCIceCandidate(remoteIce.shift()));}
+   catch(e){console.warn('ICE remoto omitido:',e.message);}
+  }
+ };
+ const finish=async()=>{
+  if(closed)return;
+  closed=true;
+  hang.disabled=true;
+  if(call?.id)await sb.from('member_private_calls').update({status:'ended'}).eq('id',call.id).then(({error})=>{if(error)console.warn('Finalizar llamada:',error.message);});
+  if(privateDirectCallSession===session)closePrivateDirectCall();
+ };
+ hang.onclick=finish;
+ try{
+  if(!incoming){
+   const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+   const {data,error}=await sb.from('member_private_calls')
+    .insert({caller_id:me,callee_id:partner,kind,status:'ringing',offer:pc.localDescription.toJSON()})
+    .select('id,caller_id,callee_id,kind,status,created_at,offer,answer').single();
+   if(error||!data)throw new Error(error?.message||'No se pudo crear la llamada.');
+   call=data;session.call=data;
+  }else{
+   await pc.setRemoteDescription(new RTCSessionDescription(incoming.offer));
+   const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+   const {data,error}=await sb.from('member_private_calls')
+    .update({status:'active',answer:pc.localDescription.toJSON()})
+    .eq('id',incoming.id).eq('status','ringing')
+    .select('id,caller_id,callee_id,kind,status,created_at,offer,answer').single();
+   if(error||!data)throw new Error(error?.message||'La llamada ya no está disponible.');
+   call=data;session.call=data;
+  }
+  for(const candidate of localIce.splice(0))await sendIce(candidate);
+  const poll=async()=>{
+   if(busy||closed||privateDirectCallSession!==session)return;busy=true;
+   try{
+    const {data:current,error}=await sb.from('member_private_calls')
+      .select('status,answer').eq('id',call.id).maybeSingle();
+    if(error){state.textContent='⚠️ No se pudo consultar el estado: '+error.message;return;}
+    if(!current||current.status==='ended'||current.status==='declined'){state.textContent='Llamada finalizada';closePrivateDirectCall();return;}
+    if(current.status==='ringing'&&me===call.caller_id){
+     if(Date.now()-new Date(call.created_at).getTime()>175000){await finish();return;}
+     state.textContent='📲 Esperando a que '+partnerName+' acepte la llamada…';
+    }
+    if(current.status==='active'&&current.answer&&!pc.remoteDescription&&me===call.caller_id){
+     await pc.setRemoteDescription(new RTCSessionDescription(current.answer));
+     await flushIce();state.textContent='⏳ Negociando la conexión…';
+    }
+    const {data:ice, error:iceError}=await sb.from('member_private_call_ice')
+     .select('id,sender_id,candidate').eq('call_id',call.id).gt('id',seenIce).order('id').limit(100);
+    if(iceError){console.warn('ICE individual:',iceError.message);return;}
+    for(const item of ice||[]){
+     seenIce=Math.max(seenIce,Number(item.id));
+     if(item.sender_id!==me)remoteIce.push(item.candidate);
+    }
+    await flushIce();
+  }catch(e){state.textContent='⚠️ Error en la llamada: '+e.message;}
+  finally{busy=false;}
+  };
+  session.timer=setInterval(poll,1500);poll();
+  return call;
+ }catch(e){
+  if(call?.id&&!incoming)await sb.from('member_private_calls').update({status:'ended'}).eq('id',call.id);
+  if(privateDirectCallSession===session)closePrivateDirectCall();
+  throw e;
+ }
+}
+async function showIncomingPrivateCall(me,partner,partnerName,panel){
+ const cutoff=new Date(Date.now()-170000).toISOString();
+ const {data,error}=await sb.from('member_private_calls')
+  .select('id,caller_id,callee_id,kind,status,created_at,offer,answer')
+  .eq('callee_id',me).eq('caller_id',partner).eq('status','ringing').gt('created_at',cutoff)
+  .order('created_at',{ascending:false}).limit(1);
+ if(error||!data?.length||!panel.isConnected)return;
+ const call=data[0];
+ const banner=document.createElement('section');banner.className='private-direct-incoming';
+ const message=document.createElement('strong');message.textContent=(call.kind==='video'?'📹 Videollamada':'📞 Llamada de voz')+' entrante de '+partnerName;
+ const notice=document.createElement('small');notice.textContent='La cámara y el micrófono solo se activan si aceptas.';
+ const buttons=document.createElement('div');buttons.className='private-direct-incoming-actions';
+ const accept=document.createElement('button');accept.type='button';accept.textContent='✅ Aceptar';
+ const decline=document.createElement('button');decline.type='button';decline.textContent='❌ Rechazar';
+ accept.onclick=async()=>{
+  accept.disabled=true;decline.disabled=true;notice.textContent='Preparando llamada…';
+  try{await startPrivateDirectCall({me,partner,partnerName,kind:call.kind,incoming:call});banner.remove();}
+  catch(e){notice.textContent=e.message;accept.disabled=false;decline.disabled=false;}
+ };
+ decline.onclick=async()=>{
+  accept.disabled=true;decline.disabled=true;
+  const {error:declineError}=await sb.from('member_private_calls').update({status:'declined'}).eq('id',call.id).eq('status','ringing');
+  if(declineError){notice.textContent='No se pudo rechazar: '+declineError.message;accept.disabled=false;decline.disabled=false;}
+  else banner.remove();
+ };
+ buttons.append(accept,decline);banner.append(message,notice,buttons);panel.prepend(banner);
+}
+
 async function loadPrivateMessages(){
  if(privateChatActivityInterval){clearInterval(privateChatActivityInterval);privateChatActivityInterval=null;}
  const root=document.getElementById('private-messages');if(!root)return;
