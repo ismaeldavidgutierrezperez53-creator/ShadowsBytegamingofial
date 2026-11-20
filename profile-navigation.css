@@ -267,3 +267,10 @@
 .sb-nav-copy-all-shortcuts:disabled{opacity:.45;cursor:default}
 .sb-nav-copy-all-shortcuts:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
 @media(max-width:550px){.sb-nav-copy-all-shortcuts{width:100%}}
+
+/* Descarga de todos los accesos en texto para compartir o archivar */
+.sb-nav-download-all-txt{min-height:42px;padding:9px 13px;border:1px solid #a8a5ce;border-radius:10px;background:#393858;color:#f1efff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-download-all-txt:hover:not(:disabled){background:#504e76}
+.sb-nav-download-all-txt:disabled{opacity:.45;cursor:default}
+.sb-nav-download-all-txt:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:550px){.sb-nav-download-all-txt{width:100%}}
