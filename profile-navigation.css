@@ -50,3 +50,9 @@
 .sb-nav-visibility-toggle:focus-visible,.sb-nav-hide-btn:focus-visible{outline:3px solid #62d9ff;outline-offset:2px}
 .sb-nav-visibility-toggle:hover,.sb-nav-hide-btn:hover{background:#5e3978}
 @media(max-width:600px){.sb-nav-hide-btn{min-width:70px}.sb-nav-visibility-settings{justify-content:stretch}.sb-nav-visibility-toggle{width:100%}}
+
+/* Filtro por estrellas independiente de favoritos y buscador */
+.sb-nav-only-favorites{min-height:43px;padding:8px 12px;border:1px solid #b594c9;border-radius:10px;background:#352548;color:#fff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-nav-only-favorites[aria-pressed="true"]{background:#59412e;border-color:#f0c878;color:#ffe7a0}
+.sb-nav-only-favorites:focus-visible{outline:3px solid #5cdbff;outline-offset:2px}
+@media(max-width:500px){.sb-nav-only-favorites{flex:1}}
