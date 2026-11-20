@@ -6,8 +6,10 @@
  const games=value=>new Set(String(value||'').split(/[,;\n]/).map(normal).filter(Boolean).slice(0,30));
  const validImage=value=>typeof value==='string'&&/^https:\/\/[^\s]+$/i.test(value);
  function mount(root){
-  if(root.querySelector('.sbd-discovery')||!root.querySelector('.sbp-identity-card'))return;
-  const anchor=root.querySelector('.sbs-challenges')||root.querySelector('.sbr-goals')||root.querySelector('.sbc-connections')||root.querySelector('.sbp-identity-card');
+  if(root.querySelector('.sbd-discovery'))return;
+  // Anclar directamente al perfil de cuenta: no depender de las tarjetas adicionales.
+  const anchor=root.querySelector('.sbp-dashboard')||root.querySelector('.profile-identity')||root.querySelector('.profile-body');
+  if(!anchor || !root.querySelector('#profile-form'))return;
   const panel=node('section','profile-panel sbd-discovery');
   panel.setAttribute('aria-label','Descubre miembros afines');
   const header=node('h2','','🧭 Descubre miembros afines');
@@ -71,7 +73,7 @@
   refresh.onclick=load;load();
  }
  let pending=false;
- function scan(){pending=false;const root=document.getElementById('account-profile');if(root?.querySelector('.sbp-identity-card'))mount(root)}
+ function scan(){pending=false;const root=document.getElementById('account-profile');if(root?.querySelector('#profile-form'))mount(root)}
  function schedule(){if(pending)return;pending=true;requestAnimationFrame(scan)}
  function init(){const app=document.getElementById('app');if(!app)return;new MutationObserver(schedule).observe(app,{childList:true,subtree:true});addEventListener('hashchange',schedule);schedule()}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
