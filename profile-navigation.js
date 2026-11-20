@@ -58,7 +58,8 @@
      item.hidden=!matched;
      if(matched)visible++;
     }
-    resultCount.textContent=query?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):'';
+    const message=query?(visible?visible+' apartados encontrados':'No hay apartados que coincidan.'):'';
+    if(resultCount.textContent!==message)resultCount.textContent=message;
    };
    search.addEventListener('input',applyFilter);
    clear.addEventListener('click',()=>{search.value='';applyFilter();search.focus()});
@@ -97,7 +98,7 @@
   const visibilityToggle=settings.querySelector('.sb-nav-visibility-toggle');
   const visibilityLabel=showHidden?'Ocultar ajustes de accesos':'Gestionar accesos ocultos';
   if(visibilityToggle.textContent!==visibilityLabel)visibilityToggle.textContent=visibilityLabel;
-  visibilityToggle.setAttribute('aria-expanded',String(showHidden));
+  if(visibilityToggle.getAttribute('aria-expanded')!==String(showHidden))visibilityToggle.setAttribute('aria-expanded',String(showHidden));
   const readFavorites=()=>{
    try{
     const saved=JSON.parse(localStorage.getItem(key)||'[]');
