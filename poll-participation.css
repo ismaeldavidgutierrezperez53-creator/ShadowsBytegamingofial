@@ -1,0 +1,131 @@
+/* Ranking e insignias de participación en encuestas. */
+#poll-participation{
+ margin-bottom:24px;
+ padding:clamp(16px,3vw,27px);
+ background:linear-gradient(135deg,rgba(42,22,63,.92),rgba(12,20,42,.94));
+ border:1px solid rgba(166,113,241,.59);
+ border-radius:20px;
+ box-shadow:0 15px 38px rgba(5,3,21,.28);
+ color:#f7f2ff;
+}
+#poll-participation *{box-sizing:border-box}
+#poll-participation .poll-journey-heading{
+ display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+ gap:14px;margin-bottom:20px;
+}
+#poll-participation .poll-journey-kicker{
+ display:block;color:#8ce5ff;font-size:12px;font-weight:800;letter-spacing:1.7px;
+}
+#poll-participation .poll-journey-heading h2{
+ margin:6px 0;font:800 clamp(22px,3vw,29px)/1.2 Rajdhani,Arial,sans-serif;color:#fff;
+}
+#poll-participation .poll-journey-heading p{
+ color:#dbcaeb;margin:0;line-height:1.45;font-size:16px;
+}
+#poll-participation .poll-journey-refresh{
+ background:#33234b;border:1px solid #8262a9;color:#f7eaff;
+ border-radius:12px;font:700 16px Rajdhani,Arial,sans-serif;
+ padding:10px 16px;cursor:pointer;min-height:43px;
+}
+#poll-participation .poll-journey-refresh:hover{
+ background:#4e326b;border-color:#bc92ef;
+}
+#poll-participation .poll-journey-columns{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:start;gap:17px;
+}
+#poll-participation .poll-journey-block{
+ padding:clamp(14px,2vw,21px);min-width:0;
+ border:1px solid #5a4774;border-radius:15px;
+ background:rgba(17,17,38,.72);
+}
+#poll-participation .poll-journey-block h3{
+ color:#fff;font-size:22px;line-height:1.24;margin:0 0 10px;
+}
+#poll-participation .poll-journey-helper{
+ color:#c0b2d3;font-size:14px;line-height:1.5;margin:0 0 14px;
+}
+#poll-participation .poll-journey-leaderboard{display:grid;gap:9px}
+#poll-participation .poll-leaderboard-row{
+ display:flex;gap:11px;align-items:center;min-width:0;
+ border:1px solid #514366;border-radius:11px;
+ padding:10px;background:linear-gradient(105deg,#25203c,#172035);
+}
+#poll-participation .poll-leaderboard-place{
+ flex:0 0 32px;width:32px;text-align:center;font-weight:900;font-size:21px;color:#e3c0ff;
+}
+#poll-participation .poll-leaderboard-member{
+ min-width:0;flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+}
+#poll-participation .poll-leaderboard-name{
+ color:#fff;font-size:16px;font-weight:800;overflow-wrap:anywhere;text-decoration:none;
+}
+#poll-participation .poll-leaderboard-name:hover{text-decoration:underline;color:#ace5ff}
+#poll-participation .poll-leaderboard-badge{
+ color:#dfcbff;font-size:13px;font-weight:700;line-height:1.25;
+}
+#poll-participation .poll-leaderboard-votes{
+ white-space:nowrap;color:#b5eeff;font-size:15px;flex:0 0 auto;
+}
+#poll-participation .poll-journey-empty{
+ font-size:15px;color:#d6c8e8;line-height:1.5;margin:10px 0;
+}
+#poll-participation .poll-journey-my-count{
+ color:#abebff;font-size:18px;font-weight:800;margin:0 0 12px;
+}
+#poll-participation .poll-journey-progress-label{
+ color:#ddd0ed;font-size:14px;margin:0 0 7px;line-height:1.4;
+}
+#poll-participation .poll-journey-track{
+ height:12px;border-radius:99px;background:#0c1527;overflow:hidden;
+ border:1px solid #6d5590;margin-bottom:17px;
+}
+#poll-participation .poll-journey-track-fill{
+ height:100%;border-radius:inherit;min-width:0;
+ background:linear-gradient(90deg,#ab52f4,#608bfc,#48cde0);
+ transition:width .3s ease;
+}
+#poll-participation .poll-journey-milestones{
+ display:grid;gap:9px;
+}
+#poll-participation .poll-journey-milestone{
+ border:1px solid #5a4a69;border-radius:12px;
+ padding:11px 13px;display:grid;gap:4px;
+ background:rgba(34,26,52,.84);
+}
+#poll-participation .poll-journey-milestone.is-earned{
+ border-color:#74bda0;background:rgba(18,62,51,.62);
+ box-shadow:inset 0 0 15px rgba(60,199,141,.1);
+}
+#poll-participation .poll-journey-badge{
+ color:#fdf6ff;font-size:16px;line-height:1.35;
+}
+#poll-participation .poll-journey-goal{
+ color:#d9c6f2;font-size:14px;
+}
+#poll-participation .poll-journey-status{
+ color:#b9a8cd;font-size:13px;font-weight:800;
+}
+#poll-participation .is-earned .poll-journey-status{color:#98f5c3}
+#poll-participation .poll-journey-completed{
+ color:#a2f1be;font-size:16px;font-weight:800;
+}
+#poll-participation .poll-journey-reward-total{
+ margin:15px 0 0;color:#c2f0e2;font-size:15px;
+ line-height:1.5;font-weight:700;
+}
+#poll-participation :is(button,a):focus-visible{
+ outline:3px solid #6de7ff;outline-offset:3px;
+}
+@media(max-width:850px){
+ #poll-participation .poll-journey-columns{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:470px){
+ #poll-participation{padding:15px;border-radius:15px}
+ #poll-participation .poll-journey-refresh{width:100%}
+ #poll-participation .poll-leaderboard-row{flex-wrap:wrap}
+ #poll-participation .poll-leaderboard-votes{margin-left:43px}
+}
+@media(prefers-reduced-motion:reduce){
+ #poll-participation .poll-journey-track-fill{transition:none}
+}
