@@ -3455,6 +3455,7 @@ async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null
   }catch(e){state.textContent='No se pudo restaurar la cámara: '+e.message;}
   localMedia.srcObject=localStream;
   localMedia.style.filter=filterValues[currentFilter]||'none';
+  overlay.classList.remove('is-sharing-screen');
   screenShare.textContent='🖥️ Compartir pantalla';
   display?.getTracks().forEach(track=>track.stop());
  };
@@ -3483,7 +3484,7 @@ async function startPrivateDirectCall({me,partner,partnerName,kind,incoming=null
    const track=display.getVideoTracks()[0];
    if(!track||!videoSender)throw new Error('No hay pista de vídeo disponible para compartir.');
    await videoSender.replaceTrack(track);
-   session.screenStream=display;sharingScreen=true;
+   session.screenStream=display;sharingScreen=true;overlay.classList.add('is-sharing-screen');
    localMedia.srcObject=new MediaStream([track]);localMedia.style.filter='none';
    screenShare.textContent='🛑 Dejar de compartir';
    state.textContent='🖥️ Estás compartiendo pantalla. Puedes detenerla en cualquier momento.';
