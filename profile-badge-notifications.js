@@ -37,8 +37,10 @@
   const footer=el('div','sb-badge-notify-footer');
   const refreshBtn=el('button','outline-btn mini','↻ Actualizar');
   const myProfileBtn=el('button','outline-btn mini','🎖️ Mi vitrina');
-  refreshBtn.type='button';myProfileBtn.type='button';
-  footer.append(refreshBtn,myProfileBtn);
+  const rewardsBtn=el('button','outline-btn mini sb-badge-rewards-btn',
+    '💰 Ver mi historial de recompensas');
+  refreshBtn.type='button';myProfileBtn.type='button';rewardsBtn.type='button';
+  footer.append(refreshBtn,myProfileBtn,rewardsBtn);
   panel.append(panelTitle,subtitle,feedback,list,footer);
   const toast=el('section','sb-badge-unlock-toast');
   toast.hidden=true;
@@ -56,6 +58,26 @@
 
   const loggedIn=()=>Boolean(userId);
   const validClient=()=>typeof sb!=='undefined'&&sb&&sb.rpc&&sb.auth;
+
+  function navigateRewards(){
+    panel.hidden=true;
+    trigger.setAttribute('aria-expanded','false');
+    const app=document.getElementById('app');
+    let observer=null;
+    const attempt=()=>{
+      const section=document.querySelector('#account-profile .sb-reward-history');
+      if(!section)return false;
+      section.scrollIntoView({behavior:'smooth',block:'start'});
+      window.dispatchEvent(new Event('sb:open-reward-history'));
+      if(observer)observer.disconnect();
+      return true;
+    };
+    if(location.hash.split('?')[0]!=='#/cuenta')location.hash='#/cuenta';
+    if(attempt()||!app)return;
+    observer=new MutationObserver(attempt);
+    observer.observe(app,{childList:true,subtree:true});
+    setTimeout(()=>observer.disconnect(),8000);
+  }
 
   function navigateShowcase(){
     panel.hidden=true;
@@ -290,6 +312,7 @@
   });
   refreshBtn.addEventListener('click',refresh);
   myProfileBtn.addEventListener('click',navigateShowcase);
+  rewardsBtn.addEventListener('click',navigateRewards);
 
   function init(){
     if(!document.body)return;
