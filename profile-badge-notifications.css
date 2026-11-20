@@ -1,0 +1,47 @@
+/* Shadows Byte V2 — notificaciones privadas de logros y celebraciones */
+.sb-badge-notify{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:98px;z-index:1900;display:flex;flex-direction:column;align-items:flex-end;gap:10px;pointer-events:none;max-width:min(400px,calc(100vw - 30px))}
+.sb-badge-notify[hidden],.sb-badge-notify [hidden]{display:none!important}
+.sb-badge-notify>*,.sb-badge-notify button{pointer-events:auto}
+.sb-badge-notify-toggle{min-height:44px;display:flex;align-items:center;gap:8px;padding:9px 15px;border:1px solid rgba(203,158,249,.8);border-radius:999px;background:linear-gradient(120deg,#482872,#302355);color:#fff0ff;font:800 .95rem Rajdhani,Arial,sans-serif;box-shadow:0 4px 18px rgba(28,15,53,.45);cursor:pointer}
+.sb-badge-notify-count{display:inline-grid;place-items:center;border-radius:100px;min-width:22px;min-height:22px;padding:2px 5px;background:#ec557d;color:white;font:800 .8rem Rajdhani,Arial,sans-serif}
+.sb-badge-notify-panel{width:min(390px,calc(100vw - 30px));max-height:min(65vh,580px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(195,137,243,.75);border-radius:16px;padding:14px;background:linear-gradient(140deg,#22153c,#191b38);box-shadow:0 14px 35px rgba(9,4,21,.65);color:#f7eaff}
+.sb-badge-notify-panel h2{margin:0 0 8px;font:800 1.24rem Rajdhani,Arial,sans-serif;color:#fff0ff}
+.sb-badge-notify-help,.sb-badge-notify-empty{color:#dbc7ed;font:500 .88rem/1.45 Rajdhani,Arial,sans-serif;margin:8px 0 13px}
+.sb-badge-notify-list{display:grid;gap:10px}
+.sb-badge-notify-item{border:1px solid rgba(187,138,236,.35);border-radius:12px;padding:11px;background:rgba(127,79,180,.17)}
+.sb-badge-notify-item.is-unread{border-color:rgba(238,192,106,.64);background:rgba(124,77,105,.22)}
+.sb-badge-notify-item-head{display:flex;gap:9px;align-items:center}
+.sb-badge-notify-item-icon{font-size:1.85rem;line-height:1.1}
+.sb-badge-notify-item-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:2px}
+.sb-badge-notify-item-copy strong{font:800 1rem Rajdhani,Arial,sans-serif;color:#ffeaff}
+.sb-badge-notify-item-copy small{color:#d5bfdf;font:.8rem Rajdhani,Arial,sans-serif}
+.sb-badge-notify-new{border:1px solid rgba(241,196,106,.5);padding:3px 7px;color:#ffdf9b;border-radius:100px;font:700 .75rem Rajdhani,Arial,sans-serif}
+.sb-badge-notify-item-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px}
+.sb-badge-notify-action,.sb-badge-notify-secondary{min-height:33px;border-radius:9px;border:1px solid rgba(208,172,254,.6);background:rgba(147,81,213,.35);color:#fff1ff;font:700 .86rem Rajdhani,Arial,sans-serif;padding:6px 10px;cursor:pointer}
+.sb-badge-notify-secondary{background:transparent}
+.sb-badge-notify-in-showcase{font:700 .82rem Rajdhani,Arial,sans-serif;color:#f9e1a9}
+.sb-badge-notify-footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.sb-badge-notify-footer button{flex:1 1 120px;min-height:36px}
+.sb-badge-unlock-toast{position:relative;width:min(390px,calc(100vw - 30px));overflow:hidden;border:1px solid #ca9eff;border-radius:17px;padding:15px;background:linear-gradient(137deg,#372059,#212747);color:#fff2ff;box-shadow:0 12px 36px rgba(19,10,33,.65);animation:sb-badge-toast-enter .35s ease-out}
+.sb-badge-unlock-header{display:flex;align-items:center;gap:13px}
+.sb-badge-unlock-icon{flex:0 0 auto;font-size:2.55rem;filter:drop-shadow(0 3px 5px rgba(0,0,0,.2))}
+.sb-badge-unlock-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sb-badge-unlock-copy strong{font:800 1.05rem Rajdhani,Arial,sans-serif;color:#ffe7b0}
+.sb-badge-unlock-copy span{font:800 1.18rem Rajdhani,Arial,sans-serif;color:#fff1ff}
+.sb-badge-unlock-note{font:.88rem/1.5 Rajdhani,Arial,sans-serif;color:#e5d5ee;margin:10px 0}
+.sb-badge-unlock-actions{display:flex;gap:9px;flex-wrap:wrap}
+.sb-badge-unlock-actions button{flex:1 1 125px;min-height:38px;border:1px solid rgba(241,209,125,.75);border-radius:10px;padding:8px;color:#251832;background:linear-gradient(110deg,#f5d99b,#ffeebc);font:800 .9rem Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-badge-unlock-actions .sb-badge-unlock-dismiss{background:transparent;border-color:rgba(220,190,253,.55);color:#fff0ff}
+.sb-badge-unlock-actions button:disabled{opacity:.6;cursor:not-allowed}
+.sb-badge-unlock-toast--gold{border-color:#f7d06c;background:linear-gradient(125deg,#4c2a58,#553a21,#282545);box-shadow:0 0 30px rgba(253,202,75,.25),0 10px 35px rgba(15,8,27,.55);animation:sb-badge-toast-enter .35s ease-out,sb-badge-gold-pulse 2.3s ease-in-out 3}
+.sb-badge-unlock-toast--diamond{border-color:#a1f0ff;background:linear-gradient(120deg,#21376c,#3a2666,#144a69);box-shadow:0 0 38px rgba(114,231,255,.3),0 10px 35px rgba(12,10,36,.6);animation:sb-badge-toast-enter .35s ease-out,sb-badge-diamond-pulse 2.5s ease-in-out 3}
+.sb-badge-unlock-toast--diamond .sb-badge-unlock-copy strong{color:#b5f5ff}
+.sb-badge-unlock-sparkles{position:absolute;top:9px;right:16px;display:inline-block;font-size:1.2rem;letter-spacing:5px;color:#f8d87f;pointer-events:none;animation:sb-badge-twinkle 1.3s ease-in-out 5}
+.sb-badge-unlock-toast--diamond .sb-badge-unlock-sparkles{color:#b2efff}
+.sb-badge-notify button:focus-visible{outline:2px solid #a6efff;outline-offset:3px}
+@keyframes sb-badge-toast-enter{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes sb-badge-gold-pulse{50%{box-shadow:0 0 37px rgba(255,215,90,.75),0 10px 35px rgba(15,8,27,.55)}}
+@keyframes sb-badge-diamond-pulse{50%{box-shadow:0 0 46px rgba(126,245,255,.8),0 10px 35px rgba(12,10,36,.6)}}
+@keyframes sb-badge-twinkle{0%,100%{opacity:.48;transform:translateY(3px)}50%{opacity:1;transform:translateY(-4px) scale(1.15)}}
+@media(max-width:540px){.sb-badge-notify{bottom:max(84px,env(safe-area-inset-bottom));right:10px}.sb-badge-notify-panel,.sb-badge-unlock-toast{max-width:calc(100vw - 20px);padding:12px}.sb-badge-notify-toggle{padding:8px 12px}}
+@media(prefers-reduced-motion:reduce){.sb-badge-unlock-toast,.sb-badge-unlock-toast--gold,.sb-badge-unlock-toast--diamond,.sb-badge-unlock-sparkles{animation:none!important}}
