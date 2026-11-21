@@ -5,3 +5,9 @@
 .sb-news-mention-option:hover,.sb-news-mention-option.selected,.sb-news-mention-option:focus-visible{background:#533378;color:#fff;outline:2px solid transparent}
 .sb-news-mention-link{color:#a9e8ff;font-weight:700;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
 .sb-news-mention-link:hover,.sb-news-mention-link:focus-visible{color:#fff}
+
+/* Mención global exclusiva del editor de Noticias. */
+.sb-news-mention-everyone{background:rgba(123,51,182,.24);color:#fff;font-weight:800}
+.sb-news-everyone-insert{display:inline-flex;align-items:center;gap:.4rem;margin:.5rem 0 0;padding:.55rem .85rem;border:1px solid #bb88f2;border-radius:10px;background:#302044;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.sb-news-everyone-insert:hover,.sb-news-everyone-insert:focus-visible{background:#573477;outline:2px solid #ca9aff;outline-offset:2px}
+.sb-news-everyone-tag{display:inline-block;padding:.08em .4em;border-radius:.4em;background:rgba(172,106,237,.25);border:1px solid #a96dec;color:#e9d4ff;font-weight:800;overflow-wrap:anywhere}
