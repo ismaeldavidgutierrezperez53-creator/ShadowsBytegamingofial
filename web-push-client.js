@@ -31,6 +31,40 @@
     const raw=atob(padded);
     return Uint8Array.from(raw,ch=>ch.charCodeAt(0));
   };
+  let lastSync=0;
+  let pendingSync=null;
+  // Repara el registro existente sin volver a solicitar permiso o crear una suscripción.
+  // En dispositivos nuevos, el usuario debe pulsar Activar expresamente.
+  async function syncExisting(force=false){
+    if(!supported() || Notification.permission!=='granted')return;
+    if(!force && Date.now()-lastSync<60000)return;
+    if(pendingSync)return pendingSync;
+    pendingSync=(async()=>{
+      const user=await currentUser();
+      if(!user)return;
+      const reg=await registration(true);
+      const sub=await reg.pushManager.getSubscription();
+      if(!sub)return;
+      const keys=sub.toJSON().keys;
+      if(!keys?.p256dh || !keys?.auth)return;
+      const table=sb.from('member_web_push_subscriptions');
+      const {data:record,error:readError}=await table.select('endpoint,p256dh,auth,updated_at')
+        .eq('user_id',user.id).eq('endpoint',sub.endpoint).maybeSingle();
+      if(readError)throw readError;
+      // No reescribir la fila en cada visita; sólo reparar datos faltantes o caducados.
+      const old=record?.updated_at ? Date.parse(record.updated_at) : 0;
+      if(!record || record.p256dh!==keys.p256dh || record.auth!==keys.auth
+         || !Number.isFinite(old) || Date.now()-old>7*86400000){
+        const {error}=await table.upsert({
+          endpoint:sub.endpoint,user_id:user.id,p256dh:keys.p256dh,auth:keys.auth,
+          user_agent:navigator.userAgent.slice(0,500),updated_at:new Date().toISOString()
+        },{onConflict:'endpoint'});
+        if(error)throw error;
+      }
+      lastSync=Date.now();
+    })().finally(()=>{pendingSync=null;});
+    return pendingSync;
+  }
   async function refresh(){
     if(!panel())return;
     if(iosNotInstalled()){
@@ -43,6 +77,12 @@
     const user=await currentUser();
     if(!user){setStatus('Inicia sesión para activar los avisos en este dispositivo.');return;}
     if(Notification.permission==='denied'){setStatus('Los avisos están bloqueados. Debes permitirlos en los ajustes del navegador.','error');return;}
+    try { await syncExisting(); }
+    catch(error){
+      console.warn('No se pudo sincronizar la suscripción push:',error);
+      setStatus('El permiso existe, pero no se pudo recuperar el registro de este dispositivo. Pulsa Activar para intentarlo de nuevo.','error');
+      return;
+    }
     const reg=await registration();
     const subscription=reg && await reg.pushManager.getSubscription();
     if(!subscription || Notification.permission!=='granted'){
@@ -87,7 +127,8 @@
         user_agent:navigator.userAgent.slice(0,500),updated_at:new Date().toISOString()
       },{onConflict:'endpoint'});
       if(error)throw error;
-      setStatus('✅ Notificaciones activadas. Recibirás avisos del sistema en este ordenador o móvil.','ok');
+      lastSync=Date.now();
+      setStatus('✅ Este dispositivo está registrado. Recibirás avisos push cuando esté cerrado, si el sistema permite las notificaciones.','ok');
     }catch(err){
       console.error('Web Push activation error:',err);
       setStatus('No se pudieron activar los avisos: '+(err?.message||'error desconocido'),'error');
@@ -107,6 +148,7 @@
         }
         await sub.unsubscribe();
       }
+      lastSync=0;
       setStatus('Avisos del sistema desactivados en este dispositivo.','ok');
     }catch(e){setStatus('No se pudo desactivar: '+(e?.message||'error desconocido'),'error');}
     finally{busy(false);}
@@ -155,7 +197,7 @@
       });
       if(error)throw error;
       if(!data?.scheduled)throw new Error(data?.error || 'No se pudo programar la prueba.');
-      setStatus('✅ Prueba programada para unos 20 segundos. Cierra completamente Shadows Byte ahora y comprueba si aparece el aviso en Android. No hace falta dejar la aplicación abierta.','ok');
+      setStatus('✅ Prueba programada para 20 segundos. Cierra SB V2 en Windows o Android y comprueba las notificaciones del sistema. No cierres Chrome/Edge mediante Forzar detención.','ok');
     }catch(err){
       setStatus('No se pudo programar la prueba: '+(err?.message||'error desconocido'),'error');
     }finally{busy(false);}
@@ -167,18 +209,21 @@
     root.id=id;root.className='sb-webpush-settings';
     root.innerHTML='<h2>🔔 Notificaciones en tu ordenador y móvil</h2>'
       +'<p>🔔 Avisos para toda la actividad importante de tu cuenta: seguidores, mensajes privados y grupales, llamadas y videollamadas, comentarios, Me gusta, regalos, noticias, encuestas, torneos, insignias, metas, premios y denuncias.</p>'
-      +'<p>Se envían también con la página cerrada, si el dispositivo lo permite. Solo se activa con tu permiso y se respeta el modo No molestar.</p>'
+      +'<p>Los avisos pueden recibirse con la página cerrada en Android y Windows. Actívalos una vez en cada dispositivo e inicia sesión con la misma cuenta. Dependen de permisos, conexión, batería y modo No molestar.</p>'
       +'<p>🎵 <a href="#/sonidos" class="outline-btn mini">🎵 Abrir sonidos anime</a></p>'
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
       +'<details class="sb-webpush-mobile-help"><summary>📱 Cómo activar las notificaciones en mi móvil</summary>'
       +'<div class="sb-webpush-mobile-steps"><h3>🤖 Android (Chrome)</h3>'
       +'<ol><li>Abre esta web en Chrome e inicia sesión.</li><li>Entra en Notificaciones y pulsa Activar notificaciones.</li><li>Permite las notificaciones cuando Chrome lo pregunte y pulsa Enviar prueba.</li><li>Para comprobar que llegan con la aplicación cerrada, pulsa Probar con la app cerrada y ciérrala antes de 20 segundos.</li><li>Si no llega nada, revisa Ajustes de Android → Aplicaciones → Shadows Byte (o Chrome) → Notificaciones, y comprueba No molestar y el ahorro de batería.</li></ol>'
+      +'<h3>💻 Windows (Chrome o Edge)</h3>'
+      +'<ol><li>Instala SB V2 desde el navegador y ábrela desde su icono.</li><li>Inicia sesión, entra en Notificaciones y pulsa Activar notificaciones.</li><li>Permite los avisos cuando Windows o el navegador lo soliciten, y usa Enviar prueba.</li><li>Para probar con la app cerrada, pulsa la prueba diferida y cierra la ventana de SB V2, sin cerrar el navegador a la fuerza.</li><li>Si no aparece, revisa Configuración de Windows → Sistema → Notificaciones, No molestar, y los permisos de notificaciones de Chrome/Edge.</li></ol>'
       +'<h3>🍎 iPhone o iPad</h3>'
       +'<ol><li>Abre esta web en Safari (iOS o iPadOS 16.4 o posterior).</li><li>Usa Compartir y elige Añadir a pantalla de inicio; activa Abrir como app si aparece.</li><li>Abre Shadows Byte desde el icono de inicio, inicia sesión y pulsa Activar notificaciones.</li><li>Acepta el permiso y pulsa Enviar prueba.</li></ol>'
       +'<p>Activa las notificaciones por separado en cada dispositivo. Si están bloqueadas, revisa los ajustes de notificaciones del teléfono.</p></div></details>'
       +'<div class="sb-webpush-actions"><button type="button" data-push="enable">🔔 Activar notificaciones</button>'
       +'<button type="button" data-push="test">🧪 Enviar prueba</button>'
-      +'<button type="button" class="sb-webpush-delayed" data-push="delayed">📱 Probar con la app cerrada (20 s)</button>'
+      +'<button type="button" class="sb-webpush-delayed" data-push="delayed">📱💻 Probar con la app cerrada (20 s)</button>'
+      +'<button type="button" data-push="repair">🔄 Comprobar y reparar este dispositivo</button>'
       +'<button type="button" class="sb-webpush-disable" data-push="disable">Desactivar</button></div>';
     notifications.parentElement.insertBefore(root,notifications);
     if((iosDevice() && !installedApp()) || /Android/i.test(navigator.userAgent)){
@@ -187,6 +232,14 @@
     root.querySelector('[data-push="enable"]').addEventListener('click',enable);
     root.querySelector('[data-push="test"]').addEventListener('click',test);
     root.querySelector('[data-push="delayed"]').addEventListener('click',delayedTest);
+    root.querySelector('[data-push="repair"]').addEventListener('click',async()=>{
+      busy(true);
+      try{
+        await syncExisting(true);
+        await refresh();
+      }catch(e){setStatus('No se pudo reparar: '+(e?.message||'error desconocido'),'error');}
+      finally{busy(false);}
+    });
     root.querySelector('[data-push="disable"]').addEventListener('click',disable);
     refresh().catch(()=>setStatus('No se pudo comprobar el permiso del navegador.','error'));
   }
@@ -197,10 +250,28 @@
     new MutationObserver(mount).observe(app,{childList:true,subtree:true});
     mount();
     window.addEventListener('hashchange',()=>queueMicrotask(mount));
+    const resync=()=>{
+      if(Notification.permission!=='granted')return;
+      syncExisting().then(()=>refresh()).catch(error=>{
+        console.warn('Recuperación de avisos pendiente:',error);
+        setStatus('No se pudo sincronizar este dispositivo. Abre Notificaciones y pulsa Comprobar y reparar.','error');
+      });
+    };
+    window.addEventListener('focus',resync);
+    window.addEventListener('online',resync);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)resync();});
+    navigator.serviceWorker?.addEventListener('controllerchange',resync);
+    navigator.serviceWorker?.addEventListener('message',event=>{
+      if(event.data?.type==='sb-push-subscription-changed')resync();
+    });
     if(typeof sb!=='undefined'&&sb.auth?.onAuthStateChange){
       sb.auth.onAuthStateChange((event)=>{
         if(event==='SIGNED_OUT'){
           navigator.serviceWorker?.getRegistration('./').then(r=>r?.pushManager?.getSubscription()).then(s=>s?.unsubscribe()).catch(()=>{});
+        }
+        if(event==='SIGNED_IN' || event==='TOKEN_REFRESHED') {
+          // No pedir permisos ni crear suscripciones durante la restauración de sesión.
+          syncExisting().catch(error=>console.warn('Registro de avisos pendiente:',error));
         }
         queueMicrotask(()=>refresh().catch(()=>{}));
       });
