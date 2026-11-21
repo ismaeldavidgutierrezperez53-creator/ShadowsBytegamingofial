@@ -398,3 +398,41 @@ html[data-sb-motion="off"] .sb-mobile-bottom-nav>a:active{transform:none}
     width:100%;
   }
 }
+
+
+/* Mobile navigation overlay polish: more room for sections without obstructing controls. */
+@media screen and (max-width:760px){
+  /* Los botones flotantes no deben cubrir el menú abierto. */
+  body.sb-menu-open #site-whatsapp-button,
+  body.sb-menu-open .sb-badge-notify,
+  body.sb-menu-open .sb-customize-toggle,
+  body.sb-menu-open #sb-anime-back-to-top{
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+
+  /* Menú completo: menos espacios, sin reducir las áreas táctiles. */
+  .topbar #nav{
+    gap:10px!important;
+    padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))!important;
+  }
+  .topbar #nav .menu-head{gap:8px;padding:10px 0 8px}
+  .topbar #nav .menu-head h2{font-size:clamp(18px,4.5vw,22px);line-height:1.2}
+  .topbar #nav .menu-head p{font-size:13px;line-height:1.25}
+  .topbar #nav .sb-menu-filter{gap:6px;padding:10px 12px}
+  .topbar #nav .sb-menu-filter label{font-size:15px}
+  .topbar #nav .sb-menu-filter input[type="search"]{min-height:44px;font-size:16px}
+  .topbar #nav .sb-menu-filter-output{min-height:0;font-size:12px;line-height:1.3}
+  .topbar #nav .menu-quick-links{gap:7px!important}
+  .topbar #nav .menu-quick-links a{min-height:46px;padding:8px;font-size:15px}
+  .topbar #nav .sb-next-recents{padding:9px 10px}
+  .topbar #nav .sb-next-recents h3{font-size:16px;margin-bottom:6px}
+  .topbar #nav .sb-next-recent-links a{min-height:44px;padding:8px 11px}
+  .topbar #nav .menu-account{padding:11px}
+  .topbar #nav .menu-account>strong{font-size:17px;padding:0 0 7px}
+  .topbar #nav #account-actions{gap:8px}
+  .topbar #nav .menu-links-grid{gap:9px}
+  .topbar #nav .menu-column{gap:7px;padding:10px}
+  .topbar #nav .menu-column strong{padding:0 4px 4px;font-size:16px}
+  .topbar #nav .menu-column a{min-height:44px;line-height:1.2}
+}
