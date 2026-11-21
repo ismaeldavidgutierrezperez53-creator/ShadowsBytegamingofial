@@ -74,3 +74,8 @@
   .sb-update-notice__actions button{flex:1 1 120px;}
   .sb-updates-menu-control{align-items:stretch;flex-direction:column;}
 }
+
+/* Actualización automática al volver a abrir SB V2. */
+.sb-updates-auto-label{display:inline-flex;align-items:center;gap:8px;flex-basis:100%;font:600 14px/1.45 Rajdhani,Arial,sans-serif;color:#e7d8f4;cursor:pointer}
+.sb-updates-auto-label input{accent-color:#ae68ed;width:18px;height:18px;flex-shrink:0}
+.sb-updates-auto-label input:focus-visible{outline:3px solid #6be4f7;outline-offset:3px}

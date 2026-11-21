@@ -77,3 +77,8 @@ self.addEventListener('fetch', event => {
   event.respondWith(fetch(event.request).catch(async () =>
     (await caches.match(SB_OFFLINE_URL)) || Response.error()));
 });
+
+/* La nueva versión se activa sólo cuando el usuario acepta actualizar. */
+self.addEventListener('message',event=>{
+  if(event.data?.type==='SB_APPLY_UPDATE')event.waitUntil(self.skipWaiting());
+});
