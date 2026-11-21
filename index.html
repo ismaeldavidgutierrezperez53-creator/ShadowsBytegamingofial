@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="styles.css?v=20261121-global-scrollbars-no-space-v1" />
   <link rel="stylesheet" href="web-push-client.css?v=20261121-mobile-push-v3" />
   <link rel="stylesheet" href="pwa-install.css?v=20261121-v1" />
+  <link rel="stylesheet" href="splash-screen.css?v=20261121-splash-v1" />
   <style id="sb-hide-scroll-track-global">#sb-anime-scroll-progress{display:none!important;height:0!important;visibility:hidden!important}</style>
   <link rel="stylesheet" href="news-reader-v1.css?v=20261120-v1" />
   <link rel="stylesheet" href="news-interactions-v1.css?v=20261120-news-replies-featured-v3" />
@@ -146,6 +147,20 @@
   <link rel="stylesheet" href="profile-social-wall.css?v=20261121-social-wall-v1" />
 </head>
 <body>
+  <!-- Pantalla de inicio de Shadows Byte (web y PWA instalada). -->
+  <div id="sb-launch-splash" class="sb-launch-splash" role="status" aria-label="Abriendo Shadows Byte Gaming Official">
+    <div class="sb-launch-splash__aura" aria-hidden="true"></div>
+    <div class="sb-launch-splash__content">
+      <div class="sb-launch-splash__halo" aria-hidden="true"></div>
+      <img class="sb-launch-splash__logo" src="anime-favicon.png?v=20261120-anime-v1" alt="Logo anime de Shadows Byte" width="120" height="120" fetchpriority="high" />
+      <p class="sb-launch-splash__name">SHADOWS BYTE</p>
+      <p class="sb-launch-splash__subtitle">GAMING OFFICIAL V2</p>
+      <p class="sb-launch-splash__welcome">✦ Bienvenido a tu universo anime y gaming ✦</p>
+      <div class="sb-launch-splash__progress" aria-hidden="true"><span></span></div>
+      <p class="sb-launch-splash__loading">Preparando tu aventura...</p>
+      <button id="sb-launch-splash-skip" class="sb-launch-splash__skip" type="button">Entrar ahora</button>
+    </div>
+  </div>
   <header class="topbar">
     <a class="brand" href="#/" aria-label="Shadows Byte Gaming Official — inicio"><img src="anime-favicon.png?v=20261120-anime-v1" alt="Logo Shadows Byte Gaming Official" width="52" height="52" style="width:52px;height:52px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 8px #b63bff88)" /><b>SHADOWS BYTE<small>GAMING OFFICIAL</small></b></a>
     <button class="menu-toggle" type="button" aria-label="Abrir menú" id="menuToggle" aria-expanded="false" aria-controls="nav"><span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label" aria-hidden="true">Menú</span></button>
@@ -344,5 +359,6 @@
   <script defer src="sb-quad-20261120.js?v=20261120-v1"></script>
   <script defer src="web-push-client.js?v=20261121-anime-sounds-link-v2"></script>
   <script defer src="pwa-install.js?v=20261121-v1"></script>
+  <script defer src="splash-screen.js?v=20261121-splash-v1"></script>
 </body>
 </html>
