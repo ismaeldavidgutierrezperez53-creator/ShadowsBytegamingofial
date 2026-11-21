@@ -52,3 +52,30 @@
     margin-top:-35px;
   }
 }
+
+/* Botones de las tarjetas de Miembros: espacio real, sin solaparse. */
+#members-list .member-card .member-card-actions{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:stretch;
+  justify-content:center;
+  gap:12px;
+  margin-top:18px;
+  min-width:0;
+}
+#members-list .member-card .member-card-actions > a{
+  display:inline-flex;
+  box-sizing:border-box;
+  flex:1 1 135px;
+  min-width:0;
+  min-height:42px;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  margin:0;
+  padding:10px 12px;
+  line-height:1.25;
+  text-align:center;
+  white-space:normal;
+  overflow-wrap:normal;
+}
