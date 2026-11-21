@@ -112,7 +112,7 @@ function attachCommunityMentionPicker(input){
  const refresh=async()=>{
   const current=++token;
   const at=input.value.slice(0,input.selectionStart??input.value.length);
-  const match=at.match(/(^|[\s([{])@([A-Za-z0-9_]{2,32})$/);
+  const match=at.match(/(^|[\s([{])@([A-Za-z0-9_]{0,32})$/);
   results.replaceChildren();results.hidden=true;
   if(!match)return;
   const {data,error}=await sb.from('profiles').select('id,username,display_name')
@@ -125,7 +125,7 @@ function attachCommunityMentionPicker(input){
    choice.onclick=()=>{
     const caret=input.selectionStart??input.value.length;
     const before=input.value.slice(0,caret);
-    const active=before.match(/(^|[\s([{])@([A-Za-z0-9_]{2,32})$/);
+    const active=before.match(/(^|[\s([{])@([A-Za-z0-9_]{0,32})$/);
     if(!active)return;
     const start=caret-active[2].length-1;
     input.setRangeText('@'+member.username+' ',start,caret,'end');
@@ -140,6 +140,18 @@ function attachCommunityMentionPicker(input){
  input.addEventListener('keydown',event=>{if(event.key==='Escape'){results.hidden=true;token++;}});
  return results;
 }
+
+function createCommunityMentionButton(input){
+ const button=document.createElement('button');button.type='button';button.className='sb-community-mention-button';
+ button.textContent='👤 @Mencionar';button.title='Elegir a un miembro por su @usuario';
+ button.onclick=()=>{
+  const start=input.selectionStart??input.value.length,end=input.selectionEnd??input.value.length;
+  input.setRangeText('@',start,end,'end');input.focus();
+  input.dispatchEvent(new Event('input',{bubbles:true}));
+ };
+ return button;
+}
+
 function linkCommunityMentions(container){
  const nodes=[...container.childNodes].filter(node=>node.nodeType===3);
  const expression=/(^|[^A-Za-z0-9_])@([A-Za-z0-9_]{2,32})/g;
@@ -2092,7 +2104,7 @@ async function renderGalleryComments(postId,root,viewerId,profileId){
   const form=document.createElement('form');form.className='member-gallery-comment-form';
   const input=document.createElement('textarea');input.maxLength=500;input.required=true;input.rows=2;input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');
   const submit=document.createElement('button');submit.type='submit';submit.className='outline-btn';submit.textContent='Comentar';
-  const spoilerToggle=createCommunitySpoilerToggle();form.append(input,spoilerToggle,submit);attachCommunityMentionPicker(input);
+  const spoilerToggle=createCommunitySpoilerToggle();form.append(input,spoilerToggle,createCommunityMentionButton(input),submit);attachCommunityMentionPicker(input);
   form.onsubmit=async event=>{event.preventDefault();const content=communityOutgoingPost(input.value,spoilerToggle);if(!content)return;if(content.length>500){alert('Máximo 500 caracteres, incluyendo el formato spoiler.');return;}submit.disabled=true;const {error:insertError}=await sb.from('member_comments').insert({post_id:postId,author_id:viewerId,content});if(insertError){status.textContent='No se pudo comentar: '+insertError.message;root.prepend(status);submit.disabled=false;}else await renderGalleryComments(postId,root,viewerId,profileId);};
   root.append(form);
  }else{
@@ -2246,7 +2258,7 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
   }
   const submit=document.createElement('button');submit.className='gradient-btn mini';submit.textContent='Publicar';
   const spoilerToggle=createCommunitySpoilerToggle();
-  form.append(label,textarea,spoilerToggle,imageLabel,imageInput,preview,albumLabel,submit);
+  form.append(label,textarea,spoilerToggle,createCommunityMentionButton(textarea),imageLabel,imageInput,preview,albumLabel,submit);
   attachCommunityMentionPicker(textarea);
   if(animeDraft)requestAnimationFrame(()=>{
    if(textarea.isConnected){form.scrollIntoView({behavior:'smooth',block:'center'});textarea.focus({preventScroll:true});}
@@ -2352,7 +2364,7 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
    submit.textContent='Comentar';
    const commentStatus=document.createElement('p');commentStatus.className='sb-wall-comment-status';
    commentStatus.setAttribute('role','status');
-   const spoilerToggle=createCommunitySpoilerToggle();commentForm.append(input,spoilerToggle,submit,commentStatus);attachCommunityMentionPicker(input);
+   const spoilerToggle=createCommunitySpoilerToggle();commentForm.append(input,spoilerToggle,createCommunityMentionButton(input),submit,commentStatus);attachCommunityMentionPicker(input);
    commentForm.onsubmit=async event=>{
     event.preventDefault();
     const content=communityOutgoingPost(input.value,spoilerToggle);if(!content)return;if(content.length>500){commentStatus.textContent='Máximo 500 caracteres, incluyendo el formato spoiler.';return;}
@@ -2656,7 +2668,7 @@ async function loadCommunityFeed(){
   const uploadLabel=document.createElement('label');uploadLabel.className='sb-composer-upload-button';
   const uploadTitle=document.createElement('span');uploadTitle.textContent='🖼️ Añadir imagen';
   const upload=document.createElement('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp,image/gif';upload.setAttribute('aria-label','Adjuntar imagen a la publicación');
-  uploadLabel.append(uploadTitle,upload);tools.append(spoilerToggle,uploadLabel);
+  uploadLabel.append(uploadTitle,upload);tools.append(spoilerToggle,createCommunityMentionButton(input),uploadLabel);
   const mediaName=document.createElement('small');mediaName.className='sb-composer-file-name';mediaName.textContent='JPG, PNG, WebP o GIF · máximo 5 MB';
   const preview=document.createElement('div');preview.className='sb-composer-media-preview';preview.hidden=true;
   const previewImg=document.createElement('img');previewImg.alt='Vista previa de la imagen adjunta';
