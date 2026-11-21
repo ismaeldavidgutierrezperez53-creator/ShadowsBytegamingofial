@@ -55,7 +55,7 @@ function isQuiet(preference: Record<string,unknown>|null): boolean {
     return start===end ? false : start<end ? current>=start && current<end : current>=start || current<end;
   } catch { return false; }
 }
-async function notifyUser(userId:string, notice:Notice, partnerId?:string): Promise<number> {
+async function notifyUser(userId:string, notice:Notice, partnerId?:string, onlyEndpoint?:string): Promise<number> {
   const preferences=await admin.from('member_notification_preferences')
     .select('dnd_enabled,dnd_until,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone')
     .eq('user_id',userId).maybeSingle();
@@ -65,8 +65,10 @@ async function notifyUser(userId:string, notice:Notice, partnerId?:string): Prom
       .select('muted,popup_enabled').eq('user_id',userId).eq('partner_id',partnerId).maybeSingle();
     if (privatePrefs.data?.muted === true || privatePrefs.data?.popup_enabled === false) return 0;
   }
-  const {data:subscriptions,error}=await admin.from('member_web_push_subscriptions')
+  const query=admin.from('member_web_push_subscriptions')
     .select('endpoint,p256dh,auth').eq('user_id',userId).limit(25);
+  // Para "Enviar prueba", limitar al dispositivo solicitado y perteneciente al usuario.
+  const {data:subscriptions,error}=await (onlyEndpoint ? query.eq('endpoint',onlyEndpoint) : query);
   if (error) throw error;
   let sent=0;
   for (const subscription of subscriptions || []) {
@@ -160,10 +162,12 @@ Deno.serve(async(req:Request)=>{
       const auth=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
       const {data:{user},error}=await admin.auth.getUser(auth);
       if(error || !user)return reply({error:'Unauthorized'},401);
+      const endpoint=typeof body.endpoint==='string'&&trustedPushEndpoint(body.endpoint)?body.endpoint:null;
+      if(!endpoint)return reply({error:'Invalid push endpoint'},400);
       const delivered=await notifyUser(user.id,{
         title:'🎮 Notificaciones activadas',body:'¡Ya puedes recibir avisos fuera de Shadows Byte Gaming!',
         path:'#/notificaciones',tag:'push-test-'+Math.floor(Date.now()/60000)
-      });
+      },undefined,endpoint);
       return reply({ok:true,delivered});
     }
     return reply({error:'Unauthorized'},401);
