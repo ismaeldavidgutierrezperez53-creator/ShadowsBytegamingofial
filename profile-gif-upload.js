@@ -85,7 +85,6 @@
      if (localUrl) URL.revokeObjectURL(localUrl);
      localUrl = URL.createObjectURL(file);
      preview.src = localUrl; preview.hidden = false;
-     preview.onload = () => {};
      const saveButton = form.querySelector('button[type="submit"]');
      pending++;
      if (saveButton) saveButton.disabled = true;
@@ -106,6 +105,7 @@
        if (!data?.publicUrl || !/^https:\/\//i.test(data.publicUrl)) {
          throw Error('No se pudo obtener el enlace público de la imagen.');
        }
+       preview.src = data.publicUrl; // Mantener la animación visible después de subir el GIF.
        field.value = data.publicUrl;
        field.dispatchEvent(new Event('input',{bubbles:true}));
        field.dispatchEvent(new Event('change',{bubbles:true}));
