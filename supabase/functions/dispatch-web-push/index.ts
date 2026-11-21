@@ -8,7 +8,7 @@ const allowedOrigin = 'https://ismaeldavidgutierrezperez53-creator.github.io';
 const headers = {
   'Access-Control-Allow-Origin': allowedOrigin,
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-supabase-api-version, x-region',
   'Content-Type': 'application/json',
   'Cache-Control': 'no-store'
 };
