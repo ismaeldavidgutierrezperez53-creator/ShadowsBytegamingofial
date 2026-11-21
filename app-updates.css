@@ -79,3 +79,17 @@
 .sb-updates-auto-label{display:inline-flex;align-items:center;gap:8px;flex-basis:100%;font:600 14px/1.45 Rajdhani,Arial,sans-serif;color:#e7d8f4;cursor:pointer}
 .sb-updates-auto-label input{accent-color:#ae68ed;width:18px;height:18px;flex-shrink:0}
 .sb-updates-auto-label input:focus-visible{outline:3px solid #6be4f7;outline-offset:3px}
+
+/* Detalles de versión e historial, accesibles en Android y Windows. */
+.sb-updates-info{
+  flex-basis:100%;display:grid;gap:5px;
+  padding:10px 12px;background:rgba(30,15,51,.72);
+  border:1px solid rgba(180,117,229,.32);border-radius:10px;
+  color:#e9dafa;font:600 13px/1.45 Rajdhani,Arial,sans-serif;
+  overflow-wrap:anywhere;
+}
+.sb-updates-history{flex-basis:100%;border:1px solid rgba(180,117,229,.32);border-radius:10px;padding:9px 12px;color:#efe3ff;font:600 14px Rajdhani,Arial,sans-serif}
+.sb-updates-history summary{cursor:pointer;min-height:24px}
+.sb-updates-history summary:focus-visible{outline:3px solid #64e6ff;outline-offset:3px}
+.sb-updates-history ul{margin:8px 0 0;padding-left:18px}
+.sb-updates-history li{line-height:1.55;margin:3px 0;color:#ddc9f2}

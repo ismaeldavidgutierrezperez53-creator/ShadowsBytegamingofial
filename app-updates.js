@@ -7,19 +7,57 @@
  const toggle=document.getElementById('sb-auto-update-on-open');
  const keyAuto='sb-auto-update-on-open', keyAttempt='sb-update-attempted';
  const keyDismiss='sb-update-dismissed';
+ const keyHistory='sb-update-history-v1';
+ const elInstalled=document.getElementById('sb-updates-installed');
+ const elPublished=document.getElementById('sb-updates-published');
+ const elLastCheck=document.getElementById('sb-updates-lastcheck');
+ const historyList=document.getElementById('sb-updates-history-list');
  const shaOk=value=>/^[0-9a-f]{40}$/i.test(value||'');
  const stamped=document.querySelector('meta[name="sb-build"]')?.content;
  const legacy=(()=>{try{return localStorage.getItem('sb-v2-seen-github-version');}catch{return null;}})();
  const installed=shaOk(stamped)?stamped:(shaOk(legacy)?legacy:null);
  const currentUrl=new URL('./app-version.json',location.href);
  const started=Date.now();
- let last=0,checking=false,applying=false,changed=false,pending=null,banner=null;
+ let last=0,checking=false,applying=false,changed=false,pending=null,banner=null,unsavedEdits=false;
  const read=(storage,key)=>{try{return storage.getItem(key);}catch{return null;}};
  const write=(storage,key,value)=>{try{storage.setItem(key,value);}catch{}};
  const remove=(storage,key)=>{try{storage.removeItem(key);}catch{}};
  const enabled=()=>read(localStorage,keyAuto)!=='off';
  const standalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
  const message=text=>{output.textContent=text;};
+ const shortSha=value=>shaOk(value)?value.slice(0,7):'no identificada';
+ const timeString=value=>new Date(value).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+ function getHistory(){
+   try{
+     const records=JSON.parse(read(localStorage,keyHistory)||'[]');
+     return Array.isArray(records)?records.filter(item=>shaOk(item?.version)&&Number.isFinite(item?.when)).slice(0,6):[];
+   }catch{return [];}
+ }
+ function renderHistory(){
+   if(!historyList)return;
+   historyList.replaceChildren();
+   const history=getHistory();
+   if(!history.length){
+     const item=document.createElement('li');
+     item.textContent='Todavía no hay versiones registradas.';
+     historyList.append(item);
+   }else{
+     for(const item of history){
+       const node=document.createElement('li');
+       node.textContent='Versión '+shortSha(item.version)+' · '+timeString(item.when);
+       historyList.append(node);
+     }
+   }
+ }
+ if(elInstalled)elInstalled.textContent='Versión cargada: '+shortSha(installed);
+ renderHistory();
+ if(shaOk(stamped)){
+   const history=getHistory();
+   if(history[0]?.version!==stamped){
+     write(localStorage,keyHistory,JSON.stringify([{version:stamped,when:Date.now()},...history.filter(item=>item.version!==stamped)].slice(0,6)));
+     renderHistory();
+   }
+ }
  if(toggle){
    toggle.checked=enabled();
    toggle.addEventListener('change',()=>{
@@ -30,6 +68,14 @@
  for(const type of ['pointerdown','keydown','input','touchstart']){
    document.addEventListener(type,()=>{changed=true;},{capture:true,once:true,passive:true});
  }
+ // Si hay texto o formularios modificados, pedir confirmación antes de
+ // recargar para no perder borradores de publicaciones, chats o perfiles.
+ document.addEventListener('input',event=>{
+   const target=event.target;
+   if(target?.closest?.('.sb-updates-menu-control'))return;
+   if(target?.matches?.('textarea,input,[contenteditable="true"]') ||
+      target?.closest?.('[contenteditable="true"]'))unsavedEdits=true;
+ },{capture:true});
  function createBanner(){
    if(banner)return banner;
    banner=document.createElement('aside');
@@ -65,7 +111,7 @@
      if(!response.ok)throw new Error('No disponible');
      const data=await response.json();
      if(!shaOk(data?.version))throw new Error('Versión no válida');
-     return data.version;
+     return {version:data.version,publishedAt:typeof data.published_at==='string'&&Number.isFinite(Date.parse(data.published_at))?data.published_at:null};
    }finally{clearTimeout(timer);}
  }
  async function readyWorker(){
@@ -100,6 +146,10 @@
  }
  async function apply(){
    if(applying||!pending)return;
+   if(unsavedEdits&&!window.confirm('Has modificado contenido desde que abriste SB V2. Si hay mensajes o cambios sin guardar, podrían perderse. ¿Actualizar ahora?')){
+     message('Actualización pospuesta para que puedas guardar tus cambios.');
+     return;
+   }
    applying=true;btn.disabled=true;
    banner?.querySelectorAll('button').forEach(b=>b.disabled=true);
    message('🔄 Instalando actualización de SB V2…');
@@ -124,17 +174,25 @@
    checking=true;last=Date.now();btn.disabled=true;
    if(manual)message('Comprobando la versión publicada…');
    try{
-     const published=await onlineVersion();
+     const publishedInfo=await onlineVersion();
+     const published=publishedInfo.version;
+     if(elPublished)elPublished.textContent='Versión publicada: '+shortSha(published)+(publishedInfo.publishedAt?' · '+timeString(publishedInfo.publishedAt):'');
+     if(elLastCheck)elLastCheck.textContent='Última comprobación: '+timeString(Date.now());
      if(!installed){
        if(manual)message('✅ Comprobación realizada. La versión se identificará al volver a abrir SB V2.');
      }else if(installed!==published){
        pending=published;
        message('✨ Nueva versión publicada ('+published.slice(0,7)+').');
        if(manual)remove(sessionStorage,keyDismiss);
-       const auto=standalone()&&enabled()&&!changed&&Date.now()-started<25000
+       const auto=standalone()&&enabled()&&!changed&&!unsavedEdits&&Date.now()-started<25000
          &&read(sessionStorage,keyAttempt)!==published;
        if(auto)await apply();
-       else if(read(sessionStorage,keyDismiss)!==published)createBanner().hidden=false;
+       else if(read(sessionStorage,keyDismiss)!==published){
+         const notice=createBanner();
+         const detail=notice.querySelector('.sb-update-notice__text');
+         if(detail)detail.textContent='Versión '+shortSha(published)+' publicada'+(publishedInfo.publishedAt?' el '+timeString(publishedInfo.publishedAt):'')+'. Puedes instalarla ahora; la sección abierta se conserva.';
+         notice.hidden=false;
+       }
      }else{
        pending=null;
        if(banner)banner.hidden=true;
@@ -144,6 +202,7 @@
    }catch(error){
      console.warn('No se pudo comprobar la versión publicada:',error);
      if(manual)message('No se pudo comprobar. Revisa tu conexión y vuelve a intentar.');
+     if(elLastCheck)elLastCheck.textContent='Última comprobación: sin respuesta · '+timeString(Date.now());
    }finally{checking=false;if(!applying)btn.disabled=false;}
  }
  btn.addEventListener('click',()=>{void check(true);});
