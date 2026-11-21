@@ -264,16 +264,18 @@
         const row = document.createElement('div');
         row.className = 'sb-public-follow-person-row';
         row.append(link);
-        if (viewerId === person.id) {
-          const own = document.createElement('span');
-          own.className = 'sb-public-follow-person-own';
-          own.textContent = 'Tu perfil';
-          row.append(own);
-          return row;
-        }
         const action = document.createElement('button');
         action.type = 'button';
         action.className = 'sb-public-follow-person-action';
+        // La propia cuenta mantiene un control visible, pero no permite auto-seguirse.
+        if (viewerId === person.id) {
+          action.textContent = 'Tu perfil';
+          action.setAttribute('aria-label', 'Este es tu propio perfil');
+          action.disabled = true;
+          action.classList.add('is-own');
+          row.append(action);
+          return row;
+        }
         const renderAction = following => {
           action.dataset.following = following === null ? 'unknown' : String(following);
           action.textContent = following === null ? '↻ Comprobar' : following ? '✓ Siguiendo' : '➕ Seguir';
@@ -342,17 +344,25 @@
             : {data: [], error: null};
           if (profiles.error) throw profiles.error;
           if (!dialog.open || token !== pageToken) return;
-          const {data: authData} = await sb.auth.getUser();
-          if (!dialog.open || token !== pageToken) return;
-          const viewerId = authData?.user?.id || null;
-          let followedIds = viewerId ? null : new Set();
-          if (viewerId && ids.length) {
-            // Una consulta por página, no una consulta por cada botón.
-            const current = await sb.from('member_follows').select('following_id')
-              .eq('follower_id', viewerId).in('following_id', ids);
-            if (!current.error) followedIds = new Set((current.data || []).map(item => item.following_id));
-          } else if (viewerId) {
-            followedIds = new Set();
+          // La sesión y los estados de seguimiento son opcionales para dibujar la lista:
+          // si fallan, cada fila conserva su botón de acción y sus enlaces.
+          let viewerId = null;
+          let followedIds = null;
+          try {
+            const sessionResult = await sb.auth.getSession();
+            viewerId = sessionResult.data?.session?.user?.id || null;
+            if (viewerId && ids.length) {
+              // Una consulta por página, no una consulta por cada botón.
+              const current = await sb.from('member_follows').select('following_id')
+                .eq('follower_id', viewerId).in('following_id', ids);
+              if (!current.error) {
+                followedIds = new Set((current.data || []).map(item => item.following_id));
+              }
+            } else {
+              followedIds = new Set();
+            }
+          } catch (_) {
+            // La comprobación puntual se repetirá al pulsar cualquier botón.
           }
           if (!dialog.open || token !== pageToken) return;
           const byId = new Map((profiles.data || []).map(person => [person.id, person]));
