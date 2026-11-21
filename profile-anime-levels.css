@@ -1,0 +1,123 @@
+/* Perfil anime: insignias animadas, nuevas tarjetas y auras por nivel.
+   La lógica de desbloqueo se valida en Supabase; CSS es presentación. */
+
+/* Tres estilos más, para Mi cuenta, vista pública y directorio. */
+:is(.member-card,.public-member-body,.profile-preview-card)[data-anime-card="cyber"]{
+ background-image:
+  repeating-linear-gradient(90deg,rgba(83,242,255,.035) 0 1px,transparent 1px 26px),
+  linear-gradient(135deg,rgba(12,137,172,.24),rgba(26,21,73,.38) 55%,rgba(147,32,199,.17));
+ border-color:rgba(64,226,244,.76);
+ box-shadow:0 10px 27px rgba(33,171,253,.15),inset 0 0 0 1px rgba(63,242,255,.13);
+}
+:is(.member-card,.public-member-body,.profile-preview-card)[data-anime-card="kitsune"]{
+ background-image:
+  radial-gradient(ellipse at 86% 17%,rgba(255,158,77,.22),transparent 43%),
+  linear-gradient(135deg,rgba(106,38,88,.32),rgba(32,23,65,.4) 60%,rgba(143,49,69,.22));
+ border-color:rgba(255,176,126,.74);
+ box-shadow:0 10px 26px rgba(241,116,116,.13),inset 0 0 0 1px rgba(255,165,139,.12);
+}
+:is(.member-card,.public-member-body,.profile-preview-card)[data-anime-card="shonen"]{
+ background-image:
+  radial-gradient(ellipse at 16% 13%,rgba(253,146,37,.22),transparent 47%),
+  linear-gradient(135deg,rgba(93,26,37,.33),rgba(20,30,73,.37) 54%,rgba(33,119,178,.2));
+ border-color:rgba(255,186,81,.74);
+ box-shadow:0 10px 28px rgba(255,130,66,.13),inset 0 0 0 1px rgba(251,150,48,.14);
+}
+
+/* Recompensas bloqueadas y conseguidas: el brillo solo se muestra tras obtener XP. */
+#account-profile .sb-level-reward-overview{
+ display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+ border-top:1px solid rgba(180,135,236,.27);
+ padding:12px 0 2px;margin-top:11px;
+ font-size:13px;color:#e4d8f3;line-height:1.5;
+}
+#account-profile .sb-level-reward-overview>strong{width:100%;font-size:14px}
+#account-profile .sb-level-reward-badge,
+#public-member-profile .sb-animated-level-badge,
+#public-member-profile .member-anime-badge.is-earned{
+ display:inline-flex;align-items:center;gap:4px;
+ padding:7px 11px;border-radius:999px;
+ border:1px solid rgba(160,116,205,.7);
+ background:rgba(69,40,102,.3);
+ font-size:13px;color:#f9eaff;line-height:1.35;
+ max-width:100%;overflow-wrap:anywhere
+}
+#account-profile .sb-level-reward-badge.is-locked,
+#public-member-profile .sb-animated-level-badge.is-locked{opacity:.65}
+#account-profile .sb-level-reward-badge.is-earned,
+#public-member-profile .sb-animated-level-badge.is-earned,
+#public-member-profile .member-anime-badge.is-earned{
+ color:#fff9e9;
+ border-color:rgba(255,221,155,.68);
+ box-shadow:0 0 10px rgba(209,136,251,.24);
+ background:linear-gradient(110deg,rgba(74,44,129,.55),rgba(39,78,121,.42),rgba(93,48,118,.5));
+ background-size:200% 100%;
+ animation:sb-achievement-glimmer 5.7s ease-in-out infinite alternate;
+}
+#public-member-profile .profile-featured-badge:not([hidden]){
+ border-radius:999px;border:1px solid rgba(255,215,155,.75);
+ box-shadow:0 0 16px rgba(233,176,245,.24);
+ animation:sb-achievement-glimmer 5s ease-in-out infinite alternate;
+}
+@keyframes sb-achievement-glimmer{
+ from{background-position:0% 50%;box-shadow:0 0 7px rgba(170,117,234,.19)}
+ to{background-position:100% 50%;box-shadow:0 0 15px rgba(247,188,102,.35)}
+}
+
+/* Auras de nivel independientes del marco ya elegido.
+   La máscara del efecto no oscurece las caras de los vídeos ni los avatares. */
+#account-profile :is(.profile-avatar,.profile-preview-avatar),
+#public-member-profile .public-member-avatar,
+#members-list .member-avatar{
+ position:relative;
+ isolation:isolate;
+}
+#account-profile[data-sb-level-aura]:not([data-sb-level-aura="none"]) :is(.profile-avatar,.profile-preview-avatar)::after,
+#public-member-profile[data-sb-level-aura]:not([data-sb-level-aura="none"]) .public-member-avatar::after,
+#members-list .member-card[data-sb-level-aura]:not([data-sb-level-aura="none"]) .member-avatar::after{
+ content:"";
+ position:absolute;inset:0;
+ pointer-events:none;z-index:3;
+ border-radius:inherit;
+ border:3px solid var(--sb-lvl-main,rgba(135,220,255,.75));
+ box-shadow:inset 0 0 11px var(--sb-lvl-glow,rgba(47,181,255,.4));
+ animation:sb-level-ring-pulse 3.6s ease-in-out infinite alternate;
+}
+#account-profile[data-sb-level-aura="storm"],#public-member-profile[data-sb-level-aura="storm"],#members-list .member-card[data-sb-level-aura="storm"]{
+ --sb-lvl-main:rgba(100,232,255,.94);--sb-lvl-glow:rgba(37,166,247,.70);
+}
+#account-profile[data-sb-level-aura="astral"],#public-member-profile[data-sb-level-aura="astral"],#members-list .member-card[data-sb-level-aura="astral"]{
+ --sb-lvl-main:rgba(196,151,255,.94);--sb-lvl-glow:rgba(149,99,244,.73);
+}
+#account-profile[data-sb-level-aura="phoenix"],#public-member-profile[data-sb-level-aura="phoenix"],#members-list .member-card[data-sb-level-aura="phoenix"]{
+ --sb-lvl-main:rgba(255,204,89,.98);--sb-lvl-glow:rgba(255,109,42,.78);
+}
+#account-profile[data-sb-level-aura="storm"] .profile-cover,
+#public-member-profile[data-sb-level-aura="storm"] .public-member-cover{
+ border-top:3px solid rgba(97,223,255,.7)
+}
+#account-profile[data-sb-level-aura="astral"] .profile-cover,
+#public-member-profile[data-sb-level-aura="astral"] .public-member-cover{
+ border-top:3px solid rgba(196,151,255,.75)
+}
+#account-profile[data-sb-level-aura="phoenix"] .profile-cover,
+#public-member-profile[data-sb-level-aura="phoenix"] .public-member-cover{
+ border-top:3px solid rgba(255,190,79,.9)
+}
+@keyframes sb-level-ring-pulse{
+ 0%{border-color:var(--sb-lvl-main);box-shadow:inset 0 0 6px var(--sb-lvl-glow)}
+ 100%{border-color:rgba(255,255,255,.75);box-shadow:inset 0 0 17px var(--sb-lvl-glow)}
+}
+@media(max-width:600px){
+ #account-profile .sb-level-reward-overview{gap:7px}
+ #account-profile .sb-level-reward-badge{width:100%;box-sizing:border-box}
+}
+@media(prefers-reduced-motion:reduce){
+ #account-profile .sb-level-reward-badge,
+ #public-member-profile .sb-animated-level-badge,
+ #public-member-profile .member-anime-badge.is-earned,
+ #public-member-profile .profile-featured-badge,
+ #account-profile :is(.profile-avatar,.profile-preview-avatar)::after,
+ #public-member-profile .public-member-avatar::after,
+ #members-list .member-avatar::after{animation:none!important}
+}
