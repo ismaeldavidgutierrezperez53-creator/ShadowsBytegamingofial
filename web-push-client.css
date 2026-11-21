@@ -1,0 +1,12 @@
+.sb-webpush-settings{margin:18px 0 22px;padding:20px;border:1px solid rgba(177,112,248,.4);border-radius:16px;background:linear-gradient(135deg,rgba(38,18,69,.93),rgba(15,16,36,.94));color:#f5efff;box-shadow:0 8px 25px rgba(0,0,0,.16)}
+.sb-webpush-settings h2{font-size:1.18rem;margin:0 0 7px;color:#fff}
+.sb-webpush-settings p{line-height:1.5;margin:0 0 12px;color:#e6d8f8}
+.sb-webpush-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.sb-webpush-actions button{border:1px solid #aa77e6;border-radius:11px;padding:9px 15px;min-height:42px;background:rgba(88,37,140,.8);color:#fff;font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-webpush-actions button:hover{background:#7940b8}
+.sb-webpush-actions button:disabled{opacity:.55;cursor:wait}
+.sb-webpush-actions button.sb-webpush-disable{background:rgba(42,29,58,.8)}
+.sb-webpush-status{font-weight:600;min-height:1.6em;overflow-wrap:anywhere}
+.sb-webpush-status[data-state="error"]{color:#ffb1b1}
+.sb-webpush-status[data-state="ok"]{color:#aeffd1}
+@media(max-width:580px){.sb-webpush-settings{padding:14px}.sb-webpush-actions button{width:100%}}
