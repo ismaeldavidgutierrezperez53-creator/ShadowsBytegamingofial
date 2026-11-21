@@ -50,3 +50,17 @@
 .sb-news-filters a[data-news-category="waifu"]:is(:hover,:focus-visible,[aria-current="page"]){background:#82315f;border-color:#ffc0e4;color:#fff}
 .sb-news-filters a[data-news-category="husbando"]:is(:hover,:focus-visible,[aria-current="page"]){background:#275784;border-color:#b1ddff;color:#fff}
 .sb-news-filters a[data-news-category]:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+
+/* Identidad visual para las categorías originales de Noticias. */
+.sb-news-category[data-news-category="general"],.sb-news-filters a[data-news-category="general"]{background:#273245;border-color:#8ca2bc;color:#e7eef9}
+.sb-news-filters a[data-news-category="general"]:is(:hover,:focus-visible,[aria-current="page"]){background:#43566e;border-color:#c4d5eb;color:#fff}
+.sb-news-category[data-news-category="anime"],.sb-news-filters a[data-news-category="anime"]{background:#342057;border-color:#ba86fa;color:#e7d1ff}
+.sb-news-filters a[data-news-category="anime"]:is(:hover,:focus-visible,[aria-current="page"]){background:#59358b;border-color:#f2ddff;color:#fff}
+.sb-news-category[data-news-category="gaming"],.sb-news-filters a[data-news-category="gaming"]{background:#073d51;border-color:#44c9ed;color:#bdf4ff}
+.sb-news-filters a[data-news-category="gaming"]:is(:hover,:focus-visible,[aria-current="page"]){background:#0d647e;border-color:#ddfbff;color:#fff}
+.sb-news-category[data-news-category="manga"],.sb-news-filters a[data-news-category="manga"]{background:#51301d;border-color:#f0ab65;color:#ffe2b8}
+.sb-news-filters a[data-news-category="manga"]:is(:hover,:focus-visible,[aria-current="page"]){background:#87512b;border-color:#fff0d8;color:#fff}
+.sb-news-category[data-news-category="eventos"],.sb-news-filters a[data-news-category="eventos"]{background:#562523;border-color:#f68b77;color:#ffd2c6}
+.sb-news-filters a[data-news-category="eventos"]:is(:hover,:focus-visible,[aria-current="page"]){background:#903b34;border-color:#ffe5dc;color:#fff}
+.sb-news-category[data-news-category="comunidad"],.sb-news-filters a[data-news-category="comunidad"]{background:#2b4119;border-color:#aad35c;color:#e3f8c2}
+.sb-news-filters a[data-news-category="comunidad"]:is(:hover,:focus-visible,[aria-current="page"]){background:#4b6e29;border-color:#f0ffd9;color:#fff}
