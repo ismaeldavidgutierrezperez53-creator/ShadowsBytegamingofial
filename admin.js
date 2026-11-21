@@ -520,7 +520,16 @@ async function initAdmin(){
  const root=document.getElementById('admin-root');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
  if(error||!user){root.innerHTML='<p>Debes iniciar sesión.</p><a href="#/auth">Entrar</a>';return;}
- if(user.app_metadata?.role!=='admin'){root.textContent='No tienes permisos de administrador. Cierra sesión y vuelve a entrar si acabas de recibir el rol.';return;}
+ const {data:{session}}=await sb.auth.getSession();
+ if(session?.user?.app_metadata?.role!==user.app_metadata?.role)await sb.auth.refreshSession();
+ const {data:staffRole,error:staffError}=await sb.from('site_staff_roles').select('role').eq('user_id',user.id).maybeSingle();
+ if(staffError){root.textContent='No se pudo comprobar tu cargo. Actualiza la página.';return;}
+ if(user.app_metadata?.role==='moderator'&&staffRole?.role==='moderator'){
+  window.SBRoleManagement?.renderModeratorPanel(user);return;
+ }
+ if(user.app_metadata?.role!=='admin'||!['owner','admin'].includes(staffRole?.role)){
+  root.textContent='No tienes permisos de administración. Si te han asignado un cargo, vuelve a iniciar sesión.';return;
+ }
  root.innerHTML='<div class="admin-dashboard"><div class="admin-quicklinks"><a href="#/admin?focus=competitions">🏆 Crear reto o torneo</a><a href="#/cuenta">👤 Mi perfil</a><a href="#/miembros">👥 Comunidad</a><a href="#/noticias">📰 Ver noticias</a><a href="#/cartelera">🎬 Ver cartelera</a><a href="#/eventos">📅 Ver eventos</a></div><div class="admin-welcome"><div><span class="admin-kicker">SHADOWS BYTE · CONTROL CENTER</span><h2>Tu centro de mando</h2><p>Gestiona noticias, cartelera, eventos y todas las secciones temáticas desde un único lugar.</p></div><span class="admin-admin-badge">● Administrador</span></div><p class="admin-session">Sesión iniciada: '+escapeHTML(user.email)+'</p><div class="admin-stats" id="admin-stats"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE CONTENIDOS</span><h2>Publicaciones</h2></div><button class="gradient-btn mini" id="admin-new" type="button">+ Crear noticias</button></div><div class="admin-tabs" role="tablist" aria-label="Secciones de administración" id="admin-tabs"></div><div id="admin-message" role="status" aria-live="polite"></div></section><div id="admin-form-root"></div><section class="admin-panel" id="admin-shop-root" style="padding:18px;margin:20px 0">Cargando administración de tienda…</section><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">BIBLIOTECA</span><h2 id="admin-list-title">Noticias</h2></div><input type="search" id="admin-search" placeholder="Buscar por título…" aria-label="Buscar contenido por título"></div><div id="admin-list"></div></section></div>';
  const dashboard=document.querySelector('#admin-root .admin-dashboard');
  if(dashboard){
@@ -542,7 +551,7 @@ async function initAdmin(){
  }
  document.getElementById('admin-new').onclick=()=>adminForm();
  document.getElementById('admin-search').oninput=adminRenderList;
- adminSetActiveTab();await adminLoad();adminInitExtended();adminInitCompetitions();adminInitSurpriseBoxes();adminInitRewardShop();
+ adminSetActiveTab();await adminLoad();adminInitExtended();window.SBRoleManagement?.mountAdminPanel();adminInitCompetitions();adminInitSurpriseBoxes();adminInitRewardShop();
 }
 
 async function adminInitRewardShop(){
