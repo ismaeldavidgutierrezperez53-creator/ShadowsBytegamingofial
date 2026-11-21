@@ -4,8 +4,11 @@
   const ENDPOINT='https://nutoxlbdotcllwlshhhr.supabase.co/functions/v1/dispatch-web-push';
   const id='sb-webpush-settings';
   const supported=() => 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window && window.isSecureContext;
-  const iosNotInstalled=() => /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    && !window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone;
+  const iosDevice=() => /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const installedApp=() => window.matchMedia('(display-mode: standalone)').matches
+    || navigator.standalone===true;
+  const iosNotInstalled=() => iosDevice() && !installedApp();
   const currentUser=async()=>{
     if (typeof sb==='undefined'||!sb.auth) return null;
     const {data:{user}}=await sb.auth.getUser();
@@ -30,8 +33,13 @@
   };
   async function refresh(){
     if(!panel())return;
+    if(iosNotInstalled()){
+      setStatus('📱 Primero instala esta web en la pantalla de inicio y ábrela desde su icono. En iPhone o iPad las notificaciones solo se activan en la aplicación instalada.');
+      const help=panel()?.querySelector('.sb-webpush-mobile-help');
+      if(help)help.open=true;
+      return;
+    }
     if(!supported()){setStatus('Este navegador no admite avisos del sistema. Usa una conexión HTTPS y un navegador compatible.','error');return;}
-    if(iosNotInstalled()){setStatus('En iPhone o iPad: comparte la web, pulsa Añadir a pantalla de inicio y ábrela desde su icono para activar las notificaciones.');return;}
     const user=await currentUser();
     if(!user){setStatus('Inicia sesión para activar los avisos en este dispositivo.');return;}
     if(Notification.permission==='denied'){setStatus('Los avisos están bloqueados. Debes permitirlos en los ajustes del navegador.','error');return;}
@@ -54,8 +62,8 @@
       registered?'ok':'');
   }
   async function enable(){
-    if(!supported())return refresh();
     if(iosNotInstalled())return refresh();
+    if(!supported())return refresh();
     /* Prompt immediately from the user gesture, before any network request. */
     let permission=Notification.permission;
     if(permission==='default') permission=await Notification.requestPermission();
@@ -126,10 +134,19 @@
     root.innerHTML='<h2>🔔 Notificaciones en tu ordenador y móvil</h2>'
       +'<p>Recibe avisos de mensajes, seguidores y novedades incluso cuando no tengas la página abierta. Solo se activa si tú lo permites.</p>'
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
+      +'<details class="sb-webpush-mobile-help"><summary>📱 Cómo activar las notificaciones en mi móvil</summary>'
+      +'<div class="sb-webpush-mobile-steps"><h3>🤖 Android (Chrome)</h3>'
+      +'<ol><li>Abre esta web en Chrome e inicia sesión.</li><li>Entra en Notificaciones y pulsa Activar notificaciones.</li><li>Permite las notificaciones cuando Chrome lo pregunte y pulsa Enviar prueba.</li></ol>'
+      +'<h3>🍎 iPhone o iPad</h3>'
+      +'<ol><li>Abre esta web en Safari (iOS o iPadOS 16.4 o posterior).</li><li>Usa Compartir y elige Añadir a pantalla de inicio; activa Abrir como app si aparece.</li><li>Abre Shadows Byte desde el icono de inicio, inicia sesión y pulsa Activar notificaciones.</li><li>Acepta el permiso y pulsa Enviar prueba.</li></ol>'
+      +'<p>Activa las notificaciones por separado en cada dispositivo. Si están bloqueadas, revisa los ajustes de notificaciones del teléfono.</p></div></details>'
       +'<div class="sb-webpush-actions"><button type="button" data-push="enable">🔔 Activar notificaciones</button>'
       +'<button type="button" data-push="test">🧪 Enviar prueba</button>'
       +'<button type="button" class="sb-webpush-disable" data-push="disable">Desactivar</button></div>';
     notifications.parentElement.insertBefore(root,notifications);
+    if((iosDevice() && !installedApp()) || /Android/i.test(navigator.userAgent)){
+      root.querySelector('.sb-webpush-mobile-help').open=true;
+    }
     root.querySelector('[data-push="enable"]').addEventListener('click',enable);
     root.querySelector('[data-push="test"]').addEventListener('click',test);
     root.querySelector('[data-push="disable"]').addEventListener('click',disable);
