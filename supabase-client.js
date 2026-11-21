@@ -1799,6 +1799,61 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
  if(targetPostId&&location.hash.split('?')[0]==='#/cuenta')focusNotificationPost(root,targetPostId);
 }
 
+// Cinco reacciones exclusivas del perfil, una por miembro y publicación.
+async function renderPostAnimeReactions(postId,root,me,prefetched=null,prefetchError=null){
+ if(!root?.isConnected)return;
+ const result=prefetchError?{data:null,error:prefetchError}
+  :Array.isArray(prefetched)?{data:prefetched,error:null}
+  :await sb.from('member_post_anime_reactions').select('post_id,user_id,reaction').eq('post_id',postId);
+ if(!root.isConnected)return;
+ root.replaceChildren();
+ const heading=document.createElement('span');heading.className='sb-anime-reactions-label';heading.textContent='✨ Reacciones anime';
+ root.append(heading);
+ if(result.error){
+  const failure=document.createElement('small');failure.textContent='No se pudieron cargar las reacciones.';
+  root.append(failure);return;
+ }
+ const rows=(result.data||[]).filter(row=>row.post_id===postId);
+ const selected=rows.find(row=>row.user_id===me)?.reaction||null;
+ const choices=[
+  ['sakura','🌸','Sakura'],
+  ['fire','🔥','Fuego'],
+  ['star','⭐','Estrella'],
+  ['heart','💜','Corazón'],
+  ['wow','😮','Sorpresa']
+ ];
+ const buttons=document.createElement('div');buttons.className='sb-anime-reactions-buttons';
+ const errorNote=document.createElement('small');errorNote.className='sb-anime-reactions-error';errorNote.setAttribute('role','status');
+ for(const [key,emoji,label] of choices){
+  const count=rows.filter(row=>row.reaction===key).length;
+  const button=document.createElement('button');button.type='button';
+  button.className='sb-anime-reaction'+(selected===key?' is-selected':'');
+  button.textContent=emoji+' '+count;
+  button.setAttribute('aria-label',label+': '+count+' reacciones');
+  button.setAttribute('aria-pressed',String(selected===key));
+  button.title=me?'Reaccionar: '+label:'Inicia sesión para reaccionar';
+  button.disabled=!me;
+  button.onclick=async()=>{
+   if(!me||!root.isConnected)return;
+   [...buttons.querySelectorAll('button')].forEach(b=>b.disabled=true);
+   errorNote.textContent='';
+   try{
+    const response=selected===key
+     ?await sb.from('member_post_anime_reactions').delete().eq('post_id',postId).eq('user_id',me)
+     :await sb.from('member_post_anime_reactions').upsert({post_id:postId,user_id:me,reaction:key},{onConflict:'post_id,user_id'});
+    if(response.error)throw response.error;
+    await renderPostAnimeReactions(postId,root,me);
+   }catch(error){
+    if(!root.isConnected)return;
+    errorNote.textContent='No se pudo guardar la reacción: '+(error.message||'inténtalo de nuevo');
+    [...buttons.querySelectorAll('button')].forEach(b=>b.disabled=false);
+   }
+  };
+  buttons.append(button);
+ }
+ root.append(buttons,errorNote);
+}
+
 async function renderPostLikes(postId,root,me){
  const {data,error}=await sb.from('member_likes').select('user_id').eq('post_id',postId);
  if(!root.isConnected)return;
