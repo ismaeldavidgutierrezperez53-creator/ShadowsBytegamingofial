@@ -1946,7 +1946,7 @@ async function renderGalleryComments(postId,root,viewerId,profileId){
  for(const comment of comments){
   const item=document.createElement('div');item.className='member-gallery-comment';
   const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(comment.author_id);author.textContent=comment.author_id===profileId?'Autor del perfil':'Miembro';
-  const body=document.createElement('p');body.textContent=comment.content;
+  const body=document.createElement('p');renderChatSpoilerText(body,comment.content);
   item.append(author,body);
   if(viewerId===comment.author_id){
    const remove=document.createElement('button');remove.type='button';remove.className='member-gallery-comment-delete';remove.textContent='Eliminar';
@@ -1959,8 +1959,8 @@ async function renderGalleryComments(postId,root,viewerId,profileId){
   const form=document.createElement('form');form.className='member-gallery-comment-form';
   const input=document.createElement('textarea');input.maxLength=500;input.required=true;input.rows=2;input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');
   const submit=document.createElement('button');submit.type='submit';submit.className='outline-btn';submit.textContent='Comentar';
-  form.append(input,submit);
-  form.onsubmit=async event=>{event.preventDefault();const content=input.value.trim();if(!content)return;submit.disabled=true;const {error:insertError}=await sb.from('member_comments').insert({post_id:postId,author_id:viewerId,content});if(insertError){status.textContent='No se pudo comentar: '+insertError.message;root.prepend(status);submit.disabled=false;}else await renderGalleryComments(postId,root,viewerId,profileId);};
+  const spoilerToggle=createCommunitySpoilerToggle();form.append(input,spoilerToggle,submit);
+  form.onsubmit=async event=>{event.preventDefault();const content=communityOutgoingPost(input.value,spoilerToggle);if(!content)return;if(content.length>500){alert('Máximo 500 caracteres, incluyendo el formato spoiler.');return;}submit.disabled=true;const {error:insertError}=await sb.from('member_comments').insert({post_id:postId,author_id:viewerId,content});if(insertError){status.textContent='No se pudo comentar: '+insertError.message;root.prepend(status);submit.disabled=false;}else await renderGalleryComments(postId,root,viewerId,profileId);};
   root.append(form);
  }else{
   const hint=document.createElement('p');hint.className='member-gallery-comment-status';hint.textContent='Inicia sesión para comentar.';root.append(hint);
@@ -2186,7 +2186,7 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
     const item=document.createElement('div');item.className='social-comment';
     const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(comment.author_id);
     author.textContent=comment.author_id===memberId?'Autor del perfil':(names.get(comment.author_id)||'Miembro');
-    const text=document.createElement('p');text.textContent=comment.content;
+    const text=document.createElement('p');renderChatSpoilerText(text,comment.content);
     item.append(author,text);
     if(me===comment.author_id){
      const remove=document.createElement('button');remove.type='button';
@@ -2215,10 +2215,10 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
    submit.textContent='Comentar';
    const commentStatus=document.createElement('p');commentStatus.className='sb-wall-comment-status';
    commentStatus.setAttribute('role','status');
-   commentForm.append(input,submit,commentStatus);
+   const spoilerToggle=createCommunitySpoilerToggle();commentForm.append(input,spoilerToggle,submit,commentStatus);
    commentForm.onsubmit=async event=>{
     event.preventDefault();
-    const content=input.value.trim();if(!content)return;
+    const content=communityOutgoingPost(input.value,spoilerToggle);if(!content)return;if(content.length>500){commentStatus.textContent='Máximo 500 caracteres, incluyendo el formato spoiler.';return;}
     submit.disabled=true;commentStatus.textContent='Publicando comentario…';
     const {error}=await sb.from('member_comments').insert({post_id:post.id,author_id:me,content});
     submit.disabled=false;
