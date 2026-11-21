@@ -365,7 +365,7 @@ async function submitAuth(event) {
  const message=document.getElementById('auth-message');
  if(result.error){message.textContent=result.error.message;return;}
  message.textContent=signup?'Registro recibido. Revisa tu correo si se requiere confirmación.':'Sesión iniciada correctamente.';
- if(!signup) { await refreshAccountActions(); location.hash = result.data.user?.app_metadata?.role === 'admin' ? '#/admin' : '#/'; }
+ if(!signup) { await refreshAccountActions(); location.hash = ['admin','moderator'].includes(result.data.user?.app_metadata?.role) ? '#/admin' : '#/'; }
 }
 async function resendConfirmationEmail(){
  const email=document.getElementById('email')?.value.trim();
@@ -436,7 +436,7 @@ async function refreshAccountActions() {
  const user=session?.user;
  if(user)void ensurePublicMemberProfile(user);
  const adminMenuLink=document.getElementById('menu-admin-link');
- if(adminMenuLink)adminMenuLink.hidden=user?.app_metadata?.role!=='admin';
+ if(adminMenuLink){adminMenuLink.hidden=!['admin','moderator'].includes(user?.app_metadata?.role);adminMenuLink.textContent=user?.app_metadata?.role==='moderator'?'Panel de moderación':'Administración';}
  // Account buttons must remain available even when realtime subscriptions fail.
  try {
   syncNotificationRealtime(user?.id||null);
@@ -446,14 +446,15 @@ async function refreshAccountActions() {
   console.warn('No se pudo sincronizar las alertas en tiempo real:',syncError);
  }
  const hero=document.getElementById('hero-account-actions');
- if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/cuenta">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
+ if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/cuenta">Mi cuenta</a>'+(['admin','moderator'].includes(user.app_metadata?.role)?'<a class="outline-btn" href="#/admin">'+(user.app_metadata?.role==='moderator'?'Panel de moderación':'Panel de administración')+'</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
  const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
  if(!user){
   actions.innerHTML=search+'<a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a>';
   return;
  }
  const admin=user.app_metadata?.role==='admin';
- actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/mensajes" class="messages-header-link">💬 Mensajes <span id="message-unread-count" class="message-unread-count" hidden></span></a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-mark-all">Marcar todas como leídas</button><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin?'<a class="gradient-btn mini" href="#/admin">Administración</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
+ const moderator=user.app_metadata?.role==='moderator';
+ actions.innerHTML=search+'<a href="#/cuenta">Mi cuenta</a><a href="#/mensajes" class="messages-header-link">💬 Mensajes <span id="message-unread-count" class="message-unread-count" hidden></span></a><div class="notification-menu"><button type="button" id="notification-bell" class="notification-bell" aria-label="Abrir notificaciones" aria-expanded="false" aria-controls="notification-popover">🔔<span id="notification-count" class="notification-count" hidden></span></button><div id="notification-popover" class="notification-popover" hidden><strong>🔔 Notificaciones</strong><button type="button" id="notification-mark-all">Marcar todas como leídas</button><button type="button" id="notification-close">✕</button><div id="notification-preview">Cargando…</div><a href="#/notificaciones">Ver todas las notificaciones</a></div></div>'+(admin||moderator?'<a class="gradient-btn mini" href="#/admin">'+(moderator?'Moderación':'Administración')+'</a>':'')+'<button type="button" id="account-logout" class="gradient-btn mini">Cerrar sesión</button>';
  document.getElementById('account-logout').addEventListener('click',logout);
  setupNotificationPopover(user.id);
  refreshNotificationBadge(user.id);
