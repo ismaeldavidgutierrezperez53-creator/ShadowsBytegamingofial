@@ -157,3 +157,115 @@
  .sb-community-post-form button[type="submit"]{width:100%;}
  .social-post .sb-community-spoiler-reveal{width:100%;}
 }
+
+/* Edición visual del formulario Nueva publicación en Comunidad — 2026-11-21 */
+.sb-community-post-form{
+ align-items:stretch;gap:12px;min-width:0;padding:20px;
+ border:1px solid #8252bc;border-radius:18px;
+ background:linear-gradient(145deg,rgba(36,20,58,.97),rgba(18,12,34,.96));
+ box-shadow:0 14px 35px rgba(8,5,17,.28);
+}
+.sb-community-post-form .sb-composer-heading{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.sb-community-post-form .sb-composer-heading>label{
+ color:#fff;font-weight:800;font-size:clamp(17px,2.1vw,21px);line-height:1.3;
+}
+.sb-community-post-form .sb-composer-heading>small{color:#cbb8de;font-size:13px;line-height:1.45;}
+.sb-community-post-form .sb-composer-writing{min-width:0;display:flex;flex-direction:column;gap:5px;}
+.sb-community-post-form .sb-composer-writing textarea{
+ width:100%;min-height:120px;padding:14px 16px;box-sizing:border-box;
+ background:rgba(12,9,24,.93);border:1px solid #68498a;border-radius:13px;
+ color:#fff;font:inherit;line-height:1.45;resize:vertical;
+ transition:border-color .18s ease,box-shadow .18s ease;
+}
+.sb-community-post-form .sb-composer-writing textarea::placeholder{color:#ad9dbd;opacity:1;}
+.sb-community-post-form .sb-composer-writing textarea:focus{
+ outline:none;border-color:#c18aff;box-shadow:0 0 0 3px rgba(177,108,241,.19);
+}
+.sb-community-post-form .sb-composer-counter{
+ align-self:flex-end;color:#c8b4dc;font-size:12px;font-variant-numeric:tabular-nums;
+}
+.sb-community-post-form .sb-composer-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-width:0;}
+.sb-community-post-form .sb-composer-tools .sb-chat-spoiler-toggle,
+.sb-community-post-form .sb-composer-upload-button{
+ display:inline-flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;
+ min-height:44px;width:auto;max-width:100%;padding:10px 15px;
+ border:1px solid #9e77c9;border-radius:12px;background:#312048;
+ color:#f9eeff;font:inherit;font-weight:700;font-size:15px;line-height:1.3;
+ cursor:pointer;transition:border-color .15s ease,background .15s ease;
+}
+.sb-community-post-form .sb-composer-tools .sb-chat-spoiler-toggle[aria-pressed="true"]{
+ background:#6c3c99;border-color:#e4b6ff;color:#fff;
+}
+.sb-community-post-form .sb-composer-tools .sb-chat-spoiler-toggle:hover,
+.sb-community-post-form .sb-composer-upload-button:hover{
+ border-color:#e3c7ff;background:#493066;
+}
+.sb-community-post-form .sb-composer-upload-button{position:relative;overflow:hidden;}
+.sb-community-post-form .sb-composer-upload-button input[type="file"]{
+ position:absolute;width:1px;height:1px;padding:0;opacity:0;overflow:hidden;
+ clip-path:inset(50%);white-space:nowrap;border:0;
+}
+.sb-community-post-form .sb-composer-upload-button:focus-within,
+.sb-community-post-form .sb-composer-tools .sb-chat-spoiler-toggle:focus-visible,
+.sb-community-post-form .sb-composer-remove-image:focus-visible{
+ outline:3px solid #f2c6ff;outline-offset:3px;
+}
+.sb-community-post-form .sb-composer-file-name{
+ display:block;color:#c6b5d6;font-size:12px;overflow-wrap:anywhere;margin-top:-5px;
+}
+.sb-community-post-form .sb-composer-media-preview[hidden]{display:none!important;}
+.sb-community-post-form .sb-composer-media-preview{
+ display:flex;align-items:center;flex-wrap:wrap;gap:12px;min-width:0;
+ padding:10px;border:1px solid #694b8b;border-radius:12px;background:#130e25;
+}
+.sb-community-post-form .sb-composer-media-preview img{
+ display:block;width:76px;height:76px;object-fit:cover;border-radius:8px;
+}
+.sb-community-post-form .sb-composer-preview-filename{
+ min-width:0;flex:1;overflow-wrap:anywhere;color:#f6eaff;font-size:13px;
+}
+.sb-community-post-form .sb-composer-remove-image{
+ min-height:38px;padding:7px 10px;border:1px solid #ba91d9;border-radius:9px;
+ background:#38234c;color:#fff;font:inherit;font-weight:700;cursor:pointer;
+}
+.sb-community-post-form .sb-composer-album-label{
+ display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+ color:#eaddf6;font-size:14px;font-weight:700;
+}
+.sb-community-post-form .sb-composer-album-label select{
+ width:min(100%,230px);min-height:42px;margin:0;padding:8px 12px;
+ color:#fff;background:#211533;border:1px solid #7751a2;border-radius:10px;
+ font:inherit;font-weight:600;
+}
+.sb-community-post-form .sb-composer-album-label option{color:#fff;background:#211533;}
+.sb-community-post-form .sb-composer-footer{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+ padding-top:12px;border-top:1px solid rgba(167,127,208,.24);
+}
+.sb-community-post-form .sb-composer-footer>small{
+ flex:1;min-width:180px;color:#bfb0d3;font-size:12px;line-height:1.4;
+}
+.sb-community-post-form .sb-composer-footer button[type="submit"]{
+ align-self:auto;min-height:44px;min-width:138px;margin:0;padding:10px 22px;
+ border-radius:12px;font-weight:800;
+}
+.sb-community-post-form .sb-composer-status{display:block;color:#f6d7ff;font-size:13px;}
+.sb-community-post-form .sb-composer-status:empty{display:none;}
+@media(max-width:650px){
+ .sb-community-post-form{padding:15px;gap:11px;border-radius:15px;}
+ .sb-community-post-form .sb-composer-heading>label{font-size:18px;}
+ .sb-community-post-form .sb-composer-writing textarea{min-height:110px;}
+ .sb-community-post-form .sb-composer-tools{display:grid;grid-template-columns:1fr;gap:9px;}
+ .sb-community-post-form .sb-composer-tools .sb-chat-spoiler-toggle,
+ .sb-community-post-form .sb-composer-upload-button{width:100%;min-width:0;}
+ .sb-community-post-form .sb-composer-album-label{align-items:stretch;flex-direction:column;gap:6px;}
+ .sb-community-post-form .sb-composer-album-label select{width:100%;}
+ .sb-community-post-form .sb-composer-footer{align-items:stretch;flex-direction:column;}
+ .sb-community-post-form .sb-composer-footer>small{min-width:0;}
+ .sb-community-post-form .sb-composer-footer button[type="submit"]{width:100%;}
+}
+@media(prefers-reduced-motion:reduce){
+ .sb-community-post-form .sb-composer-writing textarea,
+ .sb-community-post-form .sb-composer-tools .sb-chat-spoiler-toggle,
+ .sb-community-post-form .sb-composer-upload-button{transition:none;}
+}
