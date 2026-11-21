@@ -69,18 +69,25 @@
   flex:0 1 190px;min-width:0;display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
 }
-#public-member-profile .sb-public-follow-stat{
+#public-member-profile .sb-public-follow-stats .sb-public-follow-stat{
   min-height:44px;min-width:0;padding:5px 8px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:1px;border-radius:10px;
   border:1px solid rgba(166,124,220,.35);background:rgba(28,21,47,.76);
-  color:#efe7fc;text-align:center;
+  color:#efe7fc;text-align:center;cursor:pointer;
+  transition:border-color .18s ease,background-color .18s ease;
 }
-#public-member-profile .sb-public-follow-stat strong{
+#public-member-profile .sb-public-follow-stats .sb-public-follow-stat:hover{
+  border-color:#ca9afb;background:rgba(81,44,122,.85);
+}
+#public-member-profile .sb-public-follow-stats .sb-public-follow-stat:focus-visible{
+  outline:3px solid #8deaff;outline-offset:2px;
+}
+#public-member-profile .sb-public-follow-stats .sb-public-follow-stat strong{
   font:700 19px/1.2 Rajdhani,Arial,sans-serif;
   font-variant-numeric:tabular-nums;
 }
-#public-member-profile .sb-public-follow-stat span{
+#public-member-profile .sb-public-follow-stats .sb-public-follow-stat span{
   font:600 12px/1.2 Rajdhani,Arial,sans-serif;color:#cec0ed;
 }
 #public-member-profile .sb-public-profile-actions .sb-public-follow{
@@ -153,4 +160,108 @@ body.sb-public-image-open{overflow:hidden}
 }
 @media(prefers-reduced-motion:reduce){
   #public-member-profile .public-member-avatar{transition:none}
+}
+
+/* Listas de Seguidores y Siguiendo al estilo de un perfil social. */
+.sb-public-follow-dialog{
+  width:min(530px,calc(100vw - 24px));
+  max-height:min(680px,calc(100dvh - 24px));
+  padding:0;
+  border:1px solid #a77edb;
+  border-radius:20px;
+  color:#f4ecff;
+  background:linear-gradient(160deg,#261638,#121b30);
+  box-shadow:0 25px 80px rgba(0,0,0,.7);
+}
+.sb-public-follow-dialog::backdrop{
+  background:rgba(5,3,13,.83);
+  backdrop-filter:blur(6px);
+}
+.sb-public-follow-dialog-panel{
+  display:flex;flex-direction:column;
+  max-height:calc(100dvh - 30px);
+  padding:20px;min-width:0;
+}
+.sb-public-follow-dialog h2{
+  margin:0 88px 16px 0;
+  font:700 clamp(18px,3vw,23px)/1.3 Rajdhani,Arial,sans-serif;
+  overflow-wrap:anywhere;
+}
+.sb-public-follow-close{
+  position:absolute;top:15px;right:15px;
+  border:1px solid #9270bc;background:#34224b;color:#fff;
+  border-radius:10px;padding:8px 10px;min-height:38px;
+  cursor:pointer;
+}
+.sb-public-follow-dialog-tabs{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+  margin-bottom:12px;
+}
+.sb-public-follow-dialog-tabs button,.sb-public-follow-more{
+  border:1px solid #865da9;border-radius:11px;
+  color:#e6dafa;background:#241b3b;
+  padding:10px 12px;min-height:42px;
+  font:700 15px Rajdhani,Arial,sans-serif;cursor:pointer;
+}
+.sb-public-follow-dialog-tabs button[aria-pressed="true"]{
+  border-color:#d9a3ff;color:#fff;
+  background:linear-gradient(115deg,#773ab5,#365e93);
+}
+.sb-public-follow-dialog-status{
+  margin:0 0 9px;min-height:20px;color:#cbb9e4;
+  font-size:14px;
+}
+.sb-public-follow-list{
+  display:flex;flex-direction:column;gap:8px;
+  overflow-y:auto;overscroll-behavior:contain;min-height:0;
+  max-height:min(360px,48dvh);
+  padding:2px;
+  scrollbar-width:thin;scrollbar-color:#76549d transparent;
+}
+.sb-public-follow-person{
+  display:flex;align-items:center;gap:12px;padding:10px;
+  min-width:0;border-radius:13px;
+  color:#f5efff;text-decoration:none;
+  border:1px solid rgba(156,124,200,.28);
+  background:rgba(255,255,255,.045);
+}
+.sb-public-follow-person:hover{
+  background:rgba(123,67,174,.2);border-color:#ad81d8;
+}
+.sb-public-follow-person-avatar{
+  flex:0 0 46px;width:46px;height:46px;
+  display:grid;place-items:center;overflow:hidden;
+  border-radius:50%;
+  background:#53366e;border:2px solid #a980d5;
+  font:700 22px Rajdhani,Arial,sans-serif;
+}
+.sb-public-follow-person-avatar img,.sb-public-follow-person-avatar video{
+  width:100%;height:100%;object-fit:cover;
+}
+.sb-public-follow-person-info{
+  display:flex;flex-direction:column;min-width:0;flex:1;gap:2px;
+}
+.sb-public-follow-person-info strong{
+  font:700 16px/1.35 Rajdhani,Arial,sans-serif;
+  overflow-wrap:anywhere;
+}
+.sb-public-follow-person-info small{
+  color:#cbbce0;overflow-wrap:anywhere;font-size:13px;
+}
+.sb-public-follow-person-arrow{font-size:28px;color:#d5b8f6}
+.sb-public-follow-more{margin:12px 0 0;width:100%}
+.sb-public-follow-more[hidden]{display:none}
+.sb-public-follow-dialog-hint{
+  margin:13px 0 0;color:#b8aacb;font-size:12px;line-height:1.5;
+}
+.sb-public-follow-dialog :is(button,a):focus-visible{
+  outline:3px solid #8deaff;outline-offset:2px;
+}
+@media(max-width:480px){
+  .sb-public-follow-dialog-panel{padding:15px}
+  .sb-public-follow-dialog h2{margin-right:80px}
+  .sb-public-follow-person{padding:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  #public-member-profile .sb-public-follow-stats .sb-public-follow-stat{transition:none}
 }
