@@ -113,6 +113,7 @@
           (childHtml?'<div class="sb-news-reply-thread">'+childHtml+'</div>':'')+'</article>';
       };
       host.innerHTML=roots.map(c=>renderComment(c)).join('');
+      if(window.SBNewsMentions)window.SBNewsMentions.linkWithin(host);
       host.querySelectorAll('[data-comment-id]').forEach(btn=>btn.addEventListener('click',async()=>{
         if(!window.confirm('¿Eliminar este comentario y sus respuestas?'))return;
         btn.disabled=true;
@@ -135,7 +136,9 @@
         const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancelar';cancel.className='sb-news-reply-cancel';
         cancel.onclick=()=>form.remove();
         const send=document.createElement('button');send.type='submit';send.textContent='Enviar respuesta';send.className='sb-news-submit';
-        controls.append(cancel,send);form.append(label,textarea,controls);slot.append(form);textarea.focus();
+        controls.append(cancel,send);form.append(label,textarea,controls);slot.append(form);
+        if(window.SBNewsMentions)window.SBNewsMentions.attachPicker(textarea);
+        textarea.focus();
         form.onsubmit=async event=>{
           event.preventDefault();
           const content=textarea.value.trim();
@@ -180,6 +183,7 @@
     wrap.innerHTML='<form id="sb-news-comment-form"><label for="sb-news-comment-text">Escribe un comentario</label>'+
       '<textarea id="sb-news-comment-text" rows="4" maxlength="1500" placeholder="Comparte tu opinión con respeto…" required></textarea>'+
       '<div class="sb-news-form-bottom"><span>Máximo 1500 caracteres</span><button type="submit" class="sb-news-submit">Publicar comentario</button></div></form>';
+    if(window.SBNewsMentions)window.SBNewsMentions.attachPicker(document.getElementById('sb-news-comment-text'));
     document.getElementById('sb-news-comment-form')?.addEventListener('submit',async event=>{
       event.preventDefault();
       const form=event.currentTarget;
