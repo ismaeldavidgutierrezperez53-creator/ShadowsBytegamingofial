@@ -74,3 +74,86 @@
  #private-messages .sb-chat-spoiler-toggle,
  .group-chat-send .sb-chat-spoiler-toggle {transition:none;}
 }
+
+/* Spoilers del muro comunitario */
+.social-form .sb-chat-spoiler-toggle,
+.member-gallery-comment-form .sb-chat-spoiler-toggle {
+ display:inline-flex;align-items:center;justify-content:center;
+ align-self:flex-start;max-width:100%;min-height:42px;padding:9px 15px;
+ border:1px solid #b794f6;border-radius:10px;
+ background:#2e1c46;color:#f7eaff;font:inherit;font-weight:700;cursor:pointer;
+}
+.social-form .sb-chat-spoiler-toggle[aria-pressed="true"],
+.member-gallery-comment-form .sb-chat-spoiler-toggle[aria-pressed="true"] {
+ background:#763eaa;border-color:#efd0ff;color:#fff;
+ box-shadow:0 0 0 2px #9b5cd333;
+}
+.social-form .sb-chat-spoiler-toggle:focus-visible,
+.member-gallery-comment-form .sb-chat-spoiler-toggle:focus-visible,
+.social-post .sb-community-spoiler-reveal:focus-visible,
+.social-post .sb-chat-spoiler:focus-visible,
+.social-comment .sb-chat-spoiler:focus-visible,
+.member-gallery-comment .sb-chat-spoiler:focus-visible,
+.member-lightbox .sb-community-lightbox-reveal:focus-visible {
+ outline:3px solid #f2c6ff;outline-offset:3px;
+}
+.sb-community-post-form{
+ display:flex;flex-direction:column;gap:10px;
+ margin-bottom:18px;padding:17px;border:1px solid #7653ae;
+ border-radius:14px;background:linear-gradient(145deg,#241535ee,#161124ee);
+}
+.sb-community-post-form textarea{display:block;width:100%;min-height:90px;box-sizing:border-box;resize:vertical;}
+.sb-community-post-form select,
+.sb-community-post-form input[type="file"]{max-width:100%;}
+.sb-community-post-form button[type="submit"]{align-self:flex-start;}
+.sb-community-post-form small[role="status"]{overflow-wrap:anywhere;}
+.sb-community-post-content{min-width:0;max-width:100%;overflow-wrap:anywhere;}
+.sb-community-spoiler-content[hidden],
+.member-lightbox .sb-community-lightbox-reveal[hidden],
+.member-lightbox .member-lightbox-image[hidden]{display:none!important;}
+.social-post .sb-community-spoiler-reveal{
+ display:inline-flex;align-items:center;justify-content:center;
+ max-width:100%;min-height:44px;box-sizing:border-box;
+ padding:10px 15px;border-radius:10px;
+ border:1px dashed #c29dff;background:repeating-linear-gradient(135deg,#46335a,#46335a 9px,#392747 9px,#392747 18px);
+ color:#fff;font:inherit;font-weight:700;text-align:left;white-space:normal;
+ overflow-wrap:anywhere;cursor:pointer;
+}
+.social-post .sb-community-spoiler-reveal:hover{border-color:#f2ddff;background:#594073;}
+.sb-community-spoiler-content{margin:8px 0 0;padding:9px 10px;border:1px solid #b593d355;border-radius:9px;background:#3b285133;}
+.sb-community-spoiler-content .social-post-body{white-space:pre-wrap;overflow-wrap:anywhere;}
+.social-post .sb-chat-spoiler,
+.social-comment .sb-chat-spoiler,
+.member-gallery-comment .sb-chat-spoiler{
+ display:inline;padding:3px 10px;border:1px dashed #c1a0f8;border-radius:7px;
+ background:repeating-linear-gradient(135deg,#483451,#483451 8px,#352744 8px,#352744 16px);
+ color:#fff;font:inherit;font-weight:700;line-height:1.7;white-space:pre-wrap;
+ overflow-wrap:anywhere;cursor:pointer;
+}
+.social-post .sb-chat-spoiler.is-revealed,
+.social-comment .sb-chat-spoiler.is-revealed,
+.member-gallery-comment .sb-chat-spoiler.is-revealed{
+ background:#784bac33;border:1px solid #b994f877;color:inherit;font-weight:inherit;
+}
+.member-gallery-item.sb-community-gallery-tile-spoiler{position:relative;background:#2f2448;}
+.member-gallery-item.sb-community-gallery-tile-spoiler img{visibility:hidden!important;}
+.member-gallery-item .sb-community-gallery-cover{
+ position:absolute;inset:0;z-index:1;
+ display:flex;align-items:center;justify-content:center;
+ padding:10px;text-align:center;color:#fff;font-weight:700;
+ background:repeating-linear-gradient(135deg,#4a355d,#4a355d 11px,#362748 11px,#362748 22px);
+ border-radius:inherit;
+}
+.member-gallery-item.sb-community-gallery-tile-spoiler .member-gallery-item-label{position:relative;z-index:2;}
+.member-lightbox .sb-community-lightbox-reveal{
+ display:block;width:100%;min-height:52px;padding:12px 16px;margin:6px 0 14px;
+ border-radius:10px;border:1px dashed #d2aaff;
+ background:#4b326b;color:#fff;font:inherit;font-weight:700;cursor:pointer;
+}
+@media(max-width:650px){
+ .sb-community-post-form{padding:12px;}
+ .social-form .sb-chat-spoiler-toggle,
+ .member-gallery-comment-form .sb-chat-spoiler-toggle{width:100%;min-height:44px;}
+ .sb-community-post-form button[type="submit"]{width:100%;}
+ .social-post .sb-community-spoiler-reveal{width:100%;}
+}
