@@ -148,7 +148,9 @@ function adminForm(item={}){
    const everyone=/(^|[^A-Za-z0-9_])@everyone(?![A-Za-z0-9_])/i;
    const containsEveryone=[data.title,data.excerpt,data.content].some(v=>everyone.test(v||''));
    const hadEveryone=[item.title,item.excerpt,item.content].some(v=>everyone.test(v||''));
-   if((data.notify_members||containsEveryone)&&(!isEdit||item.status!=='published'||!hadEveryone)
+   const firstRelease=(!isEdit||item.status!=='published')&&(data.status==='published'||Boolean(data.scheduled_at));
+   const addedEveryoneOnPublished=isEdit&&item.status==='published'&&data.status==='published'&&containsEveryone&&!hadEveryone;
+   if(((data.notify_members||containsEveryone)&&firstRelease||addedEveryoneOnPublished)
      &&!window.confirm(data.scheduled_at?'📣 Esta noticia se publicará en la fecha elegida y avisará a los miembros. ¿Confirmar programación?':'📣 Se avisará a los miembros al publicar esta noticia. ¿Confirmar publicación?'))return;
   }
   if(adminTable==='events'&&data.status==='published'&&!data.starts_at){
