@@ -95,11 +95,11 @@ function appendCommunityPostContent(article,post){
   const hidden=document.createElement('div');hidden.className='sb-community-spoiler-content';hidden.hidden=true;
   text.textContent=value.slice(2,-2);hidden.append(text);addImage(hidden);
   toggle.onclick=()=>{
-   hidden.hidden=!hidden.hidden;toggle.setAttribute('aria-expanded',String(!hidden.hidden));
+   hidden.hidden=!hidden.hidden;if(!hidden.hidden)linkCommunityMentions(text);toggle.setAttribute('aria-expanded',String(!hidden.hidden));
    toggle.textContent=hidden.hidden?'🙈 Publicación con spoiler · Mostrar contenido':'👁️ Ocultar spoiler';
   };
   surface.append(toggle,hidden);
- }else{renderChatSpoilerText(text,post.content);surface.append(text);addImage(surface);}
+ }else{renderChatSpoilerText(text,post.content);linkCommunityMentions(text);surface.append(text);addImage(surface);}
  article.append(surface);
 }
 
@@ -2204,7 +2204,7 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
  const me=user?.id||null;
  const [{data:follows,error:followError},{data:posts,error:postError}]=await Promise.all([
   sb.from('member_follows').select('follower_id').eq('following_id',memberId),
-  sb.from('member_posts').select('id,author_id,content,image_path,created_at').eq('author_id',memberId).order('created_at',{ascending:false}).limit(postLimit+1)
+  sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at').eq('author_id',memberId).order('created_at',{ascending:false}).limit(postLimit+1)
  ]);
  if(!root.isConnected)return;
  root.replaceChildren();
@@ -2246,6 +2246,7 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
   const submit=document.createElement('button');submit.className='gradient-btn mini';submit.textContent='Publicar';
   const spoilerToggle=createCommunitySpoilerToggle();
   form.append(label,textarea,spoilerToggle,imageLabel,imageInput,preview,albumLabel,submit);
+  attachCommunityMentionPicker(textarea);
   if(animeDraft)requestAnimationFrame(()=>{
    if(textarea.isConnected){form.scrollIntoView({behavior:'smooth',block:'center'});textarea.focus({preventScroll:true});}
   });
@@ -2267,7 +2268,7 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
  }
  const targetPostId=new URLSearchParams((location.hash.split('?')[1]||'')).get('post');
  if(targetPostId&&location.hash.split('?')[0]==='#/cuenta'&&me===memberId&&!((posts||[]).some(p=>p.id===targetPostId))){
-  const {data:targetPost}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at').eq('id',targetPostId).eq('author_id',memberId).maybeSingle();
+  const {data:targetPost}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at').eq('id',targetPostId).eq('author_id',memberId).maybeSingle();
   if(targetPost)posts.unshift(targetPost);
  }
  if(postError){const err=document.createElement('p');err.textContent='No se pudieron cargar las publicaciones.';root.append(err);return;}
@@ -2283,6 +2284,8 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
   const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;root.append(article);
   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
   appendCommunityPostContent(article,post);article.append(date);
+  if(post.edited_at){const edited=document.createElement('small');edited.className='sb-community-edited-label';edited.textContent='✏️ Editada';article.append(edited);}
+  appendCommunityEditAction(article,post,me);
   const animeBox=document.createElement('div');animeBox.className='sb-anime-reaction-bar';article.append(animeBox);
   renderPostAnimeReactions(post.id,animeBox,me,animeRows,animeError);
   const likeBox=document.createElement('div');likeBox.className='post-like-box';article.append(likeBox);
@@ -2612,7 +2615,7 @@ async function loadCommunityFeed(){
  loadCommunityCompetitions(competitionPanel).catch(e=>console.warn('Retos y torneos:',e));
  const [{data:{user},error:authError},{data:posts,error:postsError}]=await Promise.all([
   sb.auth.getUser(),
-  sb.from('member_posts').select('id,author_id,content,image_path,created_at').order('created_at',{ascending:false}).limit(50)
+  sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at').order('created_at',{ascending:false}).limit(50)
  ]);
  if(!root.isConnected)return;
  root.replaceChildren();
@@ -2667,6 +2670,7 @@ async function loadCommunityFeed(){
   footer.append(footnote,submit);
   const status=document.createElement('small');status.className='sb-composer-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   composer.append(heading,writingArea,tools,mediaName,preview,albumLabel,footer,status);
+   attachCommunityMentionPicker(input);
   composer.onsubmit=async event=>{
    event.preventDefault();if(submit.disabled)return;
    const file=upload.files?.[0],content=communityOutgoingPost(input.value,spoilerToggle,!!file);
@@ -2709,7 +2713,7 @@ async function loadCommunityFeed(){
   if(mode==='saved'){
    const ids=[...bookmarked].slice(0,150);
    if(!ids.length){content.textContent='Todavía no tienes publicaciones guardadas.';return;}
-   const {data,error}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at').in('id',ids).order('created_at',{ascending:false}).limit(150);
+   const {data,error}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at').in('id',ids).order('created_at',{ascending:false}).limit(150);
    if(request!==requestId)return;
    if(error){content.textContent='No se pudieron cargar los guardados: '+error.message;return;}
    visible=data||[];
