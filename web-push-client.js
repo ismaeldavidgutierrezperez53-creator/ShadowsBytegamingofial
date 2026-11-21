@@ -117,7 +117,14 @@
       const reg=await registration();
       const sub=reg && await reg.pushManager.getSubscription();
       if(!sub)throw new Error('Activa primero las notificaciones.');
-      const {data,error}=await sb.functions.invoke('dispatch-web-push',{body:{type:'test'}});
+      const user=await currentUser();
+      if(!user)throw new Error('Inicia sesión para enviar una prueba.');
+      const {data:registered,error:registrationError}=await sb.from('member_web_push_subscriptions')
+        .select('endpoint').eq('user_id',user.id).eq('endpoint',sub.endpoint).maybeSingle();
+      if(registrationError||!registered)throw new Error('Primero activa las notificaciones en este dispositivo.');
+      const {data,error}=await sb.functions.invoke('dispatch-web-push',{
+        body:{type:'test',endpoint:sub.endpoint}
+      });
       if(error)throw error;
       setStatus(data?.delivered>0
         ? '✅ Aviso de prueba enviado. Comprueba las notificaciones de tu sistema.'
