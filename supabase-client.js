@@ -2628,7 +2628,7 @@ async function loadCommunityFeed(){
  const pinned=new Map((pinRows||[]).map(row=>[row.post_id,row.pinned_at]));
  const feedPosts=[...(posts||[])];
  const requestedPostId=new URLSearchParams((location.hash.split('?')[1]||'')).get('post');
- const targetPostId=/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(requestedPostId||'')?requestedPostId:null;
+ const targetPostId=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestedPostId||'')?requestedPostId:null;
  const missingIds=[...new Set([...pinned.keys(),...(targetPostId?[targetPostId]:[])])]
   .filter(id=>!feedPosts.some(post=>post.id===id));
  if(missingIds.length){
