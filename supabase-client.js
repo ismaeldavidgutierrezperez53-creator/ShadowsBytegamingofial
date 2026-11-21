@@ -957,7 +957,7 @@ async function loadAccountProfile(){
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Every member profile is public automatically; authentication email remains private.
- const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura').eq('id',user.id).maybeSingle();
+ const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura,profile_title,profile_showcase_badges,profile_card_layout,profile_card_motto').eq('id',user.id).maybeSingle();
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
@@ -1063,11 +1063,66 @@ async function loadAccountProfile(){
   badgeSelect.innerHTML='<label for="profile-featured-badge">🏅 Insignia destacada</label><select id="profile-featured-badge"><option value="">Ninguna</option><option value="first">🌱 Primer paso · 5 XP</option><option value="participant">⭐ Participante · 50 XP</option><option value="active">🔥 Miembro activo · 150 XP</option><option value="legend">🏆 Leyenda · 500 XP</option></select><small>Solo puedes destacar insignias que hayas conseguido.</small>';
   panel.querySelector('#profile-form').insertBefore(badgeSelect,panel.querySelector('#profile-form button[type="submit"]'));
   document.getElementById('profile-featured-badge').value=profile?.featured_badge||'';
+
+  // Escaparate compacto: tres insignias verificadas por XP, un título de nivel.
+  const showcase=document.createElement('details');
+  showcase.className='profile-customization sb-showcase-editor';
+  const showcaseSummary=document.createElement('summary');
+  showcaseSummary.textContent='🏅 Mi escaparate y título gamer';
+  const showcaseBody=document.createElement('div');showcaseBody.className='sb-showcase-editor-body';
+  const titleLabel=document.createElement('label');titleLabel.htmlFor='profile-title';titleLabel.textContent='👑 Título que aparece en mi perfil público';
+  const titleSelect=document.createElement('select');titleSelect.id='profile-title';
+  for(const [value,label,min] of [
+    ['none','Sin título',0],['recruit','🎮 Recluta Byte · Desde el inicio',0],
+    ['explorer','🌟 Explorador Otaku · Nivel 2',100],
+    ['guardian','⚔️ Guardián Gamer · Nivel 3',400],
+    ['legend','👑 Leyenda Byte · Nivel 5',1600]
+  ]){const option=document.createElement('option');option.value=value;option.textContent=label;option.dataset.minXp=String(min);if(min>0)option.disabled=true;titleSelect.append(option)}
+  titleSelect.value=profile?.profile_title||'none';
+  const badgeLabel=document.createElement('p');badgeLabel.textContent='🎖️ Elige hasta 3 insignias conseguidas';
+  const badgeChoices=document.createElement('div');badgeChoices.className='sb-badge-picker';
+  const badgeCatalog=[
+    ['first','🌱 Primer paso',5],['participant','⭐ Participante',50],
+    ['shonen','⚡ Explorador shōnen',100],['active','🔥 Miembro activo',150],
+    ['astral','🌌 Guardián astral',400],['legend','🏆 Leyenda',500],
+    ['phoenix','👑 Fénix legendario',1600]
+  ];
+  const previousBadges=Array.isArray(profile?.profile_showcase_badges)?profile.profile_showcase_badges:[];
+  for(const [key,label,min] of badgeCatalog){
+    const wrapper=document.createElement('label');wrapper.className='sb-badge-choice';
+    const check=document.createElement('input');check.type='checkbox';check.value=key;check.dataset.minXp=String(min);
+    check.checked=previousBadges.includes(key);check.disabled=true;
+    const caption=document.createElement('span');caption.textContent=label+' · '+min+' XP';
+    wrapper.append(check,caption);badgeChoices.append(wrapper);
+  }
+  const showcaseMessage=document.createElement('small');showcaseMessage.setAttribute('aria-live','polite');
+  showcaseMessage.textContent='Comprobando XP y desbloqueos…';
+  const badgeChecks=[...badgeChoices.querySelectorAll('input')];
+  function chosenShowcase(){return badgeChecks.filter(check=>check.checked).map(check=>check.value)}
+  for(const check of badgeChecks)check.addEventListener('change',()=>{
+    const chosen=chosenShowcase();
+    if(chosen.length>3){check.checked=false;showcaseMessage.textContent='Puedes destacar un máximo de 3 insignias.'}
+    else showcaseMessage.textContent=chosen.length+'/3 insignias elegidas. Pulsa Guardar cambios para publicarlas.';
+  });
+  showcaseBody.append(titleLabel,titleSelect,badgeLabel,badgeChoices,showcaseMessage);
+  showcase.append(showcaseSummary,showcaseBody);
+  badgeSelect.after(showcase);
+  sb.rpc('community_member_xp',{target_member:user.id}).then(({data,error})=>{
+    if(!showcase.isConnected)return;
+    if(error||data===null){showcaseMessage.textContent='No se pudieron verificar tus XP. No cambies las insignias hasta recargar.';return}
+    const xp=Math.max(0,Number(data)||0);
+    for(const option of titleSelect.options)option.disabled=xp<Number(option.dataset.minXp||0);
+    for(const check of badgeChecks){check.disabled=xp<Number(check.dataset.minXp||0);check.parentElement?.classList.toggle('is-locked',check.disabled)}
+    showcaseMessage.textContent='Tienes '+xp+' XP. Selecciona hasta 3 insignias desbloqueadas.';
+  }).catch(()=>{if(showcase.isConnected)showcaseMessage.textContent='No se pudieron comprobar los XP.'});
+
   const gamerSettings=document.createElement('div');gamerSettings.className='profile-customization';
-  gamerSettings.innerHTML='<h4>🎮 Perfil de jugador</h4><label for="profile-favorite-games">Juegos favoritos (separados por comas)</label><textarea id="profile-favorite-games" maxlength="300" rows="2" placeholder="Minecraft, Pokémon, Fortnite..."></textarea><label for="profile-gaming-social">Enlace a tu red social o canal (HTTPS)</label><input id="profile-gaming-social" type="url" placeholder="https://..."><small>Solo se mostrarán en tu perfil público si activas su visibilidad.</small>';
+  gamerSettings.innerHTML='<h4>🎮 Perfil de jugador</h4><label for="profile-favorite-games">Juegos favoritos (separados por comas)</label><textarea id="profile-favorite-games" maxlength="300" rows="2" placeholder="Minecraft, Pokémon, Fortnite..."></textarea><label for="profile-gaming-social">Enlace a tu red social o canal (HTTPS)</label><input id="profile-gaming-social" type="url" placeholder="https://..."><label for="profile-card-motto">💬 Lema de mi tarjeta gamer (máximo 80 caracteres)</label><input id="profile-card-motto" type="text" maxlength="80" placeholder="¡Mi aventura anime comienza aquí!"><label for="profile-card-layout">🎴 Diseño de mi tarjeta gamer</label><select id="profile-card-layout"><option value="classic">Clásico · equilibrado</option><option value="hero">Heroico · avatar protagonista</option><option value="minimal">Minimalista · compacto</option></select><small>La tarjeta mostrará tu lema, título, juegos e identidad gamer sin ocupar demasiada página.</small>';
   panel.querySelector('#profile-form').insertBefore(gamerSettings,panel.querySelector('#profile-form button[type="submit"]'));
   document.getElementById('profile-favorite-games').value=profile?.favorite_games||'';
   document.getElementById('profile-gaming-social').value=profile?.gaming_social_url||'';
+  document.getElementById('profile-card-motto').value=profile?.profile_card_motto||'';
+  document.getElementById('profile-card-layout').value=profile?.profile_card_layout||'classic';
  }
 
  const heading=document.getElementById('profile-heading'),email=document.getElementById('profile-email');
@@ -1122,6 +1177,7 @@ async function loadAccountProfile(){
   root.dataset.sbParticles=document.getElementById('profile-particles')?.value||'none';
   root.dataset.sbAvatarGlow=document.getElementById('profile-avatar-glow')?.value||'none';
   root.dataset.sbLevelAura=document.getElementById('profile-level-aura')?.value||'none';
+  root.dataset.sbCardLayout=document.getElementById('profile-card-layout')?.value||'classic';
   previewCard.dataset.animeCard=document.getElementById('profile-anime-card')?.value||'sakura';
   if(coverNode){
    coverNode.style.backgroundImage=(validCover&&!videoCover)?'url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';
@@ -1142,7 +1198,7 @@ async function loadAccountProfile(){
   else previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase();
   publicLink.hidden=!visible;
  }
- for(const element of [form.elements.display_name,form.elements.avatar_url,document.getElementById('profile-bio'),document.getElementById('profile-public'),document.getElementById('profile-cover-url'),document.getElementById('profile-theme'),document.getElementById('profile-anime-card'),document.getElementById('profile-effect'),document.getElementById('profile-frame'),document.getElementById('profile-cover-position'),document.getElementById('profile-cover-tint'),document.getElementById('profile-background'),document.getElementById('profile-particles'),document.getElementById('profile-avatar-glow'),document.getElementById('profile-level-aura'),document.getElementById('profile-favorite-anime'),document.getElementById('profile-favorite-character')]){if(element){element.addEventListener('input',updateProfilePreview);element.addEventListener('change',updateProfilePreview);}}
+ for(const element of [form.elements.display_name,form.elements.avatar_url,document.getElementById('profile-bio'),document.getElementById('profile-public'),document.getElementById('profile-cover-url'),document.getElementById('profile-theme'),document.getElementById('profile-anime-card'),document.getElementById('profile-effect'),document.getElementById('profile-frame'),document.getElementById('profile-cover-position'),document.getElementById('profile-cover-tint'),document.getElementById('profile-background'),document.getElementById('profile-particles'),document.getElementById('profile-avatar-glow'),document.getElementById('profile-level-aura'),document.getElementById('profile-card-layout'),document.getElementById('profile-favorite-anime'),document.getElementById('profile-favorite-character')]){if(element){element.addEventListener('input',updateProfilePreview);element.addEventListener('change',updateProfilePreview);}}
  updateProfilePreview();
  form.addEventListener('submit',async event=>{
   event.preventDefault();
@@ -1160,19 +1216,26 @@ async function loadAccountProfile(){
     if(cover_url&&!/^https:\/\/[^\s]+$/i.test(cover_url)){status.textContent='La portada debe ser una URL HTTPS válida.';return;}
     const theme_color=document.getElementById('profile-theme').value;
     const featured_badge=document.getElementById('profile-featured-badge').value;
+    const selectedTitle=document.getElementById('profile-title').value;
+    const selectedShowcase=chosenShowcase();
+    if(selectedShowcase.length>3){status.textContent='Selecciona un máximo de 3 insignias.';return;}
     const thresholds={first:5,participant:50,active:150,legend:500};
     const levelAura=document.getElementById('profile-level-aura').value;
     const auraThreshold={none:0,storm:100,astral:400,phoenix:1600};
-    if(featured_badge||levelAura!=='none'){
+    if(featured_badge||levelAura!=='none'||selectedShowcase.length||!['none','recruit'].includes(selectedTitle)){
      const {data:xp,error:xpError}=await sb.rpc('community_member_xp',{target_member:user.id});
      if(xpError||xp===null){status.textContent='No se pudieron comprobar tus XP. Prueba de nuevo.';return;}
      if(featured_badge&&Number(xp)<thresholds[featured_badge]){status.textContent='Todavía no has desbloqueado esa insignia.';return;}
      if(Number(xp)<(auraThreshold[levelAura]??Infinity)){status.textContent='Este efecto exclusivo necesita más XP. Continúa subiendo de nivel.';return;}
+     const titleThreshold={none:0,recruit:0,explorer:100,guardian:400,legend:1600};
+     const badgeThreshold={first:5,participant:50,shonen:100,active:150,astral:400,legend:500,phoenix:1600};
+     if(Number(xp)<(titleThreshold[selectedTitle]??Infinity)){status.textContent='Todavía no has desbloqueado ese título.';return;}
+     if(selectedShowcase.some(key=>Number(xp)<(badgeThreshold[key]??Infinity))){status.textContent='Una insignia del escaparate sigue bloqueada.';return;}
     }
     const favorite_games=document.getElementById('profile-favorite-games').value.trim();
     const gaming_social_url=document.getElementById('profile-gaming-social').value.trim();
     if(gaming_social_url&&!/^https:\/\/[^\s]+$/i.test(gaming_social_url)){status.textContent='El enlace social debe comenzar por https://';return;}
-    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,profile_effect:document.getElementById('profile-effect').value,profile_frame:document.getElementById('profile-frame').value,cover_position:document.getElementById('profile-cover-position').value,profile_background:document.getElementById('profile-background').value,profile_particles:document.getElementById('profile-particles').value,profile_avatar_glow:document.getElementById('profile-avatar-glow').value,profile_level_aura:levelAura,cover_tint:document.getElementById('profile-cover-tint').value,featured_badge:featured_badge||null,favorite_games,gaming_social_url:gaming_social_url||null,favorite_anime:document.getElementById('profile-favorite-anime').value.trim(),favorite_anime_character:document.getElementById('profile-favorite-character').value.trim(),anime_card_style:document.getElementById('profile-anime-card').value,gaming_status:document.getElementById('profile-gaming-status').value,status_message:document.getElementById('profile-gaming-message').value.trim()};
+    const payload={id:user.id,display_name,avatar_url:avatar_url||null,bio,is_public,cover_url:cover_url||null,theme_color,profile_effect:document.getElementById('profile-effect').value,profile_frame:document.getElementById('profile-frame').value,cover_position:document.getElementById('profile-cover-position').value,profile_background:document.getElementById('profile-background').value,profile_particles:document.getElementById('profile-particles').value,profile_avatar_glow:document.getElementById('profile-avatar-glow').value,profile_level_aura:levelAura,profile_title:selectedTitle,profile_showcase_badges:selectedShowcase,profile_card_layout:document.getElementById('profile-card-layout').value,profile_card_motto:document.getElementById('profile-card-motto').value.trim(),cover_tint:document.getElementById('profile-cover-tint').value,featured_badge:featured_badge||null,favorite_games,gaming_social_url:gaming_social_url||null,favorite_anime:document.getElementById('profile-favorite-anime').value.trim(),favorite_anime_character:document.getElementById('profile-favorite-character').value.trim(),anime_card_style:document.getElementById('profile-anime-card').value,gaming_status:document.getElementById('profile-gaming-status').value,status_message:document.getElementById('profile-gaming-message').value.trim()};
     const {data:existing, error:readError}=await sb.from('profiles').select('id').eq('id',user.id).maybeSingle();
     if(readError){status.textContent='No se pudo comprobar tu perfil: '+readError.message;return;}
     const request=existing
@@ -1192,7 +1255,7 @@ async function loadAccountProfile(){
 
 async function loadMembers(){
  const root=document.getElementById('members-list');if(!root)return;
- const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,cover_url,bio,created_at,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,cover_url,bio,created_at,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura,profile_title,profile_showcase_badges,profile_card_layout,profile_card_motto').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
  if(!root.isConnected)return;
  if(error){root.innerHTML='<div class="admin-empty">No se pudo cargar la lista de miembros.</div>';return;}
  const members=data||[];
@@ -1242,7 +1305,7 @@ async function loadPublicMemberProfile(){
  if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){
   root.innerHTML='<div class="admin-empty">Enlace de perfil no válido.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;
  }
- const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,game_library_public,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura').eq('id',id).eq('is_public',true).maybeSingle();
+ const {data:member,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,game_library_public,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura,profile_title,profile_showcase_badges,profile_card_layout,profile_card_motto').eq('id',id).eq('is_public',true).maybeSingle();
  if(!root.isConnected||location.hash.split('?')[0]!=='#/perfil')return;
  root.replaceChildren();
  if(error||!member){root.innerHTML='<div class="admin-empty">Este perfil no está disponible o es privado.</div><a class="outline-btn" href="#/miembros">Volver a Miembros</a>';return;}
@@ -1254,6 +1317,8 @@ async function loadPublicMemberProfile(){
  root.dataset.sbParticles=member.profile_particles||'none';
  root.dataset.sbAvatarGlow=member.profile_avatar_glow||'none';
  root.dataset.sbLevelAura=member.profile_level_aura||'none';
+ root.dataset.sbCardLayout=member.profile_card_layout||'classic';
+ root.dataset.sbCardMotto=member.profile_card_motto||'';
  const cover=document.createElement('div');cover.className='public-member-cover';
  const coverLabel=document.createElement('span');coverLabel.textContent='SHADOWS BYTE / COMUNIDAD';cover.append(coverLabel);
  cover.dataset.theme=['violet','blue','emerald','rose','amber'].includes(member.theme_color)?member.theme_color:'violet';
