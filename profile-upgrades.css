@@ -26,7 +26,7 @@
 .sbp-identity-card[data-theme=blue]{--sbp-accent:#38bdf8}.sbp-identity-card[data-theme=emerald]{--sbp-accent:#34d399}.sbp-identity-card[data-theme=rose]{--sbp-accent:#fb7185}.sbp-identity-card[data-theme=amber]{--sbp-accent:#fbbf24}
 .sbp-identity-top{display:flex;align-items:center;gap:16px;min-width:0}
 .sbp-identity-avatar{display:grid;place-items:center;width:80px;height:80px;flex:0 0 80px;border-radius:18px;border:2px solid var(--sbp-accent);background:#27183f;overflow:hidden;font-size:33px;box-shadow:0 0 20px #9f55ef33}
-.sbp-identity-avatar img{width:100%;height:100%;object-fit:cover}
+.sbp-identity-avatar :is(img,video){width:100%;height:100%;object-fit:cover;display:block}
 .sbp-identity-text{min-width:0}.sbp-identity-text small{color:var(--sbp-accent);font-size:11px;letter-spacing:1px;font-weight:700}
 .sbp-identity-text h2{font-size:clamp(18px,3vw,25px);overflow-wrap:anywhere;margin:4px 0}.sbp-identity-status{margin:4px 0;color:#d5c6e5}
 .sbp-identity-tags{display:flex;gap:8px;flex-wrap:wrap;margin:17px 0 9px}
