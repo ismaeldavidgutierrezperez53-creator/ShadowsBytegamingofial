@@ -62,6 +62,27 @@
   white-space:normal;
 }
 #public-member-profile .sb-public-profile-actions .member-private-message-link{flex:1 1 175px}
+#public-member-profile .sb-public-follow-group{
+  display:flex;flex:1 1 370px;min-width:0;align-items:stretch;gap:8px;
+}
+#public-member-profile .sb-public-follow-stats{
+  flex:0 1 190px;min-width:0;display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+}
+#public-member-profile .sb-public-follow-stat{
+  min-height:44px;min-width:0;padding:5px 8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;border-radius:10px;
+  border:1px solid rgba(166,124,220,.35);background:rgba(28,21,47,.76);
+  color:#efe7fc;text-align:center;
+}
+#public-member-profile .sb-public-follow-stat strong{
+  font:700 19px/1.2 Rajdhani,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+#public-member-profile .sb-public-follow-stat span{
+  font:600 12px/1.2 Rajdhani,Arial,sans-serif;color:#cec0ed;
+}
 #public-member-profile .sb-public-profile-actions .sb-public-follow{
   flex:1 1 125px;color:#fff;
   border:1px solid #c49cff;
@@ -116,12 +137,19 @@ body.sb-public-image-open{overflow:hidden}
   #public-member-profile .public-member-avatar{width:98px;height:98px;margin-top:-47px;border-radius:23px}
   #public-member-profile .sb-public-profile-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
   #public-member-profile .sb-public-profile-actions .member-private-message-link{grid-column:1/-1}
+  #public-member-profile .sb-public-follow-group{grid-column:1/-1;width:100%}
+  #public-member-profile .sb-public-profile-actions .sb-public-follow-group .sb-public-follow{
+    flex:1 1 120px;min-width:100px;width:auto;
+  }
+  #public-member-profile .sb-public-follow-stats{flex:0 1 190px}
   #public-member-profile .sb-public-profile-actions :is(a,button){min-width:0;width:100%;padding:10px}
   #public-member-profile .sb-public-profile-note{grid-column:1/-1}
 }
 @media(max-width:360px){
   #public-member-profile .sb-public-profile-actions{grid-template-columns:1fr}
   #public-member-profile .sb-public-profile-actions .member-private-message-link{grid-column:auto}
+  #public-member-profile .sb-public-follow-group{flex-direction:column}
+  #public-member-profile .sb-public-follow-stats{flex:auto}
 }
 @media(prefers-reduced-motion:reduce){
   #public-member-profile .public-member-avatar{transition:none}
