@@ -224,8 +224,9 @@ body.sb-public-image-open{overflow:hidden}
 .sb-public-follow-person-row > .sb-public-follow-person{
   flex:1 1 auto;min-width:0;
 }
-.sb-public-follow-person-action{
-  flex:0 0 112px;min-height:44px;padding:8px 10px;
+.sb-public-follow-dialog .sb-public-follow-person-action{
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 112px;min-width:112px;min-height:44px;padding:8px 10px;
   border:1px solid #bb94f3;border-radius:10px;
   background:linear-gradient(115deg,#703ab3,#3762a1);
   color:#fff;font:700 14px/1.25 Rajdhani,Arial,sans-serif;
@@ -238,15 +239,23 @@ body.sb-public-image-open{overflow:hidden}
   background:#342b49;border-color:#7f7396;
 }
 .sb-public-follow-person-action:disabled{opacity:.65;cursor:wait}
+.sb-public-follow-person-action.is-own{
+  background:#332b43;border-color:#69567e;color:#dfd1f0;
+}
 .sb-public-follow-person-action:hover:not(:disabled){filter:brightness(1.13)}
 .sb-public-follow-person-own{
   flex:0 0 112px;text-align:center;color:#c7b6df;
   font:700 14px Rajdhani,Arial,sans-serif;
 }
 @media(max-width:420px){
-  .sb-public-follow-person-row{flex-wrap:wrap;gap:6px}
-  .sb-public-follow-person-row > .sb-public-follow-person{flex:1 1 100%}
-  .sb-public-follow-person-action,.sb-public-follow-person-own{flex:1 1 100%}
+  .sb-public-follow-person-row{flex-wrap:nowrap;gap:6px}
+  .sb-public-follow-person-row > .sb-public-follow-person{
+    flex:1 1 auto;min-width:0;padding:8px 6px;gap:7px;
+  }
+  .sb-public-follow-dialog .sb-public-follow-person-action{
+    flex:0 0 100px;min-width:100px;padding:7px 5px;font-size:13px;
+  }
+  .sb-public-follow-person-arrow{display:none}
 }
 .sb-public-follow-person{
   display:flex;align-items:center;gap:12px;padding:10px;
