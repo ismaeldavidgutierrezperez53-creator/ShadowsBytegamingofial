@@ -224,7 +224,7 @@
       let loaded = 0;
       let pageToken = 0;
       const validMemberId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      const createPerson = person => {
+      const createPerson = (person, viewerId, followedIds) => {
         const link = document.createElement('a');
         link.className = 'sb-public-follow-person';
         link.href = '#/perfil?id=' + encodeURIComponent(person.id);
@@ -260,7 +260,62 @@
         arrow.textContent = '›';
         arrow.setAttribute('aria-hidden', 'true');
         link.append(avatarBox, info, arrow);
-        return link;
+        // El botón es hermano del enlace: no se anidan controles interactivos.
+        const row = document.createElement('div');
+        row.className = 'sb-public-follow-person-row';
+        row.append(link);
+        if (viewerId === person.id) {
+          const own = document.createElement('span');
+          own.className = 'sb-public-follow-person-own';
+          own.textContent = 'Tu perfil';
+          row.append(own);
+          return row;
+        }
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'sb-public-follow-person-action';
+        const renderAction = following => {
+          action.dataset.following = following === null ? 'unknown' : String(following);
+          action.textContent = following === null ? '↻ Comprobar' : following ? '✓ Siguiendo' : '➕ Seguir';
+          action.setAttribute('aria-label',
+            (following ? 'Dejar de seguir a ' : 'Seguir a ') + displayName);
+          action.title = following ? 'Dejar de seguir' : 'Seguir sin salir de la lista';
+        };
+        renderAction(followedIds === null ? null : followedIds.has(person.id));
+        action.onclick = async () => {
+          if (action.disabled) return;
+          action.disabled = true;
+          try {
+            const {data: {user}, error: authError} = await sb.auth.getUser();
+            if (authError && !user) throw authError;
+            if (!user) { dialog.close(); location.hash = '#/auth'; return; }
+            if (user.id === person.id) { action.remove(); return; }
+            // Leer el estado vigente evita cambios duplicados si otra pestaña actuó.
+            const state = await sb.from('member_follows').select('following_id')
+              .eq('follower_id', user.id).eq('following_id', person.id).maybeSingle();
+            if (state.error) throw state.error;
+            const wasFollowing = Boolean(state.data);
+            const result = wasFollowing
+              ? await sb.from('member_follows').delete().eq('follower_id', user.id).eq('following_id', person.id)
+              : await sb.from('member_follows').insert({follower_id: user.id, following_id: person.id});
+            if (result.error) throw result.error;
+            if (!dialog.open) return;
+            renderAction(!wasFollowing);
+            status.textContent = wasFollowing
+              ? 'Has dejado de seguir a ' + displayName + '.'
+              : 'Ahora sigues a ' + displayName + '.';
+            void refreshCounts();
+            if (person.id === id) void refreshFollow();
+            // En la lista de personas a las que sigo, reflejar una baja inmediatamente.
+            if (user.id === id && currentTab === 'following') void loadPage(true);
+          } catch (_) {
+            if (dialog.open) status.textContent = 'No se pudo actualizar el seguimiento. Inténtalo de nuevo.';
+          } finally {
+            if (action.isConnected) action.disabled = false;
+          }
+        };
+        row.append(action);
+        return row;
       };
       const loadPage = async (reset = false) => {
         const token = ++pageToken;
@@ -287,11 +342,24 @@
             : {data: [], error: null};
           if (profiles.error) throw profiles.error;
           if (!dialog.open || token !== pageToken) return;
+          const {data: authData} = await sb.auth.getUser();
+          if (!dialog.open || token !== pageToken) return;
+          const viewerId = authData?.user?.id || null;
+          let followedIds = viewerId ? null : new Set();
+          if (viewerId && ids.length) {
+            // Una consulta por página, no una consulta por cada botón.
+            const current = await sb.from('member_follows').select('following_id')
+              .eq('follower_id', viewerId).in('following_id', ids);
+            if (!current.error) followedIds = new Set((current.data || []).map(item => item.following_id));
+          } else if (viewerId) {
+            followedIds = new Set();
+          }
+          if (!dialog.open || token !== pageToken) return;
           const byId = new Map((profiles.data || []).map(person => [person.id, person]));
           for (const row of rows) {
             const person = byId.get(row[field]);
             if (!person) continue;
-            list.append(createPerson(person));
+            list.append(createPerson(person, viewerId, followedIds));
             loaded++;
           }
           offset += rows.length;
