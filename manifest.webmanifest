@@ -1,0 +1,15 @@
+{
+  "name": "Shadows Byte Gaming Official",
+  "short_name": "Shadows Byte",
+  "description": "Comunidad de anime, manga y gaming con notificaciones en tu dispositivo.",
+  "lang": "es",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#08070e",
+  "theme_color": "#24113a",
+  "icons": [
+    {"src": "anime-favicon.png", "sizes": "64x64", "type": "image/png", "purpose": "any"},
+    {"src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ]
+}
