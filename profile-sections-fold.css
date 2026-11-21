@@ -55,3 +55,35 @@
  }
  #account-profile .sb-profile-sections-content{gap:14px;}
 }
+
+/* Acceso siempre visible a Seguidores y Siguiendo aunque las secciones estén plegadas. */
+#account-profile .sb-profile-follow-shortcut {
+ display:flex;
+ flex-direction:column;
+ align-items:flex-start;
+ justify-content:center;
+ gap:5px;
+ width:min(100%, 580px);
+ min-height:66px;
+ margin:12px 0 20px;
+ padding:13px 18px;
+ border:1px solid #b487f8;
+ border-radius:14px;
+ background:linear-gradient(120deg,rgba(103,48,158,.94),rgba(36,92,139,.88));
+ box-shadow:0 8px 23px rgba(41,17,86,.18);
+ color:#fff;
+ text-align:left;
+ font:inherit;
+ cursor:pointer;
+}
+#account-profile .sb-profile-follow-shortcut strong {font-size:16px;line-height:1.25}
+#account-profile .sb-profile-follow-shortcut span {font-size:13px;color:#f0e5ff;line-height:1.3}
+#account-profile .sb-profile-follow-shortcut:is(:hover,:focus-visible) {
+ border-color:#e0bbff;
+ background:linear-gradient(120deg,rgba(120,63,181,.98),rgba(47,111,165,.95));
+}
+#account-profile .sb-profile-follow-shortcut:focus-visible {outline:3px solid #85efff;outline-offset:3px}
+#account-profile #account-follows {scroll-margin-top:96px}
+@media (max-width:600px) {
+ #account-profile .sb-profile-follow-shortcut {width:100%;margin:12px 0 15px;min-height:68px}
+}
