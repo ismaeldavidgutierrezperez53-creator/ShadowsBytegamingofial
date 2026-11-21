@@ -141,7 +141,7 @@
     root.innerHTML='<h2>🔔 Notificaciones en tu ordenador y móvil</h2>'
       +'<p>🔔 Avisos para toda la actividad importante de tu cuenta: seguidores, mensajes privados y grupales, llamadas y videollamadas, comentarios, Me gusta, regalos, noticias, encuestas, torneos, insignias, metas, premios y denuncias.</p>'
       +'<p>Se envían también con la página cerrada, si el dispositivo lo permite. Solo se activa con tu permiso y se respeta el modo No molestar.</p>'
-      +'<p>🎵 <a href="#/cuenta" class="outline-btn mini">Personalizar sonidos anime en Mi cuenta</a></p>'
+      +'<p>🎵 <a href="#/sonidos" class="outline-btn mini">🎵 Abrir sonidos anime</a></p>'
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
       +'<details class="sb-webpush-mobile-help"><summary>📱 Cómo activar las notificaciones en mi móvil</summary>'
       +'<div class="sb-webpush-mobile-steps"><h3>🤖 Android (Chrome)</h3>'
