@@ -120,6 +120,43 @@
     note.className = 'sb-public-profile-note';
     note.setAttribute('role', 'status');
     note.setAttribute('aria-live', 'polite');
+    // Contadores públicos: muestran datos reales y nunca presentan un error como cero.
+    const followGroup = document.createElement('div');
+    followGroup.className = 'sb-public-follow-group';
+    const stats = document.createElement('div');
+    stats.className = 'sb-public-follow-stats';
+    stats.setAttribute('aria-label', 'Estadísticas de seguimiento');
+    const makeStat = label => {
+      const item = document.createElement('div');
+      item.className = 'sb-public-follow-stat';
+      const number = document.createElement('strong');
+      number.textContent = '…';
+      const caption = document.createElement('span');
+      caption.textContent = label;
+      item.append(number, caption);
+      stats.append(item);
+      return number;
+    };
+    const followersNumber = makeStat('Seguidores');
+    const followingNumber = makeStat('Siguiendo');
+    let countsRequest = 0;
+    const refreshCounts = async () => {
+      const request = ++countsRequest;
+      try {
+        const [followers, following] = await Promise.all([
+          sb.from('member_follows').select('follower_id', {count: 'exact', head: true}).eq('following_id', id),
+          sb.from('member_follows').select('following_id', {count: 'exact', head: true}).eq('follower_id', id)
+        ]);
+        if (!stats.isConnected || countsRequest !== request) return;
+        const format = result => result.error ? '—' : Number(result.count ?? 0).toLocaleString('es-ES');
+        followersNumber.textContent = format(followers);
+        followingNumber.textContent = format(following);
+      } catch (_) {
+        if (!stats.isConnected || countsRequest !== request) return;
+        followersNumber.textContent = followingNumber.textContent = '—';
+      }
+    };
+
     // Acción principal de seguimiento: reutiliza member_follows y sus políticas RLS.
     const follow = document.createElement('button');
     follow.type = 'button'; follow.className = 'sb-public-follow';
@@ -170,6 +207,7 @@
         if (error) throw error;
         if (!follow.isConnected) return;
         updateFollow(!isFollowing);
+        void refreshCounts();
         note.textContent = isFollowing ? 'Has dejado de seguir a ' + name + '.' : 'Ahora sigues a ' + name + '.';
         const social = body.querySelector('.member-social');
         if (social?.isConnected && typeof loadMemberSocial === 'function') void loadMemberSocial(id, social);
@@ -184,9 +222,20 @@
     });
     // Mantiene el botón superior sincronizado con el de la pestaña Comunidad.
     const socialPanel = body.querySelector('.member-social');
-    if (socialPanel) new MutationObserver(() => {
-      if (follow.isConnected) void refreshFollow();
-    }).observe(socialPanel, {childList:true});
+    if (socialPanel) {
+      let pendingSocialSync = false;
+      new MutationObserver(records => {
+        if (!stats.isConnected || pendingSocialSync) return;
+        // La sección Comunidad reemplaza sus hijos al cambiar un seguimiento.
+        if (!records.some(record => record.target === socialPanel)) return;
+        pendingSocialSync = true;
+        queueMicrotask(() => {
+          pendingSocialSync = false;
+          if (stats.isConnected) void refreshCounts();
+          if (follow.isConnected && !follow.disabled) void refreshFollow();
+        });
+      }).observe(socialPanel, {childList:true});
+    }
     share.onclick = async () => {
       const url = profileLink();
       if (navigator.share) {
@@ -206,8 +255,10 @@
       }
     };
     back.classList.add('sb-public-back');
-    actions.append(message, follow, share, back, note);
+    followGroup.append(follow, stats);
+    actions.append(message, followGroup, share, back, note);
     void refreshFollow();
+    void refreshCounts();
     const idPanel = body.querySelector('.sb-profile-id-panel');
     const state = body.querySelector(':scope > .member-gaming-status');
     (idPanel || state || body.querySelector(':scope > h1'))?.after(actions);
