@@ -1,0 +1,161 @@
+/* Perfil ID — muro social integrado, comentarios bajo demanda y reacciones anime.
+   Comparte las publicaciones de Comunidad; no crea mensajes duplicados. */
+
+#account-profile .sb-profile-wall-panel{
+ border:1px solid rgba(172,128,240,.43);
+ border-radius:17px;
+ background:linear-gradient(135deg,rgba(47,26,83,.43),rgba(15,22,49,.77));
+ padding:0 16px 14px;
+ margin:18px 0 20px;
+ min-width:0;
+ overflow:clip;
+}
+#account-profile .sb-profile-wall-panel>summary{
+ cursor:pointer;color:#f6e6ff;font-weight:800;
+ min-height:48px;padding:15px 2px;line-height:1.45;
+ font-size:clamp(16px,2.7vw,19px);
+}
+#account-profile .sb-profile-wall-panel>summary:focus-visible,
+#public-member-profile .sb-wall-comment-details>summary:focus-visible,
+#account-profile .sb-wall-comment-details>summary:focus-visible{
+ outline:3px solid #77e6ff;outline-offset:3px;border-radius:8px;
+}
+#account-profile .sb-profile-wall-panel[open]>summary{
+ border-bottom:1px solid rgba(177,132,224,.28);
+}
+#account-profile .sb-profile-wall-hint{
+ margin:12px 0 16px;line-height:1.48;
+ color:#dbcbea;max-width:700px;font-size:14px;
+}
+#account-profile #account-community-social{
+ min-width:0;
+}
+:is(#account-profile,#public-member-profile) :is(.account-community-social,.member-social)>h2{
+ margin:12px 0 8px;
+ font-size:clamp(18px,2.5vw,22px);
+ color:#f4e0ff;
+}
+:is(#account-profile,#public-member-profile) .social-count{
+ font-size:13px;color:#d3c7e5;
+}
+:is(#account-profile,#public-member-profile) .social-post{
+ border:1px solid rgba(170,129,226,.34);
+ border-radius:14px;
+ background:linear-gradient(135deg,rgba(39,25,71,.63),rgba(20,27,54,.65));
+ padding:15px;
+ margin:14px 0;
+ min-width:0;
+ box-shadow:0 4px 18px rgba(0,0,0,.12);
+}
+:is(#account-profile,#public-member-profile) .social-post-body{
+ line-height:1.57;overflow-wrap:anywhere;white-space:pre-wrap;
+ margin:5px 0 10px;
+}
+:is(#account-profile,#public-member-profile) .social-post-image{
+ width:100%;max-height:420px;object-fit:contain;
+ background:rgba(10,10,27,.43);border-radius:10px;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reaction-bar{
+ padding:11px 0 7px;
+ display:flex;flex-direction:column;gap:9px;
+ min-width:0;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reactions-label{
+ color:#e6d5f6;font-size:13px;font-weight:800;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reactions-buttons{
+ display:flex;flex-wrap:wrap;gap:8px;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reaction{
+ display:inline-flex;align-items:center;justify-content:center;
+ gap:5px;min-width:49px;min-height:41px;
+ padding:8px 12px;
+ border-radius:999px;
+ border:1px solid rgba(177,140,225,.55);
+ background:rgba(30,21,55,.72);
+ color:#f8efff;font:700 14px/1.2 inherit;
+ cursor:pointer;
+ transition:transform .18s ease,background .2s ease,border-color .2s ease;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reaction:hover:not(:disabled){
+ transform:translateY(-2px);
+ border-color:rgba(225,179,255,.85);
+ background:rgba(77,40,119,.78);
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reaction:focus-visible{
+ outline:3px solid #6ee7fb;outline-offset:2px;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reaction.is-selected{
+ border-color:rgba(255,198,245,.88);
+ background:linear-gradient(145deg,rgba(135,66,180,.80),rgba(43,121,153,.54));
+ box-shadow:0 0 15px rgba(210,123,255,.29);
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reaction:disabled{
+ cursor:not-allowed;
+ opacity:.62;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reactions-error{
+ color:#ffbfc8;
+}
+:is(#account-profile,#public-member-profile) .sb-anime-reactions-error:empty{
+ display:none;
+}
+
+/* Los comentarios están ocultos hasta que se piden: evita un perfil sobrecargado. */
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details{
+ border-top:1px solid rgba(171,134,214,.25);
+ margin-top:10px;padding:5px 0 0;min-width:0;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details>summary{
+ padding:9px 5px;min-height:43px;cursor:pointer;
+ font-weight:750;font-size:14px;color:#e8d7fa;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comments{
+ max-height:400px;overflow:auto;overscroll-behavior:contain;
+ padding:8px 4px 5px;
+ scrollbar-width:thin;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comment{
+ padding:9px 10px;margin:0 0 8px;
+ border:1px solid rgba(146,129,190,.25);
+ border-radius:10px;
+ background:rgba(15,17,46,.46);
+ overflow-wrap:anywhere;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comment p{
+ white-space:pre-wrap;overflow-wrap:anywhere;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comment a{
+ color:#bdefff;text-decoration:underline;
+ text-underline-offset:2px;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comment .social-report,
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comment .social-delete{
+ font-size:12px;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comment-form{
+ padding-top:8px;gap:8px;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-details .social-comment-form textarea{
+ width:100%;min-height:66px;max-height:170px;resize:vertical;box-sizing:border-box;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-guest,
+:is(#account-profile,#public-member-profile) .sb-wall-comment-empty{
+ color:#cfc2dd;font-size:13px;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-comment-status{
+ font-size:13px;color:#d9b8fb;margin:0;
+}
+:is(#account-profile,#public-member-profile) .sb-wall-load-more{
+ margin:6px 0 10px;min-height:43px;
+}
+@media(max-width:600px){
+ #account-profile .sb-profile-wall-panel{margin:12px 0;padding:0 10px 12px;border-radius:13px}
+ :is(#account-profile,#public-member-profile) .social-post{padding:11px;margin:10px 0}
+ :is(#account-profile,#public-member-profile) .sb-anime-reactions-buttons{gap:6px}
+ :is(#account-profile,#public-member-profile) .sb-anime-reaction{min-width:48px;padding:8px 10px}
+ :is(#account-profile,#public-member-profile) .social-post-image{max-height:320px}
+}
+@media(prefers-reduced-motion:reduce){
+ :is(#account-profile,#public-member-profile) .sb-anime-reaction{transition:none!important}
+}
