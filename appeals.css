@@ -1,0 +1,28 @@
+/* Apelaciones: formularios públicos, Mi cuenta y panel del equipo. */
+#sb-appeal-public {max-width:760px;margin:0 auto;}
+.sb-appeal-intro {margin-bottom:20px;}
+.sb-appeal-form,.sb-appeal-review-form {display:grid;gap:12px;margin:14px 0 20px;}
+.sb-appeal-form label,.sb-appeal-review-form label {display:grid;gap:7px;font-weight:650;}
+.sb-appeal-form input,.sb-appeal-form textarea,.sb-appeal-review-form textarea,.sb-appeals-controls select{
+  width:100%;box-sizing:border-box;padding:11px 13px;border-radius:10px;
+  background:#211332;color:#f8f4ff;border:1px solid #8257ae;font:inherit;
+}
+.sb-appeal-form textarea,.sb-appeal-review-form textarea{resize:vertical;min-height:90px;}
+.sb-appeal-form button{justify-self:start;min-height:42px;}
+.sb-appeal-hint {opacity:.79;font-size:.9rem;}
+#sb-appeal-public-status,.sb-appeal-status,#sb-appeals-staff-status {min-height:24px;}
+#sb-appeal-public-status[data-error=true],.sb-appeal-status[data-error=true],
+#sb-appeals-staff-status[data-error=true] {color:#ff9eb2;}
+.sb-appeals-account,.sb-appeals-staff{scroll-margin-top:90px;}
+.sb-appeals-stack{display:grid;gap:12px;margin-top:14px;}
+.sb-appeal-card{border:1px solid #69458d;border-radius:13px;padding:14px;
+  background:rgba(43,23,67,.67);display:grid;gap:10px;overflow-wrap:anywhere;}
+.sb-appeal-card strong,.sb-appeal-card p,.sb-appeal-card small{margin:0;}
+.sb-appeal-card small{opacity:.83;}
+.sb-appeal-outcome{color:#e2cdff;}
+.sb-appeal-review-note{padding:9px 10px;border-left:3px solid #b386e8;background:rgba(107,71,145,.2);}
+.sb-appeal-review-actions{display:flex;flex-wrap:wrap;gap:10px;}
+.sb-appeals-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;}
+.sb-appeals-controls select{width:auto;min-width:180px;}
+@media(max-width:600px){.sb-appeal-form button,.sb-appeal-review-actions button{width:100%;}
+ .sb-appeals-controls select{width:100%;}.sb-appeals-controls{display:grid;}}
