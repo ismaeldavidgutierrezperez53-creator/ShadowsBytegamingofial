@@ -221,6 +221,7 @@
     });
     updateForm();
     await Promise.all([loadPeople(), loadHistory()]);
+    window.SBAppeals?.mountStaff();
     const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("focus");
     if (focus === "sanctions") panel.scrollIntoView({ block: "start", behavior: "smooth" });
   }
