@@ -1068,7 +1068,7 @@ async function loadAccountProfile(){
 
 async function loadMembers(){
  const root=document.getElementById('members-list');if(!root)return;
- const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,bio,created_at,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
+ const {data,error}=await sb.from('profiles').select('id,display_name,username,avatar_url,cover_url,bio,created_at,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character').eq('is_public',true).order('created_at',{ascending:false}).limit(100);
  if(!root.isConnected)return;
  if(error){root.innerHTML='<div class="admin-empty">No se pudo cargar la lista de miembros.</div>';return;}
  const members=data||[];
@@ -1081,14 +1081,25 @@ async function loadMembers(){
    const card=document.createElement('article');card.className='member-card';card.dataset.animeCard=['sakura','neon','stellar','lunar'].includes(member.anime_card_style)?member.anime_card_style:'sakura';
    const avatar=document.createElement('div');avatar.className='member-avatar';
    const name=member.display_name||member.username||'Miembro';
-   if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{avatar.textContent=name.charAt(0).toUpperCase()};avatar.append(img)}else avatar.textContent=name.charAt(0).toUpperCase();
+   // Usar la imagen original: los GIF conservan sus fotogramas y su animación.
+   let cover=null;
+   if(typeof member.cover_url==='string'&&/^https:\/\/[^\s]+$/i.test(member.cover_url)){
+    cover=document.createElement('div');cover.className='sb-member-card-cover';
+    const coverImage=document.createElement('img');
+    coverImage.className='sb-member-card-cover-image';
+    coverImage.src=member.cover_url;coverImage.alt='Portada de '+name;
+    coverImage.loading='lazy';coverImage.decoding='async';coverImage.referrerPolicy='no-referrer';
+    coverImage.onerror=()=>{cover.remove();card.classList.remove('sb-member-card-has-cover');};
+    cover.append(coverImage);card.classList.add('sb-member-card-has-cover');
+   }
+   if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();avatar.textContent=name.charAt(0).toUpperCase()};avatar.append(img)}else avatar.textContent=name.charAt(0).toUpperCase();
    const heading=document.createElement('h2');heading.textContent=name;
    const bio=document.createElement('p');bio.textContent=member.bio||'Miembro de Shadows Byte Gaming Official';
    const animeTags=document.createElement('div');animeTags.className='profile-anime-tags';
    for(const [icon,value] of [['🎬',member.favorite_anime],['⭐',member.favorite_anime_character]]){if(value){const chip=document.createElement('span');chip.textContent=icon+' '+value;animeTags.append(chip);}}
    const link=document.createElement('a');link.className='gradient-btn mini member-view-link';link.href='#/perfil?id='+encodeURIComponent(member.id);link.textContent='Ver perfil';
    const gameStatusText=document.createElement('p');gameStatusText.className='member-gaming-status';const states={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};gameStatusText.textContent=states[member.gaming_status]||states.disponible;if(member.status_message)gameStatusText.textContent+=' · '+member.status_message;
-   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';card.append(avatar,heading,gameStatusText,bio);if(animeTags.childElementCount)card.append(animeTags);card.append(link,messageLink);root.append(card);applyShopProfileCosmetics(member.id,avatar,heading,card);
+   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';if(cover)card.append(cover);card.append(avatar,heading,gameStatusText,bio);if(animeTags.childElementCount)card.append(animeTags);card.append(link,messageLink);root.append(card);applyShopProfileCosmetics(member.id,avatar,heading,card);
   });
  }
  document.getElementById('members-search')?.addEventListener('input',draw);draw();
