@@ -275,25 +275,40 @@ function appendCommunityEditAction(article,post,userId){
  };
  control.append(edit,editor);article.append(control);
 }
-function appendCommunityPinAction(article,post,admin,pins,refresh){
+function appendCommunityPinAction(article,post,viewer,pins,refresh){
  const pinned=pins.has(post.id);
  if(pinned){
   const badge=document.createElement('span');badge.className='sb-community-pinned-badge';
   badge.textContent='📌 Publicación fijada';article.prepend(badge);
  }
- if(!admin)return;
- const button=document.createElement('button');button.type='button';button.className='outline-btn mini sb-community-pin-button';
- button.textContent=pinned?'📌 Desfijar':'📌 Fijar en Comunidad';
- button.onclick=async()=>{
-  button.disabled=true;
-  const action=pinned
-   ?sb.from('community_post_pins').delete().eq('post_id',post.id)
-   :sb.from('community_post_pins').insert({post_id:post.id,pinned_by:admin.id});
-  const {error}=await action;
-  if(error){button.textContent='Error: '+error.message;button.disabled=false;return;}
-  refresh();
- };
- article.append(button);
+ if(!viewer)return;
+ const isAdmin=viewer.app_metadata?.role==='admin';
+ const row=document.createElement('div');row.className='sb-community-pin-row';
+ const button=document.createElement('button');button.type='button';
+ button.className='outline-btn mini sb-community-pin-button';
+ button.textContent=isAdmin?(pinned?'📌 Desfijar':'📌 Fijar en Comunidad'):'🔒 Fijar · administración';
+ const info=document.createElement('small');info.className='sb-community-pin-info';
+ info.setAttribute('role','status');
+ if(!isAdmin){
+  button.title='Solo una cuenta administradora puede fijar publicaciones en la Comunidad.';
+  button.onclick=()=>{info.textContent='Para fijar una publicación, inicia sesión con una cuenta administradora.';};
+ }else{
+  button.onclick=async()=>{
+   button.disabled=true;info.textContent='Guardando…';
+   const {error}=pinned
+    ?await sb.from('community_post_pins').delete().eq('post_id',post.id)
+    :await sb.from('community_post_pins').insert({post_id:post.id,pinned_by:viewer.id});
+   if(error){
+    info.textContent='No se pudo actualizar: '+error.message;
+    button.disabled=false;
+    return;
+   }
+   info.textContent='';refresh();
+  };
+ }
+ row.append(button,info);
+ const body=article.querySelector('.sb-community-post-content');
+ if(body)body.before(row);else article.append(row);
 }
 
 async function getPublished(table, order='created_at') {
