@@ -1,10 +1,10 @@
-/* Shadows Byte Gaming V2 · Contadores y lectores de Noticias y Comunidad.
-   La identidad solo se registra si cada miembro activa el historial. */
+/* Shadows Byte Gaming V2 · Visualizaciones automáticas sin identificar.
+   El historial nominal solo se activa tras consentimiento informado. */
 (function(){
  'use strict';
  if(typeof sb==='undefined')return;
  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
- let user=null,historyEnabled=false,authPending=null,scanQueued=false;
+ let user=null,historyEnabled=false,historyChoiceMade=false,authPending=null,scanQueued=false;
  const attemptedPosts=new Set();
  const recentCounts=new Map();
  const watchedPosts=new WeakSet();
@@ -40,11 +40,12 @@
    try{
     const {data,error}=await sb.auth.getUser();
     if(error)throw error;
-    user=data?.user||null;historyEnabled=false;
+    user=data?.user||null;historyEnabled=false;historyChoiceMade=false;
     if(user){
      const settings=await sb.from('member_content_view_settings')
       .select('enabled').eq('user_id',user.id).maybeSingle();
-     if(settings.error)console.warn('Privacidad de visualizaciones:',settings.error.message);
+     if(settings.error){console.warn('Privacidad de visualizaciones:',settings.error.message);historyChoiceMade=true;}
+     else historyChoiceMade=!!settings.data;
      historyEnabled=settings.data?.enabled===true;
     }
    }catch(error){console.warn('Visualizaciones, sesión:',error);user=null;historyEnabled=false;}
@@ -60,53 +61,100 @@
   const hint=node.querySelector('[data-hint]');
   if(!user){
    input.disabled=true;input.checked=false;
-   status.textContent='Inicia sesión para activar el historial.';
-   hint.textContent='Las visitas anónimas se cuentan, pero no se identifica a sus visitantes.';
+   status.textContent='Sin sesión';
+   hint.textContent='Las visualizaciones se cuentan sin mostrar tu identidad.';
   }else{
    input.disabled=false;input.checked=historyEnabled;
-   status.textContent=historyEnabled?'Historial activado':'Historial desactivado';
-   hint.textContent='Si lo activas, los autores podrán ver que has leído sus noticias o publicaciones. Al desactivarlo, se eliminan tus visualizaciones identificadas.';
+   status.textContent=!historyChoiceMade?'Elige si mostrar tu nombre':historyEnabled?'Historial visible':'Historial privado';
+   hint.textContent='Los contadores son automáticos. Si permites el historial, los autores verán tu nombre al leer sus noticias o publicaciones. Puedes desactivarlo cuando quieras y borrar tus visitas identificadas.';
   }
  }
  function mountPreference(){
-  if(!['/comunidad','/noticias','/noticia'].includes(pagePath()))return;
+  if(!['/comunidad','/noticias','/noticia','/cuenta','/perfil'].includes(pagePath()))return;
   const page=document.querySelector('#app > .page');
   if(!page||page.querySelector('.sb-content-views-preference'))return;
   const box=document.createElement('section');box.className='sb-content-views-preference';
   const label=document.createElement('label');
   const checkbox=document.createElement('input');checkbox.type='checkbox';
-  const caption=document.createElement('span');caption.textContent='👁️ Participar en el historial de visualizaciones';
+  const caption=document.createElement('span');caption.textContent='👁️ Mostrar mi nombre a los autores cuando vea contenido';
   label.append(checkbox,caption);
   const status=document.createElement('strong');status.dataset.status='';
   const hint=document.createElement('small');hint.dataset.hint='';
   checkbox.onchange=async()=>{
-   const enabled=checkbox.checked;
    checkbox.disabled=true;status.textContent='Guardando preferencia…';
-   try{
-    const {error}=await sb.rpc('content_set_view_history',{p_enabled:enabled});
-    if(error)throw error;
-    historyEnabled=enabled;
-    if(enabled){
-     attemptedPosts.clear();
-     for(const article of document.querySelectorAll('.social-post[data-post-id]')){
-      if(isInViewport(article))registerPost(article).catch(console.warn);
-     }
-     const newsId=document.querySelector('#sb-news-interactions[data-news-id]')?.dataset.newsId;
-     if(uuid.test(newsId||'')){
-      sb.rpc('news_record_view',{p_news_id:newsId,p_visitor_id:getVisitorId('sb-news-visit-v1:'+newsId)})
-       .then(({error})=>{if(error)console.warn('Lector de noticia:',error.message);});
-     }
-    }
-    document.querySelectorAll('.sb-content-views-preference').forEach(updatePreference);
-   }catch(error){
-    console.error('Preferencia de historial:',error);
-    updatePreference(box);status.textContent='No se pudo guardar. Inténtalo de nuevo.';
-   }
+   try{await saveHistoryDecision(checkbox.checked);}
+   catch(error){console.error('Preferencia de historial:',error);status.textContent='No se pudo guardar. Inténtalo de nuevo.';}
+   finally{updatePreference(box);}
   };
   box.append(label,status,hint);
   const hero=page.querySelector('.page-hero');
   if(hero)hero.after(box);else page.prepend(box);
   updatePreference(box);
+ }
+
+ async function saveHistoryDecision(enabled){
+  if(!user)throw new Error('Debes iniciar sesión.');
+  const {error}=await sb.rpc('content_set_view_history',{p_enabled:Boolean(enabled)});
+  if(error)throw error;
+  historyEnabled=Boolean(enabled);
+  historyChoiceMade=true;
+  document.querySelectorAll('.sb-content-views-preference').forEach(updatePreference);
+  document.querySelectorAll('.sb-content-view-consent').forEach(node=>node.remove());
+  if(enabled){
+   // A visitor may already have opened an item before granting permission.
+   attemptedPosts.clear();
+   for(const article of document.querySelectorAll('.social-post[data-post-id]')){
+    if(isInViewport(article))registerPost(article).catch(console.warn);
+   }
+   const newsId=document.querySelector('#sb-news-interactions[data-news-id]')?.dataset.newsId;
+   if(uuid.test(newsId||'')){
+    sb.rpc('news_record_view',{
+     p_news_id:newsId,p_visitor_id:getVisitorId('sb-news-visit-v1:'+newsId)
+    }).then(({error})=>{if(error)console.warn('Lector de noticia:',error.message);});
+   }
+  }
+ }
+ function ensureConsentNotice(){
+  const page=document.querySelector('#app > .page');
+  const onContentPage=['/comunidad','/noticias','/noticia','/cuenta','/perfil'].includes(pagePath());
+  const exists=document.querySelector('.sb-content-view-consent');
+  if(!page||!onContentPage||!user||historyChoiceMade){
+   if(exists)exists.remove();
+   return;
+  }
+  if(exists)return;
+  const section=document.createElement('section');
+  section.className='sb-content-view-consent';
+  section.setAttribute('aria-label','Privacidad de las visualizaciones');
+  const title=document.createElement('h2');
+  title.textContent='👁️ ¿Quieres aparecer entre quienes han visto una noticia o publicación?';
+  const information=document.createElement('p');
+  information.textContent='El número de visualizaciones se cuenta automáticamente. Si das permiso, el autor podrá ver tu nombre, perfil y fecha de visita cuando leas su contenido. Si no lo permites, tu identidad no aparecerá. Podrás cambiar la decisión y borrar tu historial desde esta sección.';
+  const choices=document.createElement('div');
+  choices.className='sb-content-view-consent-choices';
+  const yes=document.createElement('button');yes.type='button';
+  yes.textContent='Permitir mostrar mi nombre';yes.className='sb-content-view-consent-button';
+  const no=document.createElement('button');no.type='button';
+  no.textContent='Continuar en privado';no.className='sb-content-view-consent-button';
+  const state=document.createElement('small');state.setAttribute('role','status');state.setAttribute('aria-live','polite');
+  const setChoice=async enabled=>{
+   yes.disabled=no.disabled=true;
+   state.textContent='Guardando tu elección…';
+   try{
+    await saveHistoryDecision(enabled);
+   }catch(error){
+    console.warn('Permiso de visualizaciones:',error);
+    yes.disabled=no.disabled=false;
+    state.textContent='No se pudo guardar tu elección. Vuelve a intentarlo.';
+   }
+  };
+  yes.onclick=()=>setChoice(true);
+  no.onclick=()=>setChoice(false);
+  choices.append(yes,no);
+  section.append(title,information,choices,state);
+  const preference=page.querySelector('.sb-content-views-preference');
+  if(preference)preference.after(section);
+  else (page.querySelector('.page-hero')||page).after(section);
  }
  function makeCount(text){
   const span=document.createElement('span');span.className='sb-content-view-count';
@@ -235,7 +283,7 @@
   const close=document.createElement('button');close.type='button';close.className='sb-content-view-close';
   close.textContent='✕';close.setAttribute('aria-label','Cerrar');
   const detail=document.createElement('p');detail.className='sb-content-view-help';
-  detail.textContent='Solo aparecen miembros con el historial activado. Las visitas anónimas no revelan nombres.';
+  detail.textContent='Solo aparecen los miembros que han permitido mostrar su nombre. Las demás visitas permanecen anónimas.';
   const list=document.createElement('div');list.className='sb-content-view-list';
   list.textContent='Cargando visitantes…';
   const dismiss=()=>{document.removeEventListener('keydown',onKey);window.removeEventListener('hashchange',dismiss);overlay.remove();if(previous?.isConnected)previous.focus();};
@@ -279,6 +327,7 @@
  }
  function scan(){
   mountPreference();
+  ensureConsentNotice();
   scanNewsCards().catch(error=>console.warn('Contadores de noticias:',error));
   scanPosts().catch(error=>console.warn('Contadores de publicaciones:',error));
   scanNewsArticle().catch(error=>console.warn('Lectores de noticias:',error));
