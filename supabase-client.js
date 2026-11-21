@@ -1902,18 +1902,24 @@ function openMemberGalleryLightbox(posts,startIndex){
  const panel=document.createElement('div');panel.className='member-lightbox-panel';
  const close=document.createElement('button');close.type='button';close.className='member-lightbox-close';close.textContent='✕';close.setAttribute('aria-label','Cerrar visor');
  const image=document.createElement('img');image.className='member-lightbox-image';image.alt='Imagen ampliada';
+ const spoilerReveal=document.createElement('button');spoilerReveal.type='button';spoilerReveal.className='sb-community-lightbox-reveal';spoilerReveal.textContent='🙈 Mostrar imagen con spoiler';
  const caption=document.createElement('p');caption.className='member-lightbox-caption';
  const counter=document.createElement('span');counter.className='member-lightbox-counter';
  const previous=document.createElement('button');previous.type='button';previous.className='member-lightbox-prev';previous.textContent='‹';previous.setAttribute('aria-label','Imagen anterior');
  const next=document.createElement('button');next.type='button';next.className='member-lightbox-next';next.textContent='›';next.setAttribute('aria-label','Imagen siguiente');
  let index=Math.max(0,Math.min(startIndex,images.length-1));
  const show=()=>{
-  const post=images[index];
-  image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
-  image.alt=post.content?.trim().slice(0,110)||'Imagen ampliada de la comunidad';
-  caption.textContent=post.content?.trim()||'Fotografía de la comunidad';
+  const post=images[index],spoiler=communityIsFullSpoiler(post.content);
+  image.removeAttribute('src');image.hidden=spoiler;spoilerReveal.hidden=!spoiler;
+  image.alt=spoiler?'Imagen con spoiler':post.content?.trim().slice(0,110)||'Imagen ampliada de la comunidad';
+  caption.textContent=spoiler?'🙈 Contenido oculto para evitar spoilers':post.content?.trim()||'Fotografía de la comunidad';
+  if(!spoiler)image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
   counter.textContent=(index+1)+' / '+images.length;
   previous.disabled=next.disabled=images.length<2;
+ };
+ spoilerReveal.onclick=()=>{
+  const post=images[index];image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
+  image.hidden=false;spoilerReveal.hidden=true;caption.textContent=String(post.content||'').trim().slice(2,-2);
  };
  const onKey=event=>{
   if(event.key==='Escape'){event.preventDefault();dismiss();}
@@ -1930,7 +1936,7 @@ function openMemberGalleryLightbox(posts,startIndex){
  const change=delta=>{index=(index+delta+images.length)%images.length;show();};
  close.onclick=dismiss;previous.onclick=()=>change(-1);next.onclick=()=>change(1);
  overlay.addEventListener('click',event=>{if(event.target===overlay)dismiss();});
- panel.append(close,image,previous,next,caption,counter);overlay.append(panel);document.body.append(overlay);
+ panel.append(close,spoilerReveal,image,previous,next,caption,counter);overlay.append(panel);document.body.append(overlay);
  document.body.classList.add('member-lightbox-open');document.addEventListener('keydown',onKey);show();close.focus();
 }
 
@@ -1987,7 +1993,7 @@ async function loadMemberGallery(memberId,root){
   coverPanel.replaceChildren();
   for(const album of albumOptions.slice(1)){
    const candidates=posts.filter(p=>p.image_path&&(p.gallery_category||'Otros')===album);
-   const featured=candidates.find(p=>p.id===covers.get(album))||candidates[0];
+   const featured=[candidates.find(p=>p.id===covers.get(album)),...candidates].find(p=>p&&!communityIsFullSpoiler(p.content));
    const card=document.createElement('button');card.type='button';card.className='member-gallery-cover-card';card.setAttribute('aria-label','Ver álbum '+album);
    if(featured){const photo=document.createElement('img');photo.loading='lazy';photo.alt='Portada del álbum '+album;photo.src=sb.storage.from('community-images').getPublicUrl(featured.image_path).data.publicUrl;card.append(photo);}
    else{const placeholder=document.createElement('span');placeholder.className='member-gallery-cover-placeholder';placeholder.textContent='🖼️';card.append(placeholder);}
@@ -2016,7 +2022,8 @@ async function loadMemberGallery(memberId,root){
 
   const url=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;
   const link=document.createElement('a');link.className='member-gallery-item';link.href=url;link.title='Ampliar imagen en la galería';link.addEventListener('click',event=>{event.preventDefault();openMemberGalleryLightbox(visiblePosts,visiblePosts.findIndex(p=>p.id===post.id));});
-  const image=document.createElement('img');image.src=url;image.alt=post.content?.trim().slice(0,110)||'Imagen de la comunidad';image.loading='lazy';
+  const image=document.createElement('img');image.src=url;image.alt=communityIsFullSpoiler(post.content)?'Imagen con spoiler':post.content?.trim().slice(0,110)||'Imagen de la comunidad';image.loading='lazy';
+  if(communityIsFullSpoiler(post.content)){link.classList.add('sb-community-gallery-tile-spoiler');link.setAttribute('aria-label','Abrir imagen con spoiler');const cover=document.createElement('span');cover.className='sb-community-gallery-cover';cover.textContent='🙈 Imagen con spoiler';link.append(cover);}
   const label=document.createElement('span');label.className='member-gallery-item-label';label.textContent=new Date(post.created_at).toLocaleDateString('es-ES');
   link.append(image,label);
   const tile=document.createElement('div');tile.className='member-gallery-tile';tile.append(link);
