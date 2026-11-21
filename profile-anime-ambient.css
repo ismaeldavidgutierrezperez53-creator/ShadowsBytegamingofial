@@ -1,0 +1,148 @@
+/* Ampliación visual anime de Shadows Byte Gaming V2.
+   Los estilos utilizan únicamente CSS: sin recursos externos ni cambios en los vídeos.
+   Efectos limitados a la cabecera del perfil; compatibles con móviles y movimiento reducido. */
+#account-profile .profile-body,
+#public-member-profile .public-member-body{
+ position:relative;
+ isolation:isolate;
+}
+#account-profile .profile-body::before,
+#public-member-profile .public-member-body::before{
+ content:"";
+ position:absolute;
+ inset:0 0 auto;
+ height:min(580px,100%);
+ z-index:-1;
+ pointer-events:none;
+ opacity:0;
+ background-repeat:no-repeat;
+ background-size:200% 200%;
+ border-radius:0 0 24px 24px;
+ transition:opacity .3s ease;
+}
+#account-profile[data-sb-background="cosmic"] .profile-body::before,
+#public-member-profile[data-sb-background="cosmic"] .public-member-body::before{
+ opacity:.8;
+ background-image:radial-gradient(ellipse at 30% 15%,rgba(133,57,220,.36),transparent 55%),radial-gradient(ellipse at 86% 66%,rgba(26,166,243,.31),transparent 54%),linear-gradient(135deg,rgba(20,12,57,.62),rgba(38,15,61,.13) 65%,rgba(15,19,68,.55));
+ animation:sb-bg-orbit 21s ease-in-out infinite alternate;
+}
+#account-profile[data-sb-background="aurora"] .profile-body::before,
+#public-member-profile[data-sb-background="aurora"] .public-member-body::before{
+ opacity:.8;
+ background-image:radial-gradient(ellipse at 24% 32%,rgba(48,218,178,.27),transparent 56%),radial-gradient(ellipse at 82% 16%,rgba(125,82,249,.38),transparent 55%),linear-gradient(120deg,rgba(24,75,96,.17),rgba(24,19,61,.38));
+ animation:sb-bg-orbit 17s ease-in-out infinite alternate-reverse;
+}
+#account-profile[data-sb-background="sunset"] .profile-body::before,
+#public-member-profile[data-sb-background="sunset"] .public-member-body::before{
+ opacity:.75;
+ background-image:radial-gradient(ellipse at 74% 14%,rgba(255,139,171,.35),transparent 52%),radial-gradient(ellipse at 13% 63%,rgba(247,150,84,.18),transparent 61%),linear-gradient(125deg,rgba(87,29,82,.42),rgba(29,16,63,.17));
+ animation:sb-bg-orbit 25s ease-in-out infinite alternate;
+}
+
+/* Partículas flotantes superpuestas, decorativas y sin bloquear interacción. */
+#account-profile .profile-body::after,
+#public-member-profile .public-member-body::after{
+ content:"";
+ position:absolute;
+ inset:0 0 auto;
+ height:min(490px,100%);
+ z-index:2;
+ pointer-events:none;
+ opacity:0;
+ background-repeat:repeat;
+}
+#account-profile[data-sb-particles="fireflies"] .profile-body::after,
+#public-member-profile[data-sb-particles="fireflies"] .public-member-body::after{
+ opacity:.55;
+ background-image:
+ radial-gradient(circle at 18px 24px,rgba(255,235,142,.94) 0 1.6px,rgba(255,238,149,.10) 5px,transparent 10px),
+ radial-gradient(circle at 84px 112px,rgba(165,255,207,.9) 0 1.5px,transparent 8px),
+ radial-gradient(circle at 122px 58px,rgba(178,241,255,.92) 0 1px,transparent 9px);
+ background-size:180px 155px,225px 210px,260px 185px;
+ animation:sb-anime-floating-lights 17s linear infinite;
+}
+#account-profile[data-sb-particles="petals"] .profile-body::after,
+#public-member-profile[data-sb-particles="petals"] .public-member-body::after{
+ opacity:.42;
+ background-image:
+ radial-gradient(ellipse 7px 3px at 26px 14px,rgba(255,192,233,.88) 10%,transparent 90%),
+ radial-gradient(ellipse 4px 8px at 83px 67px,rgba(255,229,241,.84) 10%,transparent 90%),
+ radial-gradient(ellipse 8px 4px at 140px 119px,rgba(255,165,217,.76) 10%,transparent 90%);
+ background-size:185px 150px,250px 180px,290px 200px;
+ animation:sb-anime-drifting-petals 23s linear infinite;
+}
+#account-profile[data-sb-particles="sparks"] .profile-body::after,
+#public-member-profile[data-sb-particles="sparks"] .public-member-body::after{
+ opacity:.52;
+ background-image:
+ radial-gradient(circle at 23px 31px,rgba(255,255,255,.96) 0 1.2px,transparent 3px),
+ radial-gradient(circle at 121px 97px,rgba(118,226,255,.96) 0 1.4px,transparent 4px),
+ radial-gradient(circle at 68px 131px,rgba(248,169,255,.94) 0 1px,transparent 4px);
+ background-size:185px 170px,220px 200px,275px 230px;
+ animation:sb-anime-magic-sparks 9s ease-in-out infinite alternate;
+}
+
+/* El halo es independiente del marco animado: drop-shadow no pisa box-shadow. */
+#account-profile[data-sb-avatar-glow="violet"],#public-member-profile[data-sb-avatar-glow="violet"],
+#members-list .member-card[data-sb-avatar-glow="violet"]{--sb-anime-halo:rgba(183,103,250,.70)}
+#account-profile[data-sb-avatar-glow="cyan"],#public-member-profile[data-sb-avatar-glow="cyan"],
+#members-list .member-card[data-sb-avatar-glow="cyan"]{--sb-anime-halo:rgba(64,223,249,.72)}
+#account-profile[data-sb-avatar-glow="pink"],#public-member-profile[data-sb-avatar-glow="pink"],
+#members-list .member-card[data-sb-avatar-glow="pink"]{--sb-anime-halo:rgba(255,127,205,.70)}
+#account-profile[data-sb-avatar-glow="gold"],#public-member-profile[data-sb-avatar-glow="gold"],
+#members-list .member-card[data-sb-avatar-glow="gold"]{--sb-anime-halo:rgba(255,211,99,.71)}
+#account-profile[data-sb-avatar-glow]:not([data-sb-avatar-glow="none"]) :is(.profile-avatar,.profile-preview-avatar),
+#public-member-profile[data-sb-avatar-glow]:not([data-sb-avatar-glow="none"]) .public-member-avatar,
+#members-list .member-card[data-sb-avatar-glow]:not([data-sb-avatar-glow="none"]) .member-avatar{
+ filter:drop-shadow(0 0 7px var(--sb-anime-halo)) drop-shadow(0 0 16px var(--sb-anime-halo));
+}
+
+/* Miniatura del fondo elegido junto al avatar en la vista previa. */
+#account-profile .profile-preview-card{isolation:isolate}
+#account-profile[data-sb-background="cosmic"] .profile-preview-card{
+ background-image:radial-gradient(circle at 12% 25%,rgba(143,85,255,.21),transparent 55%),linear-gradient(110deg,rgba(31,19,67,.9),rgba(20,38,78,.78))
+}
+#account-profile[data-sb-background="aurora"] .profile-preview-card{
+ background-image:radial-gradient(circle at 18% 25%,rgba(49,208,179,.28),transparent 55%),linear-gradient(110deg,rgba(27,59,71,.9),rgba(37,21,72,.85))
+}
+#account-profile[data-sb-background="sunset"] .profile-preview-card{
+ background-image:radial-gradient(circle at 18% 25%,rgba(246,131,162,.25),transparent 55%),linear-gradient(110deg,rgba(77,36,70,.9),rgba(44,25,72,.83))
+}
+
+/* Las tarjetas de Miembros reciben una versión estática para reducir el consumo. */
+#members-list .member-card[data-sb-background="cosmic"]{
+ background-image:radial-gradient(circle at 20% 10%,rgba(137,83,240,.23),transparent 65%),linear-gradient(145deg,#241b4c,#0f1c30)
+}
+#members-list .member-card[data-sb-background="aurora"]{
+ background-image:radial-gradient(circle at 20% 10%,rgba(70,215,190,.20),transparent 65%),linear-gradient(145deg,#183f48,#1f173a)
+}
+#members-list .member-card[data-sb-background="sunset"]{
+ background-image:radial-gradient(circle at 20% 10%,rgba(255,160,187,.22),transparent 65%),linear-gradient(145deg,#3d2042,#191327)
+}
+
+@keyframes sb-bg-orbit{
+ from{background-position:5% 10%}
+ to{background-position:95% 86%}
+}
+@keyframes sb-anime-floating-lights{
+ from{background-position:0 0,0 0,0 0}
+ to{background-position:90px -120px,-75px -90px,30px -160px}
+}
+@keyframes sb-anime-drifting-petals{
+ from{background-position:0 -100px,0 -80px,0 -110px}
+ to{background-position:95px 155px,-70px 120px,40px 160px}
+}
+@keyframes sb-anime-magic-sparks{
+ from{opacity:.18;background-position:0 0,0 0,0 0}
+ to{opacity:.58;background-position:28px -24px,-34px 32px,19px -20px}
+}
+@media(max-width:600px){
+ #account-profile .profile-body::after,
+ #public-member-profile .public-member-body::after{opacity:.24!important;height:min(330px,100%)}
+ #account-profile .profile-body::before,
+ #public-member-profile .public-member-body::before{height:min(430px,100%)}
+}
+@media(prefers-reduced-motion:reduce){
+ #account-profile .profile-body::before,#public-member-profile .public-member-body::before,
+ #account-profile .profile-body::after,#public-member-profile .public-member-body::after{animation:none!important}
+}
