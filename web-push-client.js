@@ -133,6 +133,33 @@
     }catch(err){setStatus('No se pudo enviar el aviso de prueba: '+(err?.message||'error desconocido'),'error');}
     finally{busy(false);}
   }
+  async function delayedTest(){
+    if(!supported()){setStatus('Tu navegador no admite avisos push externos.','error');return;}
+    if(Notification.permission!=='granted'){
+      setStatus('Activa primero las notificaciones y permite su uso en Android.','error');
+      return;
+    }
+    busy(true);
+    try{
+      const reg=await registration();
+      const sub=reg && await reg.pushManager.getSubscription();
+      if(!sub)throw new Error('Primero activa las notificaciones en este dispositivo.');
+      const user=await currentUser();
+      if(!user)throw new Error('Inicia sesión antes de enviar la prueba.');
+      const {data:registered,error:registrationError}=await sb.from('member_web_push_subscriptions')
+        .select('endpoint').eq('user_id',user.id).eq('endpoint',sub.endpoint).maybeSingle();
+      if(registrationError || !registered)
+        throw new Error('Este dispositivo no está registrado. Pulsa Activar notificaciones.');
+      const {data,error}=await sb.functions.invoke('dispatch-web-push',{
+        body:{type:'test_delayed',endpoint:sub.endpoint}
+      });
+      if(error)throw error;
+      if(!data?.scheduled)throw new Error(data?.error || 'No se pudo programar la prueba.');
+      setStatus('✅ Prueba programada para unos 20 segundos. Cierra completamente Shadows Byte ahora y comprueba si aparece el aviso en Android. No hace falta dejar la aplicación abierta.','ok');
+    }catch(err){
+      setStatus('No se pudo programar la prueba: '+(err?.message||'error desconocido'),'error');
+    }finally{busy(false);}
+  }
   function mount(){
     const notifications=document.getElementById('member-notifications');
     if(!notifications || panel())return;
@@ -145,12 +172,13 @@
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
       +'<details class="sb-webpush-mobile-help"><summary>📱 Cómo activar las notificaciones en mi móvil</summary>'
       +'<div class="sb-webpush-mobile-steps"><h3>🤖 Android (Chrome)</h3>'
-      +'<ol><li>Abre esta web en Chrome e inicia sesión.</li><li>Entra en Notificaciones y pulsa Activar notificaciones.</li><li>Permite las notificaciones cuando Chrome lo pregunte y pulsa Enviar prueba.</li></ol>'
+      +'<ol><li>Abre esta web en Chrome e inicia sesión.</li><li>Entra en Notificaciones y pulsa Activar notificaciones.</li><li>Permite las notificaciones cuando Chrome lo pregunte y pulsa Enviar prueba.</li><li>Para comprobar que llegan con la aplicación cerrada, pulsa Probar con la app cerrada y ciérrala antes de 20 segundos.</li><li>Si no llega nada, revisa Ajustes de Android → Aplicaciones → Shadows Byte (o Chrome) → Notificaciones, y comprueba No molestar y el ahorro de batería.</li></ol>'
       +'<h3>🍎 iPhone o iPad</h3>'
       +'<ol><li>Abre esta web en Safari (iOS o iPadOS 16.4 o posterior).</li><li>Usa Compartir y elige Añadir a pantalla de inicio; activa Abrir como app si aparece.</li><li>Abre Shadows Byte desde el icono de inicio, inicia sesión y pulsa Activar notificaciones.</li><li>Acepta el permiso y pulsa Enviar prueba.</li></ol>'
       +'<p>Activa las notificaciones por separado en cada dispositivo. Si están bloqueadas, revisa los ajustes de notificaciones del teléfono.</p></div></details>'
       +'<div class="sb-webpush-actions"><button type="button" data-push="enable">🔔 Activar notificaciones</button>'
       +'<button type="button" data-push="test">🧪 Enviar prueba</button>'
+      +'<button type="button" class="sb-webpush-delayed" data-push="delayed">📱 Probar con la app cerrada (20 s)</button>'
       +'<button type="button" class="sb-webpush-disable" data-push="disable">Desactivar</button></div>';
     notifications.parentElement.insertBefore(root,notifications);
     if((iosDevice() && !installedApp()) || /Android/i.test(navigator.userAgent)){
@@ -158,6 +186,7 @@
     }
     root.querySelector('[data-push="enable"]').addEventListener('click',enable);
     root.querySelector('[data-push="test"]').addEventListener('click',test);
+    root.querySelector('[data-push="delayed"]').addEventListener('click',delayedTest);
     root.querySelector('[data-push="disable"]').addEventListener('click',disable);
     refresh().catch(()=>setStatus('No se pudo comprobar el permiso del navegador.','error'));
   }

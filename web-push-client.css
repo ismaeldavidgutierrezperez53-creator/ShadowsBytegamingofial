@@ -20,3 +20,13 @@
 .sb-webpush-mobile-steps ol{padding-left:23px;margin:0 0 10px;color:#e6d8f8}
 .sb-webpush-mobile-steps li{margin:4px 0;line-height:1.5}
 .sb-webpush-mobile-steps p{font-size:.9rem}
+
+/* Prueba real de notificaciones con la aplicación cerrada en Android. */
+.sb-webpush-actions button.sb-webpush-delayed{
+  border-color:#85dbee;
+  background:linear-gradient(115deg,#275276,#62349a);
+  color:#fff;
+}
+.sb-webpush-actions button.sb-webpush-delayed:hover{filter:brightness(1.14)}
+.sb-webpush-actions button:focus-visible{outline:3px solid #69e1ff;outline-offset:3px}
+@media(max-width:580px){.sb-webpush-actions button{min-height:46px}}
