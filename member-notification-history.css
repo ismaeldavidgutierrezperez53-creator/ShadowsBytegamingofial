@@ -38,3 +38,12 @@
  .sb-history-page{min-width:0}
 }
 @media(max-width:370px){.sb-history-toolbar{grid-template-columns:1fr}.sb-history-search-label{grid-column:auto}}
+
+
+.sb-history-bulk{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:14px 0;padding:13px 14px;border:1px solid rgba(169,129,221,.35);border-radius:12px;background:rgba(61,35,100,.3)}
+.sb-history-bulk button{min-height:43px;padding:9px 13px;border-radius:10px;border:1px solid #aa7be3;background:#623795;color:#fff;font:700 .96rem Rajdhani,Arial,sans-serif;cursor:pointer}
+.sb-history-bulk [data-action="bulk-archive"]{background:rgba(50,34,73,.92);border-color:#b487e4}
+.sb-history-bulk button:hover{filter:brightness(1.17)}
+.sb-history-bulk button:disabled{opacity:.5;cursor:wait}
+.sb-history-bulk small{flex:1 1 100%;color:#dfd1ef;font-size:.82rem;line-height:1.45}
+@media(max-width:620px){.sb-history-bulk{padding:11px;gap:8px}.sb-history-bulk button{flex:1 1 180px}}
