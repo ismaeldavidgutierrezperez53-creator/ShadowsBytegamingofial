@@ -491,7 +491,7 @@ async function loadAccountFollows(userId, root) {
   };
   const followersMetric = makeMetric('Seguidores');
   const followingMetric = makeMetric('Siguiendo');
-  const mutualMetric = makeMetric('Seguimiento mutuo');
+  const mutualMetric = makeMetric('Mutuos mostrados');
   root.append(overview);
 
   const searchLabel = document.createElement('label');
@@ -567,7 +567,7 @@ async function loadAccountFollows(userId, root) {
 
   const normalize = value => String(value || '').normalize('NFD')
     .replace(/\p{M}/gu, '').toLocaleLowerCase('es').trim();
-  const summaryCount = (number, sampleLength) => number === sampleLength && sampleLength >= 100
+  const summaryCount = (number, sampleLength, exact) => !exact && sampleLength >= 100
     ? '100+' : Number(number).toLocaleString('es-ES');
 
   function updateFilter() {
@@ -608,8 +608,8 @@ async function loadAccountFollows(userId, root) {
 
   function renderLists() {
     if (!root.isConnected) return;
-    followersMetric.textContent = summaryCount(followerCount, followerOrder.length);
-    followingMetric.textContent = summaryCount(followingCount, followingOrder.length);
+    followersMetric.textContent = summaryCount(followerCount, followerOrder.length, followersResponse.count != null);
+    followingMetric.textContent = summaryCount(followingCount, followingOrder.length, followingResponse.count != null);
     mutualMetric.textContent = String(followerOrder.filter(id => followingIds.has(id)).length);
     content.replaceChildren();
     lists = [];
@@ -765,7 +765,7 @@ async function loadAccountFollows(userId, root) {
   renderLists();
   const limitNote = document.createElement('small');
   limitNote.className = 'account-follow-limit-note';
-  limitNote.textContent = 'Se muestran hasta 100 miembros recientes de cada lista. Los contadores incluyen el total.';
+  limitNote.textContent = 'Se muestran hasta 100 miembros recientes de cada lista. Seguidores y Siguiendo muestran el total; Mutuos mostrados corresponde a las listas visibles.';
   root.append(limitNote);
 }
 
