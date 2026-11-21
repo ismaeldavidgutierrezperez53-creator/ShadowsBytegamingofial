@@ -106,38 +106,93 @@ function appendCommunityPostContent(article,post){
 
 /* Comunidad V2: menciones, edición de contenido y fijado administrativo. */
 function attachCommunityMentionPicker(input){
- const results=document.createElement('div');results.className='sb-community-mention-results';results.hidden=true;
+ const results=document.createElement('div');
+ results.id='sb-community-mention-list-'+crypto.randomUUID();
+ results.className='sb-community-mention-results';
+ results.setAttribute('role','listbox');results.setAttribute('aria-label','Miembros sugeridos');
+ results.hidden=true;
  input.after(results);
- let token=0;
+ input.setAttribute('aria-autocomplete','list');
+ input.setAttribute('aria-controls',results.id);
+ input.setAttribute('aria-expanded','false');
+ let token=0,choices=[],activeIndex=-1;
+ const close=()=>{
+  results.hidden=true;results.replaceChildren();choices=[];activeIndex=-1;
+  input.setAttribute('aria-expanded','false');
+  input.removeAttribute('aria-activedescendant');
+ };
+ const setActive=index=>{
+  activeIndex=index;
+  choices.forEach((choice,i)=>choice.setAttribute('aria-selected',String(i===activeIndex)));
+  if(activeIndex>=0&&choices[activeIndex]){
+   input.setAttribute('aria-activedescendant',choices[activeIndex].id);
+   choices[activeIndex].scrollIntoView({block:'nearest'});
+  }else input.removeAttribute('aria-activedescendant');
+ };
+ const pick=member=>{
+  const caret=input.selectionStart??input.value.length;
+  const before=input.value.slice(0,caret);
+  const active=before.match(/(^|[\\s([{])@([A-Za-z0-9_]{0,32})$/);
+  if(!active)return;
+  const start=caret-active[2].length-1;
+  const replacement='@'+member.username+' ';
+  if(input.value.length-(caret-start)+replacement.length>input.maxLength&&input.maxLength>=0)return;
+  input.setRangeText(replacement,start,caret,'end');
+  token++;close();input.focus();
+  input.dispatchEvent(new Event('input',{bubbles:true}));
+ };
  const refresh=async()=>{
   const current=++token;
   const at=input.value.slice(0,input.selectionStart??input.value.length);
-  const match=at.match(/(^|[\s([{])@([A-Za-z0-9_]{0,32})$/);
-  results.replaceChildren();results.hidden=true;
-  if(!match)return;
-  const {data,error}=await sb.from('profiles').select('id,username,display_name')
-   .eq('is_public',true).ilike('username',match[2]+'%').order('username',{ascending:true}).limit(7);
-  if(error||current!==token||!results.isConnected)return;
-  for(const member of data||[]){
-   if(!member.username)continue;
-   const choice=document.createElement('button');choice.type='button';choice.className='sb-community-mention-choice';
-   choice.textContent='@'+member.username+(member.display_name?' · '+member.display_name:'');
-   choice.onclick=()=>{
-    const caret=input.selectionStart??input.value.length;
-    const before=input.value.slice(0,caret);
-    const active=before.match(/(^|[\s([{])@([A-Za-z0-9_]{0,32})$/);
-    if(!active)return;
-    const start=caret-active[2].length-1;
-    input.setRangeText('@'+member.username+' ',start,caret,'end');
-    results.hidden=true;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();
-   };
-   results.append(choice);
-  }
-  results.hidden=!results.children.length;
+  const match=at.match(/(^|[\\s([{])@([A-Za-z0-9_]{0,32})$/);
+  close();
+  if(!match||!input.isConnected)return;
+  try{
+   const {data,error}=await sb.from('profiles').select('id,username,display_name')
+    .eq('is_public',true).ilike('username',match[2]+'%').order('username',{ascending:true}).limit(20);
+   if(error||current!==token||!results.isConnected)return;
+   const prefix=match[2].toLowerCase();
+   const members=(data||[]).filter(member=>/^[A-Za-z0-9_]{2,32}$/.test(member.username||'')
+    && member.username.toLowerCase().startsWith(prefix)).slice(0,7);
+   for(const [index,member] of members.entries()){
+    const choice=document.createElement('button');
+    choice.type='button';choice.id=results.id+'-'+index;
+    choice.className='sb-community-mention-choice';
+    choice.setAttribute('role','option');choice.setAttribute('aria-selected','false');
+    choice.textContent='@'+member.username+(member.display_name?' · '+member.display_name:'');
+    choice.addEventListener('mousedown',event=>event.preventDefault());
+    choice.onclick=()=>pick(member);
+    choice.dataset.username=member.username;
+    results.append(choice);choices.push(choice);
+   }
+   results.hidden=!choices.length;
+   input.setAttribute('aria-expanded',String(choices.length>0));
+   setActive(-1);
+  }catch(error){if(current===token)close();console.warn('Sugerencias de menciones:',error);}
  };
  input.addEventListener('input',refresh);
  input.addEventListener('click',refresh);
- input.addEventListener('keydown',event=>{if(event.key==='Escape'){results.hidden=true;token++;}});
+ input.addEventListener('keyup',event=>{
+  if(['ArrowUp','ArrowDown','Escape','Enter'].includes(event.key))return;
+  if(event.key==='Home'||event.key==='End'||event.key==='ArrowLeft'||event.key==='ArrowRight')refresh();
+ });
+ input.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!results.hidden){event.preventDefault();token++;close();return;}
+  if(results.hidden||!choices.length)return;
+  if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+   event.preventDefault();
+   const next=event.key==='ArrowDown'?(activeIndex+1)%choices.length
+    :(activeIndex<=0?choices.length-1:activeIndex-1);
+   setActive(next);
+  }else if(event.key==='Enter'&&activeIndex>=0){
+   event.preventDefault();
+   const username=choices[activeIndex]?.dataset.username;
+   if(username)pick({username});
+  }
+ });
+ input.addEventListener('blur',()=>{
+  setTimeout(()=>{if(document.activeElement!==input){token++;close();}},140);
+ });
  return results;
 }
 
