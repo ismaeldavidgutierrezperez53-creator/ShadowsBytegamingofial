@@ -61,6 +61,39 @@
   button.textContent = '🙈 Ocultar contenido';
  }
 
+
+ function mountFollowsShortcut(body) {
+  const identity = body.querySelector(':scope > .profile-identity');
+  if (!identity) return;
+  let shortcut = body.querySelector(':scope > .sb-profile-follow-shortcut');
+  if (!shortcut) {
+   shortcut = document.createElement('button');
+   shortcut.type = 'button';
+   shortcut.className = 'sb-profile-follow-shortcut';
+   shortcut.setAttribute('aria-controls','account-follows');
+   shortcut.setAttribute('aria-label','Abrir Seguidores y Siguiendo y gestionar tus conexiones');
+   const title = document.createElement('strong');
+   title.textContent = '👥 Seguidores y Siguiendo';
+   const description = document.createElement('span');
+   description.textContent = 'Ver seguidores, filtro Mutuos y botones Seguir';
+   shortcut.append(title, description);
+   shortcut.addEventListener('click', () => {
+    const group = body.querySelector('#sb-profile-sections-group');
+    if (group) reveal(group);
+    const target = body.querySelector('#account-follows');
+    if (!target) return;
+    target.setAttribute('tabindex', '-1');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => {
+     if (!target.isConnected) return;
+     target.scrollIntoView({behavior:reduceMotion?'auto':'smooth', block:'start'});
+     target.focus({preventScroll:true});
+    });
+   });
+  }
+  if (identity.nextElementSibling !== shortcut) identity.after(shortcut);
+ }
+
  function buildGroup(body) {
   const group = document.createElement('section');
   group.className = 'profile-panel sb-profile-sections-group';
@@ -101,6 +134,7 @@
   const body = host?.querySelector('.profile-body');
   if (!body || !host.querySelector('#profile-form')) return;
   const group = body.querySelector(':scope > #sb-profile-sections-group') || buildGroup(body);
+  mountFollowsShortcut(body);
   const content = group.querySelector('#sb-profile-sections-content');
   if (!content) return;
 
