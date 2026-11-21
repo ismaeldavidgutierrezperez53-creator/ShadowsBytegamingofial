@@ -168,6 +168,7 @@
     if (typeof adminLoadModeration === "function") adminLoadModeration();
     if (typeof adminLoadReports === "function") adminLoadReports();
     if (typeof adminInitReportAlerts === "function") adminInitReportAlerts();
+    window.SBMemberModeration?.mountPanel();
   }
   window.SBRoleManagement = { mountAdminPanel, renderModeratorPanel };
 })();
