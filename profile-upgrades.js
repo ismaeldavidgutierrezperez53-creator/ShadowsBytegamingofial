@@ -98,7 +98,7 @@
    ['📊 Estadísticas','.member-profile-stats'],
    ['💬 Comunidad','.member-social']
   ];
-  targets.forEach(([label,selector])=>{const a=el('button','sbp-action',label);a.type='button';a.onclick=()=>{const dest=body.querySelector(selector);if(dest)dest.scrollIntoView({behavior:'smooth',block:'start'});else note.textContent='Esta sección no está disponible en este perfil.'};nav.append(a)});
+  targets.forEach(([label,selector])=>{const a=el('button','sbp-action',label);a.type='button';a.onclick=()=>{const dest=body.querySelector(selector);if(dest){dest.dispatchEvent(new Event('sb:profile-expand'));dest.scrollIntoView({behavior:'auto',block:'start'});}else note.textContent='Esta sección no está disponible en este perfil.'};nav.append(a)});
   panel.append(actions,nav);
   const title=body.querySelector('h1');if(title)title.after(panel);else body.prepend(panel);
   attachPublicLibraryFilter(body);
