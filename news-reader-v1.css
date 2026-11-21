@@ -39,3 +39,14 @@
 .sb-news-category{display:inline-flex;width:max-content;margin:0 8px 8px 0;background:#202b43;border:1px solid #435e93;border-radius:999px;padding:4px 11px;color:#bde9ff;font-size:14px;font-weight:700}
 .sb-news-schedule-hint{grid-column:1/-1;background:#19122a;padding:12px 15px;border-left:3px solid #8c5aff;border-radius:10px;color:#d4c8ed;font-size:15px}
 @media(max-width:620px){.sb-news-filters a{flex:1 1 auto;text-align:center}.sb-news-category{font-size:13px}}
+
+/* Identidad visual de las cuatro categorías nuevas de noticias. */
+.sb-news-category[data-news-category="manhwa"],.sb-news-filters a[data-news-category="manhwa"]{background:#123c37;border-color:#49caa9;color:#baf9e5}
+.sb-news-category[data-news-category="pokemon"],.sb-news-filters a[data-news-category="pokemon"]{background:#48330c;border-color:#e9b739;color:#ffe9a0}
+.sb-news-category[data-news-category="waifu"],.sb-news-filters a[data-news-category="waifu"]{background:#501b3c;border-color:#f17fc8;color:#ffd1ec}
+.sb-news-category[data-news-category="husbando"],.sb-news-filters a[data-news-category="husbando"]{background:#17395c;border-color:#69b6f4;color:#d0edff}
+.sb-news-filters a[data-news-category="manhwa"]:is(:hover,:focus-visible,[aria-current="page"]){background:#196555;border-color:#aafbe4;color:#fff}
+.sb-news-filters a[data-news-category="pokemon"]:is(:hover,:focus-visible,[aria-current="page"]){background:#785411;border-color:#ffdf7b;color:#fff}
+.sb-news-filters a[data-news-category="waifu"]:is(:hover,:focus-visible,[aria-current="page"]){background:#82315f;border-color:#ffc0e4;color:#fff}
+.sb-news-filters a[data-news-category="husbando"]:is(:hover,:focus-visible,[aria-current="page"]){background:#275784;border-color:#b1ddff;color:#fff}
+.sb-news-filters a[data-news-category]:focus-visible{outline:2px solid currentColor;outline-offset:3px}
