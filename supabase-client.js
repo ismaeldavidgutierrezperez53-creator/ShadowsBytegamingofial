@@ -2620,6 +2620,24 @@ async function loadCommunityFeed(){
  if(!root.isConnected)return;
  root.replaceChildren();
  if(postsError){root.textContent='No se pudo cargar el muro: '+postsError.message;return;}
+
+ const {data:pinRows,error:pinError}=await sb.from('community_post_pins')
+  .select('post_id,pinned_at').order('pinned_at',{ascending:false}).limit(30);
+ if(pinError)console.warn('No se pudieron cargar publicaciones fijadas:',pinError.message);
+ const pinned=new Map((pinRows||[]).map(row=>[row.post_id,row.pinned_at]));
+ const feedPosts=[...(posts||[])];
+ const requestedPostId=new URLSearchParams((location.hash.split('?')[1]||'')).get('post');
+ const targetPostId=/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(requestedPostId||'')?requestedPostId:null;
+ const missingIds=[...new Set([...pinned.keys(),...(targetPostId?[targetPostId]:[])])]
+  .filter(id=>!feedPosts.some(post=>post.id===id));
+ if(missingIds.length){
+  const {data:older,error:olderError}=await sb.from('member_posts')
+   .select('id,author_id,content,image_path,created_at,edited_at')
+   .in('id',missingIds).limit(40);
+  if(olderError)console.warn('No se pudieron cargar publicaciones destacadas:',olderError.message);
+  else feedPosts.push(...(older||[]));
+ }
+
  
  if(user&&!authError){
   const composer=document.createElement('form');composer.className='social-form sb-community-post-form';
@@ -2709,7 +2727,12 @@ async function loadCommunityFeed(){
   const request=++requestId;
   allButton.setAttribute('aria-pressed',String(mode==='recent'));savedButton.setAttribute('aria-pressed',String(mode==='saved'));
   content.textContent='Cargando publicaciones…';
-  let visible=posts||[];
+  let visible=[...feedPosts].sort((a,b)=>{
+    const left=pinned.get(a.id),right=pinned.get(b.id);
+    if(left&&right)return new Date(right)-new Date(left);
+    if(left)return -1;if(right)return 1;
+    return new Date(b.created_at)-new Date(a.created_at);
+   });
   if(mode==='saved'){
    const ids=[...bookmarked].slice(0,150);
    if(!ids.length){content.textContent='Todavía no tienes publicaciones guardadas.';return;}
@@ -2725,7 +2748,7 @@ async function loadCommunityFeed(){
   content.replaceChildren();
   for(const post of visible){
    if(!names.has(post.author_id))continue;
-   const article=document.createElement('article');article.className='social-post';
+   const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;
    const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(post.author_id);author.className='feed-author';author.textContent=names.get(post.author_id);
    const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
    
@@ -2747,6 +2770,9 @@ async function loadCommunityFeed(){
     else{updateButton();save.disabled=false;}
    };
    article.append(author,date);appendCommunityPostContent(article,post);
+   if(post.edited_at){const edited=document.createElement('small');edited.className='sb-community-edited-label';edited.textContent='✏️ Editada';article.append(edited);}
+   appendCommunityEditAction(article,post,user?.id);
+   appendCommunityPinAction(article,post,user?.app_metadata?.role==='admin'?user:null,pinned,()=>loadCommunityFeed());
    article.append(likes,profile,save);appendReportButton(article,post.id,'post',user?.id);content.append(article);
    renderPostLikes(post.id,likes,user?.id||null);
   }
@@ -2755,6 +2781,7 @@ async function loadCommunityFeed(){
  allButton.onclick=()=>{mode='recent';render();};
  savedButton.onclick=()=>{mode='saved';render();};
  await render();
+ if(targetPostId)focusNotificationPost(root,targetPostId);
 }
 async function appendFollowBackActions(root,notifications,userId){
  const actors=[...new Set(notifications.filter(n=>n.kind==='follow'&&n.actor_id&&n.actor_id!==userId).map(n=>n.actor_id))];
