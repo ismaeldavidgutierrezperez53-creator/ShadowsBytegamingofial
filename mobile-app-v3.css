@@ -263,6 +263,13 @@ html[data-sb-motion="off"] .sb-mobile-bottom-nav>a:active{transform:none}
 
 /* 2026-11-21: Corrección de la cabecera de Mi cuenta y controles flotantes en Android. */
 #app .account-quick-actions{
+  /* Evita heredar el posicionamiento absoluto de la regla nav de móvil. */
+  position:static;
+  inset:auto;
+  flex-direction:initial;
+  background:transparent;
+  padding:0;
+  margin-left:0;
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
   gap:12px;
