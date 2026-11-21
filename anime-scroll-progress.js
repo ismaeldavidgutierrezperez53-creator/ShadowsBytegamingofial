@@ -20,8 +20,10 @@
       box-shadow: 0 0 12px #ad56ee99;
       overflow: visible;
     }
-    /* El progreso no tapa ni ocupa espacio visual al personalizar. */
-    html.sb-customize-open #sb-anime-scroll-progress { display: none !important; }
+    /* Hide the progress track (including the percentage) when customizing. */
+    html.sb-customize-open #sb-anime-scroll-progress,
+    html:has(#sb-customize-panel:not([hidden])) #sb-anime-scroll-progress,
+    #sb-anime-scroll-progress[hidden] { display: none !important; }
     #sb-anime-scroll-progress-percentage {
       position: absolute;
       top: 11px;
@@ -106,6 +108,27 @@
   percentage.textContent = '0 %';
   track.appendChild(percentage);
   document.body.appendChild(track);
+
+  // Hide the entire progress widget whenever the customization panel is visible.
+  // Observe the panel directly, so this also works when it is closed via X/Escape.
+  const customizerPanel = document.getElementById('sb-customize-panel');
+  if (customizerPanel) {
+    const syncProgressVisibility = () => {
+      const customizing = !customizerPanel.hasAttribute('hidden');
+      track.hidden = customizing;
+      track.setAttribute('aria-hidden', String(customizing));
+      if (customizing) {
+        track.style.setProperty('display', 'none', 'important');
+      } else {
+        track.style.removeProperty('display');
+      }
+    };
+    new MutationObserver(syncProgressVisibility).observe(customizerPanel, {
+      attributes: true,
+      attributeFilter: ['hidden']
+    });
+    syncProgressVisibility();
+  }
 
   let scheduled = false;
   const update = () => {
