@@ -59,3 +59,25 @@
 @media(prefers-reduced-motion:reduce){
  .sb-community-mention-choice{transition:none}
 }
+
+/* Nombre de mención visible sin sustituir el nombre público. */
+.sb-member-handle,.sb-community-author-handle{
+ display:block;width:max-content;max-width:100%;
+ margin:2px 0 7px;color:#cdb5f2;font-size:.86rem;
+ font-weight:600;line-height:1.3;overflow-wrap:anywhere;
+}
+.sb-community-author-handle{margin:1px 0 6px;font-size:.77rem;}
+.sb-community-mention-button{
+ display:inline-flex;align-items:center;justify-content:center;
+ align-self:flex-start;gap:6px;min-height:40px;
+ max-width:100%;padding:8px 14px;
+ border:1px solid #986fce;border-radius:10px;
+ background:#2b1a42;color:#f7e7ff;font:inherit;font-weight:700;
+ cursor:pointer;
+}
+.sb-community-mention-button:hover{background:#513274;border-color:#d6b4ff;}
+.sb-community-mention-button:focus-visible{outline:3px solid #f2c6ff;outline-offset:3px;}
+@media(max-width:650px){
+ .sb-community-mention-button{min-height:44px}
+ .sb-community-edit-form .sb-community-mention-button{width:100%}
+}
