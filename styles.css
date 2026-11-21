@@ -2207,13 +2207,17 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
 @media(max-width:620px){.community-anime-challenge-write{width:100%}}
 
 
-/* Logros y niveles: la barra gris lateral no ocupa ancho, pero se puede desplazar. */
-html:has(#app #my-levels){
- scrollbar-width:none;
- scrollbar-gutter:auto;
+/* Toda la web: ocultar las barras grises sin reservar espacio.
+   El desplazamiento sigue funcionando por ratón, teclado y gesto táctil. */
+html, body, body *{
+ scrollbar-width:none!important;
+ scrollbar-gutter:auto!important;
+ -ms-overflow-style:none;
 }
-html:has(#app #my-levels)::-webkit-scrollbar{
- display:none;
- width:0;
- height:0;
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+body *::-webkit-scrollbar{
+ display:none!important;
+ width:0!important;
+ height:0!important;
 }
