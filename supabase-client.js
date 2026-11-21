@@ -878,6 +878,32 @@ async function initSecurityPrivacyCenter(userId,root){
   save.disabled=false;
  };
 }
+// Seleccionar el elemento correcto ANTES de solicitar el recurso: un MP4 no debe cargarse como <img>.
+function sbProfileVideoURL(source){
+ try{
+  const url = new URL(source,location.href);
+  return url.protocol==='https:' && /\.(mp4|webm)$/i.test(url.pathname);
+ }catch(_){return false}
+}
+function sbProfileMedia(source,alt,cssClass){
+ const video=sbProfileVideoURL(source);
+ const media=document.createElement(video?'video':'img');
+ if(cssClass)media.className=cssClass;
+ media.src=source;
+ if(video){
+  media.muted=true;media.defaultMuted=true;media.autoplay=true;media.loop=true;
+  media.playsInline=true;media.preload='metadata';
+  media.setAttribute('aria-label',alt||'Vídeo de perfil');
+  media.addEventListener('loadedmetadata',()=>{
+   if(!document.hidden&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)media.play().catch(()=>{});
+  },{once:true});
+ }else{
+  media.alt=alt||'';
+  media.referrerPolicy='no-referrer';
+ }
+ return media;
+}
+
 async function loadAccountProfile(){
  const root=document.getElementById('account-profile');if(!root)return;
  const {data:{user},error}=await sb.auth.getUser();
@@ -990,7 +1016,16 @@ async function loadAccountProfile(){
  form.elements.avatar_url.value=avatar;
  document.getElementById('profile-email-readonly').value=user.email||'';
  const avatarNode=document.getElementById('profile-avatar');
- function paintAvatar(url,label){avatarNode.replaceChildren();if(url){const img=document.createElement('img');img.src=url;img.alt='Avatar';img.referrerPolicy='no-referrer';img.style.cssText='width:100%;height:100%;object-fit:cover';img.onerror=()=>{avatarNode.textContent=(label||'?').charAt(0).toUpperCase()};avatarNode.append(img)}else avatarNode.textContent=(label||'?').charAt(0).toUpperCase();}
+ function paintAvatar(url,label){
+  avatarNode.replaceChildren();
+  if(url){
+   const media=sbProfileMedia(url,'Avatar');
+   media.style.cssText='width:100%;height:100%;object-fit:cover';
+   media.onerror=()=>{avatarNode.textContent=(label||'?').charAt(0).toUpperCase()};
+   avatarNode.append(media);
+  }else avatarNode.textContent=(label||'?').charAt(0).toUpperCase();
+ }
+
  paintAvatar(avatar,name);
  const editorPanel=form.closest('.profile-panel');
  const progress=document.createElement('div');progress.className='profile-completion';progress.setAttribute('aria-live','polite');
@@ -1007,9 +1042,22 @@ async function loadAccountProfile(){
  function updateProfilePreview(){
   const currentName=form.elements.display_name.value.trim(),currentAvatar=form.elements.avatar_url.value.trim(),bio=document.getElementById('profile-bio')?.value.trim()||'',visible=document.getElementById('profile-public')?.checked;
   const coverInput=document.getElementById('profile-cover-url');const coverNode=root.querySelector('.profile-cover');const coverUrl=coverInput?.value.trim()||'';const theme=document.getElementById('profile-theme')?.value||'violet';const validCover=/^https:\/\/[^\s]+$/i.test(coverUrl);
-  previewCoverImage.hidden=!validCover;previewCoverNotice.textContent=coverUrl&&!validCover?'Introduce una URL HTTPS válida para la portada.':'';
-  if(validCover&&previewCoverImage.getAttribute('src')!==coverUrl){previewCoverImage.src=coverUrl;previewCoverImage.onerror=()=>{previewCoverNotice.textContent='No se pudo cargar la imagen. Comprueba el enlace de la portada.';previewCoverImage.hidden=true;};previewCoverImage.onload=()=>{previewCoverNotice.textContent='';previewCoverImage.hidden=false;};}
-  if(!validCover){previewCoverImage.removeAttribute('src');}previewCover.dataset.theme=theme;previewCard.dataset.animeCard=document.getElementById('profile-anime-card')?.value||'sakura';if(coverNode){coverNode.style.backgroundImage=/^https:\/\/[^\s]+$/i.test(coverUrl)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';coverNode.dataset.theme=theme;}
+  const videoCover=validCover&&sbProfileVideoURL(coverUrl);
+  previewCoverImage.hidden=!validCover||videoCover;
+  previewCoverNotice.textContent=coverUrl&&!validCover?'Introduce una URL HTTPS válida para la portada.':'';
+  if(videoCover)previewCoverImage.removeAttribute('src');
+  if(validCover&&!videoCover&&previewCoverImage.getAttribute('src')!==coverUrl){
+   previewCoverImage.src=coverUrl;
+   previewCoverImage.onerror=()=>{previewCoverNotice.textContent='No se pudo cargar la imagen. Comprueba el enlace de la portada.';previewCoverImage.hidden=true;};
+   previewCoverImage.onload=()=>{previewCoverNotice.textContent='';previewCoverImage.hidden=false;};
+  }
+  if(!validCover)previewCoverImage.removeAttribute('src');
+  previewCover.dataset.theme=theme;
+  previewCard.dataset.animeCard=document.getElementById('profile-anime-card')?.value||'sakura';
+  if(coverNode){
+   coverNode.style.backgroundImage=(validCover&&!videoCover)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';
+   coverNode.dataset.theme=theme;
+  }
   const score=[!!currentName,!!currentAvatar,!!bio,!!visible].filter(Boolean).length*25;
   progressTitle.textContent='Perfil completado: '+score+'%';progressTrack.value=score;
   progressHint.textContent=score===100?'¡Tu perfil está completo!':'Completa tu nombre, imagen, presentación y visibilidad para llegar al 100%.';
@@ -1021,7 +1069,7 @@ async function loadAccountProfile(){
   previewAnime.hidden=!previewAnime.childElementCount;
   previewVisibility.textContent=visible?'Visible en Miembros al guardar':'Perfil privado';
   previewAvatar.replaceChildren();
-  if(/^https:\/\/[^\s]+$/i.test(currentAvatar)){const img=document.createElement('img');img.src=currentAvatar;img.alt='Vista previa del avatar';img.referrerPolicy='no-referrer';img.onerror=()=>{previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase()};previewAvatar.append(img);}
+  if(/^https:\/\/[^\s]+$/i.test(currentAvatar)){const media=sbProfileMedia(currentAvatar,'Vista previa del avatar');media.onerror=()=>{previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase()};previewAvatar.append(media);}
   else previewAvatar.textContent=(currentName||'?').charAt(0).toUpperCase();
   publicLink.hidden=!visible;
  }
@@ -1085,14 +1133,12 @@ async function loadMembers(){
    let cover=null;
    if(typeof member.cover_url==='string'&&/^https:\/\/[^\s]+$/i.test(member.cover_url)){
     cover=document.createElement('div');cover.className='sb-member-card-cover';
-    const coverImage=document.createElement('img');
-    coverImage.className='sb-member-card-cover-image';
-    coverImage.src=member.cover_url;coverImage.alt='Portada de '+name;
-    coverImage.loading='lazy';coverImage.decoding='async';coverImage.referrerPolicy='no-referrer';
+    const coverImage=sbProfileMedia(member.cover_url,'Portada de '+name,'sb-member-card-cover-image');
+    if(coverImage.tagName==='IMG'){coverImage.loading='lazy';coverImage.decoding='async';}
     coverImage.onerror=()=>{cover.remove();card.classList.remove('sb-member-card-has-cover');};
     cover.append(coverImage);card.classList.add('sb-member-card-has-cover');
    }
-   if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();avatar.textContent=name.charAt(0).toUpperCase()};avatar.append(img)}else avatar.textContent=name.charAt(0).toUpperCase();
+   if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){const media=sbProfileMedia(member.avatar_url,'Perfil de '+name);if(media.tagName==='IMG'){media.loading='lazy';media.decoding='async'}media.onerror=()=>{media.remove();avatar.textContent=name.charAt(0).toUpperCase()};avatar.append(media)}else avatar.textContent=name.charAt(0).toUpperCase();
    const heading=document.createElement('h2');heading.textContent=name;
    const bio=document.createElement('p');bio.textContent=member.bio||'Miembro de Shadows Byte Gaming Official';
    const animeTags=document.createElement('div');animeTags.className='profile-anime-tags';
@@ -1120,13 +1166,13 @@ async function loadPublicMemberProfile(){
  const coverLabel=document.createElement('span');coverLabel.textContent='SHADOWS BYTE / COMUNIDAD';cover.append(coverLabel);
  cover.dataset.theme=['violet','blue','emerald','rose','amber'].includes(member.theme_color)?member.theme_color:'violet';
  if(typeof member.cover_url==='string'&&/^https:\/\/[^\s]+$/i.test(member.cover_url)){
-  const coverImage=document.createElement('img');coverImage.className='public-member-cover-image';coverImage.src=member.cover_url;coverImage.alt='Portada de '+(member.display_name||member.username||'miembro');coverImage.referrerPolicy='no-referrer';coverImage.onerror=()=>coverImage.remove();cover.prepend(coverImage);
+  const coverImage=sbProfileMedia(member.cover_url,'Portada de '+(member.display_name||member.username||'miembro'),'public-member-cover-image');coverImage.onerror=()=>coverImage.remove();cover.prepend(coverImage);
  }
  const content=document.createElement('div');content.className='public-member-body';content.dataset.animeCard=['sakura','neon','stellar','lunar'].includes(member.anime_card_style)?member.anime_card_style:'sakura';
  const avatar=document.createElement('div');avatar.className='public-member-avatar';
  const name=member.display_name||member.username||'Miembro';
  if(typeof member.avatar_url==='string'&&/^https:\/\//i.test(member.avatar_url)){
-  const img=document.createElement('img');img.src=member.avatar_url;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>{avatar.replaceChildren(document.createTextNode(name.charAt(0).toUpperCase()))};avatar.append(img);
+  const media=sbProfileMedia(member.avatar_url,'Vídeo o imagen de '+name);media.onerror=()=>{avatar.replaceChildren(document.createTextNode(name.charAt(0).toUpperCase()))};avatar.append(media);
  }else avatar.textContent=name.charAt(0).toUpperCase();
  const title=document.createElement('h1');title.textContent=name;
  const badge=document.createElement('span');badge.className='profile-role';badge.textContent='● Miembro de la comunidad';
