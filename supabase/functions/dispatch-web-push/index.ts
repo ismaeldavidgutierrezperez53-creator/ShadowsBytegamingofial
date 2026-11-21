@@ -88,11 +88,11 @@ async function notifyUser(userId:string, notice:Notice, partnerId?:string, onlyE
   }
   return sent;
 }
-async function dispatch(type:string,id:string):Promise<number> {
+async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):Promise<number> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return 0;
   if (type==='member_notifications') {
     const {data:n,error}=await admin.from('member_notifications')
-      .select('id,recipient_id,kind,actor_id').eq('id',id).maybeSingle();
+      .select('id,recipient_id,kind,actor_id,game_id,news_id,poll_id,tournament_id,trophy_month,season_month,museum_month').eq('id',id).maybeSingle();
     if (error || !n) return 0;
     const kinds:Record<string,[string,string,string]> = {
       follow:['👤 Nuevo seguidor','Una persona ha comenzado a seguirte.','#/notificaciones'],
@@ -102,9 +102,25 @@ async function dispatch(type:string,id:string):Promise<number> {
       poll:['🗳️ Nueva encuesta','Ya puedes participar en una encuesta.','#/encuestas'],
       poll_reminder:['🗳️ Encuesta pendiente','Tienes una encuesta por responder.','#/encuestas'],
       profile_view:['👀 Visita a tu perfil','Alguien ha visto tu perfil.','#/cuenta'],
-      news_reply:['📰 Respuesta a tu comentario','Hay una nueva respuesta en noticias.','#/noticias']
+      news_reply:['📰 Respuesta a tu comentario','Hay una nueva respuesta en noticias.','#/noticias'],
+      game_like:['🎮 Me gusta en tu biblioteca','A alguien le gustó uno de tus videojuegos.','#/cuenta'],
+      game_comment:['💬 Comentario en tu videojuego','Tienes un comentario en tu biblioteca de videojuegos.','#/cuenta'],
+      game_reply:['↩️ Respuesta en tu biblioteca','Respondieron a tu comentario sobre un videojuego.','#/cuenta'],
+      poll_season_prize:['🏆 Premio de encuestas','Has ganado un premio de temporada de encuestas.','#/encuestas'],
+      poll_trophy_like:['❤️ Me gusta en tu trofeo','A alguien le gustó tu trofeo de temporada.','#/cuenta'],
+      poll_museum_prize:['🏛️ Premio del museo','Has ganado un premio mensual del Museo de trofeos.','#/encuestas'],
+      tournament_full:['🎟️ Torneo completo','El torneo ya tiene todas sus plazas ocupadas.','#/tienda'],
+      tournament_match:['⚔️ Nuevo enfrentamiento','Tienes un nuevo enfrentamiento en un torneo.','#/tienda'],
+      tournament_finished:['🏆 Torneo finalizado','Consulta los resultados y tus premios.','#/tienda']
     };
     let info=kinds[n.kind] || ['🔔 Nueva notificación','Tienes novedades en Shadows Byte Gaming.','#/notificaciones'];
+    if (['game_like','game_comment','game_reply'].includes(n.kind) && n.game_id) info[2]='#/perfil?id='+encodeURIComponent(n.recipient_id)+'&game='+encodeURIComponent(n.game_id);
+    if (n.kind==='news_reply' && n.news_id) info[2]='#/noticia?id='+encodeURIComponent(n.news_id);
+    if ((n.kind==='poll'||n.kind==='poll_reminder') && n.poll_id) info[2]='#/encuestas?poll='+encodeURIComponent(n.poll_id);
+    if (['tournament_full','tournament_match','tournament_finished'].includes(n.kind) && n.tournament_id) info[2]='#/tienda?tournament='+encodeURIComponent(n.tournament_id);
+    if (n.kind==='poll_season_prize' && n.season_month) info[2]='#/encuestas?temporada='+encodeURIComponent(n.season_month);
+    if (n.kind==='poll_museum_prize' && n.museum_month) info[2]='#/encuestas?museo='+encodeURIComponent(n.museum_month);
+    if (n.kind==='poll_trophy_like' && n.trophy_month) info[2]='#/cuenta?trofeo='+encodeURIComponent(n.trophy_month);
     // El aviso externo de Seguidores identifica al miembro y abre directamente su perfil.
     if (n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id || '')) {
       const {data:actor}=await admin.from('profiles').select('display_name,username')
@@ -113,6 +129,105 @@ async function dispatch(type:string,id:string):Promise<number> {
       info=['👥 Nuevo seguidor',actorName+' empezó a seguirte.','#/perfil?id='+encodeURIComponent(n.actor_id)];
     }
     return await notifyUser(n.recipient_id,{title:info[0],body:info[1],path:info[2],tag:'notice-'+n.id});
+  }
+  if(type==='news'){
+    const {data:article,error}=await admin.from('news')
+      .select('id,title,status,published_at').eq('id',id).maybeSingle();
+    if(error || !article || article.status!=='published' || !article.published_at || Date.parse(article.published_at)>Date.now())return 0;
+    // Sólo reciben avisos quienes han activado push en al menos un dispositivo.
+    // Cada cuenta se envía una vez, aunque tenga varios dispositivos.
+    const subscribers=new Set<string>();
+    for(let offset=0;;offset+=500){
+      const {data:devices,error:devicesError}=await admin.from('member_web_push_subscriptions')
+        .select('user_id').order('user_id').range(offset,offset+499);
+      if(devicesError)throw devicesError;
+      for(const device of devices||[])subscribers.add(device.user_id);
+      if((devices||[]).length<500)break;
+    }
+    const notice={
+      title:'📰 Nueva noticia publicada',
+      body:'Ya puedes leer: '+String(article.title||'Nueva noticia').trim().slice(0,105),
+      path:'#/noticia?id='+encodeURIComponent(article.id),tag:'news-'+article.id
+    };
+    let delivered=0;
+    for(const userId of subscribers)delivered+=await notifyUser(userId,notice);
+    return delivered;
+  }
+  if (type==='member_report_notifications') {
+    const {data:n}=await admin.from(type).select('recipient_id,status').eq('id',id).maybeSingle();
+    if(!n)return 0;
+    return notifyUser(n.recipient_id,{
+      title:'🛡️ Actualización de denuncia',
+      body:n.status==='reviewed'?'Tu denuncia ha sido revisada.':'Se ha actualizado el estado de tu denuncia.',
+      path:'#/cuenta',tag:'report-'+id
+    });
+  }
+  if (type==='member_private_calls' || type==='member_group_calls') {
+    const {data:call}=await admin.from(type).select('callee_id,caller_id,kind,status')
+      .eq('id',id).maybeSingle();
+    if(!call || call.status!=='ringing' || call.callee_id===call.caller_id)return 0;
+    return notifyUser(call.callee_id,{
+      title:call.kind==='video'?'📹 Videollamada entrante':'📞 Llamada entrante',
+      body:type==='member_group_calls'?'Te están llamando desde un grupo.':'Otro miembro te está llamando.',
+      path:'#/mensajes',tag:'call-'+id
+    });
+  }
+  if(type==='member_group_video_invites'){
+    const {data:invite}=await admin.from(type).select('invitee_id,inviter_id,response,room_id')
+      .eq('id',id).maybeSingle();
+    if(!invite || invite.response!=='pending' || invite.invitee_id===invite.inviter_id)return 0;
+    return notifyUser(invite.invitee_id,{
+      title:'📹 Invitación a videollamada',
+      body:'Te han invitado a una videollamada de grupo.',
+      path:'#/mensajes',tag:'video-invite-'+id
+    });
+  }
+  // Premios y hitos sin ID UUID propio: se verifican con sus claves compuestas
+  // antes de enviar el aviso al usuario. Los campos admitidos son una lista fija.
+  const awards:Record<string,{keys:string[],title:string,body:string,path:string}> = {
+    member_gamer_badge_notifications:{
+      keys:['badge_key'],title:'🏅 Nueva insignia gamer',
+      body:'Has desbloqueado una insignia en tu perfil.',path:'#/cuenta'
+    },
+    member_point_goal_notifications:{
+      keys:['goal_id','milestone'],title:'🎯 Avance en tu meta',
+      body:'Has alcanzado un nuevo hito de puntos.',path:'#/cuenta'
+    },
+    member_milestone_awards:{
+      keys:['level'],title:'🌟 Nuevo logro de nivel',
+      body:'Has ganado un premio al alcanzar un nuevo nivel.',path:'#/cuenta'
+    },
+    member_poll_milestone_awards:{
+      keys:['milestone'],title:'📊 Premio de encuestas',
+      body:'Has logrado un nuevo hito de participación.',path:'#/encuestas'
+    },
+    community_competition_awards:{
+      keys:['competition_id'],title:'🏆 Premio de competición',
+      body:'Has recibido un premio de una competición.',path:'#/comunidad'
+    },
+    mystery_box_monthly_awards:{
+      keys:['month_start'],title:'🎁 Premio de cajas misteriosas',
+      body:'Has recibido tu premio mensual por cajas misteriosas.',path:'#/tienda'
+    },
+    shop_season_podium_awards:{
+      keys:['event_id','place'],title:'🏆 Premio de temporada',
+      body:'Has ganado un premio del ranking de temporada.',path:'#/tienda'
+    }
+  };
+  const award=awards[type];
+  if(award){
+    let query=admin.from(type).select('user_id').eq('user_id',id);
+    for(const key of award.keys){
+      const value=extra[key];
+      if((typeof value!=='string' && typeof value!=='number') || String(value).length>128 || String(value).length===0)return 0;
+      query=query.eq(key,value);
+    }
+    const {data:row,error}=await query.maybeSingle();
+    if(error || !row)return 0;
+    return notifyUser(row.user_id,{
+      title:award.title,body:award.body,path:award.path,
+      tag:'award-'+type+'-'+id+'-'+award.keys.map(key=>String(extra[key])).join('-').slice(0,90)
+    });
   }
   if (type==='member_direct_messages') {
     const {data:m,error}=await admin.from('member_direct_messages')
@@ -153,9 +268,9 @@ Deno.serve(async(req:Request)=>{
     const config=await getConfig();
     webpush.setVapidDetails(allowedOrigin,config.public_key,config.private_key);
     if(req.headers.get('x-sb-push-secret') === config.hook_secret) {
-      if(!['member_notifications','member_direct_messages','member_chat_group_messages'].includes(body.type))
+      if(!['member_notifications','member_direct_messages','member_chat_group_messages','news','member_report_notifications','member_private_calls','member_group_calls','member_group_video_invites','member_gamer_badge_notifications','member_point_goal_notifications','member_milestone_awards','member_poll_milestone_awards','community_competition_awards','mystery_box_monthly_awards','shop_season_podium_awards'].includes(body.type))
         return reply({error:'Unknown event'},400);
-      const delivered=await dispatch(body.type,String(body.id||''));
+      const delivered=await dispatch(body.type,String(body.id||''),body.meta && typeof body.meta==='object' && !Array.isArray(body.meta)?body.meta:{});
       return reply({ok:true,delivered});
     }
     if(body.type==='test'){
