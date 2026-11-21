@@ -140,6 +140,7 @@
     root.id=id;root.className='sb-webpush-settings';
     root.innerHTML='<h2>🔔 Notificaciones en tu ordenador y móvil</h2>'
       +'<p>Recibe avisos de mensajes, seguidores y novedades incluso cuando no tengas la página abierta. Solo se activa si tú lo permites.</p>'
+      +'<p>🎵 <a href="#/cuenta" class="outline-btn mini">Personalizar sonidos anime en Mi cuenta</a></p>'
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
       +'<details class="sb-webpush-mobile-help"><summary>📱 Cómo activar las notificaciones en mi móvil</summary>'
       +'<div class="sb-webpush-mobile-steps"><h3>🤖 Android (Chrome)</h3>'
