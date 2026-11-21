@@ -263,7 +263,7 @@ async function loadNotificationPreview(userId){
 let notificationRealtimeChannel=null;
 let notificationRealtimeUserId=null;
 const DEFAULT_NOTIFICATION_SOUNDS={message_sound:'message',comment_sound:'comment',gift_sound:'gift',follow_sound:'follow'};
-const VALID_NOTIFICATION_SOUNDS=new Set(['default','message','comment','gift','follow','off']);
+const VALID_NOTIFICATION_SOUNDS=new Set(['default','message','comment','gift','follow','off','anime_sakura','anime_powerup','anime_arcade','anime_starlight']);
 function normalizeNotificationSound(value,fallback){return VALID_NOTIFICATION_SOUNDS.has(value)?value:fallback;}
 const DEFAULT_QUIET_PREFERENCES={dnd_enabled:false,dnd_schedule_enabled:false,dnd_start:'22:00',dnd_end:'08:00',dnd_timezone:'Europe/Madrid',dnd_until:null};
 function deviceNotificationTimezone(){
@@ -307,6 +307,17 @@ function isNotificationQuietNow(preferences=activeToastPreferences,date=new Date
 }
 let activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS,...DEFAULT_QUIET_PREFERENCES};
 let toastAudioContext=null;
+// Los sonidos solo pueden iniciarse tras una interacción del usuario.
+function unlockNotificationAudio(){
+ if(!activeToastPreferences.sound_enabled)return;
+ try{
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+  if(!toastAudioContext)toastAudioContext=new C();
+  if(toastAudioContext.state==='suspended')void toastAudioContext.resume().catch(()=>{});
+ }catch(error){console.debug('Audio de notificaciones no disponible:',error);}
+}
+document.addEventListener('pointerdown',unlockNotificationAudio,{passive:true});
+document.addEventListener('keydown',unlockNotificationAudio);
 let quietEndTimer=null;
 let quietEndScheduledFor=null;
 let quietEndScheduledUser=null;
@@ -396,12 +407,17 @@ function playNotificationSound(kind='default',preview=false){
    comment:[[523,0,.11],[659,.14,.13]],
    gift:[[523,0,.10],[659,.12,.10],[784,.24,.12],[1047,.38,.22]],
    follow:[[659,0,.13],[880,.16,.18]],
+   // Melodías originales estilo anime, sin temas comerciales.
+   anime_sakura:[[659,0,.13],[784,.16,.13],[988,.33,.16],[1175,.53,.24]],
+   anime_powerup:[[392,0,.08],[523,.10,.09],[659,.21,.09],[784,.32,.11],[1047,.47,.21]],
+   anime_arcade:[[784,0,.08],[988,.12,.08],[1175,.24,.09],[988,.37,.11]],
+   anime_starlight:[[523,0,.17],[784,.19,.17],[1047,.39,.15],[1568,.58,.24]],
    default:[[660,0,.12],[880,.13,.12]]
   };
   const pattern=patterns[kind]||patterns.default,base=toastAudioContext.currentTime;
   for(const [frequency,delay,duration] of pattern){
    const oscillator=toastAudioContext.createOscillator(),gain=toastAudioContext.createGain(),at=base+delay;
-   oscillator.type=kind==='gift'?'triangle':'sine';oscillator.frequency.setValueAtTime(frequency,at);
+   oscillator.type=['gift','anime_powerup','anime_arcade'].includes(kind)?'triangle':'sine';oscillator.frequency.setValueAtTime(frequency,at);
    gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(.045,at+.015);gain.gain.exponentialRampToValueAtTime(.0001,at+duration);
    oscillator.connect(gain);gain.connect(toastAudioContext.destination);oscillator.start(at);oscillator.stop(at+duration+.01);
   }
@@ -859,7 +875,7 @@ async function initAccountNotificationPreferences(userId,root){
  const profileGrid=root.querySelector('.profile-grid');
  if(profileGrid)profileGrid.after(section);else root.prepend(section);
  const toastSettings=document.createElement('div');toastSettings.className='notification-toast-preferences';
- toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><p>Elige el sonido de cada tipo de aviso, o selecciona Silencio para esa categoría.</p><div id="notification-category-sound-settings" class="notification-category-sound-settings"></div><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
+ toastSettings.innerHTML='<p>Personaliza los avisos que aparecen mientras utilizas la web.</p><label class="notification-preference-label"><input type="checkbox" id="popup-notification-enabled" disabled> Mostrar notificaciones emergentes</label><label class="notification-preference-label"><input type="checkbox" id="sound-notification-enabled" disabled> Reproducir sonido al recibir notificaciones</label><p>Elige melodías anime originales (Sakura, Power Up, Arcade o Estrellas) o Silencio. Pulsa Probar para escucharlas. Con la web cerrada, el aviso utiliza el sonido de Windows o del móvil.</p><div id="notification-category-sound-settings" class="notification-category-sound-settings"></div><p id="notification-toast-preference-status" role="status" aria-live="polite">Cargando preferencias…</p>';
  section.append(toastSettings);
  const quietSettings=document.createElement('div');quietSettings.className='notification-quiet-settings';
  quietSettings.innerHTML='<h4>🌙 Modo No molestar</h4><p><strong>Silencio rápido: 30 minutos, 1 hora o 2 horas.</strong> También puedes silenciar hasta desactivarlo o establecer un horario. Los avisos seguirán guardados en la campana.</p><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-manual" disabled> Activar No molestar hasta desactivarlo</label><div class="notification-quick-mute" role="group" aria-label="Duración de No molestar"><button type="button" class="outline-btn mini" data-dnd-minutes="30" disabled>30 minutos</button><button type="button" class="outline-btn mini" data-dnd-minutes="60" disabled>1 hora</button><button type="button" class="outline-btn mini" data-dnd-minutes="120" disabled>2 horas</button><button type="button" class="outline-btn mini" id="notification-dnd-indefinite" disabled>Hasta desactivar</button><button type="button" class="outline-btn mini" id="notification-dnd-cancel" disabled>Desactivar silencio temporal o manual</button></div><div id=\"notification-dnd-countdown\" class=\"notification-dnd-countdown\" role=\"timer\" aria-label=\"Tiempo restante de No molestar\" aria-live=\"off\" hidden><span>⏳ Tiempo restante</span><strong id=\"notification-dnd-remaining\">00:00:00</strong><small id=\"notification-dnd-ends-at\"></small></div><button type=\"button\" class=\"outline-btn mini\" id=\"notification-dnd-test-notice\">🔔 Probar aviso de finalización</button><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-scheduled" disabled> Activar automáticamente cada día</label><div class="notification-quiet-hours"><label for="notification-dnd-start">Desde <input id="notification-dnd-start" type="time" value="22:00" disabled></label><label for="notification-dnd-end">Hasta <input id="notification-dnd-end" type="time" value="08:00" disabled></label></div><small id="notification-dnd-timezone"></small><button type="button" id="notification-dnd-save-schedule" class="outline-btn mini" disabled>💾 Guardar horario</button><p id="notification-dnd-status" role="status" aria-live="polite">Cargando modo No molestar…</p>';
@@ -910,7 +926,7 @@ async function initAccountNotificationPreferences(userId,root){
  };
  const popupToggle=toastSettings.querySelector('#popup-notification-enabled'),soundToggle=toastSettings.querySelector('#sound-notification-enabled'),toastStatus=toastSettings.querySelector('#notification-toast-preference-status');
  const soundRows=[['message_sound','💬 Mensajes privados'],['comment_sound','📝 Comentarios y respuestas'],['gift_sound','🎁 Regalos'],['follow_sound','👥 Nuevos seguidores']];
- const soundPresets=[['message','Mensaje · dos tonos agudos'],['comment','Comentario · tonos suaves'],['gift','Regalo · melodía'],['follow','Seguidor · tonos ascendentes'],['default','Clásico · dos tonos'],['off','🔕 Silencio']];
+ const soundPresets=[['anime_sakura','🌸 Sakura · campanillas'],['anime_powerup','⚡ Power Up · subida épica'],['anime_arcade','🎮 Arcade anime · digital'],['anime_starlight','✨ Estrellas · mágico'],['message','Mensaje · dos tonos agudos'],['comment','Comentario · tonos suaves'],['gift','Regalo · melodía'],['follow','Seguidor · tonos ascendentes'],['default','Clásico · dos tonos'],['off','🔕 Silencio']];
  const soundSelectors=new Map(),soundSettings=toastSettings.querySelector('#notification-category-sound-settings');
  for(const [field,labelText] of soundRows){
   const row=document.createElement('div');row.className='notification-category-sound';
@@ -1001,7 +1017,7 @@ async function initAccountNotificationPreferences(userId,root){
  if(error){toggle.checked=!requested;toastStatus.textContent='Error al guardar: '+error.message;}else{activeToastPreferences[field]=requested;toastStatus.textContent='Preferencia guardada.';}
  toggle.disabled=false;};
  popupToggle.onchange=()=>saveToastPreference('popup_enabled',popupToggle);
- soundToggle.onchange=()=>saveToastPreference('sound_enabled',soundToggle);
+ soundToggle.onchange=()=>{if(soundToggle.checked){try{const C=window.AudioContext||window.webkitAudioContext;if(C){if(!toastAudioContext)toastAudioContext=new C();void toastAudioContext.resume().catch(()=>{});}}catch(_){}}saveToastPreference('sound_enabled',soundToggle);};
  for(const [field,select] of soundSelectors){
   select.onchange=async()=>{
    const selected=normalizeNotificationSound(select.value,DEFAULT_NOTIFICATION_SOUNDS[field]);
@@ -4892,7 +4908,7 @@ async function loadPrivateMessages(){
   popupLabel.append(popupBox,document.createTextNode(' Mostrar avisos'));
   const soundLabel=document.createElement('label');soundLabel.textContent='Sonido: ';
   const soundSelect=document.createElement('select');soundSelect.setAttribute('aria-label','Sonido de esta conversación');
-  for(const [value,label] of [['message','🎵 Clásico'],['gift','✨ Mágico'],['comment','🎮 Arcade'],['follow','🌸 Suave'],['off','🔇 Sin sonido']]){
+  for(const [value,label] of [['inherit','🎼 Usar sonido de Mi cuenta'],['anime_sakura','🌸 Sakura'],['anime_powerup','⚡ Power Up'],['anime_arcade','🎮 Arcade anime'],['anime_starlight','✨ Estrellas'],['message','🎵 Clásico'],['gift','✨ Mágico'],['comment','🎮 Arcade clásico'],['follow','🌸 Suave clásico'],['off','🔇 Sin sonido']]){
    const option=document.createElement('option');option.value=value;option.textContent=label;soundSelect.append(option);
   }
   soundLabel.append(soundSelect);
@@ -4914,7 +4930,7 @@ async function loadPrivateMessages(){
    if(!notificationPanel.isConnected)return;
    muteBox.checked=data?.muted===true;
    popupBox.checked=data?.popup_enabled!==false;
-   soundSelect.value=data?.sound||'message';
+   soundSelect.value=data?.sound||'inherit';
   };
   notificationPanel.append(notificationTitle,muteLabel,popupLabel,soundLabel,notificationStatus);
   const giftSection=document.createElement('section');giftSection.className='private-direct-gift-controls';
@@ -5511,7 +5527,7 @@ async function notifyPrivateConversationEvent(userId,partnerId,kind='message'){
   .select('muted,popup_enabled,sound').eq('user_id',userId).eq('partner_id',partnerId).maybeSingle();
  if(error)console.warn('Preferencias de conversación:',error.message);
  if(data?.muted)return;
- const sound=data?.sound||((kind==='gift')?activeToastPreferences.gift_sound:activeToastPreferences.message_sound);
+ const sound=data?.sound&&data.sound!=='inherit'?data.sound:((kind==='gift')?activeToastPreferences.gift_sound:activeToastPreferences.message_sound);
  if(activeToastPreferences.sound_enabled&&sound!=='off')playNotificationSound(sound);
  if(!liveAlertPreferences.notify_private_messages||!activeToastPreferences.popup_enabled||data?.popup_enabled===false)return;
  const href='#/mensajes?id='+encodeURIComponent(partnerId);
