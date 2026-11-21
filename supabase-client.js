@@ -1756,7 +1756,7 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
   :{data:[],error:null};
  if(!root.isConnected)return;
  for(const post of visiblePosts){
-  const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;
+  const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;root.append(article);
   const body=document.createElement('p');body.className='social-post-body';body.textContent=post.content;
   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
   article.append(body,date);
@@ -1843,7 +1843,6 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
    hint.textContent='Inicia sesión para comentar.';
    commentDetails.append(hint);
   }
-  root.append(article);
  }
  if(hasMore){
   const more=document.createElement('button');
