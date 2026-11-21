@@ -2205,3 +2205,15 @@ body{background-color:#090719;background-image:linear-gradient(180deg,rgba(6,5,1
  color:#f5e8ff;line-height:1.5
 }
 @media(max-width:620px){.community-anime-challenge-write{width:100%}}
+
+
+/* Logros y niveles: la barra gris lateral no ocupa ancho, pero se puede desplazar. */
+html:has(#app #my-levels){
+ scrollbar-width:none;
+ scrollbar-gutter:auto;
+}
+html:has(#app #my-levels)::-webkit-scrollbar{
+ display:none;
+ width:0;
+ height:0;
+}
