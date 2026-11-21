@@ -297,6 +297,12 @@
               .eq('follower_id', user.id).eq('following_id', person.id).maybeSingle();
             if (state.error) throw state.error;
             const wasFollowing = Boolean(state.data);
+            if (action.dataset.following === 'unknown') {
+              // "Comprobar" solo consulta; no cambia la relación hasta otro clic.
+              renderAction(wasFollowing);
+              status.textContent = 'Seguimiento comprobado para ' + displayName + '.';
+              return;
+            }
             const result = wasFollowing
               ? await sb.from('member_follows').delete().eq('follower_id', user.id).eq('following_id', person.id)
               : await sb.from('member_follows').insert({follower_id: user.id, following_id: person.id});
