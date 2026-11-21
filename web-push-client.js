@@ -251,7 +251,7 @@
     mount();
     window.addEventListener('hashchange',()=>queueMicrotask(mount));
     const resync=()=>{
-      if(Notification.permission!=='granted')return;
+      if(!supported() || Notification.permission!=='granted')return;
       syncExisting().then(()=>refresh()).catch(error=>{
         console.warn('Recuperación de avisos pendiente:',error);
         setStatus('No se pudo sincronizar este dispositivo. Abre Notificaciones y pulsa Comprobar y reparar.','error');
