@@ -69,6 +69,40 @@ function chatOutgoingText(value,toggle){
  return value&&toggle?.getAttribute('aria-pressed')==='true'?'||'+value+'||':value;
 }
 
+
+function communityIsFullSpoiler(value){return /^\|\|[\s\S]+\|\|$/.test(String(value??'').trim());}
+function communityOutgoingPost(value,toggle,hasImage=false){
+ const content=String(value??'').trim();
+ if(toggle?.getAttribute('aria-pressed')!=='true')return content;
+ const selected=content||(hasImage?'📷 Imagen con spoiler':'');
+ return communityIsFullSpoiler(selected)?selected:'||'+selected+'||';
+}
+function createCommunitySpoilerToggle(){
+ const button=createChatSpoilerToggle();button.title='Ocultar texto e imagen hasta que los miembros revelen el spoiler';return button;
+}
+function appendCommunityPostContent(article,post){
+ const value=String(post.content??'').trim(),full=communityIsFullSpoiler(value);
+ const surface=document.createElement('div');surface.className='sb-community-post-content';
+ const text=document.createElement('p');text.className='social-post-body';
+ const addImage=target=>{
+  if(!post.image_path)return;
+  const img=document.createElement('img');img.className='social-post-image';img.loading='lazy';img.alt='Imagen de la publicación';
+  img.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;target.append(img);
+ };
+ if(full){
+  const toggle=document.createElement('button');toggle.type='button';toggle.className='sb-community-spoiler-reveal';
+  toggle.textContent='🙈 Publicación con spoiler · Mostrar contenido';toggle.setAttribute('aria-expanded','false');
+  const hidden=document.createElement('div');hidden.className='sb-community-spoiler-content';hidden.hidden=true;
+  text.textContent=value.slice(2,-2);hidden.append(text);addImage(hidden);
+  toggle.onclick=()=>{
+   hidden.hidden=!hidden.hidden;toggle.setAttribute('aria-expanded',String(!hidden.hidden));
+   toggle.textContent=hidden.hidden?'🙈 Publicación con spoiler · Mostrar contenido':'👁️ Ocultar spoiler';
+  };
+  surface.append(toggle,hidden);
+ }else{renderChatSpoilerText(text,post.content);surface.append(text);addImage(surface);}
+ article.append(surface);
+}
+
 async function getPublished(table, order='created_at') {
  const {data,error} = await sb.from(table).select('*').order(order,{ascending:false}).limit(30);
  if(error) { console.error(table,error); return []; }
@@ -2077,12 +2111,13 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
    form.append(instructions);
   }
   const submit=document.createElement('button');submit.className='gradient-btn mini';submit.textContent='Publicar';
-  form.append(label,textarea,imageLabel,imageInput,preview,albumLabel,submit);
+  const spoilerToggle=createCommunitySpoilerToggle();
+  form.append(label,textarea,spoilerToggle,imageLabel,imageInput,preview,albumLabel,submit);
   if(animeDraft)requestAnimationFrame(()=>{
    if(textarea.isConnected){form.scrollIntoView({behavior:'smooth',block:'center'});textarea.focus({preventScroll:true});}
   });
   form.onsubmit=async e=>{
-   e.preventDefault();const content=textarea.value.trim();const file=imageInput.files?.[0];if(!content&&!file){feedback.textContent='Escribe un mensaje o selecciona una imagen.';return;}
+   e.preventDefault();const file=imageInput.files?.[0];const content=communityOutgoingPost(textarea.value,spoilerToggle,!!file);if(!content&&!file){feedback.textContent='Escribe un mensaje o selecciona una imagen.';return;}if(content.length>1000){feedback.textContent='Máximo 1000 caracteres, incluyendo el formato spoiler.';return;}
    const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
    if(file&&(!allowed[file.type]||file.size>5*1024*1024)){feedback.textContent='Usa una imagen JPG, PNG, WebP o GIF de hasta 5 MB.';return;}
    submit.disabled=true;feedback.textContent=file?'Subiendo imagen…':'Publicando…';let image_path=null;
@@ -2113,10 +2148,8 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
  if(!root.isConnected)return;
  for(const post of visiblePosts){
   const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;root.append(article);
-  const body=document.createElement('p');body.className='social-post-body';body.textContent=post.content;
   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
-  article.append(body,date);
-  if(post.image_path){const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);}
+  appendCommunityPostContent(article,post);article.append(date);
   const animeBox=document.createElement('div');animeBox.className='sb-anime-reaction-bar';article.append(animeBox);
   renderPostAnimeReactions(post.id,animeBox,me,animeRows,animeError);
   const likeBox=document.createElement('div');likeBox.className='post-like-box';article.append(likeBox);
