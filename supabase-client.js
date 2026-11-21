@@ -2368,12 +2368,19 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
   ?await sb.from('member_post_anime_reactions').select('post_id,user_id,reaction').in('post_id',visiblePostIds)
   :{data:[],error:null};
  if(!root.isConnected)return;
+ const {data:pinRows,error:pinError}=visiblePostIds.length
+  ?await sb.from('community_post_pins').select('post_id,pinned_at').in('post_id',visiblePostIds)
+  :{data:[],error:null};
+ if(pinError)console.warn('Fijados del perfil:',pinError.message);
+ const pins=new Map((pinRows||[]).map(row=>[row.post_id,row.pinned_at]));
+ if(!root.isConnected)return;
  for(const post of visiblePosts){
   const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;root.append(article);
   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
   appendCommunityPostContent(article,post);article.append(date);
   if(post.edited_at){const edited=document.createElement('small');edited.className='sb-community-edited-label';edited.textContent='✏️ Editada';article.append(edited);}
   appendCommunityEditAction(article,post,me);
+  appendCommunityPinAction(article,post,user,pins,()=>loadMemberSocial(memberId,root,postLimit));
   const animeBox=document.createElement('div');animeBox.className='sb-anime-reaction-bar';article.append(animeBox);
   renderPostAnimeReactions(post.id,animeBox,me,animeRows,animeError);
   const likeBox=document.createElement('div');likeBox.className='post-like-box';article.append(likeBox);
@@ -2863,7 +2870,7 @@ async function loadCommunityFeed(){
    article.append(date);appendCommunityPostContent(article,post);
    if(post.edited_at){const edited=document.createElement('small');edited.className='sb-community-edited-label';edited.textContent='✏️ Editada';article.append(edited);}
    appendCommunityEditAction(article,post,user?.id);
-   appendCommunityPinAction(article,post,user?.app_metadata?.role==='admin'?user:null,pinned,()=>loadCommunityFeed());
+   appendCommunityPinAction(article,post,user,pinned,()=>loadCommunityFeed());
    article.append(likes,profile,save);appendReportButton(article,post.id,'post',user?.id);content.append(article);
    renderPostLikes(post.id,likes,user?.id||null);
   }
