@@ -10,3 +10,13 @@
 .sb-webpush-status[data-state="error"]{color:#ffb1b1}
 .sb-webpush-status[data-state="ok"]{color:#aeffd1}
 @media(max-width:580px){.sb-webpush-settings{padding:14px}.sb-webpush-actions button{width:100%}}
+
+
+.sb-webpush-mobile-help{margin:12px 0 15px;border:1px solid rgba(178,134,239,.38);border-radius:12px;background:rgba(23,14,42,.48);overflow:hidden}
+.sb-webpush-mobile-help summary{cursor:pointer;padding:12px 14px;font-weight:700;color:#f4e8ff;line-height:1.45}
+.sb-webpush-mobile-help summary:focus-visible{outline:3px solid #8deaff;outline-offset:-3px}
+.sb-webpush-mobile-steps{padding:3px 15px 14px}
+.sb-webpush-mobile-steps h3{margin:13px 0 6px;font-size:1rem;color:#fff}
+.sb-webpush-mobile-steps ol{padding-left:23px;margin:0 0 10px;color:#e6d8f8}
+.sb-webpush-mobile-steps li{margin:4px 0;line-height:1.5}
+.sb-webpush-mobile-steps p{font-size:.9rem}
