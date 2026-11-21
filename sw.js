@@ -11,6 +11,12 @@ self.addEventListener('push', (event) => {
     icon: './anime-favicon.png',
     badge: './anime-favicon.png',
     tag: String(notice.tag || 'sb-notice').slice(0, 120),
+    lang: 'es',
+    timestamp: Date.now(),
+    actions: [
+      {action:'open',title:'Ver ahora'},
+      {action:'dismiss',title:'Descartar'}
+    ],
     data: { path }
   }));
 });
@@ -26,6 +32,8 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 });
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  // Las acciones rápidas se muestran sólo en sistemas compatibles.
+  if(event.action==='dismiss')return;
   const requested = event.notification.data?.path || '#/notificaciones';
   const path = typeof requested === 'string' && /^#\/[a-z0-9/?=&%_-]{1,200}$/i.test(requested)
     ? requested : '#/notificaciones';
