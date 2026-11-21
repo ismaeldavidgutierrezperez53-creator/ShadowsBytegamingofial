@@ -2484,6 +2484,40 @@ async function loadCommunityFeed(){
  if(!root.isConnected)return;
  root.replaceChildren();
  if(postsError){root.textContent='No se pudo cargar el muro: '+postsError.message;return;}
+ 
+ if(user&&!authError){
+  const composer=document.createElement('form');composer.className='social-form sb-community-post-form';
+  const label=document.createElement('label');label.textContent='📝 Nueva publicación en Comunidad';
+  const input=document.createElement('textarea');input.rows=3;input.maxLength=1000;input.placeholder='¿Qué quieres compartir con la comunidad?';input.setAttribute('aria-label','Nueva publicación en la comunidad');
+  const spoilerToggle=createCommunitySpoilerToggle();
+  const upload=document.createElement('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp,image/gif';upload.setAttribute('aria-label','Adjuntar imagen');
+  const albumLabel=document.createElement('label');albumLabel.textContent='Álbum de la imagen';
+  const album=document.createElement('select');
+  for(const name of ['Otros','Anime','Gaming','Capturas']){const option=document.createElement('option');option.value=name;option.textContent=name;album.append(option);}
+  albumLabel.append(album);
+  const submit=document.createElement('button');submit.className='gradient-btn mini';submit.type='submit';submit.textContent='Publicar';
+  const status=document.createElement('small');status.setAttribute('role','status');
+  composer.append(label,input,spoilerToggle,upload,albumLabel,submit,status);
+  composer.onsubmit=async event=>{
+   event.preventDefault();if(submit.disabled)return;
+   const file=upload.files?.[0],content=communityOutgoingPost(input.value,spoilerToggle,!!file);
+   if(!content&&!file){status.textContent='Escribe un texto o adjunta una imagen.';return;}
+   if(content.length>1000){status.textContent='Máximo 1000 caracteres, incluyendo el formato spoiler.';return;}
+   const allowed={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
+   if(file&&(!allowed[file.type]||file.size>5242880)){status.textContent='Solo JPG, PNG, WebP o GIF hasta 5 MB.';return;}
+   submit.disabled=true;status.textContent=file?'Subiendo imagen…':'Publicando…';let image_path=null;
+   if(file){
+    image_path=user.id+'/'+crypto.randomUUID()+'.'+allowed[file.type];
+    const {error:uploadError}=await sb.storage.from('community-images').upload(image_path,file,{contentType:file.type,upsert:false});
+    if(uploadError){status.textContent='No se pudo subir la imagen: '+uploadError.message;submit.disabled=false;return;}
+   }
+   const {error}=await sb.from('member_posts').insert({author_id:user.id,content,image_path,gallery_category:album.value});
+   if(error){if(image_path)await sb.storage.from('community-images').remove([image_path]);status.textContent='No se pudo publicar: '+error.message;submit.disabled=false;return;}
+   await loadCommunityFeed();
+  };
+  root.append(composer);
+ }
+
  const toolbar=document.createElement('div');toolbar.className='community-bookmark-toolbar';
  const allButton=document.createElement('button');allButton.type='button';allButton.textContent='🌐 Últimas publicaciones';
  const savedButton=document.createElement('button');savedButton.type='button';savedButton.textContent='🔖 Mis guardados';
@@ -2520,7 +2554,7 @@ async function loadCommunityFeed(){
    const article=document.createElement('article');article.className='social-post';
    const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(post.author_id);author.className='feed-author';author.textContent=names.get(post.author_id);
    const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
-   const body=document.createElement('p');body.className='social-post-body';body.textContent=post.content;
+   
    const likes=document.createElement('div');likes.className='post-like-box';
    const profile=document.createElement('a');profile.href=author.href;profile.className='outline-btn mini';profile.textContent='Ver publicación y comentarios';
    const save=document.createElement('button');save.type='button';save.className='community-save-post';
@@ -2538,11 +2572,7 @@ async function loadCommunityFeed(){
     if(mode==='saved'&&active){article.remove();if(!content.children.length)content.textContent='Todavía no tienes publicaciones guardadas.';}
     else{updateButton();save.disabled=false;}
    };
-   article.append(author,date,body);
-   if(post.image_path){
-    const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';
-    image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);
-   }
+   article.append(author,date);appendCommunityPostContent(article,post);
    article.append(likes,profile,save);appendReportButton(article,post.id,'post',user?.id);content.append(article);
    renderPostLikes(post.id,likes,user?.id||null);
   }
