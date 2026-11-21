@@ -426,7 +426,7 @@ async function loadNotificationPreview(userId){
  for(const n of (data||[])){
   const item=document.createElement('div');item.className='notification-preview-item'+(n.is_read?'':' unread');if(n.kind==='follow')item.dataset.followActor=n.actor_id;
   const message=document.createElement('p');const photo=photos.has(n.post_id);
-  message.textContent=n.kind==='mention'?'🏷️ '+(names.get(n.actor_id)||'Un miembro')+' te mencionó en una publicación.':n.kind==='tournament_full'?'🎟️ ¡Las cuatro plazas de «'+(n.tournament_title||'tu torneo')+'» están completas!':n.kind==='tournament_match'?'⚔️ Tienes un nuevo enfrentamiento ('+(n.match_stage==='semi'?'semifinal '+n.match_no:n.match_stage==='bronze'?'partido por el tercer puesto':'gran final')+') en «'+(n.tournament_title||'tu torneo')+'».':n.kind==='tournament_finished'?'🏆 «'+(n.tournament_title||'Tu torneo')+'» ha finalizado. ¡Consulta los ganadores y tus premios!':n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
+  message.textContent=n.kind==='mention'?'🏷️ '+(names.get(n.actor_id)||'Un miembro')+(n.news_id?' te mencionó en una noticia.':' te mencionó en una publicación.'):n.kind==='tournament_full'?'🎟️ ¡Las cuatro plazas de «'+(n.tournament_title||'tu torneo')+'» están completas!':n.kind==='tournament_match'?'⚔️ Tienes un nuevo enfrentamiento ('+(n.match_stage==='semi'?'semifinal '+n.match_no:n.match_stage==='bronze'?'partido por el tercer puesto':'gran final')+') en «'+(n.tournament_title||'tu torneo')+'».':n.kind==='tournament_finished'?'🏆 «'+(n.tournament_title||'Tu torneo')+'» ha finalizado. ¡Consulta los ganadores y tus premios!':n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
    '❤️ '+(names.get(n.actor_id)||'Un miembro')+' dio Me gusta a tu trofeo de '+formatSeason(n.trophy_month)+'.':
    n.kind==='poll_museum_prize'?(()=>{
     const prize=museumPrizesByMonth.get(n.museum_month);
@@ -440,7 +440,7 @@ async function loadNotificationPreview(userId){
   if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
   if(['tournament_full','tournament_match','tournament_finished'].includes(n.kind)&&n.tournament_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏆 Ver torneo';go.className='notification-jump';item.append(go);}
   if(n.kind==='news_reply'&&n.news_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='📰 Ver respuesta';go.className='notification-jump';item.append(go);}
-   if(n.kind==='mention'&&n.post_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏷️ Ver mención';go.className='notification-jump';item.append(go);}
+   if(n.kind==='mention'&&(n.post_id||n.news_id)){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏷️ Ver mención';go.className='notification-jump';item.append(go);}
   if(n.game_id){const go=document.createElement('a');go.href='#/perfil?id='+encodeURIComponent(userId)+'&game='+encodeURIComponent(n.game_id);go.textContent='🎮 Ver biblioteca';go.className='notification-jump';item.append(go);}
   if((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🗳️ Votar ahora';go.className='notification-jump';item.append(go)}
   if(n.kind==='poll_season_prize'){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏆 Ver campeones';go.className='notification-jump';item.append(go);}
@@ -640,7 +640,7 @@ function notificationSoundKind(kind){
  if(kind==='gift')return activeToastPreferences.gift_sound;
  if(kind==='follow')return activeToastPreferences.follow_sound;
  if(kind==='message'||kind==='group_message')return activeToastPreferences.message_sound;
- if(['comment','game_comment','game_reply','news_reply'].includes(kind))return activeToastPreferences.comment_sound;
+ if(['comment','game_comment','game_reply','news_reply','mention'].includes(kind))return activeToastPreferences.comment_sound;
  return 'default';
 }
 const toastNotificationIds=new Set();
@@ -650,7 +650,7 @@ function showRealtimeNotificationToast(n){
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
- const labels={news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!',tournament_full:'🎟️ ¡Torneo completo! Las cuatro plazas están ocupadas',tournament_match:'⚔️ ¡Tienes un nuevo enfrentamiento asignado!',tournament_finished:'🏆 ¡Torneo finalizado! Consulta tus premios'};
+ const labels={mention:'🏷️ Te han mencionado',news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!',tournament_full:'🎟️ ¡Torneo completo! Las cuatro plazas están ocupadas',tournament_match:'⚔️ ¡Tienes un nuevo enfrentamiento asignado!',tournament_finished:'🏆 ¡Torneo finalizado! Consulta tus premios'};
  const toast=document.createElement('div');toast.className='sb-notification-toast';toast.setAttribute('role','status');
  const message=document.createElement('strong');message.textContent=labels[n.kind]||'🔔 Nueva notificación';
  // Mostrar el nombre del nuevo seguidor sin retrasar la aparición del aviso.
@@ -667,7 +667,7 @@ function showRealtimeNotificationToast(n){
  const open=document.createElement('a');open.className='gradient-btn mini';
  open.href=n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id||'')
   ? '#/perfil?id='+encodeURIComponent(n.actor_id)
-  : (n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'||n.kind==='news_reply'||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize'||n.kind==='poll_trophy_like'||((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id))?notificationDestination(n):'#/notificaciones';
+  : (n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'||n.kind==='news_reply'||(n.kind==='mention'&&(n.news_id||n.post_id))||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize'||n.kind==='poll_trophy_like'||((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id))?notificationDestination(n):'#/notificaciones';
  open.textContent=n.kind==='follow'?'👤 Ver perfil':n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'?'🏆 Ver torneo':n.kind==='poll_season_prize'?'🏆 Ver premio':n.kind==='poll_museum_prize'?'🏛️ Ver ranking':n.kind==='poll_trophy_like'?'❤️ Ver trofeo':(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
  const close=document.createElement('button');close.type='button';close.className='outline-btn mini';close.textContent='Cerrar';
  let timer;const dismiss=()=>{clearTimeout(timer);toast.remove();};close.onclick=dismiss;open.onclick=dismiss;
@@ -2807,6 +2807,7 @@ async function appendFollowBackActions(root,notifications,userId){
  }
 }
 function notificationDestination(n){
+ if(n.kind==='mention'&&n.news_id)return '#/noticia?id='+encodeURIComponent(n.news_id)+(n.news_comment_id?'&comment='+encodeURIComponent(n.news_comment_id):'');
  if(n.kind==='mention'&&n.post_id)return '#/comunidad?post='+encodeURIComponent(n.post_id);
  if(['tournament_full','tournament_match','tournament_finished'].includes(n.kind)&&n.tournament_id)return '#/tienda?tournament='+encodeURIComponent(n.tournament_id);
  if(n.kind==='news_reply'&&n.news_id)return '#/noticia?id='+encodeURIComponent(n.news_id)+(n.news_comment_id?'&comment='+encodeURIComponent(n.news_comment_id):'');
@@ -2849,7 +2850,7 @@ async function loadMemberNotifications(){
  const museumPrizesByMonth=new Map((myMuseumPrizes||[]).map(row=>[row.month_start,row]));
  const formatSeason=month=>month?new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(month+'T12:00:00Z')):'la temporada';
  const items=[
-  ...community.map(n=>({...n,recipient_id:user.id,category:['tournament_full','tournament_match','tournament_finished'].includes(n.kind)?'tournaments':(n.kind==='poll'||n.kind==='poll_reminder'||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize')?'polls':n.kind==='profile_view'?'visits':'community',title:n.kind==='mention'?'🏷️ '+(names.get(n.actor_id)||'Un miembro')+' te mencionó en una publicación.':n.kind==='tournament_full'?'🎟️ Las cuatro plazas de «'+(n.tournament_title||'tu torneo')+'» están completas.':n.kind==='tournament_match'?'⚔️ Tienes un nuevo enfrentamiento ('+(n.match_stage==='semi'?'semifinal '+n.match_no:n.match_stage==='bronze'?'partido por el tercer puesto':'gran final')+') en «'+(n.tournament_title||'tu torneo')+'».':n.kind==='tournament_finished'?'🏆 «'+(n.tournament_title||'Tu torneo')+'» ha terminado. Consulta la clasificación y tus premios.':n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
+  ...community.map(n=>({...n,recipient_id:user.id,category:['tournament_full','tournament_match','tournament_finished'].includes(n.kind)?'tournaments':(n.kind==='poll'||n.kind==='poll_reminder'||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize')?'polls':n.kind==='profile_view'?'visits':'community',title:n.kind==='mention'?'🏷️ '+(names.get(n.actor_id)||'Un miembro')+(n.news_id?' te mencionó en una noticia.':' te mencionó en una publicación.'):n.kind==='tournament_full'?'🎟️ Las cuatro plazas de «'+(n.tournament_title||'tu torneo')+'» están completas.':n.kind==='tournament_match'?'⚔️ Tienes un nuevo enfrentamiento ('+(n.match_stage==='semi'?'semifinal '+n.match_no:n.match_stage==='bronze'?'partido por el tercer puesto':'gran final')+') en «'+(n.tournament_title||'tu torneo')+'».':n.kind==='tournament_finished'?'🏆 «'+(n.tournament_title||'Tu torneo')+'» ha terminado. Consulta la clasificación y tus premios.':n.kind==='news_reply'?'💬 '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en una noticia.':n.kind==='poll_trophy_like'?
   '❤️ '+(names.get(n.actor_id)||'Un miembro')+' dio Me gusta a tu trofeo de '+formatSeason(n.trophy_month)+'.':
   n.kind==='poll_museum_prize'?(()=>{
    const prize=museumPrizesByMonth.get(n.museum_month);
