@@ -144,7 +144,9 @@
   const eyebrow=el('small','','SHADOWS BYTE · GAMER CARD');
   const heading=el('h2','','Mi identidad gamer');
   const status=el('p','sbp-identity-status','🎮 Disponible');
-  detail.append(eyebrow,heading,status);top.append(avatar,detail);
+  const exclusiveRank=el('p','sbp-identity-rank');
+  const motto=el('p','sbp-identity-motto');
+  detail.append(eyebrow,heading,exclusiveRank,status,motto);top.append(avatar,detail);
   const details=el('div','sbp-identity-tags');
   const info=el('p','sbp-muted',own?'Vista previa. Guarda los cambios para que otros vean tu tarjeta cuando tu perfil sea público.':'Información compartida por este miembro.');
   card.append(top,details,info);anchor.after(card);
@@ -159,6 +161,12 @@
    const state=own?get('profile-gaming-status'):'';
    const statusNames={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};
    heading.textContent=name;
+   const rankMap={recruit:'🎮 Recluta Byte',explorer:'🌟 Explorador Otaku',guardian:'⚔️ Guardián Gamer',legend:'👑 Leyenda Byte'};
+   exclusiveRank.textContent=own?(rankMap[get('profile-title')]||''):(host.querySelector('.sb-public-rank-title:not([hidden])')?.textContent||'');
+   exclusiveRank.hidden=!exclusiveRank.textContent;
+   motto.textContent=own?get('profile-card-motto'):(host.dataset.sbCardMotto||'');
+   motto.hidden=!motto.textContent;
+   card.dataset.layout=own?(get('profile-card-layout')||'classic'):(host.dataset.sbCardLayout||'classic');
    status.textContent=own?(statusNames[state]||statusNames.disponible)+(message?' · '+message:''):(message||'🎮 Miembro de la comunidad');
    const src=own?form?.elements.avatar_url?.value?.trim():host.querySelector('.public-member-avatar video,.public-member-avatar img')?.getAttribute('src');
    avatar.replaceChildren();
@@ -185,7 +193,12 @@
    if(own)info.textContent=host.querySelector('#profile-public')?.checked?'Vista previa de tu tarjeta pública. Guarda los cambios para publicarla.':'Vista previa privada: activa «Mostrar mi perfil en Miembros» si deseas compartirla.';
   };
   if(form){form.addEventListener('input',render);form.addEventListener('change',render);render();}
-  else {render();const badge=host.querySelector('.profile-featured-badge');if(badge)new MutationObserver(()=>{if(card.isConnected)render()}).observe(badge,{childList:true,attributes:true,attributeFilter:['hidden']});}
+  else {
+   render();
+   host.addEventListener('sb:profile-rank-update',render);
+   const badge=host.querySelector('.profile-featured-badge');
+   if(badge)new MutationObserver(()=>{if(card.isConnected)render()}).observe(badge,{childList:true,attributes:true,attributeFilter:['hidden']});
+  }
  }
 
  let queued=false;
