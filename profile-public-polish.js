@@ -127,18 +127,23 @@
     stats.className = 'sb-public-follow-stats';
     stats.setAttribute('aria-label', 'Estadísticas de seguimiento');
     const makeStat = label => {
-      const item = document.createElement('div');
+      const item = document.createElement('button');
+      item.type = 'button';
       item.className = 'sb-public-follow-stat';
+      item.setAttribute('aria-haspopup', 'dialog');
+      item.setAttribute('aria-label', 'Ver lista de ' + label.toLowerCase() + ' de ' + name);
       const number = document.createElement('strong');
       number.textContent = '…';
       const caption = document.createElement('span');
       caption.textContent = label;
       item.append(number, caption);
       stats.append(item);
-      return number;
+      return {button: item, number};
     };
-    const followersNumber = makeStat('Seguidores');
-    const followingNumber = makeStat('Siguiendo');
+    const followersStat = makeStat('Seguidores');
+    const followingStat = makeStat('Siguiendo');
+    const followersNumber = followersStat.number;
+    const followingNumber = followingStat.number;
     let countsRequest = 0;
     const refreshCounts = async () => {
       const request = ++countsRequest;
@@ -156,6 +161,180 @@
         followersNumber.textContent = followingNumber.textContent = '—';
       }
     };
+
+
+    // Listas accesibles y paginadas: no se carga todo el directorio al abrir el perfil.
+    const openFollowList = initialTab => {
+      if (typeof HTMLDialogElement === 'undefined') {
+        note.textContent = 'Tu navegador no admite esta ventana. Actualízalo para ver las listas.';
+        return;
+      }
+      const previous = document.querySelector('.sb-public-follow-dialog');
+      if (previous?.open) previous.close();
+      const opener = initialTab === 'followers' ? followersStat.button : followingStat.button;
+      const dialog = document.createElement('dialog');
+      dialog.className = 'sb-public-follow-dialog';
+      const panel = document.createElement('div');
+      panel.className = 'sb-public-follow-dialog-panel';
+      const heading = document.createElement('h2');
+      heading.id = 'sb-public-follow-dialog-title';
+      heading.textContent = '👥 Comunidad de ' + name;
+      dialog.setAttribute('aria-labelledby', heading.id);
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'sb-public-follow-close';
+      close.textContent = '✕ Cerrar';
+      close.setAttribute('aria-label', 'Cerrar lista de seguidores');
+      close.onclick = () => dialog.close();
+      const tabs = document.createElement('div');
+      tabs.className = 'sb-public-follow-dialog-tabs';
+      tabs.setAttribute('role', 'group');
+      tabs.setAttribute('aria-label', 'Tipo de seguimiento');
+      const makeTab = (key, label) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.textContent = label;
+        tab.dataset.type = key;
+        tab.setAttribute('aria-pressed', String(initialTab === key));
+        tabs.append(tab);
+        return tab;
+      };
+      const followerTab = makeTab('followers', 'Seguidores');
+      const followingTab = makeTab('following', 'Siguiendo');
+      const status = document.createElement('p');
+      status.className = 'sb-public-follow-dialog-status';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      const list = document.createElement('div');
+      list.className = 'sb-public-follow-list';
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'sb-public-follow-more';
+      more.textContent = 'Cargar más';
+      more.hidden = true;
+      const hint = document.createElement('p');
+      hint.className = 'sb-public-follow-dialog-hint';
+      hint.textContent = 'Solo aparecen miembros con perfiles públicos.';
+      panel.append(heading, close, tabs, status, list, more, hint);
+      dialog.append(panel);
+      document.body.append(dialog);
+
+      let currentTab = initialTab;
+      let offset = 0;
+      let loaded = 0;
+      let pageToken = 0;
+      const validMemberId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const createPerson = person => {
+        const link = document.createElement('a');
+        link.className = 'sb-public-follow-person';
+        link.href = '#/perfil?id=' + encodeURIComponent(person.id);
+        const avatarBox = document.createElement('span');
+        avatarBox.className = 'sb-public-follow-person-avatar';
+        const displayName = person.display_name || person.username || 'Miembro';
+        avatarBox.textContent = displayName.charAt(0).toUpperCase();
+        if (typeof person.avatar_url === 'string' && /^https:\/\/[^\s]+$/i.test(person.avatar_url)) {
+          const media = typeof sbProfileMedia === 'function'
+            ? sbProfileMedia(person.avatar_url, 'Perfil de ' + displayName)
+            : document.createElement('img');
+          if (!media.src) media.src = person.avatar_url;
+          if (media.tagName === 'IMG') {
+            media.alt = '';
+            media.loading = 'lazy';
+            media.referrerPolicy = 'no-referrer';
+          }
+          media.addEventListener('error', () => {
+            avatarBox.replaceChildren(document.createTextNode(displayName.charAt(0).toUpperCase()));
+          }, {once: true});
+          avatarBox.replaceChildren(media);
+        }
+        const info = document.createElement('span');
+        info.className = 'sb-public-follow-person-info';
+        const title = document.createElement('strong');
+        title.textContent = displayName;
+        const subtitle = document.createElement('small');
+        subtitle.textContent = person.username && person.username !== displayName
+          ? '@' + person.username : 'Ver perfil público';
+        info.append(title, subtitle);
+        const arrow = document.createElement('span');
+        arrow.className = 'sb-public-follow-person-arrow';
+        arrow.textContent = '›';
+        arrow.setAttribute('aria-hidden', 'true');
+        link.append(avatarBox, info, arrow);
+        return link;
+      };
+      const loadPage = async (reset = false) => {
+        const token = ++pageToken;
+        if (reset) {
+          offset = 0;
+          loaded = 0;
+          list.replaceChildren();
+        }
+        more.hidden = true;
+        status.textContent = 'Cargando miembros…';
+        const field = currentTab === 'followers' ? 'follower_id' : 'following_id';
+        const target = currentTab === 'followers' ? 'following_id' : 'follower_id';
+        try {
+          const result = await sb.from('member_follows')
+            .select(field).eq(target, id).order('created_at', {ascending: false})
+            .range(offset, offset + 49);
+          if (result.error) throw result.error;
+          if (!dialog.open || token !== pageToken) return;
+          const rows = result.data || [];
+          const ids = [...new Set(rows.map(entry => entry[field]).filter(value => validMemberId.test(String(value))))];
+          const profiles = ids.length
+            ? await sb.from('profiles').select('id,display_name,username,avatar_url')
+              .in('id', ids).eq('is_public', true)
+            : {data: [], error: null};
+          if (profiles.error) throw profiles.error;
+          if (!dialog.open || token !== pageToken) return;
+          const byId = new Map((profiles.data || []).map(person => [person.id, person]));
+          for (const row of rows) {
+            const person = byId.get(row[field]);
+            if (!person) continue;
+            list.append(createPerson(person));
+            loaded++;
+          }
+          offset += rows.length;
+          more.hidden = rows.length < 50;
+          status.textContent = loaded
+            ? 'Mostrando ' + loaded + ' perfiles públicos'
+            : 'Todavía no hay miembros con perfil público en esta lista.';
+        } catch (_) {
+          if (!dialog.open || token !== pageToken) return;
+          status.textContent = 'No se pudo cargar la lista. Inténtalo de nuevo.';
+          more.hidden = false;
+          more.textContent = '↻ Reintentar';
+          return;
+        }
+        more.textContent = 'Cargar más';
+      };
+      const switchTab = tab => {
+        currentTab = tab;
+        followerTab.setAttribute('aria-pressed', String(tab === 'followers'));
+        followingTab.setAttribute('aria-pressed', String(tab === 'following'));
+        void loadPage(true);
+      };
+      followerTab.onclick = () => switchTab('followers');
+      followingTab.onclick = () => switchTab('following');
+      more.onclick = () => void loadPage();
+      dialog.addEventListener('click', event => {
+        if (event.target === dialog) dialog.close();
+      });
+      dialog.addEventListener('close', () => {
+        pageToken++;
+        dialog.remove();
+        if (opener.isConnected && profileRoute() && profileId() === id) opener.focus({preventScroll: true});
+      }, {once: true});
+      try {
+        dialog.showModal();
+        void loadPage(true);
+      } catch (_) {
+        dialog.remove();
+        note.textContent = 'No se pudo abrir la lista de miembros.';
+      }
+    };
+    followersStat.button.addEventListener('click', () => openFollowList('followers'));
+    followingStat.button.addEventListener('click', () => openFollowList('following'));
 
     // Acción principal de seguimiento: reutiliza member_follows y sus políticas RLS.
     const follow = document.createElement('button');
@@ -275,6 +454,8 @@
     if (app) new MutationObserver(schedule).observe(app,{childList:true,subtree:true});
     window.addEventListener('hashchange', () => {
       document.querySelector('.sb-public-image-dialog')?.close();
+      const followDialog = document.querySelector('.sb-public-follow-dialog');
+      if (followDialog?.open) followDialog.close();
       schedule();
     });
     schedule();
