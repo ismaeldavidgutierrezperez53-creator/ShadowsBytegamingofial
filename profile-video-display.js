@@ -162,6 +162,10 @@
    replaceVideoImages();
    syncAccount();
    syncPublic();
+   // También observar vídeos creados directamente por el renderizador del perfil.
+   document.querySelectorAll('#account-profile video, #public-member-profile video, #members-list video').forEach(video => {
+     if (!video.closest('.sb-profile-gif-uploader') && !tracked.has(video)) watch(video);
+   });
    // El observer solo observa inserción/eliminación de nodos para evitar bucles de atributos.
    for (const video of tracked) if (!video.isConnected) {
      playerObserver?.unobserve(video);
