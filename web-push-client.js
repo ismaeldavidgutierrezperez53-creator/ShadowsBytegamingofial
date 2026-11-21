@@ -121,30 +121,27 @@
       if(!config.publicKey)throw new Error('Falta la clave pública del servidor.');
       const user=await currentUser();
       if(!user)throw new Error('Tu sesión ha caducado. Inicia sesión de nuevo.');
-      const key=decodeKey(config.publicKey);
       let sub=await reg.pushManager.getSubscription();
-      const table=sb.from('member_web_push_subscriptions');
-      if(sub){
-        // La suscripción puede estar guardada bajo una sesión anterior.
-        // Sólo consultar los registros propios (RLS), nunca alterar los ajenos.
-        const {data:owned,error:readError}=await table.select('endpoint')
-          .eq('user_id',user.id).eq('endpoint',sub.endpoint).maybeSingle();
-        if(readError)throw readError;
-        if(!owned){
-          setStatus('🔄 Actualizando la vinculación de este dispositivo con tu cuenta actual…');
-          const removed=await sub.unsubscribe();
-          if(!removed)throw new Error('No se pudo desvincular la suscripción anterior. Cierra y vuelve a abrir SB V2.');
-          sub=null;
-        }
-      }
-      if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+      if(!sub)sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,applicationServerKey:decodeKey(config.publicKey)
+      });
       const keys=sub.toJSON().keys;
       if(!keys?.p256dh||!keys?.auth)throw new Error('El navegador no proporcionó las claves necesarias.');
-      const {error}=await table.upsert({
-        endpoint:sub.endpoint,user_id:user.id,p256dh:keys.p256dh,auth:keys.auth,
-        user_agent:navigator.userAgent.slice(0,500),updated_at:new Date().toISOString()
-      },{onConflict:'endpoint'});
-      if(error)throw error;
+      // El servidor comprueba el JWT y las claves del dispositivo antes de
+      // transferir una suscripción antigua. No desuscribir en cada cambio de cuenta:
+      // muchos navegadores reutilizan el endpoint anterior y la RLS bloquea el upsert.
+      setStatus('🔄 Vinculando este dispositivo de forma segura a tu cuenta actual…');
+      const {data, error}=await sb.functions.invoke('register-web-push',{body:{
+        endpoint:sub.endpoint,p256dh:keys.p256dh,auth:keys.auth,
+        user_agent:navigator.userAgent.slice(0,500)
+      }});
+      if(error){
+        const status=error?.context?.status;
+        if(status===409)throw new Error('La suscripción anterior necesita una limpieza segura. Indica este mensaje para continuar.');
+        if(status===401)throw new Error('Tu sesión no es válida. Vuelve a iniciar sesión.');
+        throw new Error('No se pudo registrar el dispositivo: '+(error.message||'problema de conexión'));
+      }
+      if(!data?.registered)throw new Error('El servidor no confirmó el registro de este dispositivo.');
       lastSync=Date.now();
       setStatus('✅ Dispositivo vinculado a tu cuenta actual. Ya puedes recibir avisos con SB V2 cerrada.','ok');
       if(panel()?.querySelector('.sb-webpush-devices')?.open)loadDevices();
