@@ -328,7 +328,7 @@ html[data-sb-motion="off"] .sb-mobile-bottom-nav>a:active{transform:none}
     min-width:0;
   }
 
-  /* Los tres accesos flotantes comparten una fila justo encima de la navegación. */
+  /* Personalizar queda a la izquierda; Logros aparece encima de WhatsApp. */
   :root{
     --sb-mobile-float-bottom:calc(var(--sb-bottom-nav-height,0px) + var(--sb-bottom-nav-safe,env(safe-area-inset-bottom,0px)) + 12px);
   }
@@ -345,9 +345,10 @@ html[data-sb-motion="off"] .sb-mobile-bottom-nav>a:active{transform:none}
     text-align:center;
   }
   .sb-badge-notify{
-    right:calc(max(8px,env(safe-area-inset-right,0px)) + 55px)!important;
-    bottom:var(--sb-mobile-float-bottom)!important;
-    max-width:min(195px,calc(100vw - 175px));
+    /* Misma alineación que WhatsApp; 12px de separación vertical. */
+    right:max(8px,env(safe-area-inset-right,0px))!important;
+    bottom:calc(var(--sb-mobile-float-bottom) + 46px + 12px)!important;
+    max-width:min(195px,calc(100vw - 16px));
   }
   .sb-badge-notify-toggle{
     min-height:44px;
@@ -360,6 +361,8 @@ html[data-sb-motion="off"] .sb-mobile-bottom-nav>a:active{transform:none}
   .sb-badge-notify-panel,
   .sb-badge-unlock-toast,
   .sb-goal-unlock-toast{
+    /* Mantener el botón de Logros pegado a su posición al abrir los avisos. */
+    order:-1;
     box-sizing:border-box;
     width:min(350px,calc(100vw - 84px));
   }
