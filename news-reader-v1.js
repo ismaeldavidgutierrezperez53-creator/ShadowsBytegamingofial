@@ -10,7 +10,10 @@
   const safeCover = url => typeof url === 'string' && /^https:\/\//i.test(url.trim()) ? url.trim() : '';
   const articleUrl = id => '#/noticia?id=' + encodeURIComponent(String(id));
   const categories = {general:'📰 General',anime:'🌸 Anime',gaming:'🎮 Gaming',manga:'📚 Manga',manhwa:'📖 Manhwa',pokemon:'⚡ Pokémon',waifu:'💖 Waifu',husbando:'💙 Husbando',eventos:'📅 Eventos',comunidad:'👥 Comunidad'};
-  const categoryBadge = category => '<span class="sb-news-category">'+escape(categories[category] || categories.general)+'</span>';
+  const categoryBadge = category => {
+    const key = Object.prototype.hasOwnProperty.call(categories, category) ? category : 'general';
+    return '<span class="sb-news-category" data-news-category="'+key+'">'+escape(categories[key])+'</span>';
+  };
   const formatDate = value => {
     if (!value) return '';
     const date = new Date(value);
@@ -26,7 +29,7 @@
     const selected = Object.prototype.hasOwnProperty.call(categories,chosen) ? chosen : 'todas';
     const filters = !isNewsPage ? '' : '<nav class="sb-news-filters" aria-label="Filtrar noticias por categoría">' +
       [['todas','Todas'],...Object.entries(categories)].map(([key,label]) =>
-       '<a href="#/noticias'+(key==='todas'?'':'?categoria='+encodeURIComponent(key))+'"'+
+       '<a data-news-category="'+key+'" href="#/noticias'+(key==='todas'?'':'?categoria='+encodeURIComponent(key))+'"'+
        (selected===key?' aria-current="page"':'')+'>'+escape(label)+'</a>').join('') + '</nav>';
     const visible = selected==='todas' ? allVisible : allVisible.filter(n => (n.category || 'general')===selected);
     if (!visible.length) return filters+'<div class="empty">No hay noticias publicadas en esta categoría.</div>';
