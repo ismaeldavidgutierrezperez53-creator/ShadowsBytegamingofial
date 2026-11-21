@@ -160,10 +160,18 @@
    const statusNames={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};
    heading.textContent=name;
    status.textContent=own?(statusNames[state]||statusNames.disponible)+(message?' · '+message:''):(message||'🎮 Miembro de la comunidad');
-   const src=own?form?.elements.avatar_url?.value?.trim():host.querySelector('.public-member-avatar img')?.getAttribute('src');
+   const src=own?form?.elements.avatar_url?.value?.trim():host.querySelector('.public-member-avatar video,.public-member-avatar img')?.getAttribute('src');
    avatar.replaceChildren();
    if(src&&/^https:\/\//i.test(src)){
-    const img=el('img');img.src=src;img.alt='';img.referrerPolicy='no-referrer';img.onerror=()=>avatar.replaceChildren(document.createTextNode('🎮'));avatar.append(img);
+    const isVideo=(()=>{try{return /\.(mp4|webm)$/i.test(new URL(src).pathname)}catch(_){return false}})();
+    const media=el(isVideo?'video':'img');
+    media.src=src;
+    if(isVideo){
+     media.muted=true;media.defaultMuted=true;media.autoplay=true;media.loop=true;media.playsInline=true;media.preload='metadata';
+     media.setAttribute('aria-label','Vídeo de perfil');
+    }else{media.alt='';media.referrerPolicy='no-referrer'}
+    media.onerror=()=>avatar.replaceChildren(document.createTextNode('🎮'));
+    avatar.append(media);
    }else avatar.textContent=name.slice(0,1).toUpperCase();
    details.replaceChildren();
    const chips=[];
