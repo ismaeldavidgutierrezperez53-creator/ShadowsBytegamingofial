@@ -120,6 +120,73 @@
     note.className = 'sb-public-profile-note';
     note.setAttribute('role', 'status');
     note.setAttribute('aria-live', 'polite');
+    // Acción principal de seguimiento: reutiliza member_follows y sus políticas RLS.
+    const follow = document.createElement('button');
+    follow.type = 'button'; follow.className = 'sb-public-follow';
+    follow.textContent = 'Comprobando…'; follow.disabled = true;
+    const updateFollow = following => {
+      follow.dataset.following = String(following);
+      follow.textContent = following ? '✓ Siguiendo' : '➕ Seguir';
+      follow.setAttribute('aria-label', following ? 'Dejar de seguir a ' + name : 'Seguir a ' + name);
+      follow.title = following ? 'Pulsa para dejar de seguir' : 'Pulsa para seguir';
+      follow.disabled = false;
+    };
+    const checkFollowing = async userId => {
+      const {data, error} = await sb.from('member_follows')
+        .select('follower_id').eq('follower_id', userId).eq('following_id', id).maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    };
+    const refreshFollow = async () => {
+      try {
+        const {data: {user}, error} = await sb.auth.getUser();
+        if (!follow.isConnected) return;
+        if (error) throw error;
+        if (user?.id === id) { follow.remove(); return; }
+        if (!user) { updateFollow(false); return; }
+        updateFollow(await checkFollowing(user.id));
+      } catch (_) {
+        if (!follow.isConnected) return;
+        follow.textContent = '↻ Comprobar seguimiento';
+        follow.disabled = false;
+        follow.dataset.following = 'unknown';
+        follow.setAttribute('aria-label', 'Volver a comprobar seguimiento');
+        note.textContent = 'No se pudo comprobar el seguimiento. Puedes volver a intentarlo.';
+      }
+    };
+    follow.addEventListener('click', async () => {
+      if (follow.disabled) return;
+      follow.disabled = true;
+      try {
+        const {data: {user}, error: authError} = await sb.auth.getUser();
+        if (authError) throw authError;
+        if (!user) { location.hash = '#/auth'; return; }
+        if (user.id === id) { follow.remove(); return; }
+        // Verificar siempre el estado actual evita duplicar seguimientos.
+        const isFollowing = await checkFollowing(user.id);
+        const {error} = isFollowing
+          ? await sb.from('member_follows').delete().eq('follower_id', user.id).eq('following_id', id)
+          : await sb.from('member_follows').insert({follower_id: user.id, following_id: id});
+        if (error) throw error;
+        if (!follow.isConnected) return;
+        updateFollow(!isFollowing);
+        note.textContent = isFollowing ? 'Has dejado de seguir a ' + name + '.' : 'Ahora sigues a ' + name + '.';
+        const social = body.querySelector('.member-social');
+        if (social?.isConnected && typeof loadMemberSocial === 'function') void loadMemberSocial(id, social);
+      } catch (_) {
+        if (follow.isConnected) {
+          note.textContent = 'No se pudo cambiar el seguimiento. Inténtalo de nuevo.';
+          await refreshFollow();
+        }
+      } finally {
+        if (follow.isConnected) follow.disabled = false;
+      }
+    });
+    // Mantiene el botón superior sincronizado con el de la pestaña Comunidad.
+    const socialPanel = body.querySelector('.member-social');
+    if (socialPanel) new MutationObserver(() => {
+      if (follow.isConnected) void refreshFollow();
+    }).observe(socialPanel, {childList:true});
     share.onclick = async () => {
       const url = profileLink();
       if (navigator.share) {
@@ -139,7 +206,8 @@
       }
     };
     back.classList.add('sb-public-back');
-    actions.append(message, share, back, note);
+    actions.append(message, follow, share, back, note);
+    void refreshFollow();
     const idPanel = body.querySelector('.sb-profile-id-panel');
     const state = body.querySelector(':scope > .member-gaming-status');
     (idPanel || state || body.querySelector(':scope > h1'))?.after(actions);
