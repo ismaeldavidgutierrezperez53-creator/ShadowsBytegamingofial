@@ -103,6 +103,132 @@ function appendCommunityPostContent(article,post){
  article.append(surface);
 }
 
+
+/* Comunidad V2: menciones, edición de contenido y fijado administrativo. */
+function attachCommunityMentionPicker(input){
+ const results=document.createElement('div');results.className='sb-community-mention-results';results.hidden=true;
+ input.after(results);
+ let token=0;
+ const refresh=async()=>{
+  const current=++token;
+  const at=input.value.slice(0,input.selectionStart??input.value.length);
+  const match=at.match(/(^|[\s([{])@([A-Za-z0-9_]{2,32})$/);
+  results.replaceChildren();results.hidden=true;
+  if(!match)return;
+  const {data,error}=await sb.from('profiles').select('id,username,display_name')
+   .eq('is_public',true).ilike('username',match[2]+'%').order('username',{ascending:true}).limit(7);
+  if(error||current!==token||!results.isConnected)return;
+  for(const member of data||[]){
+   if(!member.username)continue;
+   const choice=document.createElement('button');choice.type='button';choice.className='sb-community-mention-choice';
+   choice.textContent='@'+member.username+(member.display_name?' · '+member.display_name:'');
+   choice.onclick=()=>{
+    const caret=input.selectionStart??input.value.length;
+    const before=input.value.slice(0,caret);
+    const active=before.match(/(^|[\s([{])@([A-Za-z0-9_]{2,32})$/);
+    if(!active)return;
+    const start=caret-active[2].length-1;
+    input.setRangeText('@'+member.username+' ',start,caret,'end');
+    results.hidden=true;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();
+   };
+   results.append(choice);
+  }
+  results.hidden=!results.children.length;
+ };
+ input.addEventListener('input',refresh);
+ input.addEventListener('click',refresh);
+ input.addEventListener('keydown',event=>{if(event.key==='Escape'){results.hidden=true;token++;}});
+ return results;
+}
+function linkCommunityMentions(container){
+ const nodes=[...container.childNodes].filter(node=>node.nodeType===3);
+ const expression=/(^|[^A-Za-z0-9_])@([A-Za-z0-9_]{2,32})/g;
+ const names=[...new Set(nodes.flatMap(node=>[...node.textContent.matchAll(expression)].map(m=>m[2])))].slice(0,15);
+ if(!names.length)return;
+ sb.from('profiles').select('id,username').eq('is_public',true).in('username',names).limit(15).then(({data,error})=>{
+  if(error||!container.isConnected)return;
+  const byName=new Map((data||[]).map(member=>[member.username,member.id]));
+  for(const node of nodes){
+   if(!node.parentNode)continue;
+   const raw=node.textContent,fragment=document.createDocumentFragment();
+   const re=/(^|[^A-Za-z0-9_])@([A-Za-z0-9_]{2,32})/g;
+   let position=0,match;
+   while((match=re.exec(raw))){
+    const id=byName.get(match[2]);if(!id)continue;
+    const at=match.index+match[1].length;
+    if(at>position)fragment.append(document.createTextNode(raw.slice(position,at)));
+    const link=document.createElement('a');link.href='#/perfil?id='+encodeURIComponent(id);
+    link.className='sb-community-mention-link';link.textContent='@'+match[2];fragment.append(link);
+    position=at+match[2].length+1;
+   }
+   if(position===0)continue;
+   if(position<raw.length)fragment.append(document.createTextNode(raw.slice(position)));
+   node.replaceWith(fragment);
+  }
+ });
+}
+function appendCommunityEditAction(article,post,userId){
+ if(!userId||post.author_id!==userId)return;
+ const control=document.createElement('div');control.className='sb-community-edit-control';
+ const edit=document.createElement('button');edit.type='button';edit.className='outline-btn mini';edit.textContent='✏️ Editar';
+ const editor=document.createElement('form');editor.className='sb-community-edit-form';editor.hidden=true;
+ const field=document.createElement('textarea');field.maxLength=1000;field.rows=4;field.setAttribute('aria-label','Editar publicación');
+ const spoiler=createCommunitySpoilerToggle();
+ const save=document.createElement('button');save.type='submit';save.className='gradient-btn mini';save.textContent='Guardar cambios';
+ const cancel=document.createElement('button');cancel.type='button';cancel.className='outline-btn mini';cancel.textContent='Cancelar';
+ const status=document.createElement('small');status.setAttribute('role','status');
+ editor.append(field,spoiler,save,cancel,status);
+ const fill=()=>{
+  const full=communityIsFullSpoiler(post.content);
+  field.value=full?post.content.trim().slice(2,-2):post.content||'';
+  spoiler.setAttribute('aria-pressed',String(full));
+  spoiler.textContent=full?'🙈 Spoiler activado':'🙈 Spoiler';
+ };
+ edit.onclick=()=>{fill();editor.hidden=false;edit.hidden=true;field.focus();};
+ cancel.onclick=()=>{editor.hidden=true;edit.hidden=false;status.textContent='';};
+ editor.onsubmit=async event=>{
+  event.preventDefault();const content=communityOutgoingPost(field.value,spoiler,!!post.image_path);
+  if(!content&&!post.image_path){status.textContent='Escribe un mensaje.';return;}
+  if(content.length>1000){status.textContent='Máximo 1000 caracteres.';return;}
+  if(content===post.content){cancel.click();return;}
+  save.disabled=true;status.textContent='Guardando…';
+  const {data,error}=await sb.from('member_posts').update({content}).eq('id',post.id)
+   .eq('author_id',userId).select('id,edited_at').maybeSingle();
+  save.disabled=false;
+  if(error||!data){status.textContent='No se pudo editar: '+(error?.message||'Sin permiso');return;}
+  post.content=content;post.edited_at=data.edited_at;
+  const holder=document.createElement('div');appendCommunityPostContent(holder,post);
+  const current=article.querySelector('.sb-community-post-content');
+  if(current)current.replaceWith(holder.firstElementChild);
+  else article.prepend(holder.firstElementChild);
+  let label=article.querySelector('.sb-community-edited-label');
+  if(!label){label=document.createElement('small');label.className='sb-community-edited-label';control.before(label);}
+  label.textContent='✏️ Editada';
+  cancel.click();
+ };
+ control.append(edit,editor);article.append(control);
+}
+function appendCommunityPinAction(article,post,admin,pins,refresh){
+ const pinned=pins.has(post.id);
+ if(pinned){
+  const badge=document.createElement('span');badge.className='sb-community-pinned-badge';
+  badge.textContent='📌 Publicación fijada';article.prepend(badge);
+ }
+ if(!admin)return;
+ const button=document.createElement('button');button.type='button';button.className='outline-btn mini sb-community-pin-button';
+ button.textContent=pinned?'📌 Desfijar':'📌 Fijar en Comunidad';
+ button.onclick=async()=>{
+  button.disabled=true;
+  const action=pinned
+   ?sb.from('community_post_pins').delete().eq('post_id',post.id)
+   :sb.from('community_post_pins').insert({post_id:post.id,pinned_by:admin.id});
+  const {error}=await action;
+  if(error){button.textContent='Error: '+error.message;button.disabled=false;return;}
+  refresh();
+ };
+ article.append(button);
+}
+
 async function getPublished(table, order='created_at') {
  const {data,error} = await sb.from(table).select('*').order(order,{ascending:false}).limit(30);
  if(error) { console.error(table,error); return []; }
