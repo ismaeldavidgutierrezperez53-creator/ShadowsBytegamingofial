@@ -1,0 +1,7 @@
+/* Selector de miembros y enlaces @ en Noticias. */
+.sb-news-mention-picker{display:flex;flex-direction:column;gap:3px;max-height:230px;overflow:auto;margin:5px 0 10px;padding:7px;background:#171125;border:1px solid #9a58dd;border-radius:12px;box-shadow:0 9px 26px rgba(0,0,0,.35);position:relative;z-index:15}
+.sb-news-mention-picker[hidden]{display:none!important}
+.sb-news-mention-option{display:block;width:100%;padding:9px 12px;border:0;border-radius:7px;background:transparent;color:#eee7ff;text-align:left;font:inherit;cursor:pointer;overflow-wrap:anywhere}
+.sb-news-mention-option:hover,.sb-news-mention-option.selected,.sb-news-mention-option:focus-visible{background:#533378;color:#fff;outline:2px solid transparent}
+.sb-news-mention-link{color:#a9e8ff;font-weight:700;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.sb-news-mention-link:hover,.sb-news-mention-link:focus-visible{color:#fff}
