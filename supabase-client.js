@@ -1217,7 +1217,7 @@ async function loadAccountProfile(){
     const theme_color=document.getElementById('profile-theme').value;
     const featured_badge=document.getElementById('profile-featured-badge').value;
     const selectedTitle=document.getElementById('profile-title').value;
-    const selectedShowcase=chosenShowcase();
+    const selectedShowcase=[...root.querySelectorAll('.sb-badge-picker input:checked')].map(input=>input.value);
     if(selectedShowcase.length>3){status.textContent='Selecciona un máximo de 3 insignias.';return;}
     const thresholds={first:5,participant:50,active:150,legend:500};
     const levelAura=document.getElementById('profile-level-aura').value;
@@ -1351,21 +1351,59 @@ async function loadPublicMemberProfile(){
   animePanel.append(animeHeading,animeTags);content.append(animePanel);
  }
  const earnedPanel=document.createElement('section');earnedPanel.className='member-anime-badges';
- const earnedTitle=document.createElement('h3');earnedTitle.textContent='🏅 Insignias de la comunidad';
- const earnedList=document.createElement('div');earnedList.className='member-anime-badge-list';earnedList.textContent='Comprobando insignias…';
- earnedPanel.append(earnedTitle,earnedList);
- const levels=[{threshold:5,label:'🌱 Primer paso'},{threshold:50,label:'⭐ Participante'},{threshold:100,label:'⚡ Explorador shōnen'},{threshold:150,label:'🔥 Miembro activo'},{threshold:400,label:'🌌 Guardián astral'},{threshold:500,label:'🏆 Leyenda'},{threshold:1600,label:'👑 Fénix legendario'}];
+ const earnedTitle=document.createElement('h3');earnedTitle.textContent='🏅 Mi escaparate de insignias';
+ const showcaseList=document.createElement('div');showcaseList.className='sb-profile-badge-showcase';
+ showcaseList.textContent='Comprobando insignias…';
+ const allBadges=document.createElement('details');allBadges.className='sb-more-badges';
+ const allBadgesTitle=document.createElement('summary');allBadgesTitle.textContent='Ver todas las insignias y sus requisitos';
+ const earnedList=document.createElement('div');earnedList.className='member-anime-badge-list';
+ allBadges.append(allBadgesTitle,earnedList);
+ earnedPanel.append(earnedTitle,showcaseList,allBadges);
+ const levels=[
+  {key:'first',threshold:5,label:'🌱 Primer paso'},
+  {key:'participant',threshold:50,label:'⭐ Participante'},
+  {key:'shonen',threshold:100,label:'⚡ Explorador shōnen'},
+  {key:'active',threshold:150,label:'🔥 Miembro activo'},
+  {key:'astral',threshold:400,label:'🌌 Guardián astral'},
+  {key:'legend',threshold:500,label:'🏆 Leyenda'},
+  {key:'phoenix',threshold:1600,label:'👑 Fénix legendario'}
+ ];
+ const rank=document.createElement('p');rank.className='sb-public-rank-title';rank.hidden=true;
+ publicStatus.after(rank);
  sb.rpc('community_member_xp',{target_member:member.id}).then(({data,error})=>{
-  if(!earnedList.isConnected)return;earnedList.replaceChildren();
-  if(error){earnedList.textContent='No se pudieron comprobar las insignias.';return;}
-  const xp=Number(data)||0;
-  for(const level of levels){
-   const chip=document.createElement('span');const unlocked=xp>=level.threshold;
+  if(!earnedList.isConnected||!showcaseList.isConnected)return;
+  earnedList.replaceChildren();showcaseList.replaceChildren();
+  if(error||data===null){
+   showcaseList.textContent='No se pudieron comprobar las insignias.';
+   allBadges.hidden=true;return;
+  }
+  const xp=Math.max(0,Number(data)||0);
+  const titleLabels={recruit:'🎮 Recluta Byte',explorer:'🌟 Explorador Otaku',guardian:'⚔️ Guardián Gamer',legend:'👑 Leyenda Byte'};
+  const titleMin={recruit:0,explorer:100,guardian:400,legend:1600};
+  if(titleLabels[member.profile_title]&&xp>=titleMin[member.profile_title]){
+   rank.textContent=titleLabels[member.profile_title];
+   rank.hidden=false;
+   root.dataset.sbRankTitle=rank.textContent;
+   root.dispatchEvent(new Event('sb:profile-rank-update'));
+  }
+  const selected=Array.isArray(member.profile_showcase_badges)?member.profile_showcase_badges:[];
+  const earned=levels.filter(item=>xp>=item.threshold);
+  const saved=selected.map(key=>earned.find(item=>item.key===key)).filter(Boolean).slice(0,3);
+  const shown=saved.length?saved:earned.slice(-3).reverse();
+  if(!shown.length)showcaseList.textContent='Todavía no tienes insignias. ¡Participa para conseguirlas!';
+  for(const item of shown){
+   const badgeChip=document.createElement('span');
+   badgeChip.className='sb-showcase-badge is-earned';
+   badgeChip.textContent=item.label;
+   showcaseList.append(badgeChip);
+  }
+  for(const item of levels){
+   const chip=document.createElement('span');const unlocked=xp>=item.threshold;
    chip.className='member-anime-badge'+(unlocked?' is-earned':' is-locked');
-   chip.textContent=(unlocked?'✅ ':'🔒 ')+level.label+(unlocked?'':' · '+level.threshold+' XP');
+   chip.textContent=(unlocked?'✅ ':'🔒 ')+item.label+(unlocked?'':' · '+item.threshold+' XP');
    earnedList.append(chip);
   }
- });
+ }).catch(()=>{if(showcaseList.isConnected)showcaseList.textContent='No se pudieron cargar las insignias.'});
  content.append(earnedPanel);
  window.SBPollSeasonExtras?.mountProfileTrophies(content,member.id,{own:false});
  window.SBPollTrophyMuseum?.mount(content,member.id,{own:false});
