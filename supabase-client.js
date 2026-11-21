@@ -1768,25 +1768,81 @@ async function loadMemberSocial(memberId,root,maxPosts=12){
   if(me&&me!==post.author_id)appendReportButton(article,post.id,'post',me);
   if(me===post.author_id){const remove=document.createElement('button');remove.className='social-delete';remove.textContent='Eliminar publicación';remove.onclick=async()=>{if(!confirm('¿Eliminar esta publicación y sus comentarios?'))return;const {error}=await sb.from('member_posts').delete().eq('id',post.id);if(error)feedback.textContent=error.message;else{if(post.image_path)await sb.storage.from('community-images').remove([post.image_path]);await loadMemberSocial(memberId,root);const gallery=document.getElementById(me===memberId&&location.hash.split('?')[0]==='#/cuenta'?'account-gallery':'member-gallery');if(gallery)loadMemberGallery(memberId,gallery);}};article.append(remove);}
   const commentDetails=document.createElement('details');commentDetails.className='sb-wall-comment-details';
-  const commentSummary=document.createElement('summary');commentSummary.textContent='💬 Comentarios';
+  const commentSummary=document.createElement('summary');commentSummary.textContent='💬 Ver comentarios';
   const list=document.createElement('div');list.className='social-comments';
   commentDetails.append(commentSummary,list);article.append(commentDetails);
-  const {data:comments,error:commentError}=await sb.from('member_comments').select('id,author_id,content,created_at').eq('post_id',post.id).order('created_at',{ascending:true}).limit(100);
-  if(commentError){list.textContent='No se pudieron cargar los comentarios.';}
-  else {
+  let commentRequest=0;
+  const refreshWallComments=async()=>{
+   const request=++commentRequest;
+   list.textContent='Cargando comentarios…';
+   const {data:comments,error:commentError}=await sb.from('member_comments')
+    .select('id,author_id,content,created_at')
+    .eq('post_id',post.id).order('created_at',{ascending:true}).limit(100);
+   if(!list.isConnected||request!==commentRequest)return;
+   list.replaceChildren();
+   if(commentError){list.textContent='No se pudieron cargar los comentarios.';return;}
    commentSummary.textContent='💬 Comentarios ('+(comments||[]).length+')';
-   for(const comment of comments||[]){
-   const item=document.createElement('div');item.className='social-comment';
-   const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(comment.author_id);
-   author.textContent=comment.author_id===memberId?'Autor del perfil':'Miembro';
-   const text=document.createElement('p');text.textContent=comment.content;
-   item.append(author,text);
-   if(me===comment.author_id){const del=document.createElement('button');del.className='social-delete';del.textContent='Eliminar';del.onclick=async()=>{const {error}=await sb.from('member_comments').delete().eq('id',comment.id);if(error)feedback.textContent=error.message;else await loadMemberSocial(memberId,root);};item.append(del);}
-   if(me&&me!==comment.author_id)appendReportButton(item,comment.id,'comment',me);
-   list.append(item);
+   const commentAuthors=[...new Set((comments||[]).map(x=>x.author_id))];
+   const {data:authors}=commentAuthors.length
+    ?await sb.from('profiles').select('id,display_name,username').in('id',commentAuthors)
+    :{data:[]};
+   if(!list.isConnected||request!==commentRequest)return;
+   const names=new Map((authors||[]).map(x=>[x.id,x.display_name||x.username||'Miembro']));
+   if(!(comments||[]).length){
+    const empty=document.createElement('p');empty.className='sb-wall-comment-empty';
+    empty.textContent='Todavía no hay comentarios. ¡Sé el primero!';
+    list.append(empty);
    }
+   for(const comment of comments||[]){
+    const item=document.createElement('div');item.className='social-comment';
+    const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(comment.author_id);
+    author.textContent=comment.author_id===memberId?'Autor del perfil':(names.get(comment.author_id)||'Miembro');
+    const text=document.createElement('p');text.textContent=comment.content;
+    item.append(author,text);
+    if(me===comment.author_id){
+     const remove=document.createElement('button');remove.type='button';
+     remove.className='social-delete';remove.textContent='Eliminar';
+     remove.onclick=async()=>{
+      if(!confirm('¿Eliminar tu comentario?'))return;
+      remove.disabled=true;
+      const {error}=await sb.from('member_comments').delete().eq('id',comment.id).eq('author_id',me);
+      if(error){feedback.textContent='No se pudo eliminar: '+error.message;remove.disabled=false;}
+      else await refreshWallComments();
+     };
+     item.append(remove);
+    }else if(me)appendReportButton(item,comment.id,'comment',me);
+    list.append(item);
+   }
+  };
+  commentDetails.addEventListener('toggle',()=>{
+   if(commentDetails.open)refreshWallComments();
+  });
+  if(me){
+   const commentForm=document.createElement('form');
+   commentForm.className='social-form social-comment-form';
+   const input=document.createElement('textarea');input.maxLength=500;input.required=true;
+   input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');
+   const submit=document.createElement('button');submit.className='outline-btn';submit.type='submit';
+   submit.textContent='Comentar';
+   const commentStatus=document.createElement('p');commentStatus.className='sb-wall-comment-status';
+   commentStatus.setAttribute('role','status');
+   commentForm.append(input,submit,commentStatus);
+   commentForm.onsubmit=async event=>{
+    event.preventDefault();
+    const content=input.value.trim();if(!content)return;
+    submit.disabled=true;commentStatus.textContent='Publicando comentario…';
+    const {error}=await sb.from('member_comments').insert({post_id:post.id,author_id:me,content});
+    submit.disabled=false;
+    if(error){commentStatus.textContent='No se pudo comentar: '+error.message;return;}
+    input.value='';commentStatus.textContent='✅ Comentario publicado';
+    await refreshWallComments();
+   };
+   commentDetails.append(commentForm);
+  }else{
+   const hint=document.createElement('p');hint.className='sb-wall-comment-guest';
+   hint.textContent='Inicia sesión para comentar.';
+   commentDetails.append(hint);
   }
-  if(me){const form=document.createElement('form');form.className='social-form social-comment-form';const input=document.createElement('textarea');input.maxLength=500;input.required=true;input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');const submit=document.createElement('button');submit.className='outline-btn';submit.textContent='Comentar';form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();const content=input.value.trim();if(!content)return;submit.disabled=true;const {error}=await sb.from('member_comments').insert({post_id:post.id,author_id:me,content});if(error){feedback.textContent='No se pudo comentar: '+error.message;submit.disabled=false;}else await loadMemberSocial(memberId,root);};commentDetails.append(form);}
   root.append(article);
  }
  if(hasMore){
