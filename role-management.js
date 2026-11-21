@@ -43,12 +43,14 @@
       <p id="sb-staff-status" role="status" aria-live="polite"></p>
       <div id="sb-staff-list" class="sb-staff-list">Cargando miembros…</div>
     `;
-    const memberSection = document.getElementById("admin-members-list")?.closest(".admin-panel");
-    if (memberSection) memberSection.after(panel);
-    else dashboard.append(panel);
+    const welcome = dashboard.querySelector(".admin-welcome");
+    if (welcome) welcome.after(panel);
+    else dashboard.prepend(panel);
     panel.querySelector("#sb-staff-search").addEventListener("input", drawMembers);
     panel.querySelector("#sb-staff-refresh").addEventListener("click", loadRoles);
     loadRoles();
+    const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("focus");
+    if (focus === "staff") requestAnimationFrame(() => panel.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
   async function loadRoles() {
     const root = document.getElementById("sb-staff-list");
