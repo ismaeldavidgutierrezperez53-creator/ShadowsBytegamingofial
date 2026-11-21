@@ -8,6 +8,7 @@
   function attachPicker(input) {
     if (!input || input.dataset.sbNewsMentionsAttached) return;
     input.dataset.sbNewsMentionsAttached = 'true';
+    const isNewsAdminField = /^admin-(title|excerpt|content)$/.test(input.id);
     const menu = document.createElement('div');
     menu.className = 'sb-news-mention-picker';
     menu.setAttribute('role', 'listbox');
@@ -41,15 +42,22 @@
         if (seq !== request || !menu.isConnected || !matchAtCaret()) return;
         close();
         if (error) return;
-        choices = (data || []).filter(m => /^[A-Za-z0-9_]{2,32}$/.test(m.username || ''));
+        const everyone = isNewsAdminField && 'everyone'.startsWith(prefix.toLowerCase())
+          ? [{ username: 'everyone', display_name: 'todos los miembros' }] : [];
+        choices = everyone.concat((data || []).filter(m =>
+          /^[A-Za-z0-9_]{2,32}$/.test(m.username || '') &&
+          m.username.toLowerCase() !== 'everyone'
+        ));
         if (!choices.length) return;
         choices.forEach((member, i) => {
           const button = document.createElement('button');
           button.type = 'button';
-          button.className = 'sb-news-mention-option';
+          button.className = 'sb-news-mention-option' + (member.username === 'everyone' ? ' sb-news-mention-everyone' : '');
           button.setAttribute('role', 'option');
           button.id = 'sb-news-mention-' + i + '-' + seq;
-          button.textContent = '@' + member.username + (member.display_name ? ' · ' + member.display_name : '');
+          button.textContent = member.username === 'everyone'
+            ? '📣 @everyone · mencionar a todos los miembros'
+            : '@' + member.username + (member.display_name ? ' · ' + member.display_name : '');
           button.addEventListener('mousedown', event => event.preventDefault());
           button.addEventListener('click', () => choose(member));
           menu.append(button);
@@ -106,29 +114,43 @@
       if (mentionPattern.test(node.textContent)) textNodes.push(node);
       mentionPattern.lastIndex = 0;
     }
+    // @everyone sólo se resalta en el artículo, nunca en comentarios de miembros.
+    const isArticle = root.classList.contains('sb-full-news');
     const usernames = [...new Set(textNodes.flatMap(node =>
       [...node.textContent.matchAll(mentionPattern)].map(match => match[2])
+        .filter(name => name.toLowerCase() !== 'everyone')
     ))].slice(0, 40);
-    if (!usernames.length) return;
-    const { data, error } = await sb.from('profiles').select('id,username')
-      .eq('is_public', true).in('username', usernames).limit(40);
-    if (error || !root.isConnected) return;
-    const profileMap = new Map((data || []).map(member => [member.username.toLowerCase(), member.id]));
+    if (!usernames.length && !isArticle) return;
+    let profileMap = new Map();
+    if (usernames.length) {
+      const { data, error } = await sb.from('profiles').select('id,username')
+        .eq('is_public', true).in('username', usernames).limit(40);
+      if (error || !root.isConnected) return;
+      profileMap = new Map((data || []).map(member => [member.username.toLowerCase(), member.id]));
+    }
     for (const node of textNodes) {
       if (!node.isConnected || !root.contains(node)) continue;
       const text = node.textContent, fragment = document.createDocumentFragment();
       const re = /(^|[^A-Za-z0-9_])@([A-Za-z0-9_]{2,32})/g;
       let cursor = 0, replaced = false, match;
       while ((match = re.exec(text))) {
+        const everyone = isArticle && match[2].toLowerCase() === 'everyone';
         const id = profileMap.get(match[2].toLowerCase());
-        if (!id) continue;
+        if (!id && !everyone) continue;
         const at = match.index + match[1].length;
         if (at > cursor) fragment.append(document.createTextNode(text.slice(cursor, at)));
-        const anchor = document.createElement('a');
-        anchor.href = '#/perfil?id=' + encodeURIComponent(id);
-        anchor.className = 'sb-news-mention-link';
-        anchor.textContent = '@' + match[2];
-        fragment.append(anchor);
+        if (everyone) {
+          const tag = document.createElement('span');
+          tag.className = 'sb-news-everyone-tag';
+          tag.textContent = '@everyone';
+          fragment.append(tag);
+        } else {
+          const anchor = document.createElement('a');
+          anchor.href = '#/perfil?id=' + encodeURIComponent(id);
+          anchor.className = 'sb-news-mention-link';
+          anchor.textContent = '@' + match[2];
+          fragment.append(anchor);
+        }
         cursor = at + match[2].length + 1;
         replaced = true;
       }
