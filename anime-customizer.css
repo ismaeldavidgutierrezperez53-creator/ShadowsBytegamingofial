@@ -54,3 +54,60 @@ html[data-sb-effect="legendary_aura"] body::after{background:radial-gradient(ell
 @keyframes sb-legend-pulse{50%{opacity:.95;filter:hue-rotate(30deg)}}
 @media(prefers-reduced-motion:reduce){html[data-sb-effect] body::after{animation:none!important}}
 html[data-sb-motion="off"] body::after{animation:none!important}
+
+
+/* 2026-11-21: Keep the anime customizer fully usable on narrow mobile screens. */
+.sb-customize-panel{
+  box-sizing:border-box;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+  max-height:calc(100dvh - 100px);
+}
+.sb-customize-panel h2{
+  position:sticky;
+  top:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 4px;
+  margin:-8px 0 12px;
+  background:#130d29;
+}
+.sb-customize-panel .sb-customize-close{
+  display:grid;
+  place-items:center;
+  flex:0 0 36px;
+  min-width:36px;
+  min-height:36px;
+  margin:0;
+  padding:0;
+  border-radius:10px;
+  font:700 24px/1 Arial,sans-serif;
+}
+html[data-sb-theme="light"] .sb-customize-panel h2{background:#faf2ff}
+@media(max-width:700px){
+  .sb-customize-toggle{
+    bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .sb-customize-panel{
+    left:max(10px,env(safe-area-inset-left, 0px));
+    right:max(10px,env(safe-area-inset-right, 0px));
+    top:max(12px,env(safe-area-inset-top, 0px));
+    bottom:calc(70px + env(safe-area-inset-bottom, 0px));
+    width:auto;
+    height:auto;
+    max-height:none;
+    padding:14px;
+    border-radius:14px;
+  }
+  .sb-customize-panel h2{
+    margin:-5px 0 10px;
+    padding:8px 2px;
+  }
+  .sb-customize-panel select{min-height:44px}
+}
