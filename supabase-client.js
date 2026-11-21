@@ -132,7 +132,7 @@ function attachCommunityMentionPicker(input){
  const pick=member=>{
   const caret=input.selectionStart??input.value.length;
   const before=input.value.slice(0,caret);
-  const active=before.match(/(^|[\\s([{])@([A-Za-z0-9_]{0,32})$/);
+  const active=before.match(/(^|[\s([{])@([A-Za-z0-9_]{0,32})$/);
   if(!active)return;
   const start=caret-active[2].length-1;
   const replacement='@'+member.username+' ';
@@ -144,7 +144,7 @@ function attachCommunityMentionPicker(input){
  const refresh=async()=>{
   const current=++token;
   const at=input.value.slice(0,input.selectionStart??input.value.length);
-  const match=at.match(/(^|[\\s([{])@([A-Za-z0-9_]{0,32})$/);
+  const match=at.match(/(^|[\s([{])@([A-Za-z0-9_]{0,32})$/);
   close();
   if(!match||!input.isConnected)return;
   try{
