@@ -286,8 +286,8 @@
           if (action.disabled) return;
           action.disabled = true;
           try {
-            const {data: {user}, error: authError} = await sb.auth.getUser();
-            if (authError && !user) throw authError;
+            const {data: authData} = await sb.auth.getUser();
+            const user = authData?.user;
             if (!user) { dialog.close(); location.hash = '#/auth'; return; }
             if (user.id === person.id) { action.remove(); return; }
             // Leer el estado vigente evita cambios duplicados si otra pestaña actuó.
