@@ -138,7 +138,7 @@
     }
     const ask = action === "ban" ? "Esta expulsión impedirá que la cuenta inicie sesión. ¿Continuar?"
       : action === "suspend" ? "La cuenta quedará suspendida temporalmente. ¿Confirmar?"
-      : action === "lift" ? "¿Retirar el bloqueo de esta cuenta?" : "¿Enviar esta advertencia?";
+      : action === "lift" ? "¿Retirar el bloqueo de esta cuenta?" : "¿Registrar esta advertencia en el historial del miembro?";
     if (!window.confirm(ask + "\nMiembro: " + (target.display_name || target.username || "Miembro"))) return;
     const button = form.querySelector("#sb-sanction-submit");
     button.disabled = true;
@@ -181,7 +181,7 @@
         </label>
         <label>Acción
           <select id="sb-sanction-action">
-            <option value="warning">⚠️ Enviar advertencia</option>
+            <option value="warning">⚠️ Registrar advertencia</option>
             <option value="suspend">⏳ Suspensión temporal</option>
             ${state.isAdmin ? '<option value="ban">🚫 Expulsar de la web</option>' : ''}
             <option value="lift">✅ Retirar sanción activa</option>
