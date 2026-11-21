@@ -1085,7 +1085,7 @@ async function loadAccountProfile(){
   root.dataset.sbCoverTint=document.getElementById('profile-cover-tint')?.value||'soft';
   previewCard.dataset.animeCard=document.getElementById('profile-anime-card')?.value||'sakura';
   if(coverNode){
-   coverNode.style.backgroundImage=(validCover&&!videoCover)?'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.12)),url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';
+   coverNode.style.backgroundImage=(validCover&&!videoCover)?'url("'+coverUrl.replace(/["'()\\]/g,'')+'")':'';
    coverNode.dataset.theme=theme;
   }
   const score=[!!currentName,!!currentAvatar,!!bio,!!visible].filter(Boolean).length*25;
