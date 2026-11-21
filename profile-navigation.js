@@ -14,6 +14,7 @@
  const modules=[
   ['✨ Mi centro de perfil','.sbp-dashboard',true],
   ['🎴 Identidad gamer','.sbp-identity-card',true],
+  ['📝 Muro social · Perfil ID','.sb-profile-wall-panel',true],
   ['👁️ Visitas al perfil','.sb-profile-views',true],
   ['🧭 Miembros afines','.sbd-discovery',true],
   ['🎖️ Escaparate gamer','.sb-showcase',true],
@@ -37,7 +38,7 @@
   ['🎮 Biblioteca compartida','.public-game-library',false],
   ['🏆 Logros','.member-achievements',false],
   ['📊 Estadísticas sociales','.member-profile-stats',false],
-  ['💬 Comunidad','.member-social',false],
+  ['💬 Muro social','.member-social',false],
   ['📷 Galería','.member-gallery-panel',false],
   ['🏆 Insignias de enlaces','.sbgl-badges',false]
  ];
