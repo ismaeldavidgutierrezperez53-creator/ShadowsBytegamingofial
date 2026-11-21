@@ -9,6 +9,8 @@
   })[char]);
   const safeCover = url => typeof url === 'string' && /^https:\/\//i.test(url.trim()) ? url.trim() : '';
   const articleUrl = id => '#/noticia?id=' + encodeURIComponent(String(id));
+  const categories = {general:'📰 General',anime:'🌸 Anime',gaming:'🎮 Gaming',manga:'📚 Manga',eventos:'📅 Eventos',comunidad:'👥 Comunidad'};
+  const categoryBadge = category => '<span class="sb-news-category">'+escape(categories[category] || categories.general)+'</span>';
   const formatDate = value => {
     if (!value) return '';
     const date = new Date(value);
@@ -18,9 +20,17 @@
 
   // Los enlaces son accesibles tanto desde Inicio como desde Noticias.
   newsCards = function (items) {
-    const visible = Array.isArray(items) ? items.filter(n => n && (n.status == null || n.status === 'published')).sort((a,b) => Number(!!b.is_featured)-Number(!!a.is_featured)) : [];
-    if (!visible.length) return '<div class="empty">Aún no hay noticias publicadas</div>';
-    return '<div class="content-grid news-grid">' + visible.map(n => {
+    const allVisible = Array.isArray(items) ? items.filter(n => n && (n.status == null || n.status === 'published')).sort((a,b) => Number(!!b.is_featured)-Number(!!a.is_featured)) : [];
+    const isNewsPage = location.hash.slice(1).split('?')[0] === '/noticias';
+    const chosen = isNewsPage ? new URLSearchParams(location.hash.split('?')[1] || '').get('categoria') : null;
+    const selected = Object.prototype.hasOwnProperty.call(categories,chosen) ? chosen : 'todas';
+    const filters = !isNewsPage ? '' : '<nav class="sb-news-filters" aria-label="Filtrar noticias por categoría">' +
+      [['todas','Todas'],...Object.entries(categories)].map(([key,label]) =>
+       '<a href="#/noticias'+(key==='todas'?'':'?categoria='+encodeURIComponent(key))+'"'+
+       (selected===key?' aria-current="page"':'')+'>'+escape(label)+'</a>').join('') + '</nav>';
+    const visible = selected==='todas' ? allVisible : allVisible.filter(n => (n.category || 'general')===selected);
+    if (!visible.length) return filters+'<div class="empty">No hay noticias publicadas en esta categoría.</div>';
+    return filters + '<div class="content-grid news-grid">' + visible.map(n => {
       const title = String(n.title || 'Noticia');
       const url = n.id == null ? '' : articleUrl(n.id);
       const cover = safeCover(n.cover_url);
@@ -39,7 +49,7 @@
         ? '<a class="sb-news-read-btn" href="' + escape(url) +
           '" aria-label="Leer noticia completa: ' + escape(title) + '">Leer noticia completa <span aria-hidden="true">›</span></a>'
         : '<p class="sb-news-unavailable">No se puede abrir esta noticia.</p>';
-      return '<article class="auth-card news-card' + (n.is_featured ? ' sb-news-featured-card' : '') + '">' + imageHTML + featuredHTML + dateHTML + titleHTML +
+      return '<article class="auth-card news-card' + (n.is_featured ? ' sb-news-featured-card' : '') + '">' + imageHTML + categoryBadge(n.category) + featuredHTML + dateHTML + titleHTML +
         (excerpt ? '<p>' + escape(excerpt) + '</p>' : '') + readHTML + '</article>';
     }).join('') + '</div>';
   };
@@ -73,7 +83,7 @@
 
     try {
       const { data: n, error } = await sb.from('news')
-        .select('id,title,excerpt,content,cover_url,published_at,status,is_featured')
+        .select('id,title,excerpt,content,cover_url,published_at,status,is_featured,category')
         .eq('id', id).eq('status', 'published').maybeSingle();
       if (!host.isConnected || location.hash !== currentHash) return;
       if (error) throw error;
@@ -90,7 +100,7 @@
       host.innerHTML =
         '<article class="sb-full-news">' +
           '<header class="sb-full-news-header"><span class="sb-full-news-kicker">📰 SHADOWS BYTE · NOTICIAS</span>' +
-          (n.is_featured ? '<span class="sb-news-featured-badge">⭐ Noticia destacada</span>' : '') +
+          categoryBadge(n.category) + (n.is_featured ? '<span class="sb-news-featured-badge">⭐ Noticia destacada</span>' : '') +
           '<h1>' + escape(title) + '</h1>' +
           (date ? '<time datetime="' + escape(n.published_at) + '">📅 ' + escape(date) + '</time>' : '') +
           '</header>' +
