@@ -37,6 +37,11 @@
     '<button type="button" data-action="reset">Limpiar filtros</button>'+
     '<button type="button" data-action="refresh">🔄 Actualizar historial</button>'+
    '</div>'+
+   '<div class="sb-history-bulk" aria-label="Acciones para todas las notificaciones">'+
+    '<button type="button" data-action="bulk-read">✅ Marcar todas como leídas</button>'+
+    '<button type="button" data-action="bulk-archive">📦 Archivar todas</button>'+
+    '<small>Estas acciones afectan a todo tu historial, aunque tengas filtros activos. Archivar no elimina nada.</small>'+
+   '</div>'+
    '<p class="sb-history-status" role="status" aria-live="polite">Abre este apartado para consultar tus avisos anteriores.</p>'+
    '<div class="sb-history-list"></div>'+
    '<div class="sb-history-pagination">'+
@@ -56,7 +61,9 @@
   const previous=content.querySelector('[data-action="previous"]');
   const next=content.querySelector('[data-action="next"]');
   const pageLabel=content.querySelector('.sb-history-page');
-  let page=0,total=0,request=0,loaded=false;
+  const bulkRead=content.querySelector('[data-action="bulk-read"]');
+  const bulkArchive=content.querySelector('[data-action="bulk-archive"]');
+  let page=0,total=0,request=0,loaded=false,bulkPending=false;
 
   function refreshOtherCounters(userId){
    try {
@@ -65,11 +72,24 @@
    } catch(e){console.warn('No se pudieron refrescar los contadores:',e);}
   }
   async function updateSaved(row,changes,userId){
-   const allowed=['member_notifications','member_report_notifications'];
-   if(!allowed.includes(row.source_table))return;
-   const {error}=await sb.from(row.source_table).update(changes)
-    .eq('id',row.record_id).eq('recipient_id',userId);
-   if(error)throw error;
+   const direct=['member_notifications','member_report_notifications'];
+   if(direct.includes(row.source_table)){
+    const {error}=await sb.from(row.source_table).update(changes)
+      .eq('id',row.record_id).eq('recipient_id',userId);
+    if(error)throw error;
+   }else{
+    // Los mensajes, premios y noticias conservan su contenido original.
+    // Sólo se guarda el estado privado del aviso de este miembro.
+    const archived=Object.prototype.hasOwnProperty.call(changes,'dismissed_at')
+      ?changes.dismissed_at:(row.archived_at||null);
+    const read=Object.prototype.hasOwnProperty.call(changes,'is_read')
+      ?changes.is_read:Boolean(row.is_read);
+    const {error}=await sb.from('member_notification_history_actions').upsert({
+      user_id:userId,source_table:row.source_table,record_id:row.record_id,
+      is_read:read,archived_at:archived,updated_at:new Date().toISOString()
+    },{onConflict:'user_id,source_table,record_id'});
+    if(error)throw error;
+   }
    refreshOtherCounters(userId);
   }
   function renderRow(row,userId){
@@ -89,7 +109,7 @@
     const link=document.createElement('a');link.href=row.href;link.textContent='Ver';link.className='notification-jump';
     buttons.append(link);
    }
-   if(['member_notifications','member_report_notifications'].includes(row.source_table)){
+   {
     if(row.is_read===false){
      const mark=document.createElement('button');mark.type='button';mark.textContent='✓ Marcar leída';
      mark.onclick=async()=>{
@@ -164,6 +184,32 @@
     previous.disabled=true;next.disabled=true;
    }
   }
+  async function runBulk(action){
+   if(bulkPending)return;
+   if(action==='archive'&&!window.confirm('¿Archivar TODOS los avisos del historial, incluso los que no se muestran por los filtros? Se podrán restaurar desde Archivados. No se borrarán mensajes, noticias ni premios.'))return;
+   bulkPending=true;bulkRead.disabled=true;bulkArchive.disabled=true;
+   const oldStatus=status.textContent;
+   status.textContent=action==='read'?'Marcando todos los avisos como leídos…':'Archivando todo el historial…';
+   try{
+    const {data:{user},error:authError}=await sb.auth.getUser();
+    if(authError||!user)throw new Error('Inicia sesión para gestionar tus avisos.');
+    const {data,error}=await sb.rpc('member_notification_history_bulk',{p_action:action});
+    if(error)throw error;
+    await loadPage(0);
+    refreshOtherCounters(user.id);
+    const changed=Number(data?.updated||0);
+    status.textContent=changed>0
+      ?changed+(changed===1?' aviso actualizado.':' avisos actualizados.')+(action==='archive'?' Puedes restaurarlos desde Archivados.':'')
+      :(action==='read'?'Todos los avisos ya estaban leídos.':'Todos los avisos ya estaban archivados.');
+   }catch(err){
+    console.error('No se pudo actualizar el historial:',err);
+    status.textContent='No se pudieron actualizar todos los avisos: '+(err?.message||'error desconocido');
+   }finally{
+    bulkPending=false;bulkRead.disabled=false;bulkArchive.disabled=false;
+   }
+  }
+  bulkRead.onclick=()=>void runBulk('read');
+  bulkArchive.onclick=()=>void runBulk('archive');
   const search=content.querySelector('[data-action="search"]');
   const reset=content.querySelector('[data-action="reset"]');
   const refresh=content.querySelector('[data-action="refresh"]');
