@@ -102,7 +102,14 @@ async function dispatch(type:string,id:string):Promise<number> {
       profile_view:['👀 Visita a tu perfil','Alguien ha visto tu perfil.','#/cuenta'],
       news_reply:['📰 Respuesta a tu comentario','Hay una nueva respuesta en noticias.','#/noticias']
     };
-    const info=kinds[n.kind] || ['🔔 Nueva notificación','Tienes novedades en Shadows Byte Gaming.','#/notificaciones'];
+    let info=kinds[n.kind] || ['🔔 Nueva notificación','Tienes novedades en Shadows Byte Gaming.','#/notificaciones'];
+    // El aviso externo de Seguidores identifica al miembro y abre directamente su perfil.
+    if (n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id || '')) {
+      const {data:actor}=await admin.from('profiles').select('display_name,username')
+        .eq('id',n.actor_id).eq('is_public',true).maybeSingle();
+      const actorName=String(actor?.display_name || actor?.username || 'Un miembro').trim().slice(0,60);
+      info=['👥 Nuevo seguidor',actorName+' empezó a seguirte.','#/perfil?id='+encodeURIComponent(n.actor_id)];
+    }
     return await notifyUser(n.recipient_id,{title:info[0],body:info[1],path:info[2],tag:'notice-'+n.id});
   }
   if (type==='member_direct_messages') {
