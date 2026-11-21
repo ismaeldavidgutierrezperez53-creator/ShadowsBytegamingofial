@@ -37,9 +37,10 @@
       #public-member-profile .sb-profile-id-actions {grid-template-columns:1fr;}
     }
 
-    /* Evita que el navegador reajuste el scroll por módulos cargados al fondo. */
-    #public-member-profile .public-member-body { overflow-anchor:none; }
+    /* El anclaje nativo conserva la posición cuando se cargan tarjetas. */
+    #public-member-profile .public-member-body { overflow-anchor:auto; }
     #public-member-profile .sb-public-clean-nav { scroll-margin-top:85px; }
+    html:has(#public-member-profile .public-member-body) { scroll-behavior:auto; }
     /* Vista reducida: el ID completo y las copias siguen disponibles bajo demanda. */
     #public-member-profile .sb-profile-id-panel {
       display:block; padding:10px 13px; margin:12px 0 16px;
@@ -84,6 +85,15 @@
     }
     #public-member-profile .sb-public-clean-tab[hidden] {display:none!important}
     #public-member-profile .sb-public-clean-tab:hover {border-color:#e2bbff}
+
+    /* Las pestañas no mueven elementos ni cambian el atributo hidden de
+       secciones remotas. Sólo se filtra su presentación con CSS. */
+    #public-member-profile .public-member-body[data-sb-active-tab="resumen"] > section:not(.sb-public-clean-nav):not(:is(.member-profile-stats,.sbp-identity-card,.sb-profile-views)) {display:none!important}
+    #public-member-profile .public-member-body[data-sb-active-tab="anime"] > section:not(.sb-public-clean-nav):not(:is(.public-anime-identity,.member-anime-badges,.member-achievements,.profile-now-panel,.poll-month-trophy-gallery,.poll-trophy-museum,.sbgt-gallery,.sbv-editor,.sbpm-panel,.sbaf-panel)) {display:none!important}
+    #public-member-profile .public-member-body[data-sb-active-tab="gaming"] > section:not(.sb-public-clean-nav):not(:is(.gamer-profile-panel,.public-game-library,.sb-showcase,.sbg-stats,.sbgl-links,.sbgl-link-analytics,.sbgl-badges)) {display:none!important}
+    #public-member-profile .public-member-body[data-sb-active-tab="comunidad"] > section:not(.sb-public-clean-nav):not(:is(.member-social,.member-gallery-panel,.account-follows-panel,.sbc-connections,.sba-timeline,.sbs-challenges,.sbd-discovery)) {display:none!important}
+    #public-member-profile .public-member-body[data-sb-active-tab="otros"] > section:is(.member-profile-stats,.sbp-identity-card,.sb-profile-views,.public-anime-identity,.member-anime-badges,.member-achievements,.profile-now-panel,.poll-month-trophy-gallery,.poll-trophy-museum,.sbgt-gallery,.sbv-editor,.sbpm-panel,.sbaf-panel,.gamer-profile-panel,.public-game-library,.sb-showcase,.sbg-stats,.sbgl-links,.sbgl-link-analytics,.sbgl-badges,.member-social,.member-gallery-panel,.account-follows-panel,.sbc-connections,.sba-timeline,.sbs-challenges,.sbd-discovery) {display:none!important}
+
     #public-member-profile .sb-public-clean-tab:focus-visible,
     #public-member-profile .sb-public-clean-tools > summary:focus-visible {outline:3px solid #7de4ff;outline-offset:3px}
     #public-member-profile .sb-public-clean-item[hidden] {display:none!important}
@@ -249,9 +259,10 @@
       // espacio en la vista normal ni pierde sus atajos.
       body.addEventListener('sb:profile-expand', event => {
         const target = event.target;
-        const section = target instanceof Element ? target.closest('.sb-public-clean-item') : null;
+        let section = target instanceof Element ? target.closest('section') : null;
+        while (section && section.parentElement !== body) section = section.parentElement?.closest('section');
         if (!section || !body.contains(section)) return;
-        const group = section.dataset.sbPublicGroup;
+        const group = profileGroupFor(section);
         if (group && selector.dataset.activeGroup !== group) {
           selector.dataset.activeGroup = group;
           updatePublicGroups(body, selector);
@@ -277,22 +288,16 @@
     updatePublicGroups(body, selector);
   }
   function updatePublicGroups(body, selector) {
-    const counts = Object.fromEntries(profileGroups.map(([key]) => [key, 0]));
-    const selected = selector.dataset.activeGroup || 'resumen';
-    for (const child of [...body.children]) {
-      const group = profileGroupFor(child);
-      if (!group) continue;
-      child.classList.add('sb-public-clean-item');
-      if (child.dataset.sbPublicGroup !== group) child.dataset.sbPublicGroup = group;
-      counts[group]++;
-      const shouldHide = group !== selected;
-      if (child.hidden !== shouldHide) child.hidden = shouldHide;
-    }
+    const selected = profileGroups.some(([key]) => key === selector.dataset.activeGroup)
+      ? selector.dataset.activeGroup : 'resumen';
+    // Una única variable en el contenedor activa las reglas CSS.
+    // Ningún elemento se mueve ni se oculta mediante DOM.
+    if (body.dataset.sbActiveTab !== selected) body.dataset.sbActiveTab = selected;
     for (const button of selector.querySelectorAll('.sb-public-clean-tab')) {
-      const key = button.dataset.group;
-      const isSelected = key === selected;
-      button.hidden = counts[key] === 0 && !isSelected;
-      button.setAttribute('aria-pressed', String(isSelected));
+      const active = button.dataset.group === selected;
+      if (button.getAttribute('aria-pressed') !== String(active)) {
+        button.setAttribute('aria-pressed', String(active));
+      }
     }
   }
 
