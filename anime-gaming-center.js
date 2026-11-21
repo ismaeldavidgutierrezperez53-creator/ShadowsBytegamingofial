@@ -127,6 +127,8 @@
       state.library = library.error ? [] : library.data || [];
       populateSuggestions(state);
       message.textContent='✅ Tus registros se han cargado. Los datos son privados.';
+      byId(root,'sb-ag-anime-form').querySelector('button[type="submit"]').disabled=false;
+      byId(root,'sb-ag-game-form').querySelector('button[type="submit"]').disabled=false;
       paintAll(state);
     } catch(error) {
       if(!active()) return;
