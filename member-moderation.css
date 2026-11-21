@@ -30,3 +30,5 @@
   .sb-sanction-actions button{width:100%;}
   .sb-sanction-history{max-height:420px;}
 }
+
+.sb-sanction-form [hidden] { display: none !important; }
