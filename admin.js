@@ -33,7 +33,7 @@ function adminField(name,value,model){
  const control=(name==='is_featured'||name==='notify_members')
   ? '<input id="'+id+'" name="'+name+'" type="checkbox" value="true" '+(val==='true'?'checked':'')+' />'
   :options
-  ?'<select id="'+id+'" name="'+name+'">'+options.map(x=>'<option value="'+safe(x)+'" '+(x===val?'selected':'')+'>'+safe(x==='draft'?'Borrador':x==='published'?'Publicado':x==='cancelled'?'Cancelado':x==='general'?'📰 General':x==='anime'?'🌸 Anime':x==='gaming'?'🎮 Gaming':x==='manga'?'📚 Manga':x==='manhwa'?'📖 Manhwa':x==='pokemon'?'⚡ Pokémon':x==='waifu'?'💖 Waifu':x==='husbando'?'💙 Husbando':x==='eventos'?'Eventos':x==='comunidad'?'Comunidad':x)+'</option>').join('')+'</select>'
+  ?'<select id="'+id+'" name="'+name+'">'+options.map(x=>'<option value="'+safe(x)+'" '+(x===val?'selected':'')+'>'+safe(x==='draft'?'Borrador':x==='published'?'Publicado':x==='cancelled'?'Cancelado':x==='general'?'📰 General':x==='anime'?'🌸 Anime':x==='gaming'?'🎮 Gaming':x==='manga'?'📚 Manga':x==='manhwa'?'📖 Manhwa':x==='pokemon'?'⚡ Pokémon':x==='waifu'?'💖 Waifu':x==='husbando'?'💙 Husbando':x==='eventos'?'📅 Eventos':x==='comunidad'?'👥 Comunidad':x)+'</option>').join('')+'</select>'
   :adminLargeFields.has(name)
    ?'<textarea id="'+id+'" name="'+name+'" rows="'+(name==='content'?7:3)+'" placeholder="Escribe aquí...">'+safe(val)+'</textarea>'
    :'<input id="'+id+'" name="'+name+'" '+(name==='title'?'required maxlength="180" ':'')+(adminDateFields.has(name)?'type="datetime-local" ':'')+(name==='cover_url'||name==='image_url'||name==='destination_url'?'type="url" placeholder="https://..." ':'')+(name==='sort_order'?'type="number" step="1" ':'')+'value="'+safe(adminDateFields.has(name)?adminDateInput(val):val)+'" />';
