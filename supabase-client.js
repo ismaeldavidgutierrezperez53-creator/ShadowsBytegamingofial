@@ -1178,11 +1178,46 @@ function sbProfileMedia(source,alt,cssClass){
  return media;
 }
 
+// Prevent an Android PWA from displaying "Cargando perfil" indefinitely when Auth is slow.
+async function checkAccountSessionWithTimeout(task, milliseconds=9000){
+ return Promise.race([
+  task(),
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error('La comprobación de sesión tardó demasiado.')),milliseconds))
+ ]);
+}
 async function loadAccountProfile(){
  const root=document.getElementById('account-profile');if(!root)return;
- const {data:{user},error}=await sb.auth.getUser();
+ let user;
+ try {
+  // If this installed PWA has no saved session, don't wait for a network getUser call.
+  const {data,error}=await checkAccountSessionWithTimeout(()=>sb.auth.getSession());
+  if(error)throw error;
+  user=data?.session?.user||null;
+ } catch(error) {
+  if(!root.isConnected)return;
+  console.warn('No se pudo recuperar la sesión del móvil:',error.message);
+  root.innerHTML='<section class="profile-panel" role="status"><h3>No se ha podido comprobar tu sesión</h3><p>Comprueba tu conexión y vuelve a intentarlo. Tu cuenta y tus datos siguen guardados.</p><button class="gradient-btn mini" id="account-session-retry" type="button">Reintentar</button> <a class="outline-btn mini" href="#/auth">Iniciar sesión</a></section>';
+  root.querySelector('#account-session-retry')?.addEventListener('click',()=>{root.textContent='Comprobando tu sesión…';void loadAccountProfile();});
+  return;
+ }
  if(!root.isConnected)return;
- if(error||!user){root.innerHTML='<p>Inicia sesión para ver tu perfil.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión</a>';return;}
+ if(!user){
+  root.innerHTML='<section class="profile-panel" role="status"><h3>Inicia sesión en este móvil</h3><p>Tu cuenta ya existe. Para ver tu perfil desde Android, entra con el mismo correo y contraseña que utilizas en Shadows Byte Gaming.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión con mi cuenta</a></section>';
+  return;
+ }
+ // Revalidate against Auth when available; a transient connectivity issue must not trap the UI in a spinner.
+ try{
+  const {data,error}=await checkAccountSessionWithTimeout(()=>sb.auth.getUser(),6500);
+  if(error)throw error;
+  if(!data?.user){
+   root.innerHTML='<section class="profile-panel" role="status"><h3>La sesión ha caducado</h3><p>Inicia sesión otra vez en este móvil con tu cuenta actual.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión</a></section>';
+   return;
+  }
+  user=data.user;
+ }catch(error){
+  console.warn('No se pudo verificar la sesión online; se usa solo para mostrar el perfil guardado:',error.message);
+ }
+ if(!root.isConnected)return;
  const meta=user.user_metadata||{};
  const avatar=typeof meta.avatar_url==='string'&&/^https:\/\//i.test(meta.avatar_url)?meta.avatar_url:'';
  const name=meta.display_name||meta.full_name||'Mi perfil';
