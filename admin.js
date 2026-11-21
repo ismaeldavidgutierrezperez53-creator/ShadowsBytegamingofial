@@ -71,7 +71,7 @@ function adminSetupImageUpload(){
 function adminForm(item={}){
  const root=document.getElementById('admin-form-root');if(!root)return;
  const model=adminModels[adminTable],isEdit=Boolean(item.id);
- root.innerHTML='<section class="admin-panel admin-editor-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">EDITOR DE CONTENIDO</span><h2>'+(isEdit?'Editar':'Crear')+' '+model.label.toLowerCase()+'</h2><p>Completa los campos y guarda tus cambios en Supabase.</p></div><button type="button" class="admin-close" id="admin-close" aria-label="Cerrar editor">✕</button></div><form id="admin-editor"><div class="admin-fields">'+Object.keys(model.fields).map(k=>adminField(k,item[k]??(k==='status'?'draft':''),model)).join('')+'</div>'+((model.fields.image_url||model.fields.cover_url)?'<div class="admin-field admin-field-wide"><label for="admin-image-file">Subir imagen desde tu dispositivo (máximo 5 MB)</label><input id="admin-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><p id="admin-upload-status" role="status" aria-live="polite"></p><img id="admin-image-preview" alt="Vista previa de la imagen" hidden style="max-width:240px;max-height:180px;object-fit:contain;border-radius:12px;margin-top:10px"></div>':'')+'<div class="admin-form-actions"><button type="button" class="admin-secondary" id="admin-cancel">Cancelar</button><button type="submit" class="gradient-btn" id="admin-save">Guardar contenido</button></div></form></section>';
+ root.innerHTML='<section class="admin-panel admin-editor-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">EDITOR DE CONTENIDO</span><h2>'+(isEdit?'Editar':'Crear')+' '+model.label.toLowerCase()+'</h2><p>Completa los campos y guarda tus cambios en Supabase.</p></div><button type="button" class="admin-close" id="admin-close" aria-label="Cerrar editor">✕</button></div><form id="admin-editor"><div class="admin-fields">'+Object.keys(model.fields).map(k=>adminField(k,item[k]??(k==='status'?'draft':''),model)).join('')+'</div>'+((model.fields.image_url||model.fields.cover_url)?'<div class="admin-field admin-field-wide"><label for="admin-image-file">Subir imagen desde tu dispositivo (máximo 5 MB)</label><input id="admin-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><p id="admin-upload-status" role="status" aria-live="polite"></p><img id="admin-image-preview" alt="Vista previa de la imagen" hidden style="max-width:240px;max-height:180px;object-fit:contain;border-radius:12px;margin-top:10px"></div>':'')+'<p id="admin-editor-message" role="status" aria-live="polite" style="margin:12px 0 0;color:#ffb4be"></p><div class="admin-form-actions"><button type="button" class="admin-secondary" id="admin-cancel">Cancelar</button><button type="submit" class="gradient-btn" id="admin-save">Guardar contenido</button></div></form></section>';
  adminSetupImageUpload();
  if(adminTable==='news'&&window.SBNewsMentions){
    const content=document.getElementById('admin-content');
@@ -94,6 +94,21 @@ function adminForm(item={}){
      window.SBNewsMentions.attachPicker(document.getElementById('admin-'+field));
    }
  }
+ if(adminTable==='news'&&!isEdit){
+   const titleField=document.getElementById('admin-title');
+   const slugField=document.getElementById('admin-slug');
+   let slugEdited=false;
+   slugField?.addEventListener('input',()=>{slugEdited=Boolean(slugField.value.trim());});
+   titleField?.addEventListener('input',()=>{
+     if(!slugField||slugEdited)return;
+     slugField.value=titleField.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,120);
+   });
+ }
+ const editorMessage=(message,type='error')=>{
+   const note=document.getElementById('admin-editor-message');
+   if(note){note.textContent=message;note.dataset.type=type;note.scrollIntoView({behavior:'smooth',block:'nearest'});}
+   adminMessage(message,type);
+ };
  const close=()=>root.replaceChildren();
  document.getElementById('admin-close').onclick=close;
  document.getElementById('admin-cancel').onclick=close;
@@ -110,7 +125,7 @@ function adminForm(item={}){
   if(adminTable==='billboard')data.sort_order=Number(data.sort_order)||0;
   if(adminTable==='news'){
    data.slug=data.slug.trim();
-   if(!data.slug){adminMessage('El slug es obligatorio.','error');form.elements.slug.focus();return;}
+   if(!data.slug){editorMessage('Escribe el título para generar el slug o introduce uno manualmente.','error');form.elements.slug.focus();return;}
    if(data.status==='published'&&!data.published_at)data.published_at=new Date().toISOString();
    const everyone=/(^|[^A-Za-z0-9_])@everyone(?![A-Za-z0-9_])/i;
    const containsEveryone=[data.title,data.excerpt,data.content].some(v=>everyone.test(v||''));
@@ -128,10 +143,10 @@ function adminForm(item={}){
    const targetTable=model.catalogCategory?'site_catalog':adminTable;
    const query=isEdit?sb.from(targetTable).update(data).eq('id',item.id).select():sb.from(targetTable).insert(data).select();
    const {data:rows,error}=await query;
-   if(error){adminMessage('No se pudo guardar: '+error.message,'error');return;}
-   if(!rows?.length){adminMessage('No se confirmó el guardado. Revisa los permisos.','error');return;}
+   if(error){editorMessage(adminTable==='news'&&error.code==='23505'?'Ya existe una noticia con ese slug. Cambia el slug y vuelve a guardar.':'No se pudo guardar: '+error.message,'error');return;}
+   if(!rows?.length){editorMessage('No se confirmó el guardado. Revisa los permisos.','error');return;}
    root.replaceChildren();adminMessage('Contenido guardado correctamente.','success');await adminLoad();
-  }catch(error){adminMessage('No se pudo guardar: '+error.message,'error');}
+  }catch(error){editorMessage('No se pudo guardar: '+error.message,'error');}
   finally{if(button.isConnected){button.disabled=false;button.textContent='Guardar contenido';}}
  };
 }
@@ -144,6 +159,7 @@ function adminSetActiveTab(){
  const model=adminModels[adminTable];
  const title=document.getElementById('admin-list-title');if(title)title.textContent=model.label;
  const create=document.getElementById('admin-new');if(create)create.textContent='+ Crear '+model.label.toLowerCase();
+ const libraryCreate=document.getElementById('admin-library-new');if(libraryCreate)libraryCreate.textContent='+ Crear '+model.label.toLowerCase();
 }
 function adminRenderStats(){
  const stats=document.getElementById('admin-stats');
@@ -530,7 +546,7 @@ async function initAdmin(){
  if(user.app_metadata?.role!=='admin'||!['owner','admin'].includes(staffRole?.role)){
   root.textContent='No tienes permisos de administración. Si te han asignado un cargo, vuelve a iniciar sesión.';return;
  }
- root.innerHTML='<div class="admin-dashboard"><div class="admin-quicklinks"><a href="#/admin?focus=staff">👑 Gestionar cargos</a><a href="#/admin?focus=competitions">🏆 Crear reto o torneo</a><a href="#/cuenta">👤 Mi perfil</a><a href="#/miembros">👥 Comunidad</a><a href="#/noticias">📰 Ver noticias</a><a href="#/cartelera">🎬 Ver cartelera</a><a href="#/eventos">📅 Ver eventos</a></div><div class="admin-welcome"><div><span class="admin-kicker">SHADOWS BYTE · CONTROL CENTER</span><h2>Tu centro de mando</h2><p>Gestiona noticias, cartelera, eventos y todas las secciones temáticas desde un único lugar.</p></div><span class="admin-admin-badge">● Administrador</span></div><p class="admin-session">Sesión iniciada: '+escapeHTML(user.email)+'</p><div class="admin-stats" id="admin-stats"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE CONTENIDOS</span><h2>Publicaciones</h2></div><button class="gradient-btn mini" id="admin-new" type="button">+ Crear noticias</button></div><div class="admin-tabs" role="tablist" aria-label="Secciones de administración" id="admin-tabs"></div><div id="admin-message" role="status" aria-live="polite"></div></section><div id="admin-form-root"></div><section class="admin-panel" id="admin-shop-root" style="padding:18px;margin:20px 0">Cargando administración de tienda…</section><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">BIBLIOTECA</span><h2 id="admin-list-title">Noticias</h2></div><input type="search" id="admin-search" placeholder="Buscar por título…" aria-label="Buscar contenido por título"></div><div id="admin-list"></div></section></div>';
+ root.innerHTML='<div class="admin-dashboard"><div class="admin-quicklinks"><a href="#/admin?focus=staff">👑 Gestionar cargos</a><a href="#/admin?focus=competitions">🏆 Crear reto o torneo</a><a href="#/cuenta">👤 Mi perfil</a><a href="#/miembros">👥 Comunidad</a><a href="#/noticias">📰 Ver noticias</a><a href="#/cartelera">🎬 Ver cartelera</a><a href="#/eventos">📅 Ver eventos</a></div><div class="admin-welcome"><div><span class="admin-kicker">SHADOWS BYTE · CONTROL CENTER</span><h2>Tu centro de mando</h2><p>Gestiona noticias, cartelera, eventos y todas las secciones temáticas desde un único lugar.</p></div><span class="admin-admin-badge">● Administrador</span></div><p class="admin-session">Sesión iniciada: '+escapeHTML(user.email)+'</p><div class="admin-stats" id="admin-stats"></div><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">GESTIÓN DE CONTENIDOS</span><h2>Publicaciones</h2></div><button class="gradient-btn mini" id="admin-new" type="button">+ Crear noticias</button></div><div class="admin-tabs" role="tablist" aria-label="Secciones de administración" id="admin-tabs"></div><div id="admin-message" role="status" aria-live="polite"></div></section><section class="admin-panel" id="admin-shop-root" style="padding:18px;margin:20px 0">Cargando administración de tienda…</section><section class="admin-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">BIBLIOTECA</span><h2 id="admin-list-title">Noticias</h2></div><div class="admin-library-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap"><input type="search" id="admin-search" placeholder="Buscar por título…" aria-label="Buscar contenido por título"><button class="gradient-btn mini" id="admin-library-new" type="button" style="white-space:nowrap">+ Nueva noticia</button></div></div><div id="admin-form-root"></div><div id="admin-list"></div></section></div>';
  const dashboard=document.querySelector('#admin-root .admin-dashboard');
  if(dashboard){
   const auditSection=document.createElement('section');auditSection.className='admin-panel admin-report-audit-panel';
@@ -550,6 +566,7 @@ async function initAdmin(){
   tabs.append(button);
  }
  document.getElementById('admin-new').onclick=()=>adminForm();
+ document.getElementById('admin-library-new').onclick=()=>adminForm();
  document.getElementById('admin-search').oninput=adminRenderList;
  adminSetActiveTab();window.SBRoleManagement?.mountAdminPanel();await adminLoad();adminInitExtended();adminInitCompetitions();adminInitSurpriseBoxes();adminInitRewardShop();
 }
