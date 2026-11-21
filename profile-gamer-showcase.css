@@ -1,0 +1,121 @@
+/* Escaparate de insignias y tarjeta gamer personalizable.
+   Diseño compacto, adaptable a móvil y respetuoso con movimiento reducido. */
+#account-profile .sb-showcase-editor{
+ display:block;border:1px solid rgba(197,144,255,.42);
+ border-radius:13px;background:rgba(42,25,70,.25);
+ padding:0 13px 13px;margin:14px 0
+}
+#account-profile .sb-showcase-editor>summary{
+ cursor:pointer;min-height:44px;padding:12px 2px;
+ font-weight:750;color:#f7e1ff;line-height:1.5
+}
+#account-profile .sb-showcase-editor>summary:focus-visible{
+ outline:3px solid #85e6ff;outline-offset:3px
+}
+#account-profile .sb-showcase-editor-body{display:grid;gap:12px}
+#account-profile .sb-showcase-editor-body>p{margin:8px 0 0;font-weight:700}
+#account-profile .sb-showcase-editor-body>small{line-height:1.5;color:#cfc1dd}
+#account-profile .sb-showcase-editor-body select{
+ max-width:100%;width:100%;min-height:44px
+}
+#account-profile .sb-badge-picker{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px
+}
+#account-profile .sb-badge-choice{
+ display:flex;align-items:center;gap:9px;min-width:0;min-height:43px;
+ margin:0;padding:8px 11px;border:1px solid rgba(182,147,219,.38);
+ border-radius:10px;background:rgba(24,17,47,.46);font-size:14px;
+ color:#f3e6ff;cursor:pointer
+}
+#account-profile .sb-badge-choice input{
+ width:17px;height:17px;flex:0 0 17px;
+ margin:0;accent-color:#ba80ff
+}
+#account-profile .sb-badge-choice.is-locked{opacity:.56;cursor:not-allowed}
+#account-profile .sb-badge-choice>span{overflow-wrap:anywhere}
+#public-member-profile .sb-profile-badge-showcase{
+ display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+ min-height:28px;margin:8px 0 12px
+}
+#public-member-profile .sb-showcase-badge{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:43px;max-width:100%;padding:10px 14px;
+ border:1px solid rgba(235,198,255,.7);border-radius:13px;
+ color:#fffafc;font-weight:750;
+ background:linear-gradient(120deg,rgba(73,36,129,.7),rgba(34,92,124,.64),rgba(112,39,111,.65));
+ background-size:200% 100%;
+ box-shadow:0 0 16px rgba(198,119,247,.24);
+ animation:sb-showcase-glimmer 6s ease-in-out infinite alternate;
+}
+@keyframes sb-showcase-glimmer{
+ from{background-position:0 50%;box-shadow:0 0 7px rgba(198,119,247,.17)}
+ to{background-position:100% 50%;box-shadow:0 0 20px rgba(224,164,255,.36)}
+}
+#public-member-profile .sb-more-badges{border-top:1px solid rgba(167,123,210,.25);padding-top:9px}
+#public-member-profile .sb-more-badges>summary{
+ cursor:pointer;min-height:40px;padding:9px 0;
+ color:#e4d1f6;font-weight:650
+}
+#public-member-profile .sb-more-badges .member-anime-badge-list{padding:8px 0 4px}
+#public-member-profile .sb-public-rank-title{
+ display:inline-flex;width:fit-content;max-width:100%;
+ margin:5px 0 10px;padding:7px 12px;
+ border:1px solid rgba(243,200,123,.65);border-radius:999px;
+ background:linear-gradient(100deg,rgba(91,55,124,.53),rgba(97,68,38,.36));
+ color:#ffebbd;font-weight:800;box-shadow:0 0 14px rgba(245,181,81,.17)
+}
+#public-member-profile .sb-public-rank-title[hidden]{display:none!important}
+
+/* Se amplía la tarjeta existente, sin crear una sección duplicada. */
+.sbp-identity-card .sbp-identity-rank{
+ display:inline-flex;max-width:100%;width:fit-content;
+ margin:3px 0 6px;padding:5px 10px;
+ border:1px solid rgba(255,210,127,.48);border-radius:999px;
+ background:rgba(110,69,43,.26);color:#ffeac0;
+ font-size:14px;font-weight:750
+}
+.sbp-identity-card .sbp-identity-motto{
+ margin:8px 0;color:#eddbff;font-size:15px;font-style:italic;
+ overflow-wrap:anywhere
+}
+.sbp-identity-card [hidden]{display:none!important}
+.sbp-identity-card[data-layout="hero"]{
+ border-width:2px;
+ background-image:radial-gradient(circle at 82% 14%,rgba(181,92,247,.29),transparent 47%),
+ linear-gradient(125deg,rgba(41,24,88,.96),rgba(9,29,52,.98))
+}
+.sbp-identity-card[data-layout="hero"] .sbp-identity-top{
+ align-items:center;gap:19px
+}
+.sbp-identity-card[data-layout="hero"] .sbp-identity-avatar{
+ width:clamp(88px,18vw,120px);height:clamp(88px,18vw,120px);
+ flex:0 0 clamp(88px,18vw,120px);
+ box-shadow:0 0 24px rgba(192,120,255,.27)
+}
+.sbp-identity-card[data-layout="minimal"]{
+ padding:14px;border-radius:14px;box-shadow:none;
+ background:#171527
+}
+.sbp-identity-card[data-layout="minimal"] .sbp-identity-avatar{
+ width:55px;height:55px;flex:0 0 55px;
+ border-radius:14px
+}
+.sbp-identity-card[data-layout="minimal"] .sbp-identity-top{gap:9px}
+.sbp-identity-card[data-layout="minimal"] .sbp-identity-tags{
+ margin-top:5px;gap:6px
+}
+.sbp-identity-card[data-layout="minimal"] .sbp-identity-chip{
+ padding:5px 9px;font-size:12px
+}
+.sbp-identity-card[data-layout="minimal"]>.sbp-muted{font-size:12px}
+@media(max-width:600px){
+ #account-profile .sb-badge-picker{grid-template-columns:minmax(0,1fr)}
+ #public-member-profile .sb-profile-badge-showcase{gap:7px}
+ #public-member-profile .sb-showcase-badge{font-size:13px;min-height:40px;padding:8px 10px}
+ .sbp-identity-card[data-layout="hero"] .sbp-identity-avatar{
+  width:76px;height:76px;flex-basis:76px
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #public-member-profile .sb-showcase-badge{animation:none!important}
+}
