@@ -1,0 +1,12 @@
+/* PWA install control in the existing responsive navigation. */
+.menu-quick-links .sb-install-app-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid #d688ff;border-radius:10px;background:linear-gradient(120deg,#702eb0,#922de0);color:#fff;font:700 16px Rajdhani,Arial,sans-serif;cursor:pointer;text-align:center;white-space:normal}
+.menu-quick-links .sb-install-app-button:focus-visible{outline:3px solid #4be3ff;outline-offset:3px}
+.menu-quick-links .sb-install-app-button:hover{background:#a43ded}
+.menu-quick-links .sb-install-app-button:disabled{opacity:.72;cursor:default}
+#sb-install-help[hidden]{display:none!important}
+#sb-install-help{margin:12px 0;padding:14px 17px;border:1px solid #a46fd2;border-radius:13px;background:#251337;color:#f6eaff;line-height:1.55;font-size:16px;overflow-wrap:anywhere}
+#sb-install-help strong{display:block;margin-bottom:6px;color:#f5ceff}
+#sb-install-help p{margin:0 0 8px}
+#sb-install-help ol{margin:8px 0 4px;padding-left:24px}
+#sb-install-help li{margin:0 0 5px}
+@media(max-width:600px){.menu-quick-links .sb-install-app-button{width:100%}#sb-install-help{font-size:15px;padding:12px}}

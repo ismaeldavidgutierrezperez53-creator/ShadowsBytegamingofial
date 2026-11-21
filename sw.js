@@ -33,3 +33,25 @@ self.addEventListener('notificationclick', (event) => {
     return self.clients.openWindow(destination);
   })());
 });
+/* PWA: fallback sin conexión. Se conservan los handlers Push existentes. */
+const SB_OFFLINE_CACHE = 'sb-offline-v1';
+const SB_OFFLINE_URL = new URL('./offline.html', self.registration.scope).href;
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(SB_OFFLINE_CACHE).then(cache =>
+    cache.add(new Request(SB_OFFLINE_URL, {cache:'reload'})))
+    .catch(error => console.warn('Offline cache:', error)));
+});
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('sb-offline-') && key !== SB_OFFLINE_CACHE)
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('fetch', event => {
+  if (event.request.mode !== 'navigate') return;
+  if (new URL(event.request.url).origin !== self.location.origin) return;
+  event.respondWith(fetch(event.request).catch(async () =>
+    (await caches.match(SB_OFFLINE_URL)) || Response.error()));
+});
