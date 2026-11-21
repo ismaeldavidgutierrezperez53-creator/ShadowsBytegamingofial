@@ -1,0 +1,76 @@
+/* Shadows Byte Gaming Official V2 — spoilers estilo Discord en chats */
+#private-messages .sb-chat-spoiler,
+.group-chat-messages .sb-chat-spoiler {
+ display:inline;
+ padding:3px 10px;
+ border:1px dashed #b794f6;
+ border-radius:7px;
+ background:repeating-linear-gradient(135deg,#4b3960,#4b3960 7px,#3a2c50 7px,#3a2c50 14px);
+ color:#fff;
+ font:inherit;
+ font-weight:700;
+ line-height:1.7;
+ text-align:left;
+ white-space:pre-wrap;
+ overflow-wrap:anywhere;
+ box-decoration-break:clone;
+ -webkit-box-decoration-break:clone;
+ cursor:pointer;
+ max-width:100%;
+}
+#private-messages .sb-chat-spoiler:hover,
+.group-chat-messages .sb-chat-spoiler:hover {
+ border-color:#e0c7ff;
+}
+#private-messages .sb-chat-spoiler.is-revealed,
+.group-chat-messages .sb-chat-spoiler.is-revealed {
+ background:rgba(137,92,199,.2);
+ border:1px solid rgba(208,165,255,.55);
+ color:inherit;
+ font-weight:inherit;
+}
+#private-messages .sb-chat-spoiler:focus-visible,
+.group-chat-messages .sb-chat-spoiler:focus-visible,
+#private-messages .sb-chat-spoiler-toggle:focus-visible,
+.group-chat-send .sb-chat-spoiler-toggle:focus-visible {
+ outline:3px solid #f2c6ff;
+ outline-offset:3px;
+}
+#private-messages .sb-chat-spoiler-toggle,
+.group-chat-send .sb-chat-spoiler-toggle {
+ display:inline-flex;
+ justify-content:center;
+ align-items:center;
+ gap:8px;
+ width:max-content;
+ max-width:100%;
+ min-height:40px;
+ padding:8px 15px;
+ border:1px solid #ac89d4;
+ border-radius:10px;
+ background:#2e1c46;
+ color:#f7eaff;
+ font:inherit;
+ font-weight:700;
+ cursor:pointer;
+ transition:background .15s ease,border-color .15s ease;
+}
+#private-messages .sb-chat-spoiler-toggle[aria-pressed="true"],
+.group-chat-send .sb-chat-spoiler-toggle[aria-pressed="true"] {
+ color:#fff;
+ background:#7237a4;
+ border-color:#edc6ff;
+ box-shadow:0 0 0 2px rgba(199,124,255,.13);
+}
+#private-messages .sb-chat-spoiler-toggle:hover,
+.group-chat-send .sb-chat-spoiler-toggle:hover {
+ border-color:#f1dbff;
+}
+@media(max-width:650px){
+ #private-messages .sb-chat-spoiler-toggle,
+ .group-chat-send .sb-chat-spoiler-toggle {min-height:44px;width:100%;}
+}
+@media(prefers-reduced-motion:reduce){
+ #private-messages .sb-chat-spoiler-toggle,
+ .group-chat-send .sb-chat-spoiler-toggle {transition:none;}
+}
