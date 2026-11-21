@@ -1,0 +1,334 @@
+/*
+ * Shadows Byte Gaming Official V2
+ * Diseño móvil: legibilidad, tarjetas, navegación táctil y espacios seguros.
+ * Solo afecta a móviles/tablets pequeños; no modifica funcionalidades ni datos.
+ */
+@media screen and (max-width: 760px) {
+  :root {
+    --sb-mobile-gutter: clamp(14px, 4vw, 22px);
+    --sb-mobile-radius: 16px;
+    --sb-mobile-accent: #cf8aff;
+    --sb-mobile-border: rgba(192, 130, 255, .35);
+  }
+
+  /* Viewport y contenido sin desbordes horizontales. */
+  html, body { max-width: 100%; overflow-x: clip; }
+  body > main#app { width: 100%; max-width: 100%; min-width: 0; }
+  #app :is(.page, .section, .profile-shell, .profile-grid, .profile-panel,
+           .admin-dashboard, .admin-panel, .sbp-dashboard, .news-card,
+           .member-card, .social-post, .member-gallery-panel) {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+  }
+  #app :is(h1, h2, h3, h4, p, label, small, strong) {
+    overflow-wrap: anywhere;
+  }
+  #app img, #app video, #app canvas {
+    max-width: 100%;
+  }
+  #app :is(.page, .section) {
+    padding-inline: var(--sb-mobile-gutter);
+  }
+  #app .page {
+    min-height: 0;
+    padding-top: 28px;
+    padding-bottom: 44px;
+  }
+  #app .section {
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+
+  /* Cabecera más equilibrada, con logo legible y menú accesible. */
+  .topbar {
+    height: 64px;
+    min-height: 64px;
+    padding-inline: max(12px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-right, 0px)) !important;
+    gap: 10px !important;
+  }
+  .topbar > .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 105px);
+    gap: 8px;
+  }
+  .topbar > .brand img {
+    flex: 0 0 43px;
+    width: 43px !important;
+    height: 43px !important;
+  }
+  .topbar > .brand b {
+    font-size: clamp(10px, 2.6vw, 12px);
+    line-height: 1.2;
+    letter-spacing: .02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar > .brand small {
+    font-size: clamp(6px, 1.6vw, 8px);
+    line-height: 1.45;
+    letter-spacing: .09em;
+  }
+  .topbar .menu-toggle {
+    flex: 0 0 auto;
+    min-width: 91px;
+    min-height: 44px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border-color: #b27bea;
+    box-shadow: 0 0 0 1px rgba(192, 127, 255, .13), 0 5px 20px rgba(141, 58, 213, .22);
+  }
+
+  /* El menú conserva el scroll propio, pero no esconde secciones. */
+  .topbar #nav {
+    top: 64px !important;
+    height: calc(100dvh - 64px) !important;
+    max-height: calc(100dvh - 64px) !important;
+    min-width: 0;
+    padding: 12px var(--sb-mobile-gutter) calc(28px + env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 0;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    background: linear-gradient(160deg, #1b102c, #100b20 65%) !important;
+  }
+  .topbar #nav::-webkit-scrollbar { display: none; }
+  .topbar #nav .menu-head {
+    position: sticky;
+    top: -12px;
+    z-index: 3;
+    margin: -12px 0 0;
+    padding: 14px 0 10px;
+    border-bottom: 1px solid rgba(201, 151, 245, .22);
+    background: #1b102c;
+  }
+  .topbar #nav .menu-head h2 {
+    font-size: clamp(19px, 5vw, 23px);
+    line-height: 1.22;
+  }
+  .topbar #nav .menu-head p { font-size: 14px; }
+  .topbar #nav .menu-close {
+    min-width: 44px;
+    min-height: 44px;
+    border-color: #ae7bdd;
+  }
+  .topbar #nav .menu-quick-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px;
+  }
+  .topbar #nav .menu-quick-links a,
+  .topbar #nav .menu-quick-links .sb-install-app-button {
+    min-width: 0;
+    min-height: 48px;
+    padding: 10px 8px;
+    border-radius: 13px;
+    font-size: 16px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    box-shadow: inset 0 1px rgba(255,255,255,.07);
+  }
+  .topbar #nav .menu-quick-links a {
+    background: linear-gradient(135deg, #34204f, #26163c);
+    border-color: rgba(190, 134, 244, .5);
+  }
+  .topbar #nav .menu-quick-links a[aria-current="page"] {
+    background: linear-gradient(125deg, #7440a6, #334774);
+    border-color: #d4a7ff;
+  }
+  .topbar #nav .sb-install-app-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .topbar #nav .menu-links-grid { gap: 11px; }
+  .topbar #nav .menu-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 13px;
+    border-radius: var(--sb-mobile-radius);
+    background: linear-gradient(145deg, #28173d, #181128);
+    border-color: var(--sb-mobile-border);
+  }
+  .topbar #nav .menu-column strong {
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+    color: #f2d5ff;
+    font-size: 17px;
+    padding: 2px 5px 8px;
+  }
+  .topbar #nav .menu-column a {
+    min-width: 0;
+    min-height: 46px;
+    padding: 9px 10px !important;
+    border: 1px solid rgba(173, 120, 229, .25) !important;
+    border-radius: 11px;
+    background: rgba(118, 63, 170, .13);
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .topbar #nav .menu-account {
+    min-width: 0;
+    border: 1px solid var(--sb-mobile-border);
+    border-radius: 16px;
+    background: #231533;
+    padding: 14px;
+  }
+  .topbar #nav #account-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+  .topbar #nav #account-actions .search {
+    min-width: 0;
+    width: 100%;
+    flex: 1 0 100%;
+    border-radius: 12px;
+    border-color: #7953a6;
+    background: #1a1029;
+  }
+  .topbar #nav #account-actions .search input {
+    width: 100%;
+    min-width: 0;
+    min-height: 30px;
+    font-size: 16px;
+  }
+  .topbar #nav #account-actions > :is(a, button) {
+    min-width: 0;
+    flex: 1 1 125px;
+    border-radius: 11px;
+  }
+  .topbar #nav .sb-updates-menu-control { align-items: stretch; gap: 9px; }
+  .topbar #nav .sb-updates-check { min-height: 44px; border-radius: 11px; }
+
+  /* Portada y títulos: lectura fácil sin pérdida del arte anime. */
+  #app .hero {
+    min-height: min(590px, 82svh);
+    padding: clamp(66px, 10svh, 96px) var(--sb-mobile-gutter) 54px;
+  }
+  #app .hero-content { max-width: 100%; min-width: 0; }
+  #app .hero h1 {
+    font-size: clamp(28px, 7.9vw, 43px);
+    line-height: 1.18;
+    letter-spacing: -.02em;
+    margin: 18px 0;
+  }
+  #app .hero p { font-size: clamp(17px, 4.4vw, 19px); line-height: 1.55; }
+  #app .hero-buttons { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 24px; }
+  #app .hero-buttons :is(a,button) {
+    flex: 1 1 145px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  #app .page-hero h1 {
+    font-size: clamp(26px, 7vw, 37px);
+    line-height: 1.22;
+    margin: 12px 0 20px;
+  }
+  #app .description { font-size: 17px; line-height: 1.55; }
+  #app .section-title { flex-wrap: wrap; gap: 8px; font-size: clamp(21px, 5.8vw, 26px); }
+  #app .section-title a { font-size: 15px; }
+
+  /* Tarjetas limpias, una columna donde el ancho resulta insuficiente. */
+  #app :is(.content-grid, .news-grid, .members-grid, .fan-grid) {
+    grid-template-columns: minmax(0,1fr);
+    gap: 14px;
+  }
+  #app :is(.news-card, .member-card, .social-post, .member-gallery-panel, .pokemon-card) {
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 16px;
+    border-color: rgba(167, 116, 222, .38);
+  }
+  #app :is(.news-card, .member-card, .social-post, .member-gallery-panel) {
+    padding: clamp(14px, 4vw, 19px);
+  }
+  #app .pokemon-card { grid-template-columns: minmax(0,1fr); gap: 14px; padding: 15px; }
+  #app .member-gallery-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  #app .member-gallery-cover-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  #app .sb-full-news-header,
+  #app .sb-full-news-body { padding: 19px; }
+  #app .sb-full-news-footer { padding: 16px 19px 22px; }
+  #app .sb-full-news { border-radius: 16px; }
+  #app :is(.news-card, .member-card, .social-post, .sb-full-news) :is(img, video) {
+    max-width: 100%;
+  }
+  #app .auth-card { width: 100%; padding: clamp(18px,5vw,25px); border-radius: 17px; }
+  #app .admin-panel { padding: clamp(14px, 4vw, 19px); border-radius: 16px; }
+  #app .admin-welcome { gap: 12px; }
+  #app .admin-item-actions { flex-wrap: wrap; width: 100%; }
+  #app .admin-item-actions button { min-height: 44px; }
+  #app .profile-shell { margin: 14px auto 0; border-radius: 17px; }
+  #app .profile-grid { grid-template-columns: minmax(0,1fr); }
+  #app :is(.profile-panel, .sbp-dashboard) { border-radius: 14px; }
+  #app .sbp-stats { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+
+  /* Controles cómodos para pulsar, sin agrandar checkbox ni botones de reacciones. */
+  #app :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+    max-width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+  #app :is(.auth-card, .filters, .admin-fields) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+    min-height: 44px;
+  }
+  #app .filters { width: 100%; min-width: 0; align-items: stretch; gap: 10px; }
+  #app .filters > * { max-width: 100%; min-width: 0; }
+  #app .pills { gap: 9px; margin: 18px 0; }
+  #app .pills button { min-height: 44px; padding: 9px 13px; border-radius: 12px; }
+  #app :is(.auth-card, .admin-form-actions) :is(button,.gradient-btn) {
+    min-height: 44px;
+  }
+  #app :is(.admin-panel, .profile-panel, .sbp-dashboard) table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Footer en una sola columna con enlaces accesibles. */
+  body > footer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 28px var(--sb-mobile-gutter) calc(24px + env(safe-area-inset-bottom,0px));
+  }
+  body > footer .brand { max-width: 100%; }
+  body > footer .footer-links { display: flex; flex-wrap: wrap; gap: 10px 15px; }
+  body > footer .footer-links a { min-height: 42px; display: inline-flex; align-items: center; }
+  body > footer .follow { grid-column: 1; }
+}
+
+@media screen and (max-width: 390px) {
+  .topbar > .brand img { flex-basis: 39px; width: 39px !important; height: 39px !important; }
+  .topbar > .brand b { font-size: 10px; }
+  .topbar .menu-toggle { min-width: 84px; padding-inline: 8px; }
+  .topbar #nav .menu-column { grid-template-columns: minmax(0,1fr); }
+  .topbar #nav .menu-column a { min-height: 44px; }
+  #app .hero-buttons :is(a,button) { flex-basis: 100%; }
+  #app .page { padding-top: 23px; }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Evita saltos visuales en tarjetas al tocar o desplazarse. */
+  #app :is(.news-card,.member-card,.social-post,.anime-card,.gaming-card,.manga-card):hover {
+    transform: none;
+  }
+}
+
+@media (display-mode: standalone) and (max-width: 760px) {
+  /* En la app instalada no se necesita otro botón para instalarla. */
+  .topbar #nav .sb-install-app-button[disabled] { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar #nav .menu-quick-links a,
+  .topbar .menu-toggle {
+    animation: none !important;
+    transition: none !important;
+  }
+}
