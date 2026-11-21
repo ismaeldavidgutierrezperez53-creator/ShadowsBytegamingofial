@@ -945,13 +945,27 @@ async function loadAccountProfile(){
  const communityPanel=document.createElement('section');
  communityPanel.className='profile-panel account-community-panel';
  communityPanel.setAttribute('aria-label','Mi comunidad');
- communityPanel.innerHTML='<h3>✦ Mi comunidad</h3><p>Publica novedades, responde comentarios y participa con otros miembros.</p><p class="account-community-links"><a class="outline-btn mini" href="#/comunidad">Ver muro de la comunidad</a> <a class="outline-btn mini" href="#/notificaciones">🔔 Mis notificaciones</a></p><div id="account-community-social" class="account-community-social">Cargando publicaciones…</div>';
+ communityPanel.innerHTML='<h3>✦ Mi comunidad</h3><p>Consulta las novedades, participa en los retos y revisa tus avisos. Tus publicaciones están en «Muro social · Perfil ID».</p><p class="account-community-links"><a class="outline-btn mini" href="#/comunidad">Ver muro de la comunidad</a> <a class="outline-btn mini" href="#/notificaciones">🔔 Mis notificaciones</a></p>';
  root.querySelector('.profile-body')?.append(communityPanel);
+ // Reutilizamos las publicaciones de Mi comunidad: un muro accesible sin duplicar mensajes.
+ const wallPanel=document.createElement('details');
+ wallPanel.className='profile-panel sb-profile-wall-panel';
+ wallPanel.id='sb-profile-wall-panel';
+ const wallSummary=document.createElement('summary');
+ wallSummary.textContent='📝 Muro social · Perfil ID';
+ const wallHint=document.createElement('p');wallHint.className='sb-profile-wall-hint';
+ wallHint.textContent='Publica en tu perfil, recibe comentarios y descubre reacciones anime. Las publicaciones también aparecen en Comunidad.';
+ const wallContent=document.createElement('div');
+ wallContent.id='account-community-social';wallContent.className='account-community-social';
+ wallContent.textContent='Cargando publicaciones…';
+ wallPanel.append(wallSummary,wallHint,wallContent);
+ const wallAnchor=root.querySelector('.profile-grid');
+ if(wallAnchor)wallAnchor.after(wallPanel);else root.querySelector('.profile-body')?.append(wallPanel);
  const myAchievements=document.createElement('section');myAchievements.className='profile-panel';myAchievements.innerHTML='<h3>🏆 Mis logros y nivel</h3><p>Consulta tus insignias, XP y clasificación.</p><a class="gradient-btn mini" href="#/logros">Ver mis logros</a>';
  root.querySelector('.profile-identity')?.after(myAchievements);
  initAccountReportStatuses(user.id,root.querySelector('.profile-body'));
  const followPanel=document.createElement('section');followPanel.className='profile-panel account-follows-panel';followPanel.id='account-follows';communityPanel.before(followPanel);const blockedPanel=document.createElement('section');blockedPanel.className='profile-panel account-blocked-members';blockedPanel.id='account-blocked-members';followPanel.after(blockedPanel);loadAccountFollows(user.id,followPanel);
- loadMemberSocial(user.id,communityPanel.querySelector('#account-community-social'));
+ loadMemberSocial(user.id,wallContent);
  const ownGallery=document.createElement('section');ownGallery.className='profile-panel member-gallery-panel';ownGallery.id='account-gallery';
  communityPanel.before(ownGallery);
  loadMemberGallery(user.id,ownGallery);
@@ -1660,17 +1674,18 @@ async function loadMemberGallery(memberId,root){
  root.append(grid);refresh();
 }
 
-async function loadMemberSocial(memberId,root){
+async function loadMemberSocial(memberId,root,maxPosts=12){
+ const postLimit=Math.max(12,Math.min(60,Number(maxPosts)||12));
  if(!root.isConnected)return;
  const {data:{user}}=await sb.auth.getUser();
  const me=user?.id||null;
  const [{data:follows,error:followError},{data:posts,error:postError}]=await Promise.all([
   sb.from('member_follows').select('follower_id').eq('following_id',memberId),
-  sb.from('member_posts').select('id,author_id,content,image_path,created_at').eq('author_id',memberId).order('created_at',{ascending:false}).limit(50)
+  sb.from('member_posts').select('id,author_id,content,image_path,created_at').eq('author_id',memberId).order('created_at',{ascending:false}).limit(postLimit+1)
  ]);
  if(!root.isConnected)return;
  root.replaceChildren();
- const heading=document.createElement('h2');heading.textContent='Comunidad';
+ const heading=document.createElement('h2');heading.textContent='📝 Publicaciones del perfil';
  const counter=document.createElement('p');counter.className='social-count';counter.textContent=followError?'Seguidores no disponibles':(follows||[]).length+' seguidores';
  root.append(heading,counter);
  const feedback=document.createElement('p');feedback.className='social-feedback';feedback.setAttribute('role','status');
@@ -1731,33 +1746,55 @@ async function loadMemberSocial(memberId,root){
   const {data:targetPost}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at').eq('id',targetPostId).eq('author_id',memberId).maybeSingle();
   if(targetPost)posts.unshift(targetPost);
  }
- const title=document.createElement('h2');title.textContent='Publicaciones';root.append(title);
  if(postError){const err=document.createElement('p');err.textContent='No se pudieron cargar las publicaciones.';root.append(err);return;}
  if(!(posts||[]).length){const empty=document.createElement('p');empty.textContent='Todavía no hay publicaciones.';root.append(empty);}
- for(const post of posts||[]){
+ const hasMore=(posts||[]).length>postLimit;
+ const visiblePosts=(posts||[]).slice(0,postLimit);
+ const visiblePostIds=visiblePosts.map(post=>post.id);
+ const {data:animeRows,error:animeError}=visiblePostIds.length
+  ?await sb.from('member_post_anime_reactions').select('post_id,user_id,reaction').in('post_id',visiblePostIds)
+  :{data:[],error:null};
+ if(!root.isConnected)return;
+ for(const post of visiblePosts){
   const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;
   const body=document.createElement('p');body.className='social-post-body';body.textContent=post.content;
   const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
   article.append(body,date);
   if(post.image_path){const image=document.createElement('img');image.className='social-post-image';image.loading='lazy';image.alt='Imagen de la publicación';image.src=sb.storage.from('community-images').getPublicUrl(post.image_path).data.publicUrl;article.append(image);}
+  const animeBox=document.createElement('div');animeBox.className='sb-anime-reaction-bar';article.append(animeBox);
+  renderPostAnimeReactions(post.id,animeBox,me,animeRows,animeError);
   const likeBox=document.createElement('div');likeBox.className='post-like-box';article.append(likeBox);
   renderPostLikes(post.id,likeBox,me);
+  if(me&&me!==post.author_id)appendReportButton(article,post.id,'post',me);
   if(me===post.author_id){const remove=document.createElement('button');remove.className='social-delete';remove.textContent='Eliminar publicación';remove.onclick=async()=>{if(!confirm('¿Eliminar esta publicación y sus comentarios?'))return;const {error}=await sb.from('member_posts').delete().eq('id',post.id);if(error)feedback.textContent=error.message;else{if(post.image_path)await sb.storage.from('community-images').remove([post.image_path]);await loadMemberSocial(memberId,root);const gallery=document.getElementById(me===memberId&&location.hash.split('?')[0]==='#/cuenta'?'account-gallery':'member-gallery');if(gallery)loadMemberGallery(memberId,gallery);}};article.append(remove);}
-  const commentTitle=document.createElement('h3');commentTitle.textContent='Comentarios';article.append(commentTitle);
-  const list=document.createElement('div');list.className='social-comments';article.append(list);
+  const commentDetails=document.createElement('details');commentDetails.className='sb-wall-comment-details';
+  const commentSummary=document.createElement('summary');commentSummary.textContent='💬 Comentarios';
+  const list=document.createElement('div');list.className='social-comments';
+  commentDetails.append(commentSummary,list);article.append(commentDetails);
   const {data:comments,error:commentError}=await sb.from('member_comments').select('id,author_id,content,created_at').eq('post_id',post.id).order('created_at',{ascending:true}).limit(100);
   if(commentError){list.textContent='No se pudieron cargar los comentarios.';}
-  else for(const comment of comments||[]){
+  else {
+   commentSummary.textContent='💬 Comentarios ('+(comments||[]).length+')';
+   for(const comment of comments||[]){
    const item=document.createElement('div');item.className='social-comment';
    const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(comment.author_id);
    author.textContent=comment.author_id===memberId?'Autor del perfil':'Miembro';
    const text=document.createElement('p');text.textContent=comment.content;
    item.append(author,text);
    if(me===comment.author_id){const del=document.createElement('button');del.className='social-delete';del.textContent='Eliminar';del.onclick=async()=>{const {error}=await sb.from('member_comments').delete().eq('id',comment.id);if(error)feedback.textContent=error.message;else await loadMemberSocial(memberId,root);};item.append(del);}
+   if(me&&me!==comment.author_id)appendReportButton(item,comment.id,'comment',me);
    list.append(item);
+   }
   }
-  if(me){const form=document.createElement('form');form.className='social-form social-comment-form';const input=document.createElement('textarea');input.maxLength=500;input.required=true;input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');const submit=document.createElement('button');submit.className='outline-btn';submit.textContent='Comentar';form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();const content=input.value.trim();if(!content)return;submit.disabled=true;const {error}=await sb.from('member_comments').insert({post_id:post.id,author_id:me,content});if(error){feedback.textContent='No se pudo comentar: '+error.message;submit.disabled=false;}else await loadMemberSocial(memberId,root);};article.append(form);}
+  if(me){const form=document.createElement('form');form.className='social-form social-comment-form';const input=document.createElement('textarea');input.maxLength=500;input.required=true;input.placeholder='Escribe un comentario…';input.setAttribute('aria-label','Escribe un comentario');const submit=document.createElement('button');submit.className='outline-btn';submit.textContent='Comentar';form.append(input,submit);form.onsubmit=async e=>{e.preventDefault();const content=input.value.trim();if(!content)return;submit.disabled=true;const {error}=await sb.from('member_comments').insert({post_id:post.id,author_id:me,content});if(error){feedback.textContent='No se pudo comentar: '+error.message;submit.disabled=false;}else await loadMemberSocial(memberId,root);};commentDetails.append(form);}
   root.append(article);
+ }
+ if(hasMore){
+  const more=document.createElement('button');
+  more.type='button';more.className='outline-btn mini sb-wall-load-more';
+  more.textContent='Mostrar más publicaciones';
+  more.onclick=()=>{more.disabled=true;loadMemberSocial(memberId,root,postLimit+12);};
+  root.append(more);
  }
  if(targetPostId&&location.hash.split('?')[0]==='#/cuenta')focusNotificationPost(root,targetPostId);
 }
