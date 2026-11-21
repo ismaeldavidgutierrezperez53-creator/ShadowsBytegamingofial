@@ -44,11 +44,11 @@
   async function enable(){
     if(!supported())return refresh();
     if(iosNotInstalled())return refresh();
-    if(!await currentUser()){setStatus('Primero inicia sesión en tu cuenta.','error');return;}
     /* Prompt immediately from the user gesture, before any network request. */
     let permission=Notification.permission;
     if(permission==='default') permission=await Notification.requestPermission();
     if(permission!=='granted'){setStatus('Debes permitir las notificaciones en el navegador para continuar.','error');return;}
+    if(!await currentUser()){setStatus('Primero inicia sesión en tu cuenta.','error');return;}
     busy(true);
     try{
       const reg=await registration(true);
