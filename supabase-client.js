@@ -148,9 +148,14 @@ async function refreshAccountActions() {
  if(user)void ensurePublicMemberProfile(user);
  const adminMenuLink=document.getElementById('menu-admin-link');
  if(adminMenuLink)adminMenuLink.hidden=user?.app_metadata?.role!=='admin';
- syncNotificationRealtime(user?.id||null);
- syncPrivateMessageRealtime(user?.id||null);
- if(liveAlertUserId!==user?.id){loadLiveAlertPreferences(user?.id||null);syncReportLiveAlerts(user?.id||null);}
+ // Account buttons must remain available even when realtime subscriptions fail.
+ try {
+  syncNotificationRealtime(user?.id||null);
+  syncPrivateMessageRealtime(user?.id||null);
+  if(liveAlertUserId!==user?.id){loadLiveAlertPreferences(user?.id||null);syncReportLiveAlerts(user?.id||null);}
+ } catch (syncError) {
+  console.warn('No se pudo sincronizar las alertas en tiempo real:',syncError);
+ }
  const hero=document.getElementById('hero-account-actions');
  if(hero)hero.innerHTML=user?'<a class="gradient-btn" href="#/cuenta">Mi cuenta</a>'+(user.app_metadata?.role==='admin'?'<a class="outline-btn" href="#/admin">Panel de administración</a>':'<a class="outline-btn" href="#/comunidad">Explorar comunidad</a>'):'<a class="gradient-btn" href="#/auth?mode=signup">Únete gratis</a><a class="outline-btn" href="#/auth">Iniciar sesión</a>';
  const search='<label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label>';
@@ -485,6 +490,9 @@ function syncNotificationRealtime(userId){
   .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('No se pudo conectar el canal de notificaciones en tiempo real.');});
 }
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
+// Recheck the persisted session when the Android/Windows PWA resumes from the background.
+window.addEventListener('pageshow',()=>{void refreshAccountActions();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshAccountActions();});
 refreshAccountActions();
 
 async function loadAccountFollows(userId, root) {
