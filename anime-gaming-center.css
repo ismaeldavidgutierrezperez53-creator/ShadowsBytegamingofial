@@ -53,3 +53,27 @@
  #sb-anime-gaming-hub #sb-ag-tip{flex:0 1 auto}
 }
 @media(prefers-reduced-motion:reduce){#sb-anime-gaming-hub *{scroll-behavior:auto}}
+
+/* Complementos anime y gaming: retos, insignias, clasificación y recomendaciones. */
+#sb-anime-gaming-hub .sb-ag-extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#sb-anime-gaming-hub .sb-ag-extras .sb-ag-panel{min-width:0}
+#sb-anime-gaming-hub .sb-ag-challenge-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:18px 0}
+#sb-anime-gaming-hub .sb-ag-challenge-controls label{color:#f3d7ff;flex:1 1 160px;font-weight:700}
+#sb-anime-gaming-hub .sb-ag-challenge-controls input{background:#100d1c;border:1px solid #9065b8;border-radius:10px;color:#fff;min-height:42px;padding:7px 10px;width:76px;text-align:center}
+#sb-anime-gaming-hub .sb-ag-challenge-controls button{min-height:42px}
+#sb-anime-gaming-hub #sb-ag-challenge-progress{display:block;width:100%;height:18px;margin:12px 0 6px;accent-color:#c67aff}
+#sb-anime-gaming-hub .sb-ag-badges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#sb-anime-gaming-hub .sb-ag-badge{display:flex;flex-direction:column;gap:6px;border-radius:13px;padding:13px 12px;border:1px dashed #60467f;background:#151021;color:#bbaccd;min-height:80px}
+#sb-anime-gaming-hub .sb-ag-badge.unlocked{border:1px solid #b478df;background:linear-gradient(140deg,#45225d,#21102f);color:#ffe6ff;box-shadow:inset 0 0 14px #ac51df1c}
+#sb-anime-gaming-hub .sb-ag-badge strong{font-size:1rem;line-height:1.25}
+#sb-anime-gaming-hub .sb-ag-badge small{font-size:.89rem;line-height:1.3}
+#sb-anime-gaming-hub .sb-ag-rank-toggle{display:flex;align-items:center;gap:10px;margin:12px 0;color:#f3d7ff;font-weight:700;cursor:pointer}
+#sb-anime-gaming-hub .sb-ag-rank-toggle input{accent-color:#ac68e8;width:19px;height:19px;flex:0 0 auto}
+#sb-anime-gaming-hub .sb-ag-rank-list{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:8px;counter-reset:ranking}
+#sb-anime-gaming-hub .sb-ag-rank-entry{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid #5e417b;border-radius:11px;background:#170f26;counter-increment:ranking;overflow-wrap:anywhere}
+#sb-anime-gaming-hub .sb-ag-rank-entry strong:before{content:counter(ranking) ". ";color:#e9acff}
+#sb-anime-gaming-hub .sb-ag-rank-entry span{color:#ead4ff;white-space:nowrap}
+#sb-anime-gaming-hub .sb-ag-rec-item{padding:14px;margin:10px 0;border-radius:12px;background:#1a1030;border:1px solid #634485;color:#f0e0ff;line-height:1.5;overflow-wrap:anywhere}
+#sb-anime-gaming-hub #sb-ag-rec-refresh{margin-top:8px;min-height:42px}
+@media(max-width:980px){#sb-anime-gaming-hub .sb-ag-extras{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:550px){#sb-anime-gaming-hub .sb-ag-badges{grid-template-columns:minmax(0,1fr)}#sb-anime-gaming-hub .sb-ag-rank-entry{align-items:flex-start;flex-direction:column;gap:4px}}
