@@ -872,7 +872,14 @@ async function loadQuickDndPage(){
 
 async function initAccountNotificationPreferences(userId,root){
  const section=document.createElement('section');section.className='profile-panel account-notification-preferences';section.id='account-notification-settings';
+ const animeSoundPage=location.hash.split('?')[0]==='#/sonidos';
  section.innerHTML='<h3>⚙ Configuración de notificaciones</h3><p>Elige si quieres recibir correos electrónicos cuando se revisen tus denuncias. Los avisos dentro de la web seguirán activos.</p><label class="notification-preference-label"><input type="checkbox" id="report-email-enabled" disabled> Recibir correos sobre mis denuncias</label><p id="report-email-preference-message" role="status" aria-live="polite">Cargando preferencias…</p>';
+ if(animeSoundPage){
+  section.querySelector('h3').textContent='🎵 Configurar sonidos anime';
+  section.querySelector('h3').nextElementSibling.textContent='Selecciona un sonido diferente para mensajes, seguidores, comentarios y regalos. Puedes probar cada melodía y guardarla para tu cuenta.';
+  section.querySelector('#report-email-enabled').closest('label').hidden=true;
+  section.querySelector('#report-email-preference-message').hidden=true;
+ }
  const profileGrid=root.querySelector('.profile-grid');
  if(profileGrid)profileGrid.after(section);else root.prepend(section);
  const toastSettings=document.createElement('div');toastSettings.className='notification-toast-preferences';
@@ -880,7 +887,7 @@ async function initAccountNotificationPreferences(userId,root){
  section.append(toastSettings);
  const quietSettings=document.createElement('div');quietSettings.className='notification-quiet-settings';
  quietSettings.innerHTML='<h4>🌙 Modo No molestar</h4><p><strong>Silencio rápido: 30 minutos, 1 hora o 2 horas.</strong> También puedes silenciar hasta desactivarlo o establecer un horario. Los avisos seguirán guardados en la campana.</p><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-manual" disabled> Activar No molestar hasta desactivarlo</label><div class="notification-quick-mute" role="group" aria-label="Duración de No molestar"><button type="button" class="outline-btn mini" data-dnd-minutes="30" disabled>30 minutos</button><button type="button" class="outline-btn mini" data-dnd-minutes="60" disabled>1 hora</button><button type="button" class="outline-btn mini" data-dnd-minutes="120" disabled>2 horas</button><button type="button" class="outline-btn mini" id="notification-dnd-indefinite" disabled>Hasta desactivar</button><button type="button" class="outline-btn mini" id="notification-dnd-cancel" disabled>Desactivar silencio temporal o manual</button></div><div id=\"notification-dnd-countdown\" class=\"notification-dnd-countdown\" role=\"timer\" aria-label=\"Tiempo restante de No molestar\" aria-live=\"off\" hidden><span>⏳ Tiempo restante</span><strong id=\"notification-dnd-remaining\">00:00:00</strong><small id=\"notification-dnd-ends-at\"></small></div><button type=\"button\" class=\"outline-btn mini\" id=\"notification-dnd-test-notice\">🔔 Probar aviso de finalización</button><label class="notification-preference-label"><input type="checkbox" id="notification-dnd-scheduled" disabled> Activar automáticamente cada día</label><div class="notification-quiet-hours"><label for="notification-dnd-start">Desde <input id="notification-dnd-start" type="time" value="22:00" disabled></label><label for="notification-dnd-end">Hasta <input id="notification-dnd-end" type="time" value="08:00" disabled></label></div><small id="notification-dnd-timezone"></small><button type="button" id="notification-dnd-save-schedule" class="outline-btn mini" disabled>💾 Guardar horario</button><p id="notification-dnd-status" role="status" aria-live="polite">Cargando modo No molestar…</p>';
- section.insertBefore(quietSettings,toastSettings);
+ if(animeSoundPage){quietSettings.style.display='none';}else{section.insertBefore(quietSettings,toastSettings);}
  const dndManual=quietSettings.querySelector('#notification-dnd-manual');
  const dndScheduled=quietSettings.querySelector('#notification-dnd-scheduled');
  const dndStart=quietSettings.querySelector('#notification-dnd-start');
