@@ -37,6 +37,9 @@
       #public-member-profile .sb-profile-id-actions {grid-template-columns:1fr;}
     }
 
+    /* Evita que el navegador reajuste el scroll por módulos cargados al fondo. */
+    #public-member-profile .public-member-body { overflow-anchor:none; }
+    #public-member-profile .sb-public-clean-nav { scroll-margin-top:85px; }
     /* Vista reducida: el ID completo y las copias siguen disponibles bajo demanda. */
     #public-member-profile .sb-profile-id-panel {
       display:block; padding:10px 13px; margin:12px 0 16px;
@@ -301,7 +304,16 @@
   }
   const start = () => {
     const root = document.getElementById('app') || document.body;
-    new MutationObserver(queueMount).observe(root, {childList:true, subtree:true});
+    // Las estadísticas y galerías generan muchas mutaciones internas.
+    // Reorganizar sólo cuando cambia la estructura externa del perfil
+    // evita continuos reajustes del diseño y saltos del scroll.
+    new MutationObserver(records => {
+      if (location.hash.split('?')[0] !== '#/perfil') return;
+      const body = document.querySelector('#public-member-profile .public-member-body');
+      const host = document.getElementById('public-member-profile');
+      if (records.some(record => record.target === root ||
+          record.target === host || record.target === body)) queueMount();
+    }).observe(root, {childList:true, subtree:true});
     window.addEventListener('hashchange', queueMount);
     queueMount();
   };
