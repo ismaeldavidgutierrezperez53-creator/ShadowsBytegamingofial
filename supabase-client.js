@@ -2494,17 +2494,53 @@ async function loadCommunityFeed(){
  
  if(user&&!authError){
   const composer=document.createElement('form');composer.className='social-form sb-community-post-form';
-  const label=document.createElement('label');label.textContent='📝 Nueva publicación en Comunidad';
-  const input=document.createElement('textarea');input.rows=3;input.maxLength=1000;input.placeholder='¿Qué quieres compartir con la comunidad?';input.setAttribute('aria-label','Nueva publicación en la comunidad');
+  const heading=document.createElement('div');heading.className='sb-composer-heading';
+  const label=document.createElement('label');label.htmlFor='sb-community-post-text';label.textContent='📝 Nueva publicación en Comunidad';
+  const introduction=document.createElement('small');introduction.textContent='Comparte tus novedades de anime y gaming con la comunidad.';
+  heading.append(label,introduction);
+  const writingArea=document.createElement('div');writingArea.className='sb-composer-writing';
+  const input=document.createElement('textarea');input.id='sb-community-post-text';input.rows=3;input.maxLength=1000;input.placeholder='¿Qué quieres compartir con la comunidad?';input.setAttribute('aria-label','Nueva publicación en la comunidad');
+  const counter=document.createElement('small');counter.className='sb-composer-counter';counter.textContent='0 / 1000 caracteres';
+  input.addEventListener('input',()=>{counter.textContent=input.value.length+' / 1000 caracteres';});
+  writingArea.append(input,counter);
+  const tools=document.createElement('div');tools.className='sb-composer-tools';
   const spoilerToggle=createCommunitySpoilerToggle();
-  const upload=document.createElement('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp,image/gif';upload.setAttribute('aria-label','Adjuntar imagen');
-  const albumLabel=document.createElement('label');albumLabel.textContent='Álbum de la imagen';
-  const album=document.createElement('select');
+  const uploadLabel=document.createElement('label');uploadLabel.className='sb-composer-upload-button';
+  const uploadTitle=document.createElement('span');uploadTitle.textContent='🖼️ Añadir imagen';
+  const upload=document.createElement('input');upload.type='file';upload.accept='image/jpeg,image/png,image/webp,image/gif';upload.setAttribute('aria-label','Adjuntar imagen a la publicación');
+  uploadLabel.append(uploadTitle,upload);tools.append(spoilerToggle,uploadLabel);
+  const mediaName=document.createElement('small');mediaName.className='sb-composer-file-name';mediaName.textContent='JPG, PNG, WebP o GIF · máximo 5 MB';
+  const preview=document.createElement('div');preview.className='sb-composer-media-preview';preview.hidden=true;
+  const previewImg=document.createElement('img');previewImg.alt='Vista previa de la imagen adjunta';
+  const previewFilename=document.createElement('span');previewFilename.className='sb-composer-preview-filename';
+  const removeImage=document.createElement('button');removeImage.type='button';removeImage.className='sb-composer-remove-image';removeImage.textContent='✕ Quitar imagen';
+  preview.append(previewImg,previewFilename,removeImage);
+  let previewUrl=null;
+  const clearPreview=()=>{
+   if(previewUrl)URL.revokeObjectURL(previewUrl);
+   previewUrl=null;preview.hidden=true;previewImg.removeAttribute('src');previewFilename.textContent='';
+   mediaName.textContent='JPG, PNG, WebP o GIF · máximo 5 MB';
+  };
+  upload.addEventListener('change',()=>{
+   clearPreview();
+   const file=upload.files?.[0];if(!file)return;
+   mediaName.textContent=file.name;
+   if(file.type.startsWith('image/')){
+    previewUrl=URL.createObjectURL(file);previewImg.src=previewUrl;
+    previewFilename.textContent=file.name;preview.hidden=false;
+   }
+  });
+  removeImage.onclick=()=>{upload.value='';clearPreview();};
+  const albumLabel=document.createElement('label');albumLabel.className='sb-composer-album-label';albumLabel.textContent='📚 Álbum de la imagen';
+  const album=document.createElement('select');album.setAttribute('aria-label','Seleccionar álbum de la imagen');
   for(const name of ['Otros','Anime','Gaming','Capturas']){const option=document.createElement('option');option.value=name;option.textContent=name;album.append(option);}
   albumLabel.append(album);
-  const submit=document.createElement('button');submit.className='gradient-btn mini';submit.type='submit';submit.textContent='Publicar';
-  const status=document.createElement('small');status.setAttribute('role','status');
-  composer.append(label,input,spoilerToggle,upload,albumLabel,submit,status);
+  const footer=document.createElement('div');footer.className='sb-composer-footer';
+  const footnote=document.createElement('small');footnote.textContent='Tu publicación aparecerá en el muro de la comunidad.';
+  const submit=document.createElement('button');submit.className='gradient-btn mini';submit.type='submit';submit.textContent='✨ Publicar';
+  footer.append(footnote,submit);
+  const status=document.createElement('small');status.className='sb-composer-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  composer.append(heading,writingArea,tools,mediaName,preview,albumLabel,footer,status);
   composer.onsubmit=async event=>{
    event.preventDefault();if(submit.disabled)return;
    const file=upload.files?.[0],content=communityOutgoingPost(input.value,spoilerToggle,!!file);
@@ -2520,6 +2556,7 @@ async function loadCommunityFeed(){
    }
    const {error}=await sb.from('member_posts').insert({author_id:user.id,content,image_path,gallery_category:album.value});
    if(error){if(image_path)await sb.storage.from('community-images').remove([image_path]);status.textContent='No se pudo publicar: '+error.message;submit.disabled=false;return;}
+   clearPreview();
    await loadCommunityFeed();
   };
   root.append(composer);
