@@ -74,6 +74,22 @@ function adminForm(item={}){
  root.innerHTML='<section class="admin-panel admin-editor-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">EDITOR DE CONTENIDO</span><h2>'+(isEdit?'Editar':'Crear')+' '+model.label.toLowerCase()+'</h2><p>Completa los campos y guarda tus cambios en Supabase.</p></div><button type="button" class="admin-close" id="admin-close" aria-label="Cerrar editor">✕</button></div><form id="admin-editor"><div class="admin-fields">'+Object.keys(model.fields).map(k=>adminField(k,item[k]??(k==='status'?'draft':''),model)).join('')+'</div>'+((model.fields.image_url||model.fields.cover_url)?'<div class="admin-field admin-field-wide"><label for="admin-image-file">Subir imagen desde tu dispositivo (máximo 5 MB)</label><input id="admin-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><p id="admin-upload-status" role="status" aria-live="polite"></p><img id="admin-image-preview" alt="Vista previa de la imagen" hidden style="max-width:240px;max-height:180px;object-fit:contain;border-radius:12px;margin-top:10px"></div>':'')+'<div class="admin-form-actions"><button type="button" class="admin-secondary" id="admin-cancel">Cancelar</button><button type="submit" class="gradient-btn" id="admin-save">Guardar contenido</button></div></form></section>';
  adminSetupImageUpload();
  if(adminTable==='news'&&window.SBNewsMentions){
+   const content=document.getElementById('admin-content');
+   if(content){
+     const everyoneButton=document.createElement('button');
+     everyoneButton.type='button';
+     everyoneButton.className='sb-news-everyone-insert';
+     everyoneButton.textContent='📣 Insertar @everyone · mencionar a todos';
+     everyoneButton.title='Avisar a todos los miembros al publicar esta noticia';
+     everyoneButton.onclick=()=>{
+       const start=content.selectionStart??content.value.length;
+       const end=content.selectionEnd??start;
+       content.setRangeText('@everyone ',start,end,'end');
+       content.focus();
+       content.dispatchEvent(new Event('input',{bubbles:true}));
+     };
+     content.insertAdjacentElement('afterend',everyoneButton);
+   }
    for(const field of ['title','excerpt','content']){
      window.SBNewsMentions.attachPicker(document.getElementById('admin-'+field));
    }
@@ -96,6 +112,12 @@ function adminForm(item={}){
    data.slug=data.slug.trim();
    if(!data.slug){adminMessage('El slug es obligatorio.','error');form.elements.slug.focus();return;}
    if(data.status==='published'&&!data.published_at)data.published_at=new Date().toISOString();
+   const everyone=/(^|[^A-Za-z0-9_])@everyone(?![A-Za-z0-9_])/i;
+   const containsEveryone=[data.title,data.excerpt,data.content].some(v=>everyone.test(v||''));
+   const hadEveryone=[item.title,item.excerpt,item.content].some(v=>everyone.test(v||''));
+   // Pedir confirmación sólo en la primera publicación con mención global.
+   if(containsEveryone&&data.status==='published'&&(!isEdit||item.status!=='published'||!hadEveryone)
+     &&!window.confirm('📣 @everyone mencionará a todos los miembros y enviará notificaciones. ¿Publicar y avisar a todos?'))return;
   }
   if(adminTable==='events'&&data.status==='published'&&!data.starts_at){
    adminMessage('Indica una fecha de inicio antes de publicar el evento.','error');form.elements.starts_at.focus();return;
