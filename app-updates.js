@@ -7,6 +7,8 @@
  const toggle=document.getElementById('sb-auto-update-on-open');
  const keyAuto='sb-auto-update-on-open', keyAttempt='sb-update-attempted';
  const keyDismiss='sb-update-dismissed';
+ const keyPendingInstall='sb-update-pending-confirmation-v1';
+ const keySuccessfulInstall='sb-update-last-confirmed-v1';
  const keyHistory='sb-update-history-v1';
  const keySnooze='sb-update-snooze-v1';
  const snoozeMs=24*60*60*1000;
@@ -14,6 +16,8 @@
  const elInstalled=document.getElementById('sb-updates-installed');
  const elPublished=document.getElementById('sb-updates-published');
  const elLastCheck=document.getElementById('sb-updates-lastcheck');
+ const elInstallResult=document.getElementById('sb-updates-install-result');
+ const retry=document.getElementById('sb-update-retry');
  const historyList=document.getElementById('sb-updates-history-list');
  const shaOk=value=>/^[0-9a-f]{40}$/i.test(value||'');
  const stamped=document.querySelector('meta[name="sb-build"]')?.content;
@@ -21,7 +25,7 @@
  const installed=shaOk(stamped)?stamped:(shaOk(legacy)?legacy:null);
  const currentUrl=new URL('./app-version.json',location.href);
  const started=Date.now();
- let last=0,checking=false,applying=false,changed=false,pending=null,banner=null,unsavedEdits=false;
+ let last=0,checking=false,applying=false,changed=false,pending=null,banner=null,unsavedEdits=false,needsManualRetry=false;
  const read=(storage,key)=>{try{return storage.getItem(key);}catch{return null;}};
  const write=(storage,key,value)=>{try{storage.setItem(key,value);}catch{}};
  const remove=(storage,key)=>{try{storage.removeItem(key);}catch{}};
@@ -30,6 +34,34 @@
  const message=text=>{output.textContent=text;};
  const shortSha=value=>shaOk(value)?value.slice(0,7):'no identificada';
  const timeString=value=>new Date(value).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+ const readRecord=(storage,key)=>{
+   try{return JSON.parse(read(storage,key)||'null');}catch{return null;}
+ };
+ function verifyPriorUpdate(){
+   const attempt=readRecord(sessionStorage,keyPendingInstall);
+   if(attempt && shaOk(attempt.version) && Number.isFinite(attempt.when)){
+     if(installed===attempt.version){
+       const confirmed={version:installed,when:Date.now()};
+       write(localStorage,keySuccessfulInstall,JSON.stringify(confirmed));
+       remove(sessionStorage,keyPendingInstall);
+       remove(sessionStorage,keyAttempt);
+       if(elInstallResult)elInstallResult.textContent='✅ Última actualización verificada · '+shortSha(installed)+' · '+timeString(confirmed.when);
+       if(retry)retry.hidden=true;
+       return;
+     }
+     // Si el navegador recuperó la misma versión antigua, evitar una recarga
+     // automática repetida. El usuario puede volver a intentarlo manualmente.
+     needsManualRetry=true;
+     if(elInstallResult)elInstallResult.textContent='⚠️ No se ha confirmado la versión '+shortSha(attempt.version)+'. Puedes reintentarla sin reinstalar SB V2.';
+     if(retry)retry.hidden=false;
+     return;
+   }
+   const previous=readRecord(localStorage,keySuccessfulInstall);
+   if(elInstallResult)elInstallResult.textContent=previous && shaOk(previous.version) && Number.isFinite(previous.when)
+     ? '✅ Última actualización verificada · '+shortSha(previous.version)+' · '+timeString(previous.when)
+     : 'Última instalación: sin comprobaciones anteriores.';
+   if(retry)retry.hidden=true;
+ }
  const snoozed=version=>{
    try{
      const data=JSON.parse(read(localStorage,keySnooze)||'null');
@@ -73,6 +105,7 @@
    }
  }
  if(elInstalled)elInstalled.textContent='Versión cargada: '+shortSha(installed);
+ verifyPriorUpdate();
  renderHistory();
  if(shaOk(stamped)){
    const history=getHistory();
@@ -189,6 +222,7 @@
    banner?.querySelectorAll('button').forEach(b=>b.disabled=true);
    message('🔄 Instalando actualización de SB V2…');
    write(sessionStorage,keyAttempt,pending);
+   write(sessionStorage,keyPendingInstall,JSON.stringify({version:pending,when:Date.now()}));
    try{
      await readyWorker();
      const next=new URL(location.href);
@@ -198,6 +232,7 @@
      applying=false;btn.disabled=false;
      banner?.querySelectorAll('button').forEach(b=>b.disabled=false);
      remove(sessionStorage,keyAttempt);
+     remove(sessionStorage,keyPendingInstall);
      message('No se pudo actualizar. Inténtalo otra vez.');
      console.warn('Actualización fallida:',error);
    }
@@ -222,7 +257,7 @@
        // Al comprobar manualmente, el usuario puede anular un recordatorio anterior.
        if(manual){remove(sessionStorage,keyDismiss);stopSnooze();}
        const paused=snoozed(published);
-       const auto=standalone()&&enabled()&&!changed&&!unsavedEdits&&!paused&&Date.now()-started<25000
+       const auto=!manual&&!needsManualRetry&&standalone()&&enabled()&&!changed&&!unsavedEdits&&!paused&&Date.now()-started<25000
          &&read(sessionStorage,keyAttempt)!==published;
        if(auto)await apply();
        else if(!paused&&read(sessionStorage,keyDismiss)!==published){
@@ -234,11 +269,22 @@
        }else if(paused){
          message('⏰ Versión '+shortSha(published)+' disponible; aviso pospuesto durante 24 horas.');
        }
+       if(needsManualRetry)
+         message('⚠️ La instalación anterior no se confirmó. Pulsa Reintentar actualización o Actualizar ahora.');
      }else{
        pending=null;
        if(banner)banner.hidden=true;
        remove(sessionStorage,keyAttempt);
        stopSnooze();
+       if(needsManualRetry){
+         // El sitio puede haber quedado al día por otra navegación.
+         needsManualRetry=false;
+         remove(sessionStorage,keyPendingInstall);
+         if(retry)retry.hidden=true;
+         const confirmed={version:installed,when:Date.now()};
+         write(localStorage,keySuccessfulInstall,JSON.stringify(confirmed));
+         if(elInstallResult)elInstallResult.textContent='✅ Versión verificada · '+shortSha(installed)+' · '+timeString(confirmed.when);
+       }
        message('✅ SB V2 al día · versión '+published.slice(0,7)+'.');
      }
    }catch(error){
@@ -248,6 +294,11 @@
    }finally{checking=false;if(!applying)btn.disabled=false;}
  }
  btn.addEventListener('click',()=>{void check(true);});
+ if(retry)retry.addEventListener('click',async()=>{
+   // Volver a confirmar la versión publicada antes de intentar otra recarga.
+   await check(true);
+   if(pending && !applying)await apply();
+ });
  window.addEventListener('online',()=>{void check();});
  document.addEventListener('visibilitychange',()=>{
    if(document.visibilityState==='visible'&&Date.now()-last>120000)void check();

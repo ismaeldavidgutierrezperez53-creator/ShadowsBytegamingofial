@@ -101,3 +101,13 @@
 .sb-updates-changes ul,.sb-update-notice__changes ul{margin:8px 0 10px;padding-left:19px}
 .sb-updates-changes li,.sb-update-notice__changes li{line-height:1.5;margin:4px 0;overflow-wrap:anywhere}
 .sb-update-notice__changes{margin:0 0 13px;padding:8px 10px;border:1px solid rgba(194,130,246,.5);border-radius:10px;color:#f3e4ff}
+
+/* Resultado de instalación y recuperación manual, sin añadir ruido al menú. */
+.sb-updates-retry{
+  min-height:40px;padding:8px 12px;border:1px solid #daaa65;border-radius:10px;
+  background:#523617;color:#fff;font:700 14px Rajdhani,Arial,sans-serif;
+  cursor:pointer;
+}
+.sb-updates-retry[hidden]{display:none!important}
+.sb-updates-retry:hover{background:#654523}
+.sb-updates-retry:focus-visible{outline:3px solid #64e6ff;outline-offset:3px}
