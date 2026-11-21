@@ -73,6 +73,11 @@ function adminForm(item={}){
  const model=adminModels[adminTable],isEdit=Boolean(item.id);
  root.innerHTML='<section class="admin-panel admin-editor-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">EDITOR DE CONTENIDO</span><h2>'+(isEdit?'Editar':'Crear')+' '+model.label.toLowerCase()+'</h2><p>Completa los campos y guarda tus cambios en Supabase.</p></div><button type="button" class="admin-close" id="admin-close" aria-label="Cerrar editor">✕</button></div><form id="admin-editor"><div class="admin-fields">'+Object.keys(model.fields).map(k=>adminField(k,item[k]??(k==='status'?'draft':''),model)).join('')+'</div>'+((model.fields.image_url||model.fields.cover_url)?'<div class="admin-field admin-field-wide"><label for="admin-image-file">Subir imagen desde tu dispositivo (máximo 5 MB)</label><input id="admin-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><p id="admin-upload-status" role="status" aria-live="polite"></p><img id="admin-image-preview" alt="Vista previa de la imagen" hidden style="max-width:240px;max-height:180px;object-fit:contain;border-radius:12px;margin-top:10px"></div>':'')+'<div class="admin-form-actions"><button type="button" class="admin-secondary" id="admin-cancel">Cancelar</button><button type="submit" class="gradient-btn" id="admin-save">Guardar contenido</button></div></form></section>';
  adminSetupImageUpload();
+ if(adminTable==='news'&&window.SBNewsMentions){
+   for(const field of ['title','excerpt','content']){
+     window.SBNewsMentions.attachPicker(document.getElementById('admin-'+field));
+   }
+ }
  const close=()=>root.replaceChildren();
  document.getElementById('admin-close').onclick=close;
  document.getElementById('admin-cancel').onclick=close;
