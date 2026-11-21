@@ -20,6 +20,8 @@
       box-shadow: 0 0 12px #ad56ee99;
       overflow: visible;
     }
+    /* El progreso no tapa ni ocupa espacio visual al personalizar. */
+    html.sb-customize-open #sb-anime-scroll-progress { display: none !important; }
     #sb-anime-scroll-progress-percentage {
       position: absolute;
       top: 11px;
