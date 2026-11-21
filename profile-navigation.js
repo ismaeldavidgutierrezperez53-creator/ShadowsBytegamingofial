@@ -919,7 +919,9 @@
    top.type='button';
    top.onclick=()=>host.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
    nav.append(title,desc,stats,details,top);
-   anchor.after(nav);
+   const compactTools = !isOwn ? host.querySelector('.sb-public-clean-tools') : null;
+   if (compactTools) compactTools.append(nav);
+   else anchor.after(nav);
   }
   const links=nav.querySelector('.sb-nav-links');
   const summary=nav.querySelector('.sb-nav-summary');
