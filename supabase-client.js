@@ -1500,7 +1500,8 @@ async function loadAccountProfile(){
  loadMemberGallery(user.id,ownGallery);
  document.getElementById('profile-signout').addEventListener('click',logout);
  // Every member profile is public automatically; authentication email remains private.
- const {data:profile}=await sb.from('profiles').select('bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura,profile_title,profile_showcase_badges,profile_card_layout,profile_card_motto').eq('id',user.id).maybeSingle();
+ const {data:profile}=await sb.from('profiles').select('username,bio,is_public,cover_url,theme_color,featured_badge,favorite_games,gaming_social_url,gaming_status,status_message,anime_card_style,favorite_anime,favorite_anime_character,profile_effect,profile_frame,cover_position,cover_tint,profile_background,profile_particles,profile_avatar_glow,profile_level_aura,profile_title,profile_showcase_badges,profile_card_layout,profile_card_motto').eq('id',user.id).maybeSingle();
+  if(profile?.username){const tag=document.createElement('small');tag.className='sb-member-handle';tag.textContent='@'+profile.username;root.querySelector('.profile-identity-copy h2')?.after(tag);}
  const panel=root.querySelector('.profile-grid .profile-panel');
  if(panel){
   const extra=document.createElement('div');extra.className='profile-public-settings';
@@ -1835,7 +1836,9 @@ async function loadMembers(){
    for(const [icon,value] of [['🎬',member.favorite_anime],['⭐',member.favorite_anime_character]]){if(value){const chip=document.createElement('span');chip.textContent=icon+' '+value;animeTags.append(chip);}}
    const link=document.createElement('a');link.className='gradient-btn mini member-view-link';link.href='#/perfil?id='+encodeURIComponent(member.id);link.textContent='Ver perfil';
    const gameStatusText=document.createElement('p');gameStatusText.className='member-gaming-status';const states={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};gameStatusText.textContent=states[member.gaming_status]||states.disponible;if(member.status_message)gameStatusText.textContent+=' · '+member.status_message;
-   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';if(cover)card.append(cover);card.append(avatar,heading,gameStatusText,bio);if(animeTags.childElementCount)card.append(animeTags);const actions=document.createElement('div');actions.className='member-card-actions';actions.append(link,messageLink);card.append(actions);root.append(card);applyShopProfileCosmetics(member.id,avatar,heading,card);
+   const messageLink=document.createElement('a');messageLink.className='outline-btn mini';messageLink.href='#/mensajes?id='+encodeURIComponent(member.id);messageLink.textContent='💬 Mensaje privado';if(cover)card.append(cover);card.append(avatar,heading);
+   if(member.username){const handle=document.createElement('small');handle.className='sb-member-handle';handle.textContent='@'+member.username;card.append(handle);}
+   card.append(gameStatusText,bio);if(animeTags.childElementCount)card.append(animeTags);const actions=document.createElement('div');actions.className='member-card-actions';actions.append(link,messageLink);card.append(actions);root.append(card);applyShopProfileCosmetics(member.id,avatar,heading,card);
   });
  }
  document.getElementById('members-search')?.addEventListener('input',draw);draw();
@@ -1883,7 +1886,9 @@ async function loadPublicMemberProfile(){
  const bio=document.createElement('p');bio.className='public-member-bio';bio.textContent=member.bio||'Este miembro todavía no ha escrito una presentación.';
  const back=document.createElement('a');back.href='#/miembros';back.className='outline-btn';back.textContent='← Volver a Miembros';
  const publicStatus=document.createElement('p');publicStatus.className='member-gaming-status';const gamingLabels={disponible:'🟢 Disponible',jugando:'🎮 Jugando',buscando_grupo:'👥 Buscando grupo',ausente:'🌙 Ausente'};publicStatus.textContent=(gamingLabels[member.gaming_status]||gamingLabels.disponible)+(member.status_message?' · '+member.status_message:'');
- content.append(avatar,title,badge,publicStatus,featured,bioTitle,bio);
+ content.append(avatar,title);
+  if(member.username){const handle=document.createElement('small');handle.className='sb-member-handle';handle.textContent='@'+member.username;content.append(handle);}
+  content.append(badge,publicStatus,featured,bioTitle,bio);
  if(member.favorite_anime||member.favorite_anime_character){
   const animePanel=document.createElement('section');animePanel.className='profile-panel public-anime-identity';
   const animeHeading=document.createElement('h2');animeHeading.textContent='🌸 Mi universo anime';
@@ -2758,6 +2763,7 @@ async function loadCommunityFeed(){
   const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true):{data:[]};
   if(request!==requestId||!content.isConnected)return;
   const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+   const handles=new Map((profiles||[]).filter(p=>p.username).map(p=>[p.id,p.username]));
   content.replaceChildren();
   for(const post of visible){
    if(!names.has(post.author_id))continue;
@@ -2782,7 +2788,9 @@ async function loadCommunityFeed(){
     if(mode==='saved'&&active){article.remove();if(!content.children.length)content.textContent='Todavía no tienes publicaciones guardadas.';}
     else{updateButton();save.disabled=false;}
    };
-   article.append(author,date);appendCommunityPostContent(article,post);
+   article.append(author);
+   if(handles.has(post.author_id)){const handle=document.createElement('small');handle.className='sb-community-author-handle';handle.textContent='@'+handles.get(post.author_id);article.append(handle);}
+   article.append(date);appendCommunityPostContent(article,post);
    if(post.edited_at){const edited=document.createElement('small');edited.className='sb-community-edited-label';edited.textContent='✏️ Editada';article.append(edited);}
    appendCommunityEditAction(article,post,user?.id);
    appendCommunityPinAction(article,post,user?.app_metadata?.role==='admin'?user:null,pinned,()=>loadCommunityFeed());
