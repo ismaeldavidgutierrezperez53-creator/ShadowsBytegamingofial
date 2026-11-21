@@ -62,6 +62,18 @@
   white-space:normal;
 }
 #public-member-profile .sb-public-profile-actions .member-private-message-link{flex:1 1 175px}
+#public-member-profile .sb-public-profile-actions .sb-public-follow{
+  flex:1 1 125px;color:#fff;
+  border:1px solid #c49cff;
+  background:linear-gradient(115deg,#8240bd,#3f79c1);
+  box-shadow:0 4px 16px rgba(120,65,180,.28);
+}
+#public-member-profile .sb-public-profile-actions .sb-public-follow[data-following="true"]{
+  border-color:#73daba;background:linear-gradient(115deg,#185d55,#266c74);
+}
+#public-member-profile .sb-public-profile-actions .sb-public-follow:disabled{
+  opacity:.65;cursor:wait;
+}
 #public-member-profile .sb-public-profile-actions .sb-public-share{
   flex:1 1 130px;color:#fff;border:1px solid #9251cf;
   background:linear-gradient(120deg,#382057,#2a4269);
