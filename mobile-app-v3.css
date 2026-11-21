@@ -260,3 +260,131 @@ html[data-sb-motion="off"] .sb-mobile-bottom-nav>a:active{transform:none}
     min-height:44px;
   }
 }
+
+/* 2026-11-21: Corrección de la cabecera de Mi cuenta y controles flotantes en Android. */
+#app .account-quick-actions{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  width:100%;
+  min-width:0;
+  margin:20px 0;
+}
+#app .account-quick-actions > a{
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+  max-width:100%;
+  min-height:48px;
+  margin:0;
+  padding:11px 12px;
+  text-align:center;
+  line-height:1.3;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+@media screen and (max-width:760px){
+  #app .account-quick-actions{
+    grid-template-columns:minmax(0,1fr);
+    gap:10px;
+    margin:17px 0 22px;
+  }
+  #app .account-quick-actions > a{
+    justify-content:flex-start;
+    min-height:48px;
+    padding:12px 15px;
+    text-align:left;
+    font-size:clamp(15px,4vw,17px);
+  }
+  #account-profile .profile-cover{
+    padding-inline:clamp(14px,4vw,22px);
+  }
+  #account-profile .profile-cover > span:first-child{
+    max-width:68%;
+    line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+  #account-profile .profile-cover-mark{
+    font-size:clamp(30px,11vw,56px);
+  }
+  #account-profile .profile-identity-copy{min-width:0;max-width:100%}
+  #account-profile .profile-identity h2{
+    max-width:100%;
+    font-size:clamp(18px,4.8vw,26px);
+    line-height:1.28;
+    letter-spacing:0;
+    overflow-wrap:anywhere;
+  }
+  #account-profile #profile-email{
+    max-width:100%;
+    font-size:clamp(14px,3.8vw,17px);
+    line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+  #account-profile .sb-profile-follow-shortcut{
+    max-width:100%;
+    min-width:0;
+  }
+
+  /* Los tres accesos flotantes comparten una fila justo encima de la navegación. */
+  :root{
+    --sb-mobile-float-bottom:calc(var(--sb-bottom-nav-height,0px) + var(--sb-bottom-nav-safe,env(safe-area-inset-bottom,0px)) + 12px);
+  }
+  .sb-customize-toggle{
+    left:max(8px,env(safe-area-inset-left,0px))!important;
+    bottom:var(--sb-mobile-float-bottom)!important;
+    box-sizing:border-box;
+    max-width:min(138px,calc(100vw - 190px));
+    min-height:44px;
+    padding:8px 10px!important;
+    font-size:13px!important;
+    line-height:1.2;
+    white-space:normal;
+    text-align:center;
+  }
+  .sb-badge-notify{
+    right:calc(max(8px,env(safe-area-inset-right,0px)) + 55px)!important;
+    bottom:var(--sb-mobile-float-bottom)!important;
+    max-width:min(195px,calc(100vw - 175px));
+  }
+  .sb-badge-notify-toggle{
+    min-height:44px;
+    gap:5px;
+    padding:8px 10px;
+    font-size:13px;
+    line-height:1.2;
+    white-space:nowrap;
+  }
+  .sb-badge-notify-panel,
+  .sb-badge-unlock-toast,
+  .sb-goal-unlock-toast{
+    box-sizing:border-box;
+    width:min(350px,calc(100vw - 84px));
+  }
+  #site-whatsapp-button{
+    right:max(8px,env(safe-area-inset-right,0px))!important;
+    bottom:var(--sb-mobile-float-bottom)!important;
+    width:46px!important;
+    height:46px!important;
+  }
+  .sb-customize-panel{
+    bottom:calc(var(--sb-mobile-float-bottom) + 58px)!important;
+  }
+}
+@media screen and (max-width:480px){
+  /* Avatar encima del nombre: ninguna identidad larga queda atrapada junto a la foto. */
+  #account-profile .profile-identity{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:11px;
+  }
+  #account-profile .profile-avatar{
+    flex:0 0 86px;
+  }
+  #account-profile .profile-identity-copy{
+    flex:0 1 auto;
+    width:100%;
+  }
+}
