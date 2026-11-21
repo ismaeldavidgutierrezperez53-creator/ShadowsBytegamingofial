@@ -64,14 +64,14 @@
       root.innerHTML = '<section class="sb-ag-panel"><h2>Tu aventura empieza con tu cuenta</h2><p>Inicia sesión con tu cuenta actual para consultar tus animes y tus sesiones gaming. No hace falta registrarse otra vez.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión</a></section>';
       return;
     }
-    const state = {root,user,anime:[],games:[],library:[],filter:'todas',busy:false};
+    const state = {root,user,anime:[],games:[],library:[],filter:'todas',busy:false,challengeGoal:3,rankVisible:false,rankRegistered:false,leaderboard:[]};
     drawShell(state);
     await loadData(state,active);
   }
   function drawShell(state) {
     const root = state.root;
     root.innerHTML = [
-      '<div class="sb-ag-head"><p class="sb-ag-eyebrow">🌸 TU AVENTURA PERSONAL</p><h2>Centro Anime y Gaming</h2><p>Organiza lo que ves, registra tus partidas y descubre qué te apetece hacer hoy. Solo tú puedes ver y modificar estos registros.</p></div>',
+      '<div class="sb-ag-head"><p class="sb-ag-eyebrow">🌸 TU AVENTURA PERSONAL</p><h2>Centro Anime y Gaming</h2><p>Organiza lo que ves, registra tus partidas y descubre qué te apetece hacer hoy. Tus listas y sesiones son privadas; la clasificación solo muestra estadísticas si decides participar.</p></div>',
       '<div class="sb-ag-stats" id="sb-ag-stats" aria-live="polite"></div>',
       '<div class="sb-ag-suggest"><button type="button" class="outline-btn mini" id="sb-ag-suggest-anime">🎲 ¿Qué anime veo?</button><button type="button" class="outline-btn mini" id="sb-ag-suggest-game">🎮 ¿Qué juego hoy?</button><p id="sb-ag-tip" role="status" aria-live="polite">Tus sugerencias se basan en las listas que guardes.</p></div>',
       '<p class="sb-ag-feedback" id="sb-ag-load-message" role="status" aria-live="polite">Cargando tus registros…</p>',
@@ -93,22 +93,24 @@
       '<div><label for="sb-ag-game-minutes">Minutos jugados</label><input id="sb-ag-game-minutes" type="number" min="1" max="1440" step="1" required placeholder="60"></div></div>',
       '<label for="sb-ag-game-notes">Notas (opcional)</label><textarea id="sb-ag-game-notes" maxlength="500" rows="2" placeholder="Partida, misión, logro…"></textarea>',
       '<button type="submit" class="gradient-btn">➕ Guardar sesión</button><p id="sb-ag-game-message" class="sb-ag-feedback" role="status"></p></form>',
-      '<div id="sb-ag-game-list" class="sb-ag-list"></div></section></div>'
+      '<div id="sb-ag-game-list" class="sb-ag-list"></div></section></div>',
+      '<div class="sb-ag-extras">',
+      '<section class="sb-ag-panel" aria-labelledby="sb-ag-challenge-heading"><h3 id="sb-ag-challenge-heading">🏁 Retos anime</h3><p>Elige cuántos animes quieres completar. El progreso se calcula desde tu lista personal.</p><div class="sb-ag-challenge-controls"><label for="sb-ag-challenge-goal">Mi meta de animes completados</label><input id="sb-ag-challenge-goal" type="number" min="1" max="50" step="1" value="3"><button type="button" class="outline-btn mini" id="sb-ag-challenge-save">Guardar reto</button></div><progress id="sb-ag-challenge-progress" max="3" value="0"></progress><p id="sb-ag-challenge-result" class="sb-ag-feedback" role="status" aria-live="polite">Preparando tu reto…</p></section>',
+      '<section class="sb-ag-panel" aria-labelledby="sb-ag-achievements-heading"><h3 id="sb-ag-achievements-heading">🏅 Logros por completar series</h3><p>Desbloquea insignias de colección al marcar animes como completados. No se suman puntos ni se modifican tus recompensas actuales.</p><div id="sb-ag-badges" class="sb-ag-badges" aria-live="polite"></div></section>',
+      '<section class="sb-ag-panel" aria-labelledby="sb-ag-ranking-heading"><h3 id="sb-ag-ranking-heading">🏆 Clasificación gaming</h3><p>Ranking por horas de juego registradas por cada miembro. Participar es voluntario: solo aparecen el nombre y los totales, nunca tus notas o partidas privadas.</p><label class="sb-ag-rank-toggle"><input type="checkbox" id="sb-ag-rank-visible"> Aparecer en la clasificación con mis totales</label><p id="sb-ag-rank-message" class="sb-ag-feedback" role="status" aria-live="polite">Cargando clasificación…</p><ol id="sb-ag-rank-list" class="sb-ag-rank-list"></ol></section>',
+      '<section class="sb-ag-panel" aria-labelledby="sb-ag-rec-heading"><h3 id="sb-ag-rec-heading">💡 Recomendaciones personalizadas</h3><p>Ideas elaboradas a partir de tus animes y tu propia biblioteca de videojuegos, sin compartirlos con otros miembros.</p><div id="sb-ag-rec-anime" class="sb-ag-rec-item"></div><div id="sb-ag-rec-game" class="sb-ag-rec-item"></div><button type="button" class="outline-btn mini" id="sb-ag-rec-refresh">Actualizar sugerencias</button></section>',
+      '</div>'
     ].join('');
     byId(root,'sb-ag-game-date').value=today();
     byId(root,'sb-ag-game-date').max=today();
     byId(root,'sb-ag-anime-form').addEventListener('submit',event => addAnime(state,event));
     byId(root,'sb-ag-game-form').addEventListener('submit',event => addGame(state,event));
     byId(root,'sb-ag-anime-filter').addEventListener('change',event => {state.filter=event.target.value;paintAnime(state);});
-    byId(root,'sb-ag-suggest-anime').addEventListener('click',() => {
-      const picks = state.anime.filter(a=>a.status==='pendiente'||a.status==='viendo');
-      const tip = byId(root,'sb-ag-tip');
-      tip.textContent = picks.length ? '🌸 Tu próxima elección: '+picks[Math.floor(Math.random()*picks.length)].title : 'Añade animes pendientes o en curso para recibir sugerencias.';
-    });
-    byId(root,'sb-ag-suggest-game').addEventListener('click',() => {
-      const titles = [...new Set(state.library.filter(g=>g.status==='playing').map(g=>g.title).concat(state.games.map(g=>g.game_title)).filter(Boolean))];
-      byId(root,'sb-ag-tip').textContent = titles.length ? '🎮 Hoy puedes jugar a: '+titles[Math.floor(Math.random()*titles.length)] : 'Registra una sesión o añade un juego a tu biblioteca para recibir sugerencias.';
-    });
+    byId(root,'sb-ag-suggest-anime').addEventListener('click',() => {byId(root,'sb-ag-tip').textContent = recommendation(state,'anime');});
+    byId(root,'sb-ag-suggest-game').addEventListener('click',() => {byId(root,'sb-ag-tip').textContent = recommendation(state,'gaming');});
+    byId(root,'sb-ag-challenge-save').addEventListener('click',() => saveChallenge(state));
+    byId(root,'sb-ag-rank-visible').addEventListener('change',(event) => updateRankingOptIn(state,event.target.checked));
+    byId(root,'sb-ag-rec-refresh').addEventListener('click',() => paintRecommendations(state));
   }
   async function loadData(state,active) {
     const {root,user} = state;
@@ -130,6 +132,7 @@
       byId(root,'sb-ag-anime-form').querySelector('button[type="submit"]').disabled=false;
       byId(root,'sb-ag-game-form').querySelector('button[type="submit"]').disabled=false;
       paintAll(state);
+      void Promise.all([loadChallenge(state,active),loadRanking(state,active)]);
     } catch(error) {
       if(!active()) return;
       message.textContent='No se pudieron cargar las listas: '+friendlyError(error)+' ';
@@ -147,7 +150,7 @@
     const titles=[...new Set(state.library.map(g=>g.title).concat(state.games.map(g=>g.game_title)).filter(Boolean))].slice(0,100);
     for(const t of titles){const option=document.createElement('option');option.value=t;list.append(option);}
   }
-  function paintAll(state){paintStats(state);paintAnime(state);paintGames(state);}
+  function paintAll(state){paintStats(state);paintAnime(state);paintGames(state);paintChallenge(state);paintAchievements(state);paintRecommendations(state);}
   function paintStats(state){
     const stats=byId(state.root,'sb-ag-stats');
     const minutes=state.games.reduce((sum,g)=>sum+g.minutes_played,0);
@@ -204,8 +207,7 @@
       const {data,error}=await sb.from('member_anime_watchlist').update(payload).eq('id',item.id).eq('user_id',state.user.id).select(fieldsAnime).single();
       if(error)throw error;
       Object.assign(item,data);
-      paintStats(state);
-      paintAnime(state);
+      paintAll(state);
       byId(state.root,'sb-ag-anime-message').textContent='Cambios guardados.';
     }catch(error){
       byId(state.root,'sb-ag-anime-message').textContent='No se pudo actualizar: '+friendlyError(error);
@@ -271,6 +273,7 @@
       state.games.unshift(data);state.games.sort((a,b)=>b.played_on.localeCompare(a.played_on)||b.created_at.localeCompare(a.created_at));
       form.reset();byId(root,'sb-ag-game-date').value=today();populateSuggestions(state);paintAll(state);
       message.textContent='✅ Sesión gaming guardada.';
+      void loadRanking(state,()=>document.getElementById('sb-anime-gaming-hub')===root);
     }catch(error){message.textContent='No se pudo guardar: '+friendlyError(error);}
     finally{state.busy=false;submit.disabled=false;}
   }
@@ -283,11 +286,166 @@
       if(kind==='anime')state.anime=state.anime.filter(a=>a.id!==id);
       else state.games=state.games.filter(g=>g.id!==id);
       populateSuggestions(state);paintAll(state);
+      if(kind==='game')void loadRanking(state,()=>document.getElementById('sb-anime-gaming-hub')===state.root);
       byId(state.root,kind==='anime'?'sb-ag-anime-message':'sb-ag-game-message').textContent='Registro eliminado.';
     }catch(error){
       byId(state.root,kind==='anime'?'sb-ag-anime-message':'sb-ag-game-message').textContent='No se pudo eliminar: '+friendlyError(error);
       paintAll(state);
     }finally{state.busy=false;}
+  }
+
+  /* New features. Badges and challenges are derived from stored, private anime statuses.
+     The optional public leaderboard contains aggregate totals only, never session details. */
+  function completedCount(state) {
+    return state.anime.filter(a=>a.status==='completado').length;
+  }
+  function paintChallenge(state) {
+    const root=state.root, count=completedCount(state), target=state.challengeGoal;
+    const progress=byId(root,'sb-ag-challenge-progress');
+    if(!progress)return;
+    progress.max=target;
+    progress.value=Math.min(count,target);
+    progress.setAttribute('aria-label','Progreso del reto anime: '+count+' de '+target+' animes');
+    byId(root,'sb-ag-challenge-result').textContent=count>=target
+      ? '🎉 ¡Reto completado! Has marcado '+count+' animes como completados.'
+      : '🌸 Progreso: '+count+' de '+target+' animes. Te faltan '+(target-count)+'.';
+  }
+  function paintAchievements(state) {
+    const box=byId(state.root,'sb-ag-badges');
+    if(!box)return;
+    box.replaceChildren();
+    const count=completedCount(state);
+    const medals=[
+      [1,'🌱 Primer anime'],
+      [3,'🌸 Explorador otaku'],
+      [5,'⚡ Coleccionista anime'],
+      [10,'👑 Maestro del anime'],
+      [20,'🌌 Leyenda otaku']
+    ];
+    for(const [target,label] of medals){
+      const unlocked=count>=target;
+      const badge=node('div','sb-ag-badge'+(unlocked?' unlocked':''));
+      badge.append(node('strong','',unlocked?'🏅 '+label:'🔒 '+label));
+      badge.append(node('small','',unlocked?'Desbloqueado':'Completa '+target+' animes ('+count+'/'+target+')'));
+      box.append(badge);
+    }
+  }
+  async function loadChallenge(state,active) {
+    try{
+      const {data,error}=await timeout(sb.from('member_anime_challenge_settings')
+        .select('target_count').eq('user_id',state.user.id).maybeSingle(),10000);
+      if(!active())return;
+      if(error)throw error;
+      state.challengeGoal=Number(data?.target_count)||3;
+      byId(state.root,'sb-ag-challenge-goal').value=String(state.challengeGoal);
+      paintChallenge(state);
+    }catch(error) {
+      if(active())byId(state.root,'sb-ag-challenge-result').textContent='No se pudo consultar tu reto: '+friendlyError(error);
+    }
+  }
+  async function saveChallenge(state) {
+    if(state.busy)return;
+    const root=state.root, input=byId(root,'sb-ag-challenge-goal'),target=Number(input.value);
+    if(!Number.isInteger(target)||target<1||target>50){
+      byId(root,'sb-ag-challenge-result').textContent='Elige una meta entre 1 y 50 animes.';return;
+    }
+    const button=byId(root,'sb-ag-challenge-save');
+    button.disabled=true;
+    try{
+      const {data,error}=await sb.from('member_anime_challenge_settings')
+        .upsert({user_id:state.user.id,target_count:target,updated_at:new Date().toISOString()},{onConflict:'user_id'})
+        .select('target_count').single();
+      if(error)throw error;
+      state.challengeGoal=data.target_count;paintChallenge(state);
+    }catch(error){
+      byId(root,'sb-ag-challenge-result').textContent='No se pudo guardar el reto: '+friendlyError(error);
+    }finally{button.disabled=false;}
+  }
+  function recommendation(state,kind) {
+    if(kind==='anime'){
+      const watching=state.anime.filter(a=>a.status==='viendo')
+        .sort((a,b)=>((a.episodes_total||9999)-a.episodes_watched)-((b.episodes_total||9999)-b.episodes_watched));
+      if(watching.length){
+        const a=watching[0];
+        return '▶️ Continúa «'+a.title+'»: llevas '+a.episodes_watched
+          +(a.episodes_total?' de '+a.episodes_total:'')+' episodios.';
+      }
+      const pending=state.anime.filter(a=>a.status==='pendiente')
+        .sort((a,b)=>(b.rating||0)-(a.rating||0));
+      if(pending.length)return '🌸 Puedes empezar «'+pending[0].title+'», que está en tu lista de pendientes.';
+      return '🌸 Añade un anime pendiente o en curso para recibir sugerencias basadas en tu lista.';
+    }
+    const playing=state.library.filter(g=>g.status==='playing').map(g=>g.title);
+    const recent=state.games[0]?.game_title||null;
+    const different=playing.find(title=>title.toLocaleLowerCase('es')!==String(recent||'').toLocaleLowerCase('es'));
+    if(different)return '🎮 Prueba una sesión de «'+different+'»: está en tu biblioteca como «Jugando».';
+    if(recent)return '🎮 Puedes continuar «'+recent+'», tu videojuego registrado más recientemente.';
+    const planned=state.library.find(g=>g.status==='wishlist');
+    if(planned)return '🎮 ¿Te apetece probar «'+planned.title+'»? Lo tienes en tu lista de deseos.';
+    return '🎮 Añade juegos a tu biblioteca o guarda una partida para recibir recomendaciones.';
+  }
+  function paintRecommendations(state) {
+    const anime=byId(state.root,'sb-ag-rec-anime');
+    const game=byId(state.root,'sb-ag-rec-game');
+    if(anime)anime.textContent=recommendation(state,'anime');
+    if(game)game.textContent=recommendation(state,'gaming');
+  }
+  async function loadRanking(state,active) {
+    const root=state.root,message=byId(root,'sb-ag-rank-message');
+    if(!message)return;
+    message.textContent='Actualizando clasificación…';
+    try {
+      const [mine,top]=await timeout(Promise.all([
+        sb.from('member_gaming_leaderboard').select('user_id,sessions_count,minutes_total,visible').eq('user_id',state.user.id).maybeSingle(),
+        sb.from('member_gaming_leaderboard').select('user_id,sessions_count,minutes_total').eq('visible',true).gt('sessions_count',0).order('minutes_total',{ascending:false}).limit(15)
+      ]),12000);
+      if(!active())return;
+      if(mine.error)throw mine.error;
+      if(top.error)throw top.error;
+      state.rankRegistered=!!mine.data;
+      state.rankVisible=mine.data?.visible===true;
+      state.leaderboard=top.data||[];
+      const checkbox=byId(root,'sb-ag-rank-visible');
+      checkbox.checked=state.rankVisible;
+      checkbox.disabled=!state.rankRegistered;
+      const ids=state.leaderboard.map(p=>p.user_id);
+      let profiles=[];
+      if(ids.length){
+        const response=await timeout(sb.from('profiles').select('id,display_name,username').in('id',ids).eq('is_public',true),8000);
+        if(!active())return;
+        if(!response.error)profiles=response.data||[];
+      }
+      const names=new Map(profiles.map(p=>[p.id,p.display_name||p.username||'Miembro gamer']));
+      const list=byId(root,'sb-ag-rank-list');list.replaceChildren();
+      state.leaderboard.forEach((player,i)=>{
+        const item=node('li','sb-ag-rank-entry');
+        const name=player.user_id===state.user.id?'Tú':(names.get(player.user_id)||'Miembro gamer');
+        item.append(node('strong','',name),node('span','',(Number(player.minutes_total)/60).toFixed(1)+' h · '+player.sessions_count+' sesiones'));
+        list.append(item);
+      });
+      if(!state.leaderboard.length)list.append(node('li','sb-ag-empty','Todavía no hay participantes. Puedes ser el primero.'));
+      message.textContent=state.rankRegistered
+        ? (state.rankVisible?'✅ Participas voluntariamente en la clasificación.':'🔒 Tus estadísticas están ocultas. Activa la casilla para participar.')
+        : 'Registra tu primera sesión gaming para activar la participación en el ranking.';
+    }catch(error) {
+      if(active())message.textContent='No se pudo cargar la clasificación: '+friendlyError(error);
+    }
+  }
+  async function updateRankingOptIn(state,visible) {
+    const root=state.root,input=byId(root,'sb-ag-rank-visible');
+    input.disabled=true;
+    const message=byId(root,'sb-ag-rank-message');
+    message.textContent='Guardando preferencia…';
+    try {
+      const {data,error}=await sb.from('member_gaming_leaderboard')
+        .update({visible}).eq('user_id',state.user.id).select('visible').single();
+      if(error)throw error;
+      state.rankVisible=data.visible;
+      await loadRanking(state,()=>document.getElementById('sb-anime-gaming-hub')===root);
+    }catch(error) {
+      input.checked=state.rankVisible;
+      message.textContent='No se pudo cambiar tu privacidad: '+friendlyError(error);
+    }finally { input.disabled=!state.rankRegistered; }
   }
   window.SBAnimeGamingHub={mount};
   if(typeof sb!=='undefined' && sb.auth?.onAuthStateChange){
