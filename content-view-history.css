@@ -26,3 +26,25 @@
 .sb-content-view-person-meta small{font-size:.75rem;color:#d6c7ea}
 @media(max-width:600px){.sb-content-views-preference{padding:12px;gap:7px}.sb-content-views-preference strong{width:100%;margin-left:27px}.sb-content-views-modal{padding:23px 17px}.sb-content-view-bar{gap:8px}.sb-content-view-readers{min-height:36px}}
 @media(prefers-reduced-motion:reduce){.sb-content-view-readers{transition:none}}
+/* Aviso de privacidad en Noticias, Comunidad y perfiles. Mismas opciones y visibilidad. */
+.sb-content-view-consent{
+ display:grid;gap:11px;padding:18px;margin:12px 0 22px;border:1px solid rgba(188,149,255,.58);
+ border-radius:16px;color:#fcf9ff;background:linear-gradient(130deg,rgba(65,35,105,.96),rgba(35,22,68,.96));
+ box-shadow:0 9px 25px rgba(7,0,19,.26)
+}
+.sb-content-view-consent h2{margin:0;font-size:1.12rem;line-height:1.4;color:#fff}
+.sb-content-view-consent p{margin:0;color:#f3eaff;font-size:.91rem;line-height:1.5}
+.sb-content-view-consent-choices{display:flex;gap:10px;flex-wrap:wrap}
+.sb-content-view-consent-button{
+ border:1px solid #d4b4fa;border-radius:12px;background:#56317d;color:#fff;
+ padding:10px 15px;flex:1 1 190px;font:inherit;font-weight:700;font-size:.9rem;cursor:pointer;min-height:44px
+}
+.sb-content-view-consent-button:hover{background:#70439c}
+.sb-content-view-consent-button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sb-content-view-consent-button:disabled{opacity:.6;cursor:wait}
+.sb-content-view-consent small{font-size:.8rem;color:#ffdaed}
+@media(max-width:600px){
+ .sb-content-view-consent{padding:14px}
+ .sb-content-view-consent-choices{flex-direction:column}
+ .sb-content-view-consent-button{flex:auto;width:100%}
+}
