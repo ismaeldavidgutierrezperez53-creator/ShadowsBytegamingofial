@@ -28,7 +28,7 @@ jobs:
           git add app-icon-192.png app-icon-512.png anime-favicon.png
           if ! git diff --cached --quiet; then
             git commit -m "build(pwa): refresh anime PNG icons [skip ci]"
-            git push
+            git push || echo 'No se pudo guardar el PNG en Git; el icono generado se publicará en Pages igualmente.'
           fi
       - name: Configure Pages
         uses: actions/configure-pages@v5
