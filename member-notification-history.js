@@ -1,0 +1,203 @@
+/* Shadows Byte Gaming Official V2 — historial persistente y paginado. */
+(() => {
+ 'use strict';
+ const ID='sb-notification-history';
+ const PAGE_SIZE=30;
+ const CATEGORIES=[
+  ['all','Todas las categorías'],['followers','👥 Seguidores'],['community','❤️ Comunidad'],
+  ['messages','💬 Mensajes'],['calls','📞 Llamadas y videollamadas'],
+  ['shop','🎁 Tienda y regalos'],['achievements','🏅 Logros y metas'],
+  ['polls','📊 Encuestas'],['tournaments','🏆 Torneos'],
+  ['news','📰 Noticias'],['visits','👤 Visitas al perfil'],['reports','🛡️ Denuncias']
+ ];
+ const ICONS={followers:'👥',community:'❤️',messages:'💬',calls:'📞',shop:'🎁',
+  achievements:'🏅',polls:'📊',tournaments:'🏆',news:'📰',visits:'👤',reports:'🛡️'};
+ const isValidRoute=value=>typeof value==='string'&&value.length<350&&/^#\/[a-z0-9/?=&%_-]+$/i.test(value);
+
+ function buildPanel(){
+  const panel=document.createElement('details');
+  panel.id=ID;panel.className='sb-notification-history';
+  const heading=document.createElement('summary');
+  heading.textContent='📚 Historial completo de notificaciones';
+  panel.append(heading);
+  const content=document.createElement('div');content.className='sb-history-content';
+  content.innerHTML=
+   '<p class="sb-history-description">Consulta tus avisos anteriores, incluidos los leídos y archivados. Los registros que se hayan eliminado o caducado no pueden recuperarse.</p>'+
+   '<div class="sb-history-toolbar">'+
+    '<label>Categoría <select data-field="category" aria-label="Categoría del historial"></select></label>'+
+    '<label>Estado <select data-field="state" aria-label="Estado del historial">'+
+     '<option value="all">Todos</option><option value="active">No archivados</option>'+
+     '<option value="unread">Sin leer</option><option value="archived">Archivados</option></select></label>'+
+    '<label class="sb-history-search-label">Buscar <input data-field="search" type="search" maxlength="90" placeholder="Buscar en el historial"></label>'+
+    '<label>Desde <input data-field="from" type="date"></label>'+
+    '<label>Hasta <input data-field="to" type="date"></label>'+
+   '</div>'+
+   '<div class="sb-history-tools">'+
+    '<button type="button" data-action="search">🔎 Buscar</button>'+
+    '<button type="button" data-action="reset">Limpiar filtros</button>'+
+    '<button type="button" data-action="refresh">🔄 Actualizar historial</button>'+
+   '</div>'+
+   '<p class="sb-history-status" role="status" aria-live="polite">Abre este apartado para consultar tus avisos anteriores.</p>'+
+   '<div class="sb-history-list"></div>'+
+   '<div class="sb-history-pagination">'+
+    '<button type="button" data-action="previous" disabled>← Anterior</button>'+
+    '<span class="sb-history-page" aria-live="polite"></span>'+
+    '<button type="button" data-action="next" disabled>Siguiente →</button>'+
+   '</div>';
+  panel.append(content);
+  const fields=Object.fromEntries(['category','state','search','from','to'].map(name=>[name,content.querySelector('[data-field="'+name+'"]')]));
+  for(const [value,label] of CATEGORIES){
+   const option=document.createElement('option');option.value=value;option.textContent=label;
+   fields.category.append(option);
+  }
+  const status=content.querySelector('.sb-history-status');
+  const list=content.querySelector('.sb-history-list');
+  const pagination=content.querySelector('.sb-history-pagination');
+  const previous=content.querySelector('[data-action="previous"]');
+  const next=content.querySelector('[data-action="next"]');
+  const pageLabel=content.querySelector('.sb-history-page');
+  let page=0,total=0,request=0,loaded=false;
+
+  function refreshOtherCounters(userId){
+   try {
+    if(typeof refreshNotificationBadge==='function')void refreshNotificationBadge(userId);
+    if(typeof loadMemberNotifications==='function')void loadMemberNotifications();
+   } catch(e){console.warn('No se pudieron refrescar los contadores:',e);}
+  }
+  async function updateSaved(row,changes,userId){
+   const allowed=['member_notifications','member_report_notifications'];
+   if(!allowed.includes(row.source_table))return;
+   const {error}=await sb.from(row.source_table).update(changes)
+    .eq('id',row.record_id).eq('recipient_id',userId);
+   if(error)throw error;
+   refreshOtherCounters(userId);
+  }
+  function renderRow(row,userId){
+   const article=document.createElement('article');article.className='sb-history-item';
+   if(row.is_read===false)article.classList.add('sb-history-unread');
+   const icon=document.createElement('span');icon.className='sb-history-icon';
+   icon.textContent=ICONS[row.category]||'🔔';icon.setAttribute('aria-hidden','true');
+   const body=document.createElement('div');body.className='sb-history-body';
+   const title=document.createElement('strong');title.textContent=row.title||'Notificación';
+   const meta=document.createElement('small');
+   const when=row.occurred_at?new Date(row.occurred_at):null;
+   const date=when&&!Number.isNaN(when.getTime())?when.toLocaleString('es-ES'):'Fecha desconocida';
+   const category=CATEGORIES.find(c=>c[0]===row.category)?.[1]||'🔔 Otra actividad';
+   meta.textContent=date+' · '+category+(row.archived_at?' · Archivada':row.is_read===false?' · Sin leer':'');
+   const buttons=document.createElement('div');buttons.className='sb-history-row-actions';
+   if(isValidRoute(row.href)){
+    const link=document.createElement('a');link.href=row.href;link.textContent='Ver';link.className='notification-jump';
+    buttons.append(link);
+   }
+   if(['member_notifications','member_report_notifications'].includes(row.source_table)){
+    if(row.is_read===false){
+     const mark=document.createElement('button');mark.type='button';mark.textContent='✓ Marcar leída';
+     mark.onclick=async()=>{
+      mark.disabled=true;
+      try{await updateSaved(row,{is_read:true},userId);void loadPage(page);}
+      catch(e){mark.disabled=false;status.textContent='No se pudo marcar como leída: '+(e.message||'error');}
+     };buttons.append(mark);
+    }
+    const archive=document.createElement('button');archive.type='button';
+    archive.textContent=row.archived_at?'Restaurar':'Archivar';
+    archive.onclick=async()=>{
+     archive.disabled=true;
+     try{await updateSaved(row,{dismissed_at:row.archived_at?null:new Date().toISOString()},userId);void loadPage(page);}
+     catch(e){archive.disabled=false;status.textContent='No se pudo actualizar el archivo: '+(e.message||'error');}
+    };buttons.append(archive);
+   }
+   body.append(title,meta,buttons);article.append(icon,body);
+   return article;
+  }
+  async function loadPage(target=0){
+   const token=++request;
+   const {data:{user},error:authError}=await sb.auth.getUser();
+   if(token!==request||!panel.isConnected)return;
+   if(authError||!user){
+    status.textContent='Inicia sesión para consultar el historial de tu cuenta.';
+    list.replaceChildren();total=0;previous.disabled=true;next.disabled=true;pageLabel.textContent='';
+    return;
+   }
+   if(fields.from.value&&fields.to.value&&fields.from.value>fields.to.value){
+    status.textContent='La fecha «Desde» no puede ser posterior a «Hasta».';
+    return;
+   }
+   page=Math.max(0,target|0);
+   status.textContent='Cargando avisos anteriores…';
+   previous.disabled=true;next.disabled=true;
+   let query=sb.from('member_notification_history')
+    .select('record_id,category,kind,title,href,occurred_at,is_read,archived_at,source_table',{count:'exact'})
+    .order('occurred_at',{ascending:false})
+    .order('record_id',{ascending:false})
+    .range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1);
+   if(fields.category.value!=='all')query=query.eq('category',fields.category.value);
+   if(fields.state.value==='active')query=query.is('archived_at',null);
+   else if(fields.state.value==='unread')query=query.eq('is_read',false).is('archived_at',null);
+   else if(fields.state.value==='archived')query=query.not('archived_at','is',null);
+   const term=fields.search.value.trim().replace(/[%_]/g,'').slice(0,80);
+   if(term)query=query.ilike('title','%'+term+'%');
+   if(fields.from.value){
+    const first=new Date(fields.from.value+'T00:00:00');
+    query=query.gte('occurred_at',first.toISOString());
+   }
+   if(fields.to.value){
+    const end=new Date(fields.to.value+'T00:00:00');end.setDate(end.getDate()+1);
+    query=query.lt('occurred_at',end.toISOString());
+   }
+   try{
+    const {data,error,count}=await query;
+    if(token!==request||!panel.isConnected)return;
+    if(error)throw error;
+    total=count??(data||[]).length;loaded=true;
+    const maxPage=Math.max(0,Math.ceil(total/PAGE_SIZE)-1);
+    if(page>maxPage){void loadPage(maxPage);return;}
+    list.replaceChildren();
+    for(const row of data||[])list.append(renderRow(row,user.id));
+    if(!data?.length)list.textContent='No se encontraron notificaciones con estos filtros.';
+    status.textContent=total===1?'1 registro encontrado':total+' registros encontrados';
+    previous.disabled=page===0;next.disabled=(page+1)*PAGE_SIZE>=total;
+    pageLabel.textContent=total?'Página '+(page+1)+' de '+Math.ceil(total/PAGE_SIZE):'Sin resultados';
+   }catch(e){
+    if(token!==request||!panel.isConnected)return;
+    console.warn('Historial de notificaciones:',e);
+    status.textContent='No se pudo cargar el historial. Comprueba tu conexión e inténtalo de nuevo.';
+    previous.disabled=true;next.disabled=true;
+   }
+  }
+  const search=content.querySelector('[data-action="search"]');
+  const reset=content.querySelector('[data-action="reset"]');
+  const refresh=content.querySelector('[data-action="refresh"]');
+  search.onclick=()=>loadPage(0);
+  reset.onclick=()=>{
+   fields.category.value='all';fields.state.value='all';fields.search.value='';
+   fields.from.value='';fields.to.value='';void loadPage(0);
+  };
+  refresh.onclick=()=>loadPage(page);
+  previous.onclick=()=>loadPage(page-1);
+  next.onclick=()=>loadPage(page+1);
+  fields.category.onchange=()=>loadPage(0);
+  fields.state.onchange=()=>loadPage(0);
+  fields.from.onchange=()=>loadPage(0);
+  fields.to.onchange=()=>loadPage(0);
+  fields.search.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();void loadPage(0);}};
+  panel.addEventListener('toggle',()=>{
+   if(panel.open&&!loaded)void loadPage(0);
+  });
+  return panel;
+ }
+ function mount(){
+  if(document.getElementById(ID))return;
+  const target=document.getElementById('member-notifications');
+  if(!target||typeof sb==='undefined'||!sb.auth)return;
+  target.after(buildPanel());
+ }
+ function start(){
+  const app=document.getElementById('app');if(!app)return;
+  const observer=new MutationObserver(mount);
+  observer.observe(app,{childList:true,subtree:true});
+  window.addEventListener('hashchange',()=>queueMicrotask(mount));
+  mount();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+ else start();
+})();
