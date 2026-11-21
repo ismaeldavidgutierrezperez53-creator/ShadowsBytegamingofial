@@ -426,6 +426,7 @@ function playNotificationSound(kind='default',preview=false){
 function notificationSoundKind(kind){
  if(kind==='gift')return activeToastPreferences.gift_sound;
  if(kind==='follow')return activeToastPreferences.follow_sound;
+ if(kind==='message'||kind==='group_message')return activeToastPreferences.message_sound;
  if(['comment','game_comment','game_reply','news_reply'].includes(kind))return activeToastPreferences.comment_sound;
  return 'default';
 }
@@ -4121,6 +4122,7 @@ async function initGroupChats(userId,root){
    if(!member||!section.isConnected)return;
    const {data:group}=await sb.from('member_chat_groups').select('name').eq('id',message.group_id).maybeSingle();
    alertBanner.textContent='🔔 Nuevo mensaje en '+(group?.name||'un grupo');
+   if(document.visibilityState==='visible'&&activeToastPreferences.sound_enabled&&!isNotificationQuietNow())playNotificationSound(activeToastPreferences.message_sound);
    if(currentGroup?.id!==message.group_id)loadGroups();
   }).subscribe();
 }
