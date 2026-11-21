@@ -9,7 +9,7 @@
   })[char]);
   const safeCover = url => typeof url === 'string' && /^https:\/\//i.test(url.trim()) ? url.trim() : '';
   const articleUrl = id => '#/noticia?id=' + encodeURIComponent(String(id));
-  const categories = {general:'📰 General',anime:'🌸 Anime',gaming:'🎮 Gaming',manga:'📚 Manga',eventos:'📅 Eventos',comunidad:'👥 Comunidad'};
+  const categories = {general:'📰 General',anime:'🌸 Anime',gaming:'🎮 Gaming',manga:'📚 Manga',manhwa:'📖 Manhwa',pokemon:'⚡ Pokémon',waifu:'💖 Waifu',husbando:'💙 Husbando',eventos:'📅 Eventos',comunidad:'👥 Comunidad'};
   const categoryBadge = category => '<span class="sb-news-category">'+escape(categories[category] || categories.general)+'</span>';
   const formatDate = value => {
     if (!value) return '';
