@@ -37,9 +37,21 @@
     if(Notification.permission==='denied'){setStatus('Los avisos están bloqueados. Debes permitirlos en los ajustes del navegador.','error');return;}
     const reg=await registration();
     const subscription=reg && await reg.pushManager.getSubscription();
-    setStatus(subscription && Notification.permission==='granted'
+    if(!subscription || Notification.permission!=='granted'){
+      setStatus('Los avisos externos están desactivados. Pulsa Activar y acepta el permiso.');
+      return;
+    }
+    // Un permiso del navegador no basta: el dispositivo debe estar registrado en Supabase.
+    const {data:registered,error:registrationError}=await sb.from('member_web_push_subscriptions')
+      .select('endpoint').eq('user_id',user.id).eq('endpoint',subscription.endpoint).maybeSingle();
+    if(registrationError){
+      setStatus('No se pudo verificar este dispositivo. Pulsa Activar para actualizar el registro.','error');
+      return;
+    }
+    setStatus(registered
       ? '✅ Avisos del sistema activados en este dispositivo. También pueden llegar con la web cerrada.'
-      : 'Los avisos externos están desactivados. Pulsa Activar y acepta el permiso.',subscription?'ok':'');
+      : 'Tu navegador permite notificaciones, pero falta registrar este dispositivo. Pulsa Activar.',
+      registered?'ok':'');
   }
   async function enable(){
     if(!supported())return refresh();
