@@ -8,6 +8,9 @@
  const keyAuto='sb-auto-update-on-open', keyAttempt='sb-update-attempted';
  const keyDismiss='sb-update-dismissed';
  const keyHistory='sb-update-history-v1';
+ const keySnooze='sb-update-snooze-v1';
+ const snoozeMs=24*60*60*1000;
+ const changelogList=document.getElementById('sb-updates-changes-list');
  const elInstalled=document.getElementById('sb-updates-installed');
  const elPublished=document.getElementById('sb-updates-published');
  const elLastCheck=document.getElementById('sb-updates-lastcheck');
@@ -27,6 +30,26 @@
  const message=text=>{output.textContent=text;};
  const shortSha=value=>shaOk(value)?value.slice(0,7):'no identificada';
  const timeString=value=>new Date(value).toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+ const snoozed=version=>{
+   try{
+     const data=JSON.parse(read(localStorage,keySnooze)||'null');
+     return data?.version===version&&Number.isFinite(data.until)&&data.until>Date.now();
+   }catch{return false;}
+ };
+ const stopSnooze=()=>remove(localStorage,keySnooze);
+ const formatChanges=changes=>Array.isArray(changes)
+   ? changes.filter(x=>typeof x==='string'&&x.trim().length).slice(0,5).map(x=>x.slice(0,180))
+   : [];
+ function fillChanges(list,changes){
+   if(!list)return;
+   list.replaceChildren();
+   const descriptions=changes.length?changes:['No hay notas de cambios disponibles para esta versión.'];
+   for(const item of descriptions){
+     const li=document.createElement('li');
+     li.textContent=item;
+     list.append(li);
+   }
+ }
  function getHistory(){
    try{
      const records=JSON.parse(read(localStorage,keyHistory)||'[]');
@@ -88,17 +111,28 @@
    const body=document.createElement('p');
    body.className='sb-update-notice__text';
    body.textContent='La actualización ya está publicada. Puedes instalarla ahora sin perder la sección abierta.';
+   const changeDetails=document.createElement('details');
+   changeDetails.className='sb-update-notice__changes';
+   const changeTitle=document.createElement('summary');
+   changeTitle.textContent='✨ Qué cambia en esta versión';
+   const changeItems=document.createElement('ul');
+   changeItems.className='sb-update-notice__changes-list';
+   changeDetails.append(changeTitle,changeItems);
    const actions=document.createElement('div');actions.className='sb-update-notice__actions';
    const accept=document.createElement('button');
    accept.type='button';accept.className='sb-update-now';accept.textContent='🔄 Actualizar ahora';
    const later=document.createElement('button');
-   later.type='button';later.className='sb-update-later';later.textContent='Más tarde';
+   later.type='button';later.className='sb-update-later';later.textContent='Recordar en 24 h';
    accept.addEventListener('click',()=>{void apply();});
    later.addEventListener('click',()=>{
-     if(pending)write(sessionStorage,keyDismiss,pending);
-     banner.hidden=true;message('Actualización pendiente. Puedes buscarla desde el menú.');
+     if(pending){
+       write(localStorage,keySnooze,JSON.stringify({version:pending,until:Date.now()+snoozeMs}));
+       write(sessionStorage,keyDismiss,pending);
+     }
+     banner.hidden=true;
+     message('Actualización pospuesta 24 horas. Puedes buscarla manualmente cuando quieras.');
    });
-   actions.append(accept,later);banner.append(title,body,actions);document.body.append(banner);
+   actions.append(accept,later);banner.append(title,body,changeDetails,actions);document.body.append(banner);
    return banner;
  }
  async function onlineVersion(){
@@ -111,7 +145,8 @@
      if(!response.ok)throw new Error('No disponible');
      const data=await response.json();
      if(!shaOk(data?.version))throw new Error('Versión no válida');
-     return {version:data.version,publishedAt:typeof data.published_at==='string'&&Number.isFinite(Date.parse(data.published_at))?data.published_at:null};
+     return {version:data.version,publishedAt:typeof data.published_at==='string'&&Number.isFinite(Date.parse(data.published_at))?data.published_at:null,
+       changes:formatChanges(data.changes)};
    }finally{clearTimeout(timer);}
  }
  async function readyWorker(){
@@ -178,25 +213,32 @@
      const published=publishedInfo.version;
      if(elPublished)elPublished.textContent='Versión publicada: '+shortSha(published)+(publishedInfo.publishedAt?' · '+timeString(publishedInfo.publishedAt):'');
      if(elLastCheck)elLastCheck.textContent='Última comprobación: '+timeString(Date.now());
+     fillChanges(changelogList,publishedInfo.changes);
      if(!installed){
        if(manual)message('✅ Comprobación realizada. La versión se identificará al volver a abrir SB V2.');
      }else if(installed!==published){
        pending=published;
        message('✨ Nueva versión publicada ('+published.slice(0,7)+').');
-       if(manual)remove(sessionStorage,keyDismiss);
-       const auto=standalone()&&enabled()&&!changed&&!unsavedEdits&&Date.now()-started<25000
+       // Al comprobar manualmente, el usuario puede anular un recordatorio anterior.
+       if(manual){remove(sessionStorage,keyDismiss);stopSnooze();}
+       const paused=snoozed(published);
+       const auto=standalone()&&enabled()&&!changed&&!unsavedEdits&&!paused&&Date.now()-started<25000
          &&read(sessionStorage,keyAttempt)!==published;
        if(auto)await apply();
-       else if(read(sessionStorage,keyDismiss)!==published){
+       else if(!paused&&read(sessionStorage,keyDismiss)!==published){
          const notice=createBanner();
          const detail=notice.querySelector('.sb-update-notice__text');
          if(detail)detail.textContent='Versión '+shortSha(published)+' publicada'+(publishedInfo.publishedAt?' el '+timeString(publishedInfo.publishedAt):'')+'. Puedes instalarla ahora; la sección abierta se conserva.';
+         fillChanges(notice.querySelector('.sb-update-notice__changes-list'),publishedInfo.changes);
          notice.hidden=false;
+       }else if(paused){
+         message('⏰ Versión '+shortSha(published)+' disponible; aviso pospuesto durante 24 horas.');
        }
      }else{
        pending=null;
        if(banner)banner.hidden=true;
        remove(sessionStorage,keyAttempt);
+       stopSnooze();
        message('✅ SB V2 al día · versión '+published.slice(0,7)+'.');
      }
    }catch(error){

@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 30
       - name: Install image tooling
         run: python3 -m pip install "Pillow>=11,<13"
       - name: Generate PWA anime icons
@@ -35,13 +37,27 @@ jobs:
           SB_DEPLOY_SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
-          import json, os, re
+          import json, os, re, subprocess
           from datetime import datetime, timezone
           from pathlib import Path
           sha = os.environ['SB_DEPLOY_SHA'].lower()
           if not re.fullmatch(r'[0-9a-f]{40}', sha):
               raise SystemExit('Invalid deploy SHA')
-          payload = {'version': sha, 'published_at': datetime.now(timezone.utc).isoformat()}
+          subjects = subprocess.check_output(
+              ['git', 'log', '--no-merges', '-n', '25', '--pretty=format:%s'],
+              text=True, encoding='utf-8', errors='replace'
+          ).splitlines()
+          changes = []
+          for subject in subjects:
+              subject = re.sub(r'\\s+', ' ', subject).strip()
+              if not subject or subject.startswith('build(pwa):') or '[skip ci]' in subject:
+                  continue
+              if subject.startswith('chore('):
+                  continue
+              changes.append(subject[:140])
+              if len(changes) == 5:
+                  break
+          payload = {'version': sha, 'published_at': datetime.now(timezone.utc).isoformat(), 'changes': changes}
           Path('app-version.json').write_text(json.dumps(payload, separators=(',', ':')) + '\n', encoding='utf-8')
           index_file = Path('index.html')
           html = index_file.read_text(encoding='utf-8')

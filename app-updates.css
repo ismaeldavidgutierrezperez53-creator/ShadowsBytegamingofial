@@ -93,3 +93,11 @@
 .sb-updates-history summary:focus-visible{outline:3px solid #64e6ff;outline-offset:3px}
 .sb-updates-history ul{margin:8px 0 0;padding-left:18px}
 .sb-updates-history li{line-height:1.55;margin:3px 0;color:#ddc9f2}
+
+/* Novedades verificadas de la publicación y detalles del aviso. */
+.sb-updates-changes{flex-basis:100%;border:1px solid rgba(180,117,229,.4);border-radius:10px;padding:9px 12px;color:#efe3ff;font:600 14px Rajdhani,Arial,sans-serif}
+.sb-updates-changes summary,.sb-update-notice__changes summary{cursor:pointer;line-height:1.5}
+.sb-updates-changes summary:focus-visible,.sb-update-notice__changes summary:focus-visible{outline:3px solid #64e6ff;outline-offset:3px}
+.sb-updates-changes ul,.sb-update-notice__changes ul{margin:8px 0 10px;padding-left:19px}
+.sb-updates-changes li,.sb-update-notice__changes li{line-height:1.5;margin:4px 0;overflow-wrap:anywhere}
+.sb-update-notice__changes{margin:0 0 13px;padding:8px 10px;border:1px solid rgba(194,130,246,.5);border-radius:10px;color:#f3e4ff}
