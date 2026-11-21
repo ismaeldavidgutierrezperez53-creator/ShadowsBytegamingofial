@@ -14,6 +14,16 @@ self.addEventListener('push', (event) => {
     data: { path }
   }));
 });
+/* Si cambia la suscripción push, avisar a las ventanas abiertas.
+   La nueva suscripción sólo se guarda al recuperar sesión con permiso del usuario. */
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true})
+    .then(clients => {
+      for(const client of clients){
+        client.postMessage({type:'sb-push-subscription-changed'});
+      }
+    }));
+});
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const requested = event.notification.data?.path || '#/notificaciones';
@@ -27,8 +37,12 @@ self.addEventListener('notificationclick', (event) => {
       catch {return false;}
     });
     if (page) {
-      if ('navigate' in page) await page.navigate(destination);
-      return page.focus();
+      try {
+        if ('navigate' in page) await page.navigate(destination);
+        return await page.focus();
+      } catch (error) {
+        console.warn('No se pudo abrir el aviso en la ventana existente:', error);
+      }
     }
     return self.clients.openWindow(destination);
   })());
