@@ -6,17 +6,18 @@
  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  let user=null,historyEnabled=false,authPending=null,scanQueued=false;
  const attemptedPosts=new Set();
+ const recentCounts=new Map();
  const watchedPosts=new WeakSet();
  const formatCount=n=>Number(n||0).toLocaleString('es-ES');
  const postObserver=('IntersectionObserver' in window)?new IntersectionObserver(entries=>{
-  for(const entry of entries)if(entry.isIntersecting&&entry.intersectionRatio>=0.45){
+  for(const entry of entries)if(entry.isIntersecting&&entry.intersectionRatio>=0.2){
    postObserver.unobserve(entry.target);
    const article=entry.target;
    setTimeout(()=>{
     if(article.isConnected&&isInViewport(article))registerPost(article).catch(console.warn);
    },550);
   }
- },{threshold:[0,0.45,1]}):null;
+ },{threshold:[0,0.2,1]}):null;
 
  function isInViewport(element){
   const rect=element.getBoundingClientRect();
@@ -147,6 +148,7 @@
     p_post_id:id,p_visitor_id:getVisitorId('sb-post-visit-v1:'+id)
    });
    if(error)throw error;
+   recentCounts.set(id,data);
    document.querySelectorAll('.social-post[data-post-id]').forEach(node=>{
     if(node.dataset.postId===id){
      const counter=node.querySelector('.sb-content-view-count');
@@ -180,7 +182,7 @@
   for(const article of cards)if(article.isConnected){
    const id=article.dataset.postId;
    const counter=article.querySelector('.sb-content-view-count');
-   if(counter)counter.textContent=countsResult.error?'👁 Visitas no disponibles':'👁 '+formatCount(counts.get(id))+' visualizaciones';
+   if(counter)counter.textContent=countsResult.error&&!recentCounts.has(id)?'👁 Visitas no disponibles':'👁 '+formatCount(recentCounts.has(id)?recentCounts.get(id):counts.get(id))+' visualizaciones';
    const readers=article.querySelector('.sb-content-view-readers');
    if(readers)readers.hidden=!(user&&authors.get(id)===user.id);
   }
