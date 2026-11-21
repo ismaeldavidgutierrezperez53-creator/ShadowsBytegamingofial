@@ -73,7 +73,7 @@
  border-radius:999px;
  border:1px solid rgba(177,140,225,.55);
  background:rgba(30,21,55,.72);
- color:#f8efff;font:700 14px/1.2 inherit;
+ color:#f8efff;font-family:inherit;font-size:14px;font-weight:700;line-height:1.2;
  cursor:pointer;
  transition:transform .18s ease,background .2s ease,border-color .2s ease;
 }
