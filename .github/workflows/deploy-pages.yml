@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -17,6 +17,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Install image tooling
+        run: python3 -m pip install "Pillow>=11,<13"
+      - name: Generate PWA anime icons
+        run: python3 tools/generate_pwa_icons.py
+      - name: Save generated icons to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app-icon-192.png app-icon-512.png anime-favicon.png
+          if ! git diff --cached --quiet; then
+            git commit -m "build(pwa): refresh anime PNG icons [skip ci]"
+            git push
+          fi
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static site
