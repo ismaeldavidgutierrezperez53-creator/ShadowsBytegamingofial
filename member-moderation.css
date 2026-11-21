@@ -1,0 +1,32 @@
+/* Panel de sanciones y consulta personal de moderación. */
+.sb-sanction-panel { margin-top: 18px; scroll-margin-top: 85px; }
+.sb-sanction-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:16px 0; }
+.sb-sanction-form label { display:grid; gap:7px;min-width:0;font-size:.95rem;font-weight:700; }
+.sb-sanction-form select,.sb-sanction-form textarea {
+  width:100%;box-sizing:border-box;min-height:43px;padding:10px 12px;border-radius:10px;
+  background:#211332;color:#f6edff;border:1px solid #8257ae;
+  font:inherit;
+}
+.sb-sanction-form textarea{resize:vertical;min-height:95px;}
+.sb-sanction-reason,.sb-sanction-actions,.sb-sanction-current,.sb-sanction-hint { grid-column:1/-1; }
+.sb-sanction-current{font-weight:700;color:#e3cbff; }
+.sb-sanction-hint {margin:0;opacity:.8;font-size:.9rem;}
+.sb-sanction-actions{display:flex;justify-content:flex-end;}
+.sb-sanction-actions button {min-height:43px;}
+#sb-sanction-feedback {min-height:26px;margin:8px 0;}
+#sb-sanction-feedback[data-error=true] {color:#ffa8b8;}
+.sb-sanction-history {display:grid;gap:10px;max-height:490px;overflow:auto;padding-right:3px;}
+.sb-sanction-event {
+  border:1px solid #654081;border-radius:13px;background:rgba(46,25,68,.65);
+  padding:12px;display:grid;gap:8px;overflow-wrap:anywhere;
+}
+.sb-sanction-event p {margin:0;white-space:pre-wrap;}
+.sb-sanction-event small,.sb-sanction-event time {opacity:.78;font-size:.88rem;}
+.sb-sanction-event-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.sb-my-sanctions{margin-top:20px;}
+.sb-my-sanctions #sb-my-sanctions-list{display:grid;gap:10px;}
+@media(max-width:650px){
+  .sb-sanction-form{grid-template-columns:1fr;}
+  .sb-sanction-actions button{width:100%;}
+  .sb-sanction-history{max-height:420px;}
+}
