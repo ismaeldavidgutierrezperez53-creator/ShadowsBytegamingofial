@@ -110,3 +110,25 @@
   max-height:190px;
  }
 }
+
+/* Corrección: fijar publicaciones visible en Comunidad y Perfil ID */
+.sb-community-pin-row{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+ width:100%;min-width:0;margin:10px 0 12px;
+}
+.sb-community-pin-row .sb-community-pin-button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:42px;padding:8px 14px;
+ border-radius:10px;border:1px solid #ae83e2;
+ background:#39234f;color:#f5ebff;
+ font-size:.85rem;font-weight:700;cursor:pointer;
+}
+.sb-community-pin-row .sb-community-pin-button:hover{
+ background:#54306f;border-color:#d4b7f8;
+}
+.sb-community-pin-row .sb-community-pin-button:disabled{opacity:.6;cursor:progress;}
+.sb-community-pin-info{font-size:.82rem;color:#e8d9f6;overflow-wrap:anywhere;}
+.sb-community-pin-row:has(.sb-community-pin-info:empty) .sb-community-pin-info{display:none;}
+@media(max-width:650px){
+ .sb-community-pin-row .sb-community-pin-button{min-height:44px;max-width:100%;}
+}
