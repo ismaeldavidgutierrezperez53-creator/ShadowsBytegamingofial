@@ -470,76 +470,303 @@ function syncNotificationRealtime(userId){
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
 refreshAccountActions();
 
-async function loadAccountFollows(userId,root){
- const blockPanel=document.getElementById('account-blocked-members');
- if(blockPanel)renderAccountBlockedMembers(userId);
- if(!root?.isConnected)return;
- root.innerHTML='<h3>👥 Seguidores y Siguiendo</h3><p>Consulta las personas que te siguen y las cuentas a las que sigues.</p>';
- const searchLabel=document.createElement('label');searchLabel.htmlFor='account-follow-search';searchLabel.textContent='Buscar seguidores o miembros que sigues';
- const search=document.createElement('input');search.type='search';search.id='account-follow-search';search.placeholder='Buscar por nombre o usuario…';search.autocomplete='off';root.append(searchLabel,search);
- const filter=document.createElement('div');filter.className='account-follow-filters';filter.setAttribute('role','group');filter.setAttribute('aria-label','Filtrar miembros');
- let activeFilter='all';const filterButtons=[];
- for(const [value,label] of [['all','Todos'],['followers','Seguidores'],['following','Siguiendo']]){
-  const button=document.createElement('button');button.type='button';button.className='account-follow-filter';button.textContent=label;button.setAttribute('aria-pressed',String(value==='all'));
-  button.addEventListener('click',()=>{activeFilter=value;updateFilter();});
-  filter.append(button);filterButtons.push({value,button});
- }
- root.append(filter);
- const count=document.createElement('p');count.className='account-follow-results';count.setAttribute('aria-live','polite');root.append(count);
- const content=document.createElement('div');content.className='account-follows-content';content.textContent='Cargando miembros…';root.append(content);
- const [{data:followers,error:followersError},{data:following,error:followingError}]=await Promise.all([
-  sb.from('member_follows').select('follower_id').eq('following_id',userId).order('created_at',{ascending:false}).limit(100),
-  sb.from('member_follows').select('following_id').eq('follower_id',userId).order('created_at',{ascending:false}).limit(100)
- ]);
- if(!root.isConnected)return;
- content.replaceChildren();
- if(followersError||followingError){content.textContent='No se pudieron cargar los seguidores. Inténtalo de nuevo.';return;}
- const ids=[...new Set([...(followers||[]).map(x=>x.follower_id),...(following||[]).map(x=>x.following_id)])];
- const {data:profiles,error:profilesError}=ids.length?await sb.from('profiles').select('id,display_name,username,avatar_url,is_public').in('id',ids):{data:[],error:null};
- if(!root.isConnected)return;
- if(profilesError){content.textContent='No se pudieron cargar los perfiles.';return;}
- const names=new Map((profiles||[]).map(p=>[p.id,p]));
- const sections=[{key:'followers',title:'Seguidores',ids:(followers||[]).map(x=>x.follower_id)},{key:'following',title:'Siguiendo',ids:(following||[]).map(x=>x.following_id)}];
- const lists=[];
- for(const section of sections){
-  const area=document.createElement('section');area.className='account-follows-list';
-  const title=document.createElement('h4');title.textContent=section.title+' ('+section.ids.length+')';area.append(title);
-  if(!section.ids.length){const empty=document.createElement('p');empty.textContent=section.title==='Seguidores'?'Todavía no tienes seguidores.':'Todavía no sigues a nadie.';area.append(empty);}
-  for(const id of section.ids){
-   const p=names.get(id);const row=document.createElement('div');row.className='account-follow-member';row.dataset.memberId=id;
-   if(p?.avatar_url&&/^https:\/\//i.test(p.avatar_url)){const img=document.createElement('img');img.src=p.avatar_url;img.alt='';img.loading='lazy';row.append(img);}
-   const name=document.createElement('span');name.textContent=p?.display_name||p?.username||'Miembro';row.append(name);
-   if(p?.is_public){const link=document.createElement('a');link.href='#/perfil?id='+encodeURIComponent(id);link.className='outline-btn mini';link.textContent='Ver perfil';row.append(link);}
-   else{const privateLabel=document.createElement('small');privateLabel.textContent='Perfil privado';row.append(privateLabel);}
-   area.append(row);
+async function loadAccountFollows(userId, root) {
+  const blockPanel = document.getElementById('account-blocked-members');
+  if (blockPanel) renderAccountBlockedMembers(userId);
+  if (!root?.isConnected) return;
+  root.innerHTML = '<h3>👥 Seguidores y Siguiendo</h3><p>Consulta y gestiona tus conexiones con otros miembros.</p>';
+
+  const overview = document.createElement('div');
+  overview.className = 'account-follow-overview';
+  const makeMetric = label => {
+    const box = document.createElement('div');
+    box.className = 'account-follow-metric';
+    const value = document.createElement('strong');
+    value.textContent = '…';
+    const caption = document.createElement('span');
+    caption.textContent = label;
+    box.append(value, caption);
+    overview.append(box);
+    return value;
+  };
+  const followersMetric = makeMetric('Seguidores');
+  const followingMetric = makeMetric('Siguiendo');
+  const mutualMetric = makeMetric('Seguimiento mutuo');
+  root.append(overview);
+
+  const searchLabel = document.createElement('label');
+  searchLabel.htmlFor = 'account-follow-search';
+  searchLabel.textContent = 'Buscar seguidores o miembros que sigues';
+  const search = document.createElement('input');
+  search.type = 'search';
+  search.id = 'account-follow-search';
+  search.placeholder = 'Buscar por nombre o usuario…';
+  search.autocomplete = 'off';
+  root.append(searchLabel, search);
+
+  const filters = document.createElement('div');
+  filters.className = 'account-follow-filters';
+  filters.setAttribute('role', 'group');
+  filters.setAttribute('aria-label', 'Filtrar conexiones');
+  let activeFilter = 'all';
+  const filterButtons = [];
+  for (const [value, label] of [['all', 'Todos'], ['followers', 'Seguidores'], ['following', 'Siguiendo'], ['mutual', 'Mutuos']]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'account-follow-filter';
+    button.textContent = label;
+    button.setAttribute('aria-pressed', String(value === activeFilter));
+    button.addEventListener('click', () => { activeFilter = value; updateFilter(); });
+    filters.append(button);
+    filterButtons.push({value, button, label});
   }
-  content.append(area);lists.push({area,section});
- }
- const normalize=value=>(value||'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('es').trim();
- function updateFilter(){
-  const term=normalize(search.value);let total=0;
-  for(const {area,section} of lists){
-   const showSection=activeFilter==='all'||activeFilter===section.key;
-   area.hidden=!showSection;area.style.display=showSection?'':'none';
-   let visible=0;
-   for(const row of area.querySelectorAll('.account-follow-member')){
-    const p=names.get(row.dataset.memberId);
-    const label=[p?.display_name,p?.username,row.querySelector('span')?.textContent].filter(Boolean).join(' ');
-    const match=!term||normalize(label).includes(term);
-    row.hidden=!match;row.style.display=match?'':'none';if(match&&showSection)visible++;
-   }
-   total+=visible;
-   let empty=area.querySelector('.account-follow-search-empty');
-   if(!empty){empty=document.createElement('p');empty.className='account-follow-search-empty';area.append(empty);}
-   empty.hidden=!term||visible>0||!section.ids.length;empty.style.display=empty.hidden?'none':'';
-   empty.textContent='No hay coincidencias.';
+  root.append(filters);
+
+  const count = document.createElement('p');
+  count.className = 'account-follow-results';
+  count.setAttribute('aria-live', 'polite');
+  const feedback = document.createElement('p');
+  feedback.className = 'account-follow-feedback';
+  feedback.setAttribute('role', 'status');
+  feedback.setAttribute('aria-live', 'polite');
+  const content = document.createElement('div');
+  content.className = 'account-follows-content';
+  content.textContent = 'Cargando miembros…';
+  root.append(count, feedback, content);
+
+  const [followersResponse, followingResponse] = await Promise.all([
+    sb.from('member_follows').select('follower_id', {count: 'exact'})
+      .eq('following_id', userId).order('created_at', {ascending: false}).limit(100),
+    sb.from('member_follows').select('following_id', {count: 'exact'})
+      .eq('follower_id', userId).order('created_at', {ascending: false}).limit(100)
+  ]);
+  if (!root.isConnected) return;
+  if (followersResponse.error || followingResponse.error) {
+    content.textContent = 'No se pudieron cargar los seguidores. Inténtalo de nuevo.';
+    return;
   }
-  for(const {value,button} of filterButtons){button.setAttribute('aria-pressed',String(value===activeFilter));}
-  count.textContent=total+' '+(total===1?'miembro encontrado':'miembros encontrados')+(term?' para «'+search.value.trim()+'»':'');
- }
- search.addEventListener('input',updateFilter);
- search.addEventListener('search',updateFilter);
- updateFilter();
+
+  const followerOrder = [...new Set((followersResponse.data || []).map(item => item.follower_id))];
+  let followingOrder = [...new Set((followingResponse.data || []).map(item => item.following_id))];
+  const followerIds = new Set(followerOrder);
+  const followingIds = new Set(followingOrder);
+  let followerCount = followersResponse.count ?? followerOrder.length;
+  let followingCount = followingResponse.count ?? followingOrder.length;
+  const ids = [...new Set([...followerOrder, ...followingOrder])];
+  const profilesResult = ids.length
+    ? await sb.from('profiles').select('id,display_name,username,avatar_url,is_public').in('id', ids)
+    : {data: [], error: null};
+  if (!root.isConnected) return;
+  if (profilesResult.error) {
+    content.textContent = 'No se pudieron cargar los perfiles.';
+    return;
+  }
+  const names = new Map((profilesResult.data || []).map(person => [person.id, person]));
+  const pending = new Set();
+  let lists = [];
+
+  const normalize = value => String(value || '').normalize('NFD')
+    .replace(/\p{M}/gu, '').toLocaleLowerCase('es').trim();
+  const summaryCount = (number, sampleLength) => number === sampleLength && sampleLength >= 100
+    ? '100+' : Number(number).toLocaleString('es-ES');
+
+  function updateFilter() {
+    if (!root.isConnected) return;
+    const term = normalize(search.value);
+    let visibleTotal = 0;
+    for (const {area, key, rows, empty} of lists) {
+      const showSection = activeFilter === 'all' || activeFilter === key
+        || (activeFilter === 'mutual' && key === 'followers');
+      area.hidden = !showSection;
+      let visible = 0;
+      for (const {row, id} of rows) {
+        const person = names.get(id);
+        const label = [person?.display_name, person?.username, row.dataset.displayName].join(' ');
+        const matchesSearch = !term || normalize(label).includes(term);
+        const matchesMutual = activeFilter !== 'mutual'
+          || (followerIds.has(id) && followingIds.has(id));
+        row.hidden = !matchesSearch || !matchesMutual;
+        if (!row.hidden) visible++;
+      }
+      empty.hidden = visible !== 0 || !showSection;
+      empty.textContent = activeFilter === 'mutual'
+        ? 'Todavía no tienes seguimientos mutuos que coincidan.'
+        : term ? 'No hay coincidencias.' : key === 'followers'
+          ? 'Todavía no tienes seguidores.' : 'Todavía no sigues a nadie.';
+      if (showSection) visibleTotal += visible;
+    }
+    for (const {value, button, label} of filterButtons) {
+      button.setAttribute('aria-pressed', String(value === activeFilter));
+      const number = value === 'followers' ? followerCount
+        : value === 'following' ? followingCount
+        : value === 'mutual' ? followerOrder.filter(id => followingIds.has(id)).length : null;
+      button.textContent = number === null ? label : label + ' · ' + number.toLocaleString('es-ES');
+    }
+    count.textContent = visibleTotal + (visibleTotal === 1 ? ' resultado' : ' resultados')
+      + (term ? ' para «' + search.value.trim() + '»' : '');
+  }
+
+  function renderLists() {
+    if (!root.isConnected) return;
+    followersMetric.textContent = summaryCount(followerCount, followerOrder.length);
+    followingMetric.textContent = summaryCount(followingCount, followingOrder.length);
+    mutualMetric.textContent = String(followerOrder.filter(id => followingIds.has(id)).length);
+    content.replaceChildren();
+    lists = [];
+    for (const [key, title, order] of [
+      ['followers', 'Seguidores', followerOrder],
+      ['following', 'Siguiendo', followingOrder]
+    ]) {
+      const area = document.createElement('section');
+      area.className = 'account-follows-list';
+      area.dataset.kind = key;
+      const heading = document.createElement('h4');
+      heading.textContent = title;
+      area.append(heading);
+      const rows = [];
+      for (const id of order) {
+        const person = names.get(id);
+        const displayName = person?.display_name || person?.username || 'Miembro';
+        const row = document.createElement('div');
+        row.className = 'account-follow-member';
+        row.dataset.memberId = id;
+        row.dataset.displayName = displayName;
+        const avatar = document.createElement('span');
+        avatar.className = 'account-follow-avatar';
+        avatar.textContent = displayName.charAt(0).toUpperCase();
+        if (typeof person?.avatar_url === 'string' && /^https:\/\/[^\s]+$/i.test(person.avatar_url)) {
+          const img = document.createElement('img');
+          img.src = person.avatar_url;
+          img.alt = '';
+          img.loading = 'lazy';
+          img.addEventListener('error', () => { if (img.isConnected) img.remove(); }, {once: true});
+          avatar.append(img);
+        }
+        const info = document.createElement('span');
+        info.className = 'account-follow-member-info';
+        const name = document.createElement('strong');
+        name.textContent = displayName;
+        info.append(name);
+        if (person?.username && person.username !== displayName) {
+          const username = document.createElement('small');
+          username.textContent = '@' + person.username;
+          info.append(username);
+        }
+        const relationship = document.createElement('small');
+        relationship.className = 'account-follow-relationship';
+        relationship.textContent = followerIds.has(id) && followingIds.has(id)
+          ? '💜 Seguimiento mutuo' : followerIds.has(id) ? 'Te sigue'
+            : 'Siguiendo';
+        info.append(relationship);
+        row.append(avatar, info);
+        const actions = document.createElement('div');
+        actions.className = 'account-follow-member-actions';
+        if (person?.is_public) {
+          const link = document.createElement('a');
+          link.href = '#/perfil?id=' + encodeURIComponent(id);
+          link.className = 'outline-btn mini';
+          link.textContent = 'Ver perfil';
+          actions.append(link);
+        } else {
+          const privateLabel = document.createElement('small');
+          privateLabel.textContent = 'Perfil privado';
+          actions.append(privateLabel);
+        }
+        if (person?.is_public || followingIds.has(id)) {
+          const action = document.createElement('button');
+          action.type = 'button';
+          action.className = 'account-follow-action';
+          const isFollowing = followingIds.has(id);
+          action.dataset.following = String(isFollowing);
+          action.textContent = isFollowing ? '✓ Siguiendo' : '➕ Seguir';
+          action.title = isFollowing ? 'Dejar de seguir' : 'Seguir miembro';
+          action.setAttribute('aria-label',
+            (isFollowing ? 'Dejar de seguir a ' : 'Seguir a ') + displayName);
+          action.disabled = pending.has(id);
+          action.addEventListener('click', () => void toggleFollow(id, displayName));
+          actions.append(action);
+        }
+        row.append(actions);
+        area.append(row);
+        rows.push({row, id});
+      }
+      const empty = document.createElement('p');
+      empty.className = 'account-follow-search-empty';
+      area.append(empty);
+      content.append(area);
+      lists.push({area, key, rows, empty});
+    }
+    updateFilter();
+  }
+
+  async function toggleFollow(id, displayName) {
+    if (pending.has(id) || !root.isConnected || userId === id) return;
+    pending.add(id);
+    for (const row of content.querySelectorAll('.account-follow-member')) {
+      if (row.dataset.memberId === id) {
+        for (const button of row.querySelectorAll('.account-follow-action')) button.disabled = true;
+      }
+    }
+    try {
+      const {data: authData, error: authError} = await sb.auth.getUser();
+      if (authError) throw authError;
+      if (!authData?.user || authData.user.id !== userId) {
+        feedback.textContent = 'Inicia sesión con tu cuenta para gestionar tus seguimientos.';
+        return;
+      }
+      const current = await sb.from('member_follows').select('following_id')
+        .eq('follower_id', userId).eq('following_id', id).maybeSingle();
+      if (current.error) throw current.error;
+      const wasFollowing = Boolean(current.data);
+      if (wasFollowing !== followingIds.has(id)) {
+        if (wasFollowing) {
+          followingIds.add(id);
+          followingOrder = [id, ...followingOrder.filter(value => value !== id)];
+          followingCount++;
+        } else {
+          followingIds.delete(id);
+          followingOrder = followingOrder.filter(value => value !== id);
+          followingCount = Math.max(0, followingCount - 1);
+        }
+        feedback.textContent = 'El estado de ' + displayName + ' cambió. Se ha actualizado la lista; vuelve a pulsar para confirmar.';
+        return;
+      }
+      const result = wasFollowing
+        ? await sb.from('member_follows').delete().eq('follower_id', userId).eq('following_id', id)
+        : await sb.from('member_follows').insert({follower_id: userId, following_id: id});
+      if (result.error) throw result.error;
+      if (wasFollowing) {
+        followingIds.delete(id);
+        followingOrder = followingOrder.filter(value => value !== id);
+        followingCount = Math.max(0, followingCount - 1);
+      } else {
+        followingIds.add(id);
+        followingOrder = [id, ...followingOrder.filter(value => value !== id)];
+        followingCount++;
+      }
+      feedback.textContent = wasFollowing
+        ? 'Has dejado de seguir a ' + displayName + '.'
+        : 'Ahora sigues a ' + displayName + '.';
+    } catch (_) {
+      if (root.isConnected) feedback.textContent = 'No se pudo actualizar el seguimiento. Inténtalo de nuevo.';
+    } finally {
+      pending.delete(id);
+      if (root.isConnected) {
+        renderLists();
+        const row = [...content.querySelectorAll('.account-follow-member')]
+          .find(item => item.dataset.memberId === id && !item.hidden && !item.closest('[hidden]'));
+        row?.querySelector('.account-follow-action')?.focus({preventScroll: true});
+      }
+    }
+  }
+
+  search.addEventListener('input', updateFilter);
+  search.addEventListener('search', updateFilter);
+  renderLists();
+  const limitNote = document.createElement('small');
+  limitNote.className = 'account-follow-limit-note';
+  limitNote.textContent = 'Se muestran hasta 100 miembros recientes de cada lista. Los contadores incluyen el total.';
+  root.append(limitNote);
 }
 
 let accountReportChannel=null;
