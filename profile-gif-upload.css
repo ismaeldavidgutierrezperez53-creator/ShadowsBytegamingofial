@@ -1,0 +1,41 @@
+/* Subida directa de imágenes y GIF animados en Mi cuenta. */
+#account-profile .sb-profile-gif-uploader{
+  display:grid;gap:8px;min-width:0;margin:3px 0 15px;
+  padding:13px 14px;border:1px solid rgba(163,104,224,.48);
+  background:linear-gradient(120deg,rgba(95,41,149,.2),rgba(32,68,108,.14));
+  border-radius:13px;
+}
+#account-profile .sb-profile-gif-label{
+  display:block;margin:0;color:#f7eaff;font-weight:800;letter-spacing:.01em;
+}
+#account-profile .sb-profile-gif-help{
+  display:block;color:#d4c0ec;font-size:.82rem;line-height:1.4;
+}
+#account-profile .sb-profile-gif-file{
+  display:block;width:100%;margin:0;padding:8px 9px;min-width:0;
+  border:1px dashed rgba(181,135,255,.7);
+  background:#130e22;border-radius:10px;color:#f7ebff;font:inherit;
+}
+#account-profile .sb-profile-gif-file::file-selector-button{
+  margin-right:10px;padding:7px 10px;border:0;border-radius:8px;
+  background:linear-gradient(100deg,#9555db,#426fba);
+  color:#fff;font:700 .9rem Rajdhani,Arial,sans-serif;cursor:pointer;
+}
+#account-profile .sb-profile-gif-preview{
+  display:block;max-height:170px;max-width:100%;
+  border:2px solid rgba(188,130,252,.7);border-radius:12px;
+  object-fit:cover;background:#140c24;
+}
+#account-profile .sb-profile-gif-preview[hidden]{display:none!important}
+#account-profile .sb-profile-gif-preview--avatar{width:96px;height:96px;aspect-ratio:1/1}
+#account-profile .sb-profile-gif-preview--cover{width:100%;aspect-ratio:16/6;min-height:95px}
+#account-profile .sb-profile-gif-status{
+  margin:0;min-height:0;color:#a9f2d3;font-size:.85rem;line-height:1.4;
+  overflow-wrap:anywhere;
+}
+#account-profile .sb-profile-gif-status:empty{display:none}
+#account-profile .sb-profile-gif-status.is-error{color:#ffc3cf}
+@media(max-width:600px){
+  #account-profile .sb-profile-gif-uploader{padding:11px;gap:8px}
+  #account-profile .sb-profile-gif-preview--cover{min-height:80px}
+}
