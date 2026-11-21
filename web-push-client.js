@@ -139,7 +139,8 @@
     const root=document.createElement('section');
     root.id=id;root.className='sb-webpush-settings';
     root.innerHTML='<h2>🔔 Notificaciones en tu ordenador y móvil</h2>'
-      +'<p>Recibe avisos de mensajes, seguidores y novedades incluso cuando no tengas la página abierta. Solo se activa si tú lo permites.</p>'
+      +'<p>🔔 Avisos para toda la actividad importante de tu cuenta: seguidores, mensajes privados y grupales, llamadas y videollamadas, comentarios, Me gusta, regalos, noticias, encuestas, torneos, insignias, metas, premios y denuncias.</p>'
+      +'<p>Se envían también con la página cerrada, si el dispositivo lo permite. Solo se activa con tu permiso y se respeta el modo No molestar.</p>'
       +'<p>🎵 <a href="#/cuenta" class="outline-btn mini">Personalizar sonidos anime en Mi cuenta</a></p>'
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
       +'<details class="sb-webpush-mobile-help"><summary>📱 Cómo activar las notificaciones en mi móvil</summary>'
