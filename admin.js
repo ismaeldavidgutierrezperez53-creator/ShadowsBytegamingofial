@@ -8,11 +8,11 @@ const adminModels = {
  'waifu-husbando':{label:'Waifu / Husbando',icon:'💜',catalogCategory:'waifu-husbando',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
  'pokedex':{label:'Pokédex en Español',icon:'⚡',catalogCategory:'pokedex',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
  'one-piece':{label:'Especial One Piece',icon:'🏴‍☠️',catalogCategory:'one-piece',fields:{title:'Título o nombre',description:'Descripción',image_url:'URL de imagen',extra_info:'Información adicional',status:'Estado'},options:{status:['draft','published']}},
- news:{label:'Noticias',icon:'📰',fields:{title:'Título',slug:'Slug',excerpt:'Resumen',content:'Contenido',cover_url:'URL de portada',status:'Estado',is_featured:'⭐ Noticia destacada',published_at:'Fecha de publicación'},options:{status:['draft','published']}},
+ news:{label:'Noticias',icon:'📰',fields:{title:'Título',slug:'Slug',category:'Categoría',excerpt:'Resumen',content:'Contenido',cover_url:'URL de portada',status:'Estado',scheduled_at:'⏰ Programar publicación (fecha y hora)',is_featured:'⭐ Noticia destacada',notify_members:'📣 Notificar a todos los miembros',published_at:'Fecha de publicación'},options:{status:['draft','published'],category:['general','anime','gaming','manga','eventos','comunidad']}},
  billboard:{label:'Cartelera',icon:'🎬',fields:{title:'Título',description:'Descripción',category:'Categoría',image_url:'URL de imagen',destination_url:'URL de destino',starts_at:'Inicio',ends_at:'Fin',status:'Estado',sort_order:'Orden'},options:{category:['gaming','anime','event','stream','other'],status:['draft','published']}},
  events:{label:'Eventos',icon:'📅',fields:{title:'Título',description:'Descripción',image_url:'URL de imagen',location:'Ubicación',starts_at:'Inicio',ends_at:'Fin',status:'Estado'},options:{status:['draft','published','cancelled']}}
 };
-const adminDateFields=new Set(['starts_at','ends_at','published_at']);
+const adminDateFields=new Set(['starts_at','ends_at','published_at','scheduled_at']);
 const adminLargeFields=new Set(['content','description','excerpt','extra_info']);
 let adminTable='news', adminItems=[];
 let adminRequestId=0;
@@ -30,10 +30,10 @@ function adminDateInput(value){
 function adminField(name,value,model){
  const id='admin-'+name,label=model.fields[name],options=model.options?.[name],val=value==null?'':String(value);
  const safe=escapeHTML;
- const control=name==='is_featured'
+ const control=(name==='is_featured'||name==='notify_members')
   ? '<input id="'+id+'" name="'+name+'" type="checkbox" value="true" '+(val==='true'?'checked':'')+' />'
   :options
-  ?'<select id="'+id+'" name="'+name+'">'+options.map(x=>'<option value="'+safe(x)+'" '+(x===val?'selected':'')+'>'+safe(x==='draft'?'Borrador':x==='published'?'Publicado':x==='cancelled'?'Cancelado':x)+'</option>').join('')+'</select>'
+  ?'<select id="'+id+'" name="'+name+'">'+options.map(x=>'<option value="'+safe(x)+'" '+(x===val?'selected':'')+'>'+safe(x==='draft'?'Borrador':x==='published'?'Publicado':x==='cancelled'?'Cancelado':x==='general'?'General':x==='anime'?'Anime':x==='gaming'?'Gaming':x==='manga'?'Manga':x==='eventos'?'Eventos':x==='comunidad'?'Comunidad':x)+'</option>').join('')+'</select>'
   :adminLargeFields.has(name)
    ?'<textarea id="'+id+'" name="'+name+'" rows="'+(name==='content'?7:3)+'" placeholder="Escribe aquí...">'+safe(val)+'</textarea>'
    :'<input id="'+id+'" name="'+name+'" '+(name==='title'?'required maxlength="180" ':'')+(adminDateFields.has(name)?'type="datetime-local" ':'')+(name==='cover_url'||name==='image_url'||name==='destination_url'?'type="url" placeholder="https://..." ':'')+(name==='sort_order'?'type="number" step="1" ':'')+'value="'+safe(adminDateFields.has(name)?adminDateInput(val):val)+'" />';
@@ -73,6 +73,11 @@ function adminForm(item={}){
  const model=adminModels[adminTable],isEdit=Boolean(item.id);
  root.innerHTML='<section class="admin-panel admin-editor-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">EDITOR DE CONTENIDO</span><h2>'+(isEdit?'Editar':'Crear')+' '+model.label.toLowerCase()+'</h2><p>Completa los campos y guarda tus cambios en Supabase.</p></div><button type="button" class="admin-close" id="admin-close" aria-label="Cerrar editor">✕</button></div><form id="admin-editor"><div class="admin-fields">'+Object.keys(model.fields).map(k=>adminField(k,item[k]??(k==='status'?'draft':''),model)).join('')+'</div>'+((model.fields.image_url||model.fields.cover_url)?'<div class="admin-field admin-field-wide"><label for="admin-image-file">Subir imagen desde tu dispositivo (máximo 5 MB)</label><input id="admin-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif"><p id="admin-upload-status" role="status" aria-live="polite"></p><img id="admin-image-preview" alt="Vista previa de la imagen" hidden style="max-width:240px;max-height:180px;object-fit:contain;border-radius:12px;margin-top:10px"></div>':'')+'<p id="admin-editor-message" role="status" aria-live="polite" style="margin:12px 0 0;color:#ffb4be"></p><div class="admin-form-actions"><button type="button" class="admin-secondary" id="admin-cancel">Cancelar</button><button type="submit" class="gradient-btn" id="admin-save">Guardar contenido</button></div></form></section>';
  adminSetupImageUpload();
+ if(adminTable==='news'){
+  const hint=document.createElement('p');hint.className='sb-news-schedule-hint';
+  hint.textContent='Selecciona una fecha futura para programar: la noticia quedará como borrador hasta que se publique automáticamente (aproximadamente cada minuto). Al marcar Avisar a todos, recibirán un aviso dentro de la web y una notificación externa si la tienen activada.';
+  document.querySelector('#admin-editor .admin-fields')?.after(hint);
+ }
  if(adminTable==='news'&&window.SBNewsMentions){
    const content=document.getElementById('admin-content');
    if(content){
@@ -117,7 +122,10 @@ function adminForm(item={}){
   event.preventDefault();
   const form=event.currentTarget,button=document.getElementById('admin-save');
   const data=Object.fromEntries(new FormData(form).entries());
-  if(adminTable==='news')data.is_featured=form.elements.is_featured?.checked===true;
+  if(adminTable==='news'){
+   data.is_featured=form.elements.is_featured?.checked===true;
+   data.notify_members=form.elements.notify_members?.checked===true;
+  }
   for(const field of adminDateFields)if(field in data){
    const val=data[field].trim();
    data[field]=val?new Date(val).toISOString():null;
@@ -126,13 +134,22 @@ function adminForm(item={}){
   if(adminTable==='news'){
    data.slug=data.slug.trim();
    if(!data.slug){editorMessage('Escribe el título para generar el slug o introduce uno manualmente.','error');form.elements.slug.focus();return;}
-   if(data.status==='published'&&!data.published_at)data.published_at=new Date().toISOString();
+   const now=Date.now();
+   const desiredDate=data.scheduled_at||(data.status==='published'&&data.published_at&&Date.parse(data.published_at)>now?data.published_at:null);
+   if(desiredDate){
+     if(Date.parse(desiredDate)<=now){
+       editorMessage('La fecha programada debe ser posterior a la hora actual.','error');form.elements.scheduled_at.focus();return;
+     }
+     data.scheduled_at=desiredDate;data.status='draft';data.published_at=null;
+   }else{
+     data.scheduled_at=null;
+     if(data.status==='published'&&!data.published_at)data.published_at=new Date().toISOString();
+   }
    const everyone=/(^|[^A-Za-z0-9_])@everyone(?![A-Za-z0-9_])/i;
    const containsEveryone=[data.title,data.excerpt,data.content].some(v=>everyone.test(v||''));
    const hadEveryone=[item.title,item.excerpt,item.content].some(v=>everyone.test(v||''));
-   // Pedir confirmación sólo en la primera publicación con mención global.
-   if(containsEveryone&&data.status==='published'&&(!isEdit||item.status!=='published'||!hadEveryone)
-     &&!window.confirm('📣 @everyone mencionará a todos los miembros y enviará notificaciones. ¿Publicar y avisar a todos?'))return;
+   if((data.notify_members||containsEveryone)&&(!isEdit||item.status!=='published'||!hadEveryone)
+     &&!window.confirm(data.scheduled_at?'📣 Esta noticia se publicará en la fecha elegida y avisará a los miembros. ¿Confirmar programación?':'📣 Se avisará a los miembros al publicar esta noticia. ¿Confirmar publicación?'))return;
   }
   if(adminTable==='events'&&data.status==='published'&&!data.starts_at){
    adminMessage('Indica una fecha de inicio antes de publicar el evento.','error');form.elements.starts_at.focus();return;
@@ -140,12 +157,17 @@ function adminForm(item={}){
   button.disabled=true;button.textContent='Guardando…';
   try{
    if(model.catalogCategory)data.category=model.catalogCategory;
+   if(adminTable==='news'&&(!isEdit||!item.author_id)){
+    const {data:auth,error:authError}=await sb.auth.getUser();
+    if(authError||!auth?.user?.id)throw new Error('Inicia sesión como administrador para publicar.');
+    data.author_id=auth.user.id;
+   }
    const targetTable=model.catalogCategory?'site_catalog':adminTable;
    const query=isEdit?sb.from(targetTable).update(data).eq('id',item.id).select():sb.from(targetTable).insert(data).select();
    const {data:rows,error}=await query;
    if(error){editorMessage(adminTable==='news'&&error.code==='23505'?'Ya existe una noticia con ese slug. Cambia el slug y vuelve a guardar.':'No se pudo guardar: '+error.message,'error');return;}
    if(!rows?.length){editorMessage('No se confirmó el guardado. Revisa los permisos.','error');return;}
-   root.replaceChildren();adminMessage('Contenido guardado correctamente.','success');await adminLoad();
+   root.replaceChildren();adminMessage(adminTable==='news'&&data.scheduled_at?'⏰ Noticia programada para '+new Date(data.scheduled_at).toLocaleString('es-ES')+'.':adminTable==='news'&&data.status==='published'?'📰 Noticia publicada correctamente.':'Contenido guardado correctamente.','success');await adminLoad();
   }catch(error){editorMessage('No se pudo guardar: '+error.message,'error');}
   finally{if(button.isConnected){button.disabled=false;button.textContent='Guardar contenido';}}
  };
@@ -190,7 +212,7 @@ function adminRenderList(){
  const term=(document.getElementById('admin-search')?.value||'').toLocaleLowerCase().trim();
  const items=adminItems.map((item,index)=>({item,index})).filter(({item})=>(item.title||'').toLocaleLowerCase().includes(term));
  root.innerHTML=items.length?items.map(({item,index})=>
-  '<article class="admin-item"><div class="admin-item-main"><div class="admin-item-icon">'+adminModels[adminTable].icon+'</div><div class="admin-item-copy"><strong>'+escapeHTML(item.title||'Sin título')+'</strong><div class="admin-item-meta"><span class="admin-status admin-status-'+(item.status==='published'?'published':item.status==='cancelled'?'cancelled':'draft')+'">'+escapeHTML(item.status==='published'?'Publicado':item.status==='draft'?'Borrador':item.status==='cancelled'?'Cancelado':item.status||'Sin estado')+'</span>'+(item.created_at?'<span>'+escapeHTML(new Date(item.created_at).toLocaleDateString('es-ES'))+'</span>':'')+'</div></div></div><div class="admin-item-actions"><button type="button" class="admin-secondary" data-action="edit" data-index="'+index+'">Editar</button><button type="button" class="admin-danger" data-action="delete" data-index="'+index+'">Eliminar</button></div></article>'
+  '<article class="admin-item"><div class="admin-item-main"><div class="admin-item-icon">'+adminModels[adminTable].icon+'</div><div class="admin-item-copy"><strong>'+escapeHTML(item.title||'Sin título')+'</strong><div class="admin-item-meta"><span class="admin-status admin-status-'+(item.status==='published'?'published':item.status==='cancelled'?'cancelled':'draft')+'">'+escapeHTML(item.status==='draft'&&item.scheduled_at?'⏰ Programada':item.status==='published'?'Publicado':item.status==='draft'?'Borrador':item.status==='cancelled'?'Cancelado':item.status||'Sin estado')+'</span>'+(item.scheduled_at&&item.status==='draft'?'<span>Se publicará: '+escapeHTML(new Date(item.scheduled_at).toLocaleString('es-ES'))+'</span>':'')+(item.created_at?'<span>'+escapeHTML(new Date(item.created_at).toLocaleDateString('es-ES'))+'</span>':'')+'</div></div></div><div class="admin-item-actions"><button type="button" class="admin-secondary" data-action="edit" data-index="'+index+'">Editar</button><button type="button" class="admin-danger" data-action="delete" data-index="'+index+'">Eliminar</button></div></article>'
  ).join(''):'<div class="admin-empty">'+(term?'No hay resultados para esta búsqueda.':'Todavía no hay contenido en esta sección. Usa «Crear» para añadir el primero.')+'</div>';
  root.querySelectorAll('button[data-action]').forEach(button=>button.onclick=async()=>{
   const item=adminItems[Number(button.dataset.index)];if(!item)return;
