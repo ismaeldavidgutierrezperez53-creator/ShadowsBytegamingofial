@@ -4,7 +4,6 @@
   const bar = document.getElementById('sb-mobile-bottom-nav');
   if (!bar) return;
   const tabs = [...bar.querySelectorAll('a[data-sb-tab]')];
-  const map = new Map(tabs.map(tab => [tab.dataset.sbTab, tab]));
 
   function syncActive() {
     const hashRoute = (location.hash.slice(1) || '/').split(/[?&]/)[0];
@@ -20,7 +19,7 @@
 
   function isTextControl(element) {
     return element instanceof HTMLElement &&
-      !!element.closest('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),textarea,select,[contenteditable="true"]');
+      !!element.closest('input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="date"]):not([type="time"]):not([type="button"]):not([type="submit"]):not([type="hidden"]),textarea,[contenteditable="true"]');
   }
 
   // El teclado de Android no debe quedar detrás del menú inferior.

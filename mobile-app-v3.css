@@ -228,3 +228,35 @@
 }
 html[data-sb-motion="off"] .sb-mobile-bottom-nav>a{transition:none}
 html[data-sb-motion="off"] .sb-mobile-bottom-nav>a:active{transform:none}
+
+/* Chats grupales: las mismas mejoras se aplican también fuera de Mensajes privados. */
+@media screen and (max-width:760px){
+  #app .group-chat-panel{
+    box-sizing:border-box;
+    min-width:0;
+    max-width:100%;
+    margin-block:16px;
+    padding:clamp(13px,3.8vw,19px);
+    border:1px solid rgba(180,125,236,.45);
+    border-radius:17px;
+    background:linear-gradient(135deg,rgba(35,22,58,.86),rgba(17,16,39,.88));
+    box-shadow:0 7px 23px rgba(4,3,15,.22);
+  }
+  #app .group-chat-messages{
+    min-width:0;
+    max-height:min(56svh,460px);
+    border:1px solid rgba(164,109,223,.36);
+    border-radius:12px;
+    background:rgba(11,8,27,.48);
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  #app .group-chat-panel :is(input,select,textarea){
+    max-width:100%;
+    min-width:0;
+    font-size:16px;
+  }
+  #app .group-chat-panel :is(button,a){
+    min-height:44px;
+  }
+}
