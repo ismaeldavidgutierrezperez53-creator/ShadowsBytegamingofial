@@ -1,0 +1,170 @@
+/* Shadows Byte V2: efectos anime por miembro, marcos animados y portada configurable.
+   Se aplican tanto a fotos/GIF como a MP4/WebM, sin bloquear la reproducción.
+   Las opciones se guardan en public.profiles y se heredan en Mi cuenta, vista previa
+   perfil público y tarjetas de miembros. */
+#account-profile .sb-anime-visual-editor{
+ border:1px solid rgba(183,129,255,.4);border-radius:14px;
+ background:linear-gradient(145deg,rgba(69,35,105,.24),rgba(20,27,59,.27));
+ padding:0 15px 12px;margin:15px 0;min-width:0
+}
+#account-profile .sb-anime-visual-editor>summary{
+ cursor:pointer;color:#f4d9ff;font-weight:800;min-height:44px;
+ padding:13px 2px;line-height:1.4;list-style-position:inside
+}
+#account-profile .sb-anime-visual-editor>summary:focus-visible{outline:3px solid #82e8ff;outline-offset:3px;border-radius:8px}
+#account-profile .sb-anime-visual-editor .sb-anime-visual-fields{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;
+ border-top:1px solid rgba(185,137,230,.24);padding-top:13px
+}
+#account-profile .sb-anime-visual-fields>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+#account-profile .sb-anime-visual-editor label{margin:0;font-size:14px;line-height:1.4;color:#efe3ff}
+#account-profile .sb-anime-visual-editor select{min-width:0;max-width:100%;width:100%;min-height:42px}
+#account-profile .sb-anime-visual-editor small{display:block;margin:12px 0 0;color:#ccbfda;font-size:13px;line-height:1.5}
+
+/* Encuadre: una variable común para vídeo, fotografía, GIF y previsualización. */
+#account-profile,#public-member-profile,#members-list .member-card{--sb-cover-y:50%}
+#account-profile[data-sb-cover-position="top"],
+#public-member-profile[data-sb-cover-position="top"],
+#members-list .member-card[data-sb-cover-position="top"]{--sb-cover-y:18%}
+#account-profile[data-sb-cover-position="bottom"],
+#public-member-profile[data-sb-cover-position="bottom"],
+#members-list .member-card[data-sb-cover-position="bottom"]{--sb-cover-y:82%}
+#account-profile .profile-cover,
+#account-profile .profile-preview-cover,
+#public-member-profile .public-member-cover{
+ background-position:center var(--sb-cover-y)!important
+}
+#account-profile :is(.sb-profile-video-cover,.sb-preview-video-cover,.profile-preview-cover-image),
+#public-member-profile .public-member-cover-image,
+#members-list .sb-member-card-cover-image{
+ object-position:center var(--sb-cover-y)!important
+}
+
+/* Sombreado configurable. Elementos visuales siempre ignoran interacciones. */
+#account-profile :is(.profile-cover,.profile-preview-cover),
+#public-member-profile .public-member-cover,
+#members-list .sb-member-card-cover{position:relative;isolation:isolate;overflow:hidden}
+#account-profile :is(.profile-cover,.profile-preview-cover)::after,
+#public-member-profile .public-member-cover::after,
+#members-list .sb-member-card-cover::after{
+ content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+ background:linear-gradient(100deg,rgba(14,7,34,.40),rgba(12,7,28,.04) 58%,rgba(9,5,25,.34))
+}
+#account-profile[data-sb-cover-tint="cinematic"] :is(.profile-cover,.profile-preview-cover)::after,
+#public-member-profile[data-sb-cover-tint="cinematic"] .public-member-cover::after,
+#members-list .member-card[data-sb-cover-tint="cinematic"] .sb-member-card-cover::after{
+ background:linear-gradient(115deg,rgba(6,4,20,.78),rgba(13,6,35,.20) 58%,rgba(3,3,16,.68))
+}
+#account-profile[data-sb-cover-tint="clear"] :is(.profile-cover,.profile-preview-cover)::after,
+#public-member-profile[data-sb-cover-tint="clear"] .public-member-cover::after,
+#members-list .member-card[data-sb-cover-tint="clear"] .sb-member-card-cover::after{
+ background:transparent
+}
+#account-profile :is(.profile-cover,.profile-preview-cover)>span,
+#account-profile .profile-preview-cover>small,
+#public-member-profile .public-member-cover>span{position:relative;z-index:3}
+#members-list .sb-member-card-cover :is(img,video){position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}
+#members-list .sb-member-card-cover::after{z-index:0}
+
+/* Brillos anime superpuestos al vídeo o a la imagen de portada. */
+#account-profile :is(.profile-cover,.profile-preview-cover)::before,
+#public-member-profile .public-member-cover::before,
+#members-list .sb-member-card-cover::before{
+ content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0
+}
+#account-profile[data-sb-effect="sakura"] :is(.profile-cover,.profile-preview-cover)::before,
+#public-member-profile[data-sb-effect="sakura"] .public-member-cover::before,
+#members-list .member-card[data-sb-effect="sakura"] .sb-member-card-cover::before{
+ opacity:.68;
+ background-image:
+ radial-gradient(ellipse 7px 3px at 16px 30px,rgba(255,179,225,.92) 25%,transparent 90%),
+ radial-gradient(ellipse 5px 10px at 75px 64px,rgba(255,203,239,.72) 25%,transparent 90%),
+ radial-gradient(ellipse 8px 4px at 119px 19px,rgba(255,167,213,.64) 25%,transparent 90%);
+ background-size:150px 115px,210px 150px,240px 130px;
+ animation:sb-anime-petals 15s linear infinite
+}
+#account-profile[data-sb-effect="neon"] :is(.profile-cover,.profile-preview-cover)::before,
+#public-member-profile[data-sb-effect="neon"] .public-member-cover::before,
+#members-list .member-card[data-sb-effect="neon"] .sb-member-card-cover::before{
+ opacity:.58;
+ background:linear-gradient(120deg,transparent 4%,rgba(91,235,255,.22) 29%,transparent 44%,rgba(245,95,255,.20) 75%,transparent 93%);
+ background-size:230% 100%;
+ animation:sb-anime-neon-flow 9s ease-in-out infinite alternate
+}
+#account-profile[data-sb-effect="stars"] :is(.profile-cover,.profile-preview-cover)::before,
+#public-member-profile[data-sb-effect="stars"] .public-member-cover::before,
+#members-list .member-card[data-sb-effect="stars"] .sb-member-card-cover::before{
+ opacity:.82;
+ background-image:
+ radial-gradient(circle at 16px 24px,rgba(255,255,255,.93) 0 1.2px,transparent 3px),
+ radial-gradient(circle at 88px 70px,rgba(165,240,255,.83) 0 1.5px,transparent 4px),
+ radial-gradient(circle at 116px 14px,rgba(255,217,151,.84) 0 1px,transparent 3px);
+ background-size:150px 105px,225px 142px,185px 122px;
+ animation:sb-anime-starlight 6s ease-in-out infinite alternate
+}
+#account-profile[data-sb-effect="sakura"] :is(.profile-avatar,.profile-preview-avatar) video,
+#public-member-profile[data-sb-effect="sakura"] .public-member-avatar video,
+#members-list .member-card[data-sb-effect="sakura"] .member-avatar video{filter:saturate(1.08) brightness(1.04)}
+#account-profile[data-sb-effect="neon"] :is(.profile-avatar,.profile-preview-avatar) video,
+#public-member-profile[data-sb-effect="neon"] .public-member-avatar video,
+#members-list .member-card[data-sb-effect="neon"] .member-avatar video{filter:saturate(1.18) contrast(1.05)}
+#account-profile[data-sb-effect="stars"] :is(.profile-avatar,.profile-preview-avatar) video,
+#public-member-profile[data-sb-effect="stars"] .public-member-avatar video,
+#members-list .member-card[data-sb-effect="stars"] .member-avatar video{filter:brightness(1.05)}
+
+/* Marcos: no recortan el vídeo ni cambian su relación de aspecto. */
+#account-profile[data-sb-frame="sakura"] :is(.profile-avatar,.profile-preview-avatar),
+#public-member-profile[data-sb-frame="sakura"] .public-member-avatar,
+#members-list .member-card[data-sb-frame="sakura"] .member-avatar{
+ border-color:#fba8e2;box-shadow:0 0 0 3px rgba(255,170,225,.60),0 0 22px rgba(244,111,199,.62);
+ animation:sb-anime-frame-sakura 3.8s ease-in-out infinite alternate
+}
+#account-profile[data-sb-frame="neon"] :is(.profile-avatar,.profile-preview-avatar),
+#public-member-profile[data-sb-frame="neon"] .public-member-avatar,
+#members-list .member-card[data-sb-frame="neon"] .member-avatar{
+ border-color:#56eaff;box-shadow:0 0 0 3px rgba(91,219,255,.65),0 0 25px rgba(38,210,255,.53);
+ animation:sb-anime-frame-neon 3.2s ease-in-out infinite alternate
+}
+#account-profile[data-sb-frame="gold"] :is(.profile-avatar,.profile-preview-avatar),
+#public-member-profile[data-sb-frame="gold"] .public-member-avatar,
+#members-list .member-card[data-sb-frame="gold"] .member-avatar{
+ border-color:#f3cd65;box-shadow:0 0 0 3px rgba(255,206,93,.65),0 0 22px rgba(248,184,51,.42);
+ animation:sb-anime-frame-gold 4s ease-in-out infinite alternate
+}
+@keyframes sb-anime-frame-sakura{
+ from{box-shadow:0 0 0 2px rgba(255,170,225,.35),0 0 12px rgba(244,111,199,.35)}
+ to{box-shadow:0 0 0 4px rgba(255,195,229,.72),0 0 26px rgba(255,108,201,.67)}
+}
+@keyframes sb-anime-frame-neon{
+ from{box-shadow:0 0 0 2px rgba(91,219,255,.46),0 0 12px rgba(38,210,255,.36)}
+ to{box-shadow:0 0 0 4px rgba(169,249,255,.73),0 0 31px rgba(38,210,255,.80)}
+}
+@keyframes sb-anime-frame-gold{
+ from{box-shadow:0 0 0 2px rgba(255,206,93,.33),0 0 10px rgba(248,184,51,.33)}
+ to{box-shadow:0 0 0 4px rgba(255,217,113,.72),0 0 26px rgba(248,184,51,.68)}
+}
+@keyframes sb-anime-petals{
+ from{background-position:0 -70px,0 -40px,0 -65px}
+ to{background-position:85px 160px,-70px 180px,65px 205px}
+}
+@keyframes sb-anime-neon-flow{
+ from{background-position:100% 50%}
+ to{background-position:0 50%}
+}
+@keyframes sb-anime-starlight{
+ from{opacity:.35;filter:brightness(.85)}
+ to{opacity:.88;filter:brightness(1.25)}
+}
+@media(max-width:600px){
+ #account-profile .sb-anime-visual-editor .sb-anime-visual-fields{grid-template-columns:minmax(0,1fr)}
+ #account-profile .sb-anime-visual-editor{padding-inline:11px}
+ #account-profile .sb-anime-visual-editor select{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ #account-profile :is(.profile-cover,.profile-preview-cover)::before,
+ #public-member-profile .public-member-cover::before,
+ #members-list .sb-member-card-cover::before,
+ #account-profile :is(.profile-avatar,.profile-preview-avatar),
+ #public-member-profile .public-member-avatar,
+ #members-list .member-avatar{animation:none!important}
+}
