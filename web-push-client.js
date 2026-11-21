@@ -175,6 +175,86 @@
     }catch(err){setStatus('No se pudo enviar el aviso de prueba: '+(err?.message||'error desconocido'),'error');}
     finally{busy(false);}
   }
+  // Inventario privado: sólo mostramos las suscripciones del usuario con sesión.
+  const deviceLabel=(agent)=>{
+    const ua=String(agent||'');
+    if(/Android/i.test(ua))return '📱 Android';
+    if(/iPhone|iPad|iPod/i.test(ua))return '📱 iPhone o iPad';
+    if(/Windows/i.test(ua))return '💻 Windows';
+    if(/Macintosh|Mac OS X/i.test(ua))return '💻 macOS';
+    if(/Linux/i.test(ua))return '💻 Linux';
+    return '💻 Navegador';
+  };
+  async function loadDevices(){
+    const output=panel()?.querySelector('.sb-webpush-devices-list');
+    if(!output)return;
+    output.replaceChildren();
+    const msg=document.createElement('p');
+    msg.textContent='Comprobando dispositivos…';
+    output.append(msg);
+    try{
+      const user=await currentUser();
+      if(!user){msg.textContent='Inicia sesión para ver tus dispositivos.';return;}
+      const reg=supported() ? await registration() : null;
+      const current=await reg?.pushManager?.getSubscription();
+      const {data,error}=await sb.from('member_web_push_subscriptions')
+        .select('endpoint,user_agent,updated_at')
+        .eq('user_id',user.id)
+        .order('updated_at',{ascending:false})
+        .limit(50);
+      if(error)throw error;
+      output.replaceChildren();
+      const summary=document.createElement('p');
+      summary.className='sb-webpush-device-count';
+      summary.textContent=(data?.length||0)+' dispositivo(s) registrado(s) para recibir avisos.';
+      output.append(summary);
+      if(!data?.length)return;
+      for(const device of data){
+        const isCurrent=device.endpoint===current?.endpoint;
+        const line=document.createElement('div');
+        line.className='sb-webpush-device-row';
+        const info=document.createElement('span');
+        const name=document.createElement('strong');
+        name.textContent=deviceLabel(device.user_agent)+(isCurrent?' · Este dispositivo':'');
+        info.append(name);
+        if(device.updated_at){
+          const date=document.createElement('small');
+          const t=Date.parse(device.updated_at);
+          date.textContent=Number.isFinite(t)
+            ? 'Último registro: '+new Date(t).toLocaleString('es-ES')
+            : 'Registro guardado';
+          info.append(date);
+        }
+        line.append(info);
+        if(!isCurrent){
+          const remove=document.createElement('button');
+          remove.type='button'; remove.className='sb-webpush-device-remove';
+          remove.textContent='Quitar';
+          remove.setAttribute('aria-label','Quitar '+deviceLabel(device.user_agent));
+          remove.addEventListener('click',async()=>{
+            if(!window.confirm('¿Quitar este dispositivo de tus notificaciones? Tendrás que volver a activarlas desde él.'))return;
+            remove.disabled=true;
+            try{
+              const account=await currentUser();
+              if(!account || account.id!==user.id)throw new Error('La sesión ha cambiado. Abre el apartado de nuevo.');
+              const {error:removeError}=await sb.from('member_web_push_subscriptions')
+                .delete().eq('user_id',account.id).eq('endpoint',device.endpoint);
+              if(removeError)throw removeError;
+              setStatus('Dispositivo quitado de tus notificaciones.','ok');
+              await loadDevices();
+            }catch(e){setStatus('No se pudo quitar el dispositivo: '+(e?.message||'error desconocido'),'error');remove.disabled=false;}
+          });
+          line.append(remove);
+        }
+        output.append(line);
+      }
+    }catch(e){
+      output.replaceChildren();
+      const error=document.createElement('p');
+      error.textContent='No se pudieron consultar tus dispositivos: '+(e?.message||'error desconocido');
+      output.append(error);
+    }
+  }
   async function delayedTest(){
     if(!supported()){setStatus('Tu navegador no admite avisos push externos.','error');return;}
     if(Notification.permission!=='granted'){
@@ -210,6 +290,7 @@
     root.innerHTML='<h2>🔔 Notificaciones en tu ordenador y móvil</h2>'
       +'<p>🔔 Avisos para toda la actividad importante de tu cuenta: seguidores, mensajes privados y grupales, llamadas y videollamadas, comentarios, Me gusta, regalos, noticias, encuestas, torneos, insignias, metas, premios y denuncias.</p>'
       +'<p>Los avisos pueden recibirse con la página cerrada en Android y Windows. Actívalos una vez en cada dispositivo e inicia sesión con la misma cuenta. Dependen de permisos, conexión, batería y modo No molestar.</p>'
+      +'<p>💡 En sistemas compatibles, los avisos ofrecen botones «Ver ahora» y «Descartar». También puedes tocar el aviso para abrir su sección.</p>'
       +'<p>🎵 <a href="#/sonidos" class="outline-btn mini">🎵 Abrir sonidos anime</a></p>'
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
       +'<details class="sb-webpush-mobile-help"><summary>📱 Cómo activar las notificaciones en mi móvil</summary>'
@@ -224,7 +305,11 @@
       +'<button type="button" data-push="test">🧪 Enviar prueba</button>'
       +'<button type="button" class="sb-webpush-delayed" data-push="delayed">📱💻 Probar con la app cerrada (20 s)</button>'
       +'<button type="button" data-push="repair">🔄 Comprobar y reparar este dispositivo</button>'
-      +'<button type="button" class="sb-webpush-disable" data-push="disable">Desactivar</button></div>';
+      +'<button type="button" class="sb-webpush-disable" data-push="disable">Desactivar</button></div>'
+      +'<details class="sb-webpush-devices"><summary>📱💻 Mis dispositivos con notificaciones</summary>'
+      +'<p>Consulta los equipos conectados a tu cuenta. Puedes quitar los antiguos sin desactivar el que estás usando.</p>'
+      +'<button type="button" data-push="devices-refresh">🔄 Actualizar dispositivos</button>'
+      +'<div class="sb-webpush-devices-list" aria-live="polite"></div></details>';
     notifications.parentElement.insertBefore(root,notifications);
     if((iosDevice() && !installedApp()) || /Android/i.test(navigator.userAgent)){
       root.querySelector('.sb-webpush-mobile-help').open=true;
@@ -241,6 +326,9 @@
       finally{busy(false);}
     });
     root.querySelector('[data-push="disable"]').addEventListener('click',disable);
+    const devices=root.querySelector('.sb-webpush-devices');
+    devices.addEventListener('toggle',()=>{if(devices.open)loadDevices();});
+    root.querySelector('[data-push="devices-refresh"]').addEventListener('click',loadDevices);
     refresh().catch(()=>setStatus('No se pudo comprobar el permiso del navegador.','error'));
   }
   /* The site replaces the #app contents on each hash-route render. */
