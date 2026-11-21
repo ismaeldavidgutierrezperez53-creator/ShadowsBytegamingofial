@@ -53,7 +53,10 @@
       if(readError)throw readError;
       // No reescribir la fila en cada visita; sólo reparar datos faltantes o caducados.
       const old=record?.updated_at ? Date.parse(record.updated_at) : 0;
-      if(!record || record.p256dh!==keys.p256dh || record.auth!==keys.auth
+      // Una suscripción ausente puede pertenecer a otra cuenta. No intentar
+      // apropiársela automáticamente: las políticas RLS deben seguir vigentes.
+      if(!record)return;
+      if(record.p256dh!==keys.p256dh || record.auth!==keys.auth
          || !Number.isFinite(old) || Date.now()-old>7*86400000){
         const {error}=await table.upsert({
           endpoint:sub.endpoint,user_id:user.id,p256dh:keys.p256dh,auth:keys.auth,
@@ -98,7 +101,7 @@
     }
     setStatus(registered
       ? '✅ Avisos del sistema activados en este dispositivo. También pueden llegar con la web cerrada.'
-      : 'Tu navegador permite notificaciones, pero falta registrar este dispositivo. Pulsa Activar.',
+      : 'Esta suscripción no está vinculada a la cuenta actual. Pulsa Activar notificaciones para volver a registrarla.',
       registered?'ok':'');
   }
   async function enable(){
@@ -116,19 +119,35 @@
       if(!res.ok)throw new Error('No se ha podido obtener la clave de notificaciones.');
       const config=await res.json();
       if(!config.publicKey)throw new Error('Falta la clave pública del servidor.');
-      let sub=await reg.pushManager.getSubscription();
-      if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeKey(config.publicKey)});
-      const keys=sub.toJSON().keys;
-      if(!keys?.p256dh||!keys?.auth)throw new Error('El navegador no proporcionó las claves necesarias.');
       const user=await currentUser();
       if(!user)throw new Error('Tu sesión ha caducado. Inicia sesión de nuevo.');
-      const {error}=await sb.from('member_web_push_subscriptions').upsert({
+      const key=decodeKey(config.publicKey);
+      let sub=await reg.pushManager.getSubscription();
+      const table=sb.from('member_web_push_subscriptions');
+      if(sub){
+        // La suscripción puede estar guardada bajo una sesión anterior.
+        // Sólo consultar los registros propios (RLS), nunca alterar los ajenos.
+        const {data:owned,error:readError}=await table.select('endpoint')
+          .eq('user_id',user.id).eq('endpoint',sub.endpoint).maybeSingle();
+        if(readError)throw readError;
+        if(!owned){
+          setStatus('🔄 Actualizando la vinculación de este dispositivo con tu cuenta actual…');
+          const removed=await sub.unsubscribe();
+          if(!removed)throw new Error('No se pudo desvincular la suscripción anterior. Cierra y vuelve a abrir SB V2.');
+          sub=null;
+        }
+      }
+      if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+      const keys=sub.toJSON().keys;
+      if(!keys?.p256dh||!keys?.auth)throw new Error('El navegador no proporcionó las claves necesarias.');
+      const {error}=await table.upsert({
         endpoint:sub.endpoint,user_id:user.id,p256dh:keys.p256dh,auth:keys.auth,
         user_agent:navigator.userAgent.slice(0,500),updated_at:new Date().toISOString()
       },{onConflict:'endpoint'});
       if(error)throw error;
       lastSync=Date.now();
-      setStatus('✅ Este dispositivo está registrado. Recibirás avisos push cuando esté cerrado, si el sistema permite las notificaciones.','ok');
+      setStatus('✅ Dispositivo vinculado a tu cuenta actual. Ya puedes recibir avisos con SB V2 cerrada.','ok');
+      if(panel()?.querySelector('.sb-webpush-devices')?.open)loadDevices();
     }catch(err){
       console.error('Web Push activation error:',err);
       setStatus('No se pudieron activar los avisos: '+(err?.message||'error desconocido'),'error');
@@ -290,6 +309,7 @@
     root.innerHTML='<h2>🔔 Notificaciones en tu ordenador y móvil</h2>'
       +'<p>🔔 Avisos para toda la actividad importante de tu cuenta: seguidores, mensajes privados y grupales, llamadas y videollamadas, comentarios, Me gusta, regalos, noticias, encuestas, torneos, insignias, metas, premios y denuncias.</p>'
       +'<p>Los avisos pueden recibirse con la página cerrada en Android y Windows. Actívalos una vez en cada dispositivo e inicia sesión con la misma cuenta. Dependen de permisos, conexión, batería y modo No molestar.</p>'
+      +'<p>🔄 ¿Cambiaste de cuenta en este móvil? Pulsa Activar notificaciones para vincularlo a tu cuenta actual sin reinstalar la app.</p>'
       +'<p>💡 En sistemas compatibles, los avisos ofrecen botones «Ver ahora» y «Descartar». También puedes tocar el aviso para abrir su sección.</p>'
       +'<p>🎵 <a href="#/sonidos" class="outline-btn mini">🎵 Abrir sonidos anime</a></p>'
       +'<p class="sb-webpush-status" role="status" aria-live="polite">Comprobando el navegador…</p>'
