@@ -49,7 +49,7 @@ jobs:
           ).splitlines()
           changes = []
           for subject in subjects:
-              subject = re.sub(r'\\s+', ' ', subject).strip()
+              subject = re.sub(r'\s+', ' ', subject).strip()
               if not subject or subject.startswith('build(pwa):') or '[skip ci]' in subject:
                   continue
               if subject.startswith('chore('):
