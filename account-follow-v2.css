@@ -1,0 +1,129 @@
+/* Seguidores y Siguiendo V2: controles claros y adaptados a móvil */
+#account-follows .account-follow-overview,
+.account-follow-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+.account-follow-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 78px;
+  padding: 12px 6px;
+  background: linear-gradient(145deg, rgba(103, 50, 159, .27), rgba(29, 73, 118, .22));
+  border: 1px solid rgba(185, 143, 238, .4);
+  border-radius: 13px;
+  text-align: center;
+}
+.account-follow-metric strong { font-size: clamp(20px, 3vw, 27px); color: #f6efff; }
+.account-follow-metric span { font-size: 13px; color: #d9c8ee; overflow-wrap: anywhere; }
+.account-follow-feedback:not(:empty) {
+  padding: 10px 12px;
+  margin: 10px 0;
+  background: rgba(47, 37, 79, .82);
+  border: 1px solid rgba(162, 130, 206, .45);
+  border-radius: 9px;
+}
+.account-follows-list { min-width: 0; }
+.account-follow-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 0;
+}
+.account-follow-avatar {
+  position: relative;
+  flex: 0 0 42px !important;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #904de0, #1697c8);
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+}
+.account-follow-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.account-follow-member .account-follow-member-info {
+  flex: 1 1 110px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.account-follow-member-info strong { line-height: 1.25; color: #fff; }
+.account-follow-member-info small { font-size: 12px; }
+.account-follow-member .account-follow-relationship {
+  color: #d6b1ff;
+  opacity: 1;
+}
+.account-follow-member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.account-follow-member-actions a,
+.account-follow-member-actions button {
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 8px 11px;
+  margin: 0 !important;
+  border-radius: 9px;
+  font: 700 14px/1.25 Rajdhani, Arial, sans-serif;
+  white-space: normal;
+  text-align: center;
+  cursor: pointer;
+}
+.account-follow-action {
+  color: #fff;
+  border: 1px solid #ae75e4;
+  background: linear-gradient(110deg, #7043b1, #2f6095);
+}
+.account-follow-action[data-following="true"] {
+  color: #b9f5e7;
+  border-color: #65bfa8;
+  background: #23483f;
+}
+.account-follow-action:disabled { opacity: .55; cursor: wait; }
+.account-follow-member-actions :is(a, button):focus-visible,
+.account-follow-filter:focus-visible {
+  outline: 3px solid #83eaff;
+  outline-offset: 2px;
+}
+.account-follow-limit-note { display: block; margin-top: 14px; color: #baadc9; }
+@media (max-width: 640px) {
+  .account-follows-content { grid-template-columns: minmax(0, 1fr); }
+  .account-follow-member { flex-wrap: wrap; }
+  .account-follow-member-actions {
+    width: 100%;
+    justify-content: flex-start;
+    padding-left: 52px;
+  }
+  .account-follow-member-actions a,
+  .account-follow-member-actions button { flex: 1 1 115px; }
+}
+@media (max-width: 360px) {
+  .account-follow-overview { gap: 5px; }
+  .account-follow-metric { padding: 8px 3px; }
+  .account-follow-metric span { font-size: 11px; }
+  .account-follow-member-actions { padding-left: 0; }
+}
