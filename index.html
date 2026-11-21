@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="styles.css?v=20261121-global-scrollbars-no-space-v1" />
   <link rel="stylesheet" href="web-push-client.css?v=20261121-mobile-push-v3" />
   <link rel="stylesheet" href="pwa-install.css?v=20261121-v1" />
+  <link rel="stylesheet" href="app-updates.css?v=20261121-v1" />
   <link rel="stylesheet" href="splash-screen.css?v=20261121-splash-v1" />
   <style id="sb-hide-scroll-track-global">#sb-anime-scroll-progress{display:none!important;height:0!important;visibility:hidden!important}</style>
   <link rel="stylesheet" href="news-reader-v1.css?v=20261120-v1" />
@@ -190,6 +191,10 @@
       <div class="menu-account">
         <strong>👤 Acceso y notificaciones</strong>
         <div class="top-actions" id="account-actions"><label class="search"><span>⌕</span><input aria-label="Buscar en la web" placeholder="Buscar…" /></label><a href="#/auth">Entrar</a><a class="gradient-btn mini" href="#/auth?mode=signup">Registrarse</a></div>
+        <div class="sb-updates-menu-control">
+          <button id="sb-update-check" class="sb-updates-check" type="button">🔄 Buscar actualizaciones</button>
+          <span id="sb-updates-menu-status" class="sb-updates-menu-status" role="status" aria-live="polite">Se comprobarán automáticamente.</span>
+        </div>
       </div>
     </nav>
   </header>
@@ -359,6 +364,7 @@
   <script defer src="sb-quad-20261120.js?v=20261120-v1"></script>
   <script defer src="web-push-client.js?v=20261121-anime-sounds-link-v2"></script>
   <script defer src="pwa-install.js?v=20261121-v1"></script>
+  <script defer src="app-updates.js?v=20261121-v1"></script>
   <script defer src="splash-screen.js?v=20261121-splash-v1"></script>
 </body>
 </html>

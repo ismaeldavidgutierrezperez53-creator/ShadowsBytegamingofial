@@ -1,0 +1,76 @@
+/* Shadows Byte Gaming Official V2: actualización de la PWA y el sitio. */
+.sb-updates-menu-control{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #70459566;
+}
+.sb-updates-check{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:8px 13px;
+  border-radius:10px;
+  border:1px solid #9b67c8;
+  background:#3b1c58;
+  color:#fff;
+  font:700 15px Rajdhani,Arial,sans-serif;
+  cursor:pointer;
+}
+.sb-updates-check:hover{background:#542677;}
+.sb-updates-check:disabled{opacity:.6;cursor:wait;}
+.sb-updates-menu-status{color:#dbc9e9;font-size:14px;line-height:1.4;}
+.sb-update-notice{
+  position:fixed;
+  z-index:2500;
+  left:50%;
+  bottom:max(18px, env(safe-area-inset-bottom, 0px));
+  transform:translateX(-50%);
+  box-sizing:border-box;
+  width:min(530px,calc(100vw - 28px));
+  padding:18px 20px;
+  border:1px solid #c879fa;
+  border-radius:18px;
+  color:#fff;
+  background:linear-gradient(135deg,#2e174c,#130b24);
+  box-shadow:0 14px 45px #0009,0 0 22px #b34cff48;
+  font:500 16px/1.5 Rajdhani,Arial,sans-serif;
+}
+.sb-update-notice[hidden]{display:none!important;}
+.sb-update-notice__title{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin:0 0 5px;
+  color:#f4d4ff;
+  font:800 18px/1.25 Orbitron,Rajdhani,Arial,sans-serif;
+}
+.sb-update-notice__text{margin:0 0 13px;color:#eee1f6;}
+.sb-update-notice__actions{display:flex;flex-wrap:wrap;gap:9px;}
+.sb-update-notice__actions button{
+  min-height:43px;
+  padding:9px 14px;
+  border-radius:10px;
+  border:1px solid #b77fe3;
+  color:white;
+  background:#3a2156;
+  font:700 16px Rajdhani,Arial,sans-serif;
+  cursor:pointer;
+}
+.sb-update-notice__actions .sb-update-now{
+  background:linear-gradient(110deg,#8735cb,#a345eb);
+  border-color:#d7a0ff;
+}
+.sb-update-notice__actions button:hover{filter:brightness(1.15);}
+.sb-update-notice__actions button:focus-visible,
+.sb-updates-check:focus-visible{outline:3px solid #64e6ff;outline-offset:3px;}
+@media(max-width:520px){
+  .sb-update-notice{bottom:max(12px,env(safe-area-inset-bottom,0px));padding:15px 15px 16px;font-size:15px;}
+  .sb-update-notice__title{font-size:16px;}
+  .sb-update-notice__actions button{flex:1 1 120px;}
+  .sb-updates-menu-control{align-items:stretch;flex-direction:column;}
+}
