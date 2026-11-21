@@ -37,9 +37,10 @@
   min-width: 0;
   padding: 12px 0;
 }
-.account-follow-avatar {
+.account-follow-member .account-follow-avatar {
   position: relative;
   flex: 0 0 42px !important;
+  min-width: 42px;
   width: 42px;
   height: 42px;
   border-radius: 50%;
