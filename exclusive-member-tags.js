@@ -22,23 +22,31 @@
   const el=make('span','sb-exclusive-tag',''+(badge.emoji||'⭐')+' '+badge.label);
   el.dataset.color=COLORS.some(item=>item[0]===badge.color)?badge.color:'purple';
   el.dataset.animation=ANIMATIONS.some(item=>item[0]===badge.animation)?badge.animation:'none';
-  el.title='Distintivo exclusivo otorgado por administración. No concede permisos.';
-  el.setAttribute('aria-label',el.textContent+'; distintivo otorgado por administración, sin permisos especiales');
+  el.title=badge.source==='automatic'?'Desbloqueada automáticamente por XP o logros; no concede permisos.':'Distintivo exclusivo otorgado por administración. No concede permisos.';
+  el.dataset.source=badge.source==='automatic'?'automatic':'admin';
+  el.setAttribute('aria-label',el.textContent+'; '+(badge.source==='automatic'?'desbloqueado automáticamente':'otorgado por administración')+'; sin permisos especiales');
   return el;
  };
  const loadForUsers=async ids=>{
   const valid=[...new Set((ids||[]).filter(x=>uuid.test(x)))].slice(0,100);
   const byUser=new Map(valid.map(id=>[id,[]]));
   if(!valid.length)return byUser;
-  const [rows,defs]=await Promise.all([
+  const [rows,defs,automatic]=await Promise.all([
    sb.from('sb_exclusive_tag_assignments').select('user_id,tag_id').in('user_id',valid).limit(500),
-   sb.from('sb_exclusive_tag_catalog').select('id,label,emoji,color,animation').limit(150)
+   sb.from('sb_exclusive_tag_catalog').select('id,label,emoji,color,animation').limit(150),
+   sb.rpc('get_member_auto_exclusive_progress',{target_members:valid})
   ]);
-  if(rows.error||defs.error)throw rows.error||defs.error;
+  if(rows.error||defs.error||automatic.error)throw rows.error||defs.error||automatic.error;
   const tags=new Map((defs.data||[]).map(item=>[item.id,item]));
   for(const row of rows.data||[]){
    const badge=tags.get(row.tag_id);
-   if(badge && byUser.has(row.user_id))byUser.get(row.user_id).push(badge);
+   if(badge && byUser.has(row.user_id))byUser.get(row.user_id).push({...badge,source:'admin'});
+  }
+  for(const reward of automatic.data||[]){
+   if(!reward.unlocked||!byUser.has(reward.member_id))continue;
+   const list=byUser.get(reward.member_id);
+   if(list.some(b=>b.id===reward.tag_id))continue;
+   list.push({id:reward.tag_id,label:reward.label,emoji:reward.emoji,color:reward.color,animation:reward.animation,source:'automatic'});
   }
   return byUser;
  };
