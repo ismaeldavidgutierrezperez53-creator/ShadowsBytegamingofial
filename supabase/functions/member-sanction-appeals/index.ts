@@ -260,7 +260,13 @@ Deno.serve(async req => {
         notified=true;
       }catch(e){console.error("Appeal decision email failed",e instanceof Error?e.message:"unknown");}
     }
-    return reply({ok:true,decision,restored,notified});
+    // Este registro genera el aviso interno y, si hay dispositivos inscritos,
+    // el Web Push mediante el disparador seguro de Supabase.
+    const {error:alertError}=await db.from("member_appeal_notifications")
+      .upsert({recipient_id:appeal.member_id,appeal_id:appeal.id,kind:decision},
+        {onConflict:"recipient_id,appeal_id,kind",ignoreDuplicates:true});
+    if(alertError)console.error("Appeal outcome notification failed",alertError.message);
+    return reply({ok:true,decision,restored,notified,alert_saved:!alertError});
   }
   return reply({error:"Operación no disponible"},400);
 });
