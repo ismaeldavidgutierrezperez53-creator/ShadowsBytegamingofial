@@ -4359,6 +4359,7 @@ async function initGroupChats(userId,root){
   const {data:members,error:membersError}=await sb.from('member_chat_group_members').select('user_id,role').eq('group_id',group.id);
   if(membersError){say('No se pudieron cargar los participantes.');return;}
   const count=document.createElement('p');count.textContent=(members||[]).length+' participantes';thread.append(count);
+  const groupLabels=window.sbBuildGroupMemberLabels ? await window.sbBuildGroupMemberLabels({sb,group,userId,members,thread}) : {createBadge:()=>null,reload:async()=>{}};
   showPrivateGroupVideoLibrary(group,userId,thread,say).catch(e=>console.warn('Biblioteca de vídeo:',e));
   const callControls=document.createElement('div');callControls.className='group-call-controls';
   const calleeSelect=document.createElement('select');calleeSelect.setAttribute('aria-label','Miembro al que llamar');
@@ -4515,7 +4516,7 @@ async function initGroupChats(userId,root){
    if(seenError)console.warn('Vistas de imágenes grupales:',seenError.message);
    const seenOnceIds=new Set((seenRows||[]).map(row=>row.message_id));
    for(const m of data||[]){
-    const item=document.createElement('p');const name=document.createElement('strong');name.textContent=(m.sender_id===userId?'Tú':names.get(m.sender_id)||'Miembro')+': ';const body=document.createElement('span');renderChatSpoilerText(body,m.body);const time=document.createElement('small');time.textContent=' · '+new Date(m.created_at).toLocaleString('es-ES');item.append(name,body,time);
+    const item=document.createElement('p');const name=document.createElement('strong');name.textContent=m.sender_id===userId?'Tú':names.get(m.sender_id)||'Miembro';const body=document.createElement('span');renderChatSpoilerText(body,m.body);const time=document.createElement('small');time.textContent=' · '+new Date(m.created_at).toLocaleString('es-ES');item.append(name);const labelTag=groupLabels.createBadge(m.sender_id);if(labelTag)item.append(labelTag);item.append(document.createTextNode(': '),body,time);
     if(!m.deleted_at&&m.view_once&&m.image_path){
      const once=document.createElement('div');once.className='chat-view-once-message';
      if(m.sender_id===userId){once.textContent='👁️ Imagen de una sola vista enviada';}
@@ -4600,7 +4601,8 @@ async function initGroupChats(userId,root){
    else{input.value='';upload.value='';recordedFile=null;recordingStatus.textContent='';onceInput.checked=false;spoilerToggle.setAttribute('aria-pressed','false');spoilerToggle.textContent='🙈 Spoiler';updateOnceOption();refresh();}};
   thread.append(form);
   if(activeGroupChatChannel)sb.removeChannel(activeGroupChatChannel);
-  activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).subscribe();
+  activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'*',schema:'public',table:'member_chat_group_labels',filter:'group_id=eq.'+group.id},async()=>{await groupLabels.reload();refresh();}).subscribe();
+  thread.addEventListener('sb-group-label-changed',refresh);
   refresh();
  }
  async function loadGroups(){
