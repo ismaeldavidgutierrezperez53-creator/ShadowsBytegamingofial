@@ -208,8 +208,11 @@
    if(!section.isConnected)return;
    gallery.replaceChildren();
    const medals=result.rows;
-   const metrics={gold:medals.filter(a=>Number(a.place)===1).length};
-   metrics.podium=medals.filter(a=>[1,2,3].includes(Number(a.place))).length;
+   const metrics={
+    gold:medals.filter(a=>Number(a.place)===1).length,
+    silver:medals.filter(a=>Number(a.place)===2).length,
+    bronze:medals.filter(a=>Number(a.place)===3).length
+   };
    const earned=trophyRules.filter(rule=>trophyProgress(rule,metrics)>=rule.target);
    if(!earned.length){
     gallery.append(make('p','sb-legend-empty',
