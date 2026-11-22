@@ -283,6 +283,8 @@
         card.append(el("p","",event.reason));
         const prior=appeals.get(event.id);
         if(prior){
+          card.dataset.appealId=prior.id;
+          card.tabIndex=-1;
           card.append(el("strong","sb-appeal-outcome",outcomes[prior.status]||prior.status));
           card.append(el("small","","Apelación: "+prior.reason));
           if(prior.review_note)card.append(el("p","sb-appeal-review-note","Resolución: "+prior.review_note));
@@ -318,8 +320,15 @@
     }catch(error){
       content.textContent="No se pudieron cargar las apelaciones: "+error.message;
     }
-    if(new URLSearchParams(location.hash.split("?")[1]||"").get("focus")==="appeals"){
-      requestAnimationFrame(()=>{if(panel.isConnected)panel.scrollIntoView({block:"start",behavior:"smooth"});});
+    const focusParams=new URLSearchParams(location.hash.split("?")[1]||"");
+    if(focusParams.get("focus")==="appeals"){
+      requestAnimationFrame(()=>{
+        if(!panel.isConnected)return;
+        const appealId=focusParams.get("appeal");
+        const target=appealId?[...panel.querySelectorAll("[data-appeal-id]")].find(card=>card.dataset.appealId===appealId):null;
+        (target||panel).scrollIntoView({block:target?"center":"start",behavior:"smooth"});
+        if(target)target.focus({preventScroll:true});
+      });
     }
   }
 
