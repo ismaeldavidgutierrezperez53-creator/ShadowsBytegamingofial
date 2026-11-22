@@ -55,7 +55,9 @@ returns trigger language plpgsql security definer set search_path=''
 as $$
 begin
  if new.status<>'published' or new.ends_at<=now() then return new; end if;
- if tg_op='UPDATE' and old.status='published' then return new; end if;
+ if tg_op='UPDATE' then
+  if old.status='published' then return new; end if;
+ end if;
  insert into public.member_notifications(recipient_id,actor_id,kind,competition_id)
  select u.id,new.created_by,'competition_published',new.id
  from auth.users u
