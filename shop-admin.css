@@ -225,3 +225,50 @@
 @media(prefers-reduced-motion:reduce){
  #admin-surprise-boxes .sb-surprise-admin__action{transition:none}
 }
+
+
+/* Pesos de premios y probabilidades de cajas misteriosas */
+#admin-surprise-boxes .sb-surprise-admin__prize-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+#admin-surprise-boxes .sb-surprise-admin__prize--weighted{
+ display:grid;grid-template-columns:minmax(0,1fr) 64px 49px;
+ gap:8px;align-items:center;min-height:68px;padding:9px;cursor:default;
+}
+#admin-surprise-boxes .sb-surprise-admin__prize-choice{
+ display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer;
+ font-size:14px;font-weight:600;line-height:1.3;
+}
+#admin-surprise-boxes .sb-surprise-admin__prize-choice input{
+ width:18px;height:18px;flex:0 0 18px;margin:0;
+}
+#admin-surprise-boxes .sb-surprise-admin__prize-choice span{
+ min-width:0;overflow-wrap:anywhere;
+}
+#admin-surprise-boxes .sb-surprise-admin__weight-label{
+ display:grid;gap:3px;min-width:0;font-size:11px;
+ color:#dcc9ee;font-weight:700;
+}
+#admin-surprise-boxes .sb-surprise-admin__prize--weighted .sb-surprise-admin__weight-label input{
+ display:block;width:100%;min-width:0;height:37px;min-height:37px;
+ padding:4px 5px;border:1px solid #946bc2;border-radius:8px;
+ background:#120e1d;color:#fff;font:700 15px Rajdhani,Arial,sans-serif;
+ text-align:center;cursor:text;appearance:textfield;-moz-appearance:textfield;
+}
+#admin-surprise-boxes .sb-surprise-admin__weight-label input::-webkit-inner-spin-button,
+#admin-surprise-boxes .sb-surprise-admin__weight-label input::-webkit-outer-spin-button{margin:0}
+#admin-surprise-boxes .sb-surprise-admin__prize--weighted .sb-surprise-admin__weight-label input:disabled{
+ opacity:.6;cursor:not-allowed;background:#1e1728;
+}
+#admin-surprise-boxes .sb-surprise-admin__percent{
+ display:inline-block;font-size:13px;font-weight:700;white-space:nowrap;
+ text-align:right;color:#acffda;min-width:0;
+}
+#admin-surprise-boxes .sb-surprise-admin__prize--weighted:not(:has(input[type=checkbox]:checked)) .sb-surprise-admin__percent{color:#a298af}
+#admin-surprise-boxes .sb-surprise-admin__odds-note{
+ display:block;margin:12px 0 0;line-height:1.4;font-size:13px;color:#c3b7d1;
+}
+@media(max-width:410px){
+ #admin-surprise-boxes .sb-surprise-admin__prize--weighted{
+  grid-template-columns:minmax(0,1fr) 60px 45px;gap:6px;
+ }
+ #admin-surprise-boxes .sb-surprise-admin__percent{font-size:12px}
+}
