@@ -1,0 +1,158 @@
+/* Historial y campeones: panel público adaptable al diseño anime de Shadows Byte. */
+#community-competitions .sb-legends {
+ min-width:0;
+ margin:24px 0 0;
+ padding:clamp(15px,2.2vw,24px);
+ border:1px solid rgba(166,117,235,.43);
+ border-radius:18px;
+ background:linear-gradient(140deg,rgba(37,25,62,.96),rgba(14,15,31,.96));
+ color:#f4edff;
+ box-shadow:0 12px 32px rgba(0,0,0,.15);
+}
+#community-competitions .sb-legends-heading {
+ display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;
+}
+#community-competitions .sb-legends-heading h3 {
+ margin:0 0 7px;color:#f4eaff;font-size:clamp(21px,2.5vw,26px);line-height:1.2;
+}
+#community-competitions .sb-legends-heading p {
+ margin:0;color:#cdbfe0;line-height:1.4;
+}
+#community-competitions .sb-legends-refresh,
+#community-competitions .sb-legends-tab,
+#community-competitions .sb-legend-champion-open {
+ min-height:43px;
+ padding:9px 15px;border:1px solid rgba(185,148,231,.48);
+ border-radius:10px;background:#291d42;color:#f6efff;
+ font:700 15px/1.25 Rajdhani,Arial,sans-serif;
+ text-decoration:none;cursor:pointer;
+}
+#community-competitions .sb-legends-refresh:hover,
+#community-competitions .sb-legends-tab:hover,
+#community-competitions .sb-legend-champion-open:hover {
+ filter:brightness(1.15);
+}
+#community-competitions .sb-legends-refresh:disabled {opacity:.65;cursor:wait}
+#community-competitions .sb-legends-tabs {
+ display:flex;flex-wrap:wrap;gap:9px;margin:20px 0 13px;
+}
+#community-competitions .sb-legends-tab[aria-selected="true"] {
+ background:linear-gradient(115deg,#8b39c3,#3e5da9);border-color:#be95ff;color:#fff;
+ box-shadow:0 5px 16px rgba(100,54,171,.28);
+}
+#community-competitions .sb-legends :is(button,a,summary):focus-visible {
+ outline:2px solid #d6b3ff;outline-offset:3px;
+}
+#community-competitions .sb-legends-status {
+ margin:9px 0 14px;color:#bfaed5;font-size:13px;overflow-wrap:anywhere;
+}
+#community-competitions .sb-legends-panel[hidden] {display:none!important}
+#community-competitions .sb-legend-caption {
+ margin:0 0 14px;color:#cfc2df;line-height:1.5;
+}
+#community-competitions .sb-legend-empty {
+ margin:0;padding:18px;border:1px dashed rgba(187,146,235,.42);
+ border-radius:13px;background:rgba(32,24,54,.75);color:#d7cbe3;
+}
+#community-competitions .sb-legend-history-list {
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:13px;
+}
+#community-competitions .sb-legend-history-card,
+#community-competitions .sb-legend-champion-card {
+ min-width:0;padding:17px;border:1px solid rgba(169,134,216,.36);
+ border-radius:13px;background:linear-gradient(145deg,#20182f,#171426);
+}
+#community-competitions .sb-legend-date {
+ display:inline-flex;color:#98dcfa;font-weight:700;font-size:13px;
+}
+#community-competitions .sb-legend-history-card h4 {
+ margin:8px 0 11px;font-size:18px;color:#f5eaff;line-height:1.3;overflow-wrap:anywhere;
+}
+#community-competitions .sb-legend-history-meta {
+ display:flex;flex-wrap:wrap;gap:8px;
+}
+#community-competitions .sb-legend-history-meta span {
+ font-size:13px;color:#d0c6df;padding:5px 9px;
+ border:1px solid rgba(181,147,224,.27);border-radius:999px;
+}
+#community-competitions .sb-legend-podium {
+ display:grid;gap:8px;margin-top:12px;
+ border-top:1px solid rgba(166,117,235,.24);padding-top:11px;
+}
+#community-competitions .sb-legend-podium-entry {display:flex;flex-wrap:wrap;gap:8px;color:#f9dfac}
+#community-competitions .sb-legend-profile-link {color:#e5c4ff;font-weight:700;overflow-wrap:anywhere}
+#community-competitions .sb-legend-profile-link:hover {color:#fff;text-decoration:underline}
+#community-competitions .sb-legend-general-list {
+ display:grid;gap:9px;margin:0;padding:0;list-style:none;
+}
+#community-competitions .sb-legend-general-row {
+ display:grid;grid-template-columns:62px minmax(0,1fr) minmax(115px,170px) minmax(105px,145px);
+ align-items:center;gap:12px;min-width:0;padding:12px 15px;
+ border:1px solid rgba(168,131,220,.38);border-radius:12px;background:#19152b;
+}
+#community-competitions .sb-legend-general-row:first-child {border-color:rgba(235,193,97,.57)}
+#community-competitions .sb-legend-general-position {color:#f6d991;font-size:19px}
+#community-competitions .sb-legend-general-trophies {
+ color:#e4d7ef;white-space:normal;font-variant-numeric:tabular-nums;
+}
+#community-competitions .sb-legend-general-score {
+ color:#9ce1f3;text-align:right;font-variant-numeric:tabular-nums;
+}
+#community-competitions .sb-legend-more {
+ margin:12px 0 0;padding:12px;border:1px solid rgba(166,117,235,.29);
+ border-radius:11px;background:rgba(33,24,54,.65);
+}
+#community-competitions .sb-legend-more>summary {cursor:pointer;color:#dfb6ff;font-weight:700}
+#community-competitions .sb-legend-more>div,
+#community-competitions .sb-legend-more>ol {margin-top:12px}
+#community-competitions .sb-legend-champions-grid {
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;
+}
+#community-competitions .sb-legend-champion-card {
+ position:relative;display:flex;align-items:center;flex-direction:column;gap:9px;
+ text-align:center;border-color:rgba(213,174,93,.52);
+ background:radial-gradient(circle at 50% 0%,rgba(173,122,49,.16),transparent 68%),#1d172a;
+}
+#community-competitions .sb-legend-champion-emblem {
+ position:absolute;right:14px;top:12px;font-size:26px;
+}
+#community-competitions .sb-legend-champion-avatar {
+ display:grid;place-items:center;width:68px;height:68px;
+ border:2px solid #b999e8;border-radius:50%;
+ background:linear-gradient(135deg,#a34ac4,#4172b0);
+ color:#fff;font-size:32px;font-weight:800;
+}
+#community-competitions .sb-legend-champion-card h4 {
+ margin:3px 0;font-size:19px;line-height:1.3;
+}
+#community-competitions .sb-legend-champion-title {
+ margin:0;font-weight:700;color:#f1d497;
+}
+#community-competitions .sb-legend-champion-metrics,
+#community-competitions .sb-legend-champion-last {
+ margin:0;color:#d6c5e5;line-height:1.4;
+}
+#community-competitions .sb-legend-champion-last {font-size:13px}
+#community-competitions .sb-legend-champion-open {
+ margin-top:auto;display:inline-flex;align-items:center;justify-content:center;
+ background:linear-gradient(115deg,#7239b3,#355eaf);
+}
+@media(max-width:900px){
+ #community-competitions .sb-legend-general-row {
+  grid-template-columns:50px minmax(0,1fr) minmax(105px,140px);
+ }
+ #community-competitions .sb-legend-general-score {
+  grid-column:2 / -1;text-align:left;
+ }
+}
+@media(max-width:620px){
+ #community-competitions .sb-legends-heading {flex-direction:column;align-items:stretch}
+ #community-competitions .sb-legends-refresh {width:100%}
+ #community-competitions .sb-legends-tabs {display:grid;grid-template-columns:1fr;gap:8px}
+ #community-competitions .sb-legends-tab {width:100%}
+ #community-competitions .sb-legend-general-row {
+  grid-template-columns:42px minmax(0,1fr);gap:7px 12px;
+ }
+ #community-competitions .sb-legend-general-trophies,
+ #community-competitions .sb-legend-general-score {grid-column:2;text-align:left}
+}
