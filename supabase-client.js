@@ -23,6 +23,22 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_2Jdko8NdnlP8p_5YaArHaA_DzFN6iVE
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
+
+function competitionNotificationText(n){
+ if(!n||typeof n.kind!=='string')return '';
+ if(n.kind==='competition_published')return '📢 ¡Nuevo reto o torneo publicado! Consulta la competición e inscríbete.';
+ if(n.kind==='competition_start')return '⏰ Tu reto o torneo comienza en las próximas 24 horas.';
+ if(n.kind==='competition_mission_reminder')return '🎯 Tienes una misión pendiente. Revisa tu competición activa.';
+ if(n.kind==='competition_medal'){
+  const place=Number(n.competition_medal_place);
+  return (place===1?'🥇 ¡Ganaste la medalla de oro!':
+   place===2?'🥈 ¡Ganaste la medalla de plata!':
+   place===3?'🥉 ¡Ganaste la medalla de bronce!':
+   '🏅 ¡Ganaste una medalla!')+' Consulta tu podio y tus trofeos.';
+ }
+ return '';
+}
+
 /* Spoilers de chat, compatibles con los mensajes existentes en Supabase. */
 function chatSpoilerPreview(value){
  const raw=String(value??'');
@@ -487,7 +503,7 @@ function setupNotificationPopover(userId){
 }
 async function loadNotificationPreview(userId){
  const root=document.getElementById('notification-preview');if(!root||!userId)return;
- const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
+ const {data,error}=await sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,competition_id,competition_medal_place,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
  if(!root.isConnected)return;root.replaceChildren();
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
  if(!data?.length){root.textContent='Todavía no tienes notificaciones de la comunidad.';}
@@ -520,9 +536,11 @@ async function loadNotificationPreview(userId){
     const prize=prizesByMonth.get(n.season_month);
     return prize?'🏆 ¡Ganaste '+prize.badge+' en '+formatSeason(n.season_month)+'! +'+prize.points+' puntos.':'🏆 ¡Has recibido un premio de temporada!';
    })():n.kind==='poll_reminder'?'⏰ Recuerda votar: '+(pollNames.get(n.poll_id)||'Encuesta abierta')+' · Gana 15 puntos.':n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa ahora'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
+  if(competitionNotificationText(n))message.textContent=competitionNotificationText(n);
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');item.append(message,date);
   if(!n.is_read){const mark=document.createElement('button');mark.type='button';mark.textContent='Marcar como leída';mark.onclick=async()=>{mark.disabled=true;const {error:err}=await sb.from('member_notifications').update({is_read:true}).eq('id',n.id).eq('recipient_id',userId);if(err){mark.disabled=false;mark.textContent='Error al marcar';}else{item.classList.remove('unread');mark.remove();refreshNotificationBadge(userId);if(document.getElementById('member-notifications'))loadMemberNotifications();}};item.append(mark);}
   if(['tournament_full','tournament_match','tournament_finished'].includes(n.kind)&&n.tournament_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏆 Ver torneo';go.className='notification-jump';item.append(go);}
+  if(n.kind.startsWith('competition_')){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent=n.kind==='competition_mission_reminder'?'🎯 Ver misiones':'🏆 Ver competición';go.className='notification-jump';item.append(go);}
   if(n.kind==='news_reply'&&n.news_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='📰 Ver respuesta';go.className='notification-jump';item.append(go);}
    if(n.kind==='mention'&&(n.post_id||n.news_id)){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏷️ Ver mención';go.className='notification-jump';item.append(go);}
   if(n.game_id){const go=document.createElement('a');go.href='#/perfil?id='+encodeURIComponent(userId)+'&game='+encodeURIComponent(n.game_id);go.textContent='🎮 Ver biblioteca';go.className='notification-jump';item.append(go);}
@@ -770,7 +788,7 @@ function showRealtimeNotificationToast(n){
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
- const labels={mention:'🏷️ Te han mencionado',news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!',tournament_full:'🎟️ ¡Torneo completo! Las cuatro plazas están ocupadas',tournament_match:'⚔️ ¡Tienes un nuevo enfrentamiento asignado!',tournament_finished:'🏆 ¡Torneo finalizado! Consulta tus premios',moderation_warning:'⚠️ Has recibido una advertencia',moderation_suspend:'⏳ Tu cuenta ha sido suspendida',moderation_ban:'🚫 Se ha registrado una expulsión',moderation_lift:'✅ Se ha levantado una restricción'};
+ const labels={mention:'🏷️ Te han mencionado',news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!',tournament_full:'🎟️ ¡Torneo completo! Las cuatro plazas están ocupadas',tournament_match:'⚔️ ¡Tienes un nuevo enfrentamiento asignado!',tournament_finished:'🏆 ¡Torneo finalizado! Consulta tus premios',competition_published:'📢 Nuevo reto o torneo publicado',competition_start:'⏰ Tu competición comienza pronto',competition_mission_reminder:'🎯 Misión especial pendiente',competition_medal:'🏅 ¡Has ganado una medalla!',moderation_warning:'⚠️ Has recibido una advertencia',moderation_suspend:'⏳ Tu cuenta ha sido suspendida',moderation_ban:'🚫 Se ha registrado una expulsión',moderation_lift:'✅ Se ha levantado una restricción'};
  const toast=document.createElement('div');toast.className='sb-notification-toast';toast.setAttribute('role','status');
  const message=document.createElement('strong');message.textContent=labels[n.kind]||'🔔 Nueva notificación';
  // Mostrar el nombre del nuevo seguidor sin retrasar la aparición del aviso.
@@ -785,10 +803,10 @@ function showRealtimeNotificationToast(n){
  }
  const actions=document.createElement('div');actions.className='sb-notification-toast-actions';
  const open=document.createElement('a');open.className='gradient-btn mini';
- open.href=MODERATION_NOTIFICATION_TEXT[n.kind]?notificationDestination(n):n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id||'')
+ open.href=n.kind?.startsWith('competition_')?notificationDestination(n):MODERATION_NOTIFICATION_TEXT[n.kind]?notificationDestination(n):n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id||'')
   ? '#/perfil?id='+encodeURIComponent(n.actor_id)
   : (n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'||n.kind==='news_reply'||(n.kind==='mention'&&(n.news_id||n.post_id))||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize'||n.kind==='poll_trophy_like'||((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id))?notificationDestination(n):'#/notificaciones';
- open.textContent=n.kind==='follow'?'👤 Ver perfil':n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'?'🏆 Ver torneo':n.kind==='poll_season_prize'?'🏆 Ver premio':n.kind==='poll_museum_prize'?'🏛️ Ver ranking':n.kind==='poll_trophy_like'?'❤️ Ver trofeo':(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
+ open.textContent=n.kind?.startsWith('competition_')?(n.kind==='competition_mission_reminder'?'🎯 Ver misiones':'🏆 Ver competición'):n.kind==='follow'?'👤 Ver perfil':n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'?'🏆 Ver torneo':n.kind==='poll_season_prize'?'🏆 Ver premio':n.kind==='poll_museum_prize'?'🏛️ Ver ranking':n.kind==='poll_trophy_like'?'❤️ Ver trofeo':(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
  const close=document.createElement('button');close.type='button';close.className='outline-btn mini';close.textContent='Cerrar';
  let timer;const dismiss=()=>{clearTimeout(timer);toast.remove();};close.onclick=dismiss;open.onclick=dismiss;
  actions.append(open,close);toast.append(message,actions);stack.append(toast);
@@ -2956,6 +2974,7 @@ const MODERATION_NOTIFICATION_TEXT={
  moderation_lift:'✅ El equipo ha retirado una restricción de tu cuenta.'
 };
 function notificationDestination(n){
+ if(n.kind?.startsWith('competition_'))return n.kind==='competition_mission_reminder'?'#/comunidad?legends=missions':n.kind==='competition_medal'?'#/comunidad?legends=champions':n.competition_id?'#/comunidad?competition='+encodeURIComponent(n.competition_id):'#/comunidad';
  if(MODERATION_NOTIFICATION_TEXT[n.kind])return n.kind==='moderation_ban'?'#/apelaciones':'#/cuenta?focus=sanctions';
  if(n.kind==='mention'&&n.news_id)return '#/noticia?id='+encodeURIComponent(n.news_id)+(n.news_comment_id?'&comment='+encodeURIComponent(n.news_comment_id):'');
  if(n.kind==='mention'&&n.post_id)return '#/comunidad?post='+encodeURIComponent(n.post_id);
@@ -2977,7 +2996,7 @@ async function loadMemberNotifications(){
  if(!root.isConnected)return;root.replaceChildren();
  if(!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para ver tus notificaciones';root.append(link);return;}
  const [communityResult,reportsResult,messagesResult,appealsResult]=await Promise.all([
-  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,competition_id,competition_medal_place,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_report_notifications').select('id,status,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100),
   sb.from('member_appeal_notifications').select('id,kind,appeal_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100)
@@ -3015,6 +3034,11 @@ async function loadMemberNotifications(){
   ...appealAlerts.map(n=>({...n,category:'appeals',title:n.kind==='submitted'?'⚖️ Nueva apelación para revisar':n.kind==='assigned'?'👑 Te han asignado una apelación':n.kind==='overdue'?'⏰ Apelación pendiente más de 24 horas':n.kind==='message_to_staff'?'💬 Un miembro ha respondido a una apelación':n.kind==='message_to_member'?'💬 Tienes una respuesta de moderación':n.kind==='accepted'?'✅ Tu apelación ha sido aceptada':'⚖️ Tu apelación ha sido rechazada',href:['submitted','overdue','message_to_staff','assigned'].includes(n.kind)?'#/admin?focus=appeals':'#/cuenta?focus=appeals&appeal='+encodeURIComponent(n.appeal_id),table:'member_appeal_notifications'})),
   ...messages.map(n=>({...n,category:'messages',title:'Mensaje privado de '+(names.get(n.sender_id)||'un miembro'),href:'#/mensajes?id='+encodeURIComponent(n.sender_id),table:null}))
  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+ for(const item of items){
+  if(item.table==='member_notifications' && competitionNotificationText(item)){
+   item.title=competitionNotificationText(item);item.category='tournaments';item.href=notificationDestination(item);
+  }
+ }
  const heading=document.createElement('h2');heading.textContent='🔔 Centro de notificaciones';root.append(heading);
  const controls=document.createElement('div');controls.className='notification-center-controls';
  const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar notificaciones');
