@@ -2619,6 +2619,7 @@ async function loadCommunityCompetitions(root){
  const list=document.createElement('div');list.className='community-contest-list';
  const myAwards=document.createElement('div');myAwards.className='community-contest-my-awards';
  toolbar.append(select,refresh);root.append(heading,intro,toolbar,note,myAwards,list);
+ window.SBCompetitionLegends?.mount(root);
  let all=[],entries=[],awards=[],names=new Map(),user=null;
  const paint=()=>{
   if(!list.isConnected)return;
@@ -2675,7 +2676,7 @@ async function loadCommunityCompetitions(root){
      signup.disabled=false;return;
     }
     const message=own?'Has cancelado tu inscripción.':'¡Inscripción registrada!';
-    await reload();note.textContent=message;
+    await reload();window.SBCompetitionLegends?.refresh(root);note.textContent=message;
    };
    card.append(title,state,description,dates,count,signup);
    // El primer reto anime enlaza con el editor del perfil: desde allí
@@ -2742,7 +2743,7 @@ async function loadCommunityCompetitions(root){
   names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
   note.textContent='';paint();
  };
- select.onchange=paint;refresh.onclick=reload;
+ select.onchange=paint;refresh.onclick=()=>{void reload();window.SBCompetitionLegends?.refresh(root);};
  await reload();
 }
 
