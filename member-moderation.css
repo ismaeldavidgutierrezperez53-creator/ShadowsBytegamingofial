@@ -119,3 +119,42 @@
   .sb-account-page #sb-my-sanctions {padding:17px 14px;border-radius:15px;}
   .sb-account-page #sb-my-sanctions .sb-my-sanctions-status {border-radius:12px;}
 }
+
+/* Detalles personales de sanciones y accesos directos. */
+.sb-account-page #sb-my-sanctions .sb-my-sanctions-toolbar {
+ display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px;
+}
+.sb-account-page #sb-my-sanctions .sb-my-sanctions-toolbar a,
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-content a {
+ display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+ padding:9px 13px;border-radius:10px;min-height:42px;white-space:normal;
+}
+.sb-account-page #sb-my-sanctions .sb-my-sanctions-count {
+ margin:4px 0 1px;color:#e9d1ff;font-size:.93rem;font-weight:700;
+}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail {
+ padding:0;display:block;overflow:hidden;border:1px solid rgba(185,139,241,.55);
+ border-radius:13px;background:rgba(41,22,66,.91);
+}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-summary {
+ cursor:pointer;display:flex;flex-wrap:wrap;justify-content:space-between;
+ align-items:center;gap:9px;padding:15px;line-height:1.4;list-style-position:inside;
+ color:#f6ecff;
+}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-summary strong {font-size:1.03rem;}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-summary small {color:#e0c8f6;}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-summary:focus-visible {
+ outline:3px solid #82e7ff;outline-offset:-3px;
+}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-content {
+ padding:0 15px 15px;display:grid;gap:9px;line-height:1.5;min-width:0;
+}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-content p {
+ margin:0;overflow-wrap:anywhere;white-space:pre-wrap;
+}
+.sb-account-page #sb-my-sanctions .sb-sanction-detail-content a {justify-self:start;margin-top:4px;}
+@media(max-width:650px) {
+ .sb-account-page #sb-my-sanctions .sb-my-sanctions-toolbar a {flex:1 1 160px;}
+ .sb-account-page #sb-my-sanctions .sb-sanction-detail-summary {align-items:flex-start;}
+ .sb-account-page #sb-my-sanctions .sb-sanction-detail-content a {width:100%;box-sizing:border-box;}
+}
