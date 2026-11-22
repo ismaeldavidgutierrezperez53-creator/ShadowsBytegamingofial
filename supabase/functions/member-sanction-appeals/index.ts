@@ -320,6 +320,64 @@ Deno.serve(async req => {
     verified?.user?.app_metadata?.role !== (role.role==="moderator"?"moderator":"admin"))
     return reply({error:"Solo el equipo autorizado puede revisar apelaciones"},403);
   const isAdmin=role.role!=="moderator";
+  if(action==="staff_team_stats"){
+    // The statistics are computed with exact counts, rather than the
+    // paginated rows visible in the staff queue.
+    const {data:roles,error:rolesError}=await db.from("site_staff_roles")
+      .select("user_id,role").in("role",["owner","admin","moderator"]).limit(120);
+    if(rolesError)return reply({error:"No se pudo cargar el equipo de moderación"},500);
+    const members=await Promise.all((roles||[]).map(async row=>{
+      const {data:identity,error:identityError}=await db.auth.admin.getUserById(row.user_id);
+      if(identityError||!identity?.user)return null;
+      return identity.user.app_metadata?.role===
+        (row.role==="moderator"?"moderator":"admin")?row:null;
+    }));
+    const eligible=members.filter((m):m is {user_id:string;role:string}=>!!m);
+    const ids=eligible.map(m=>m.user_id);
+    const {data:profiles,error:profilesError}=ids.length
+      ?await db.from("profiles").select("id,display_name,username").in("id",ids)
+      :{data:[],error:null};
+    if(profilesError)return reply({error:"No se pudieron recuperar los nombres del equipo"},500);
+    const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||"Miembro del equipo"]));
+    const threshold=new Date(Date.now()-86400000).toISOString();
+    const metrics=await Promise.all(eligible.map(async member=>{
+      const base=(field:string,status:string)=>db.from("member_sanction_appeals")
+        .select("id",{head:true,count:"exact"}).eq(field,member.user_id).eq("status",status);
+      const [pending,accepted,rejected,late]=await Promise.all([
+        base("assigned_to","pending"),
+        base("reviewer_id","accepted"),
+        base("reviewer_id","rejected"),
+        db.from("member_sanction_appeals").select("id",{head:true,count:"exact"})
+          .eq("assigned_to",member.user_id).eq("status","pending")
+          .lt("assigned_at",threshold)
+      ]);
+      if([pending,accepted,rejected,late].some(x=>x.error))return null;
+      return {id:member.user_id,role:member.role,
+        name:names.get(member.user_id)||member.user_id.slice(0,8)+"…",
+        pending:pending.count||0,accepted:accepted.count||0,
+        rejected:rejected.count||0,overdue:late.count||0};
+    }));
+    if(metrics.some(m=>!m))return reply({error:"No se pudieron calcular las estadísticas del equipo"},500);
+    return reply({members:metrics,my_id:viewer.id});
+  }
+  if(action==="assignment_history"){
+    const appealId=String(body.appeal_id||"");
+    if(!idPattern.test(appealId))return reply({error:"Apelación inválida"},400);
+    const {data:appeal,error:appealError}=await db.from("member_sanction_appeals")
+      .select("id").eq("id",appealId).maybeSingle();
+    if(appealError||!appeal)return reply({error:"Apelación no encontrada"},404);
+    const {data:records,error:historyError}=await db.from("member_appeal_assignment_history")
+      .select("id,created_at,changed_by,previous_assignee,new_assignee")
+      .eq("appeal_id",appealId).order("id",{ascending:false}).limit(30);
+    if(historyError)return reply({error:"No se pudo cargar el historial de transferencias"},500);
+    const ids=[...new Set((records||[]).flatMap(row=>
+      [row.changed_by,row.previous_assignee,row.new_assignee]).filter(Boolean))];
+    const {data:profiles,error:profileError}=ids.length
+      ?await db.from("profiles").select("id,display_name,username").in("id",ids)
+      :{data:[],error:null};
+    if(profileError)return reply({error:"No se pudieron cargar los nombres del historial"},500);
+    return reply({history:records||[],profiles:profiles||[],has_more:(records||[]).length===30});
+  }
   if(action==="staff_stats"){
     const cutoff=new Date(Date.now()-24*3600000).toISOString();
     const query=(status:string)=>db.from("member_sanction_appeals")
