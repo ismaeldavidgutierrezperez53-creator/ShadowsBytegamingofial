@@ -133,7 +133,7 @@ as $$
 declare
  sent integer:=0;
  batch_count integer:=0;
- localtime timestamp without time zone;
+ local_clock timestamp without time zone;
 begin
  -- Reminder approximately 24h before a published challenge begins, only once.
  with added as (
@@ -154,13 +154,13 @@ begin
 
  -- Monday 17:00 Europe/Madrid: one reminder per member with an
  -- unfinished enrolled activity; per-week index prevents repeat notices.
- localtime:=now() at time zone 'Europe/Madrid';
- if extract(isodow from localtime)=1 and extract(hour from localtime)=17 then
+ local_clock:=now() at time zone 'Europe/Madrid';
+ if extract(isodow from local_clock)=1 and extract(hour from local_clock)=17 then
   with added as (
    insert into public.member_notifications
     (recipient_id,actor_id,kind,competition_reminder_week)
    select distinct e.user_id,e.user_id,'competition_mission_reminder',
-          date_trunc('week',localtime)::date
+          date_trunc('week',local_clock)::date
    from public.community_competition_entries e
    join public.community_competitions c on c.id=e.competition_id
    join auth.users u on u.id=e.user_id
