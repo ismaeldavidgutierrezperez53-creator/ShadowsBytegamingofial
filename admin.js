@@ -1236,7 +1236,18 @@ async function adminInitSurpriseBoxes(){
   active.addEventListener('change',syncActive);
   syncActive();
   activeLabel.append(activeCopy,active);
-  controls.append(priceLabel,activeLabel);
+  const nameLabel=document.createElement('label');
+  nameLabel.className='sb-surprise-admin__field sb-surprise-admin__field--name';
+  nameLabel.hidden=true;
+  const nameCaption=document.createElement('span');
+  nameCaption.textContent='✏️ Nombre de la caja';
+  const nameInput=document.createElement('input');
+  nameInput.type='text';nameInput.required=true;nameInput.minLength=2;nameInput.maxLength=64;
+  nameInput.value=tier.name;
+  nameLabel.append(nameCaption,nameInput);
+  price.disabled=true;
+  active.disabled=true;
+  controls.append(nameLabel,priceLabel,activeLabel);
 
   const prizeSection=document.createElement('fieldset');
   prizeSection.className='sb-surprise-admin__prizes';
@@ -1266,7 +1277,7 @@ async function adminInitSurpriseBoxes(){
    const n=checks.filter(x=>x[1].checked).length;
    count.textContent=n+' de '+checks.length+' premios seleccionados';
   };
-  checks.forEach(([,check])=>check.addEventListener('change',syncCount));
+  checks.forEach(([,check])=>{check.addEventListener('change',syncCount);check.disabled=true;});
   syncCount();
   if(!checks.length){
    const empty=document.createElement('p');
@@ -1278,43 +1289,173 @@ async function adminInitSurpriseBoxes(){
 
   const footer=document.createElement('div');
   footer.className='sb-surprise-admin__footer';
+  const actionRow=document.createElement('div');
+  actionRow.className='sb-surprise-admin__card-actions';
+  const editButton=document.createElement('button');
+  editButton.type='button';editButton.className='sb-surprise-admin__action sb-surprise-admin__action--edit';
+  editButton.textContent='✏️ Editar';
+  const duplicateButton=document.createElement('button');
+  duplicateButton.type='button';duplicateButton.className='sb-surprise-admin__action sb-surprise-admin__action--duplicate';
+  duplicateButton.textContent='📋 Duplicar';
+  const deleteButton=document.createElement('button');
+  deleteButton.type='button';deleteButton.className='sb-surprise-admin__action sb-surprise-admin__action--delete';
+  deleteButton.textContent='🗑️ Eliminar';
+  const isOriginal=['bronze','silver','gold','diamond'].includes(tier.tier);
+  if(isOriginal){
+   deleteButton.disabled=true;
+   deleteButton.title='Las cuatro cajas originales no se pueden eliminar.';
+   deleteButton.setAttribute('aria-label','Eliminar no disponible: caja original protegida');
+  }
+  actionRow.append(editButton,duplicateButton,deleteButton);
   const save=document.createElement('button');
   save.type='submit';save.className='gradient-btn sb-surprise-admin__save';
-  const saveText='💾 Guardar '+tier.name;
-  save.textContent=saveText;
+  save.textContent='💾 Guardar cambios';
+  save.hidden=true;
+  const cancelButton=document.createElement('button');
+  cancelButton.type='button';cancelButton.className='outline-btn sb-surprise-admin__cancel';
+  cancelButton.textContent='Cancelar edición';
+  cancelButton.hidden=true;
   const status=document.createElement('p');
   status.className='sb-surprise-admin__status';
   status.setAttribute('role','status');
   status.setAttribute('aria-live','polite');
-  footer.append(save,status);
+  footer.append(actionRow,save,cancelButton,status);
   form.append(header,controls,prizeSection,footer);
-  form.onsubmit=async e=>{
+  let saved={
+   name:tier.name,
+   price:Number(tier.price),
+   active:!!tier.active,
+   items:checks.filter(([,check])=>check.checked).map(([id])=>id)
+  };
+  let editing=false;
+  const showStatus=(message,type='error')=>{
+   status.textContent=message;
+   status.dataset.type=type;
+  };
+  const toggleEditing=(enabled,restore=false)=>{
+   editing=enabled;
+   if(restore){
+    nameInput.value=saved.name;
+    price.value=String(saved.price);
+    active.checked=saved.active;
+    const selected=new Set(saved.items);
+    checks.forEach(([id,check])=>{check.checked=selected.has(id);});
+    syncActive();
+    syncCount();
+   }
+   nameLabel.hidden=!enabled;
+   title.hidden=enabled;
+   nameInput.disabled=!enabled;
+   price.disabled=!enabled;
+   active.disabled=!enabled;
+   checks.forEach(([,check])=>{check.disabled=!enabled;});
+   actionRow.hidden=enabled;
+   save.hidden=!enabled;
+   cancelButton.hidden=!enabled;
+   if(enabled)nameInput.focus();
+  };
+  editButton.addEventListener('click',()=>{
+   status.textContent='';
+   delete status.dataset.type;
+   toggleEditing(true);
+  });
+  cancelButton.addEventListener('click',()=>{
+   toggleEditing(false,true);
+   showStatus('Edición cancelada; no se ha guardado ningún cambio.','info');
+   editButton.focus();
+  });
+  form.addEventListener('submit',async e=>{
    e.preventDefault();
-   const selected=checks.filter(x=>x[1].checked).map(x=>x[0]);
+   if(!editing)return;
+   const selected=checks.filter(([,check])=>check.checked).map(([id])=>id);
    if(!selected.length){
-    status.dataset.type='error';
-    status.textContent='Selecciona al menos un premio.';
+    showStatus('Selecciona al menos un premio.');
     return;
    }
+   if(!form.reportValidity())return;
    save.disabled=true;
+   cancelButton.disabled=true;
    save.textContent='Guardando…';
    status.textContent='';
    delete status.dataset.type;
    try{
-    const {error}=await sb.rpc('admin_save_surprise_box',{
-     p_tier:tier.tier,p_price:Number(price.value),p_active:active.checked,p_items:selected
-    });
+    const data={
+     p_tier:tier.tier,p_name:nameInput.value.trim(),p_price:Number(price.value),
+     p_active:active.checked,p_items:selected
+    };
+    const {error}=await sb.rpc('admin_update_surprise_box',data);
     if(error)throw error;
-    status.dataset.type='success';
-    status.textContent='✓ Cambios guardados correctamente.';
+    saved={name:data.p_name,price:data.p_price,active:data.p_active,items:[...selected]};
+    title.textContent=saved.name;
+    toggleEditing(false);
+    showStatus('✓ Cambios guardados correctamente.','success');
    }catch(error){
-    status.dataset.type='error';
-    status.textContent='No se pudo guardar: '+(error.message||'error desconocido');
+    showStatus('No se pudo guardar: '+(error.message||'Error desconocido'));
    }finally{
     save.disabled=false;
-    save.textContent=saveText;
+    cancelButton.disabled=false;
+    save.textContent='💾 Guardar cambios';
    }
-  };
+  });
+  duplicateButton.addEventListener('click',async()=>{
+   duplicateButton.disabled=true;
+   editButton.disabled=true;
+   status.textContent='Duplicando caja…';
+   delete status.dataset.type;
+   try{
+    const duplicateName=Array.from(saved.name).slice(0,55).join('')+' (copia)';
+    const {data,error}=await sb.rpc('admin_create_surprise_box',{
+     p_name:duplicateName,p_price:saved.price,p_active:false,p_items:saved.items
+    });
+    if(error)throw error;
+    await adminInitSurpriseBoxes();
+    const created=[...document.querySelectorAll('#admin-surprise-boxes .sb-surprise-admin__card')]
+      .find(card=>card.dataset.tier===data);
+    if(created){
+     const message=created.querySelector('.sb-surprise-admin__status');
+     if(message){message.dataset.type='success';message.textContent='✓ Caja duplicada, inicialmente desactivada.';}
+     created.scrollIntoView({block:'center',behavior:'auto'});
+    }
+   }catch(error){
+    showStatus('No se pudo duplicar: '+(error.message||'Error desconocido'));
+   }finally{
+    duplicateButton.disabled=false;
+    editButton.disabled=false;
+   }
+  });
+  deleteButton.addEventListener('click',async()=>{
+   if(isOriginal)return;
+   const confirmed=window.confirm(
+    '¿Eliminar "'+saved.name+'"?\n\nLa caja dejará de estar disponible. Sus premios configurados se eliminarán, pero los regalos ya enviados conservarán su historial.'
+   );
+   if(!confirmed)return;
+   deleteButton.disabled=true;
+   editButton.disabled=true;
+   duplicateButton.disabled=true;
+   status.textContent='Eliminando caja…';
+   delete status.dataset.type;
+   try{
+    const {error}=await sb.rpc('admin_delete_surprise_box',{p_tier:tier.tier});
+    if(error)throw error;
+    await adminInitSurpriseBoxes();
+    const newConfig=document.querySelector('#admin-surprise-boxes .sb-surprise-admin__configuration');
+    if(newConfig){
+     const note=document.createElement('p');
+     note.className='sb-surprise-admin__status';
+     note.dataset.type='success';
+     note.setAttribute('role','status');
+     note.textContent='✓ Caja eliminada correctamente.';
+     newConfig.prepend(note);
+     newConfig.scrollIntoView({block:'start',behavior:'auto'});
+    }
+   }catch(error){
+    showStatus('No se pudo eliminar: '+(error.message||'Error desconocido'));
+   }finally{
+    deleteButton.disabled=isOriginal;
+    editButton.disabled=false;
+    duplicateButton.disabled=false;
+   }
+  });
   grid.append(form);
  }
  root.insertBefore(config,previews);
