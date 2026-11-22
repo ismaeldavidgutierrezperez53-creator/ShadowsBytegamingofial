@@ -335,19 +335,23 @@
     const seq=++staffRequest;
     host.textContent="Cargando apelaciones…";
     const input=id=>panel.querySelector(id);
-    const query={
-      action:"staff_list",page,
-      status:input("#sb-appeals-filter")?.value||"pending",
-      search:input("#sb-appeals-search")?.value?.trim()||"",
-      date_from:input("#sb-appeals-from")?.value||"",
-      date_to:input("#sb-appeals-to")?.value||"",
-      assigned_filter:input("#sb-appeals-assigned-filter")?.value||"all"
-    };
-    if(query.date_from&&query.date_to&&query.date_from>query.date_to){
+    const fromDay=input("#sb-appeals-from")?.value||"";
+    const toDay=input("#sb-appeals-to")?.value||"";
+    if(fromDay&&toDay&&fromDay>toDay){
       host.textContent="";
       feedback(status,"La fecha de inicio debe ser anterior a la fecha final.",true);
       return;
     }
+    const endOfDay=toDay?new Date(toDay+"T00:00:00"):null;
+    if(endOfDay)endOfDay.setDate(endOfDay.getDate()+1);
+    const query={
+      action:"staff_list",page,
+      status:input("#sb-appeals-filter")?.value||"pending",
+      search:input("#sb-appeals-search")?.value?.trim()||"",
+      date_from:fromDay?new Date(fromDay+"T00:00:00").toISOString():"",
+      date_to:endOfDay?endOfDay.toISOString():"",
+      assigned_filter:input("#sb-appeals-assigned-filter")?.value||"all"
+    };
     try{
       const result=await invoke(query);
       if(!host.isConnected||seq!==staffRequest)return;
