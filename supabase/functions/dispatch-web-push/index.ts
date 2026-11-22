@@ -92,7 +92,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
   if (!/^[0-9a-f-]{36}$/i.test(id)) return 0;
   if (type==='member_notifications') {
     const {data:n,error}=await admin.from('member_notifications')
-      .select('id,recipient_id,kind,actor_id,game_id,news_id,poll_id,tournament_id,trophy_month,season_month,museum_month').eq('id',id).maybeSingle();
+      .select('id,recipient_id,kind,actor_id,game_id,news_id,news_comment_id,post_id,poll_id,tournament_id,trophy_month,season_month,museum_month').eq('id',id).maybeSingle();
     if (error || !n) return 0;
     const kinds:Record<string,[string,string,string]> = {
       follow:['👤 Nuevo seguidor','Una persona ha comenzado a seguirte.','#/notificaciones'],
@@ -103,6 +103,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       poll_reminder:['🗳️ Encuesta pendiente','Tienes una encuesta por responder.','#/encuestas'],
       profile_view:['👀 Visita a tu perfil','Alguien ha visto tu perfil.','#/cuenta'],
       news_reply:['📰 Respuesta a tu comentario','Hay una nueva respuesta en noticias.','#/noticias'],
+      mention:['🏷️ Te han mencionado','Alguien te mencionó en Shadows Byte Gaming.','#/notificaciones'],
       game_like:['🎮 Me gusta en tu biblioteca','A alguien le gustó uno de tus videojuegos.','#/cuenta'],
       game_comment:['💬 Comentario en tu videojuego','Tienes un comentario en tu biblioteca de videojuegos.','#/cuenta'],
       game_reply:['↩️ Respuesta en tu biblioteca','Respondieron a tu comentario sobre un videojuego.','#/cuenta'],
@@ -116,6 +117,11 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     let info=kinds[n.kind] || ['🔔 Nueva notificación','Tienes novedades en Shadows Byte Gaming.','#/notificaciones'];
     if (['game_like','game_comment','game_reply'].includes(n.kind) && n.game_id) info[2]='#/perfil?id='+encodeURIComponent(n.recipient_id)+'&game='+encodeURIComponent(n.game_id);
     if (n.kind==='news_reply' && n.news_id) info[2]='#/noticia?id='+encodeURIComponent(n.news_id);
+    if (n.kind==='mention' && n.news_id) {
+      info=['🏷️ Mención en Noticias','Te han mencionado en una noticia.','#/noticia?id='+encodeURIComponent(n.news_id)+(n.news_comment_id?'&comment='+encodeURIComponent(n.news_comment_id):'')];
+    } else if (n.kind==='mention' && n.post_id) {
+      info=['🏷️ Mención en Comunidad','Te han mencionado en una publicación.','#/comunidad?post='+encodeURIComponent(n.post_id)];
+    }
     if ((n.kind==='poll'||n.kind==='poll_reminder') && n.poll_id) info[2]='#/encuestas?poll='+encodeURIComponent(n.poll_id);
     if (['tournament_full','tournament_match','tournament_finished'].includes(n.kind) && n.tournament_id) info[2]='#/tienda?tournament='+encodeURIComponent(n.tournament_id);
     if (n.kind==='poll_season_prize' && n.season_month) info[2]='#/encuestas?temporada='+encodeURIComponent(n.season_month);
@@ -152,6 +158,17 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     let delivered=0;
     for(const userId of subscribers)delivered+=await notifyUser(userId,notice);
     return delivered;
+  }
+  if (type==='member_appeal_notifications') {
+    const {data:notice,error}=await admin.from('member_appeal_notifications')
+      .select('id,recipient_id,kind,appeal_id').eq('id',id).maybeSingle();
+    if(error || !notice)return 0;
+    const info=notice.kind==='submitted'
+      ? {title:'⚖️ Nueva apelación pendiente',body:'Un miembro ha solicitado revisar una sanción.',path:'#/admin?focus=appeals'}
+      : notice.kind==='accepted'
+      ? {title:'✅ Apelación aceptada',body:'El equipo ha aceptado tu apelación. Consulta la resolución.',path:'#/apelaciones'}
+      : {title:'⚖️ Apelación revisada',body:'Se ha rechazado tu apelación. Consulta los detalles.',path:'#/apelaciones'};
+    return notifyUser(notice.recipient_id,{...info,tag:'appeal-'+notice.id});
   }
   if (type==='member_report_notifications') {
     const {data:n}=await admin.from(type).select('recipient_id,status').eq('id',id).maybeSingle();
@@ -268,7 +285,7 @@ Deno.serve(async(req:Request)=>{
     const config=await getConfig();
     webpush.setVapidDetails(allowedOrigin,config.public_key,config.private_key);
     if(req.headers.get('x-sb-push-secret') === config.hook_secret) {
-      if(!['member_notifications','member_direct_messages','member_chat_group_messages','news','member_report_notifications','member_private_calls','member_group_calls','member_group_video_invites','member_gamer_badge_notifications','member_point_goal_notifications','member_milestone_awards','member_poll_milestone_awards','community_competition_awards','mystery_box_monthly_awards','shop_season_podium_awards'].includes(body.type))
+      if(!['member_notifications','member_direct_messages','member_chat_group_messages','news','member_report_notifications','member_appeal_notifications','member_private_calls','member_group_calls','member_group_video_invites','member_gamer_badge_notifications','member_point_goal_notifications','member_milestone_awards','member_poll_milestone_awards','community_competition_awards','mystery_box_monthly_awards','shop_season_podium_awards'].includes(body.type))
         return reply({error:'Unknown event'},400);
       const delivered=await dispatch(body.type,String(body.id||''),body.meta && typeof body.meta==='object' && !Array.isArray(body.meta)?body.meta:{});
       return reply({ok:true,delivered});
@@ -284,6 +301,33 @@ Deno.serve(async(req:Request)=>{
         path:'#/notificaciones',tag:'push-test-'+Math.floor(Date.now()/60000)
       },undefined,endpoint);
       return reply({ok:true,delivered});
+    }
+    if(body.type==='test_delayed'){
+      const auth=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
+      const {data:{user},error}=await admin.auth.getUser(auth);
+      if(error || !user)return reply({error:'Unauthorized'},401);
+      const endpoint=typeof body.endpoint==='string'&&trustedPushEndpoint(body.endpoint)?body.endpoint:null;
+      if(!endpoint)return reply({error:'Invalid push endpoint'},400);
+      // Los avisos de prueba solo se pueden dirigir a un dispositivo propio.
+      const {data:registered,error:deviceError}=await admin.from('member_web_push_subscriptions')
+        .select('endpoint').eq('user_id',user.id).eq('endpoint',endpoint).maybeSingle();
+      if(deviceError || !registered)return reply({error:'Device not registered for this user'},403);
+      const delayMs=20000;
+      EdgeRuntime.waitUntil((async()=>{
+        await new Promise<void>(resolve=>setTimeout(resolve,delayMs));
+        try {
+          const delivered=await notifyUser(user.id,{
+            title:'📱 Prueba con la app cerrada',
+            body:'¡Funciona! Shadows Byte te puede avisar aunque la aplicación no esté abierta.',
+            path:'#/notificaciones',
+            tag:'push-test-closed-'+crypto.randomUUID()
+          },undefined,endpoint);
+          console.log('Prueba push diferida:', delivered>0?'enviada':'omitida (No molestar o sin dispositivo)');
+        }catch(err){
+          console.error('Error en prueba push diferida:',err instanceof Error?err.message:'desconocido');
+        }
+      })());
+      return reply({ok:true,scheduled:true,delay_seconds:delayMs/1000});
     }
     return reply({error:'Unauthorized'},401);
   }catch(e){
