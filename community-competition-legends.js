@@ -141,6 +141,192 @@
    profileName(profiles.get(a.id)).localeCompare(profileName(profiles.get(b.id)),'es')
   );
  }
+
+ const seasonKey=value=>{
+  const date=new Date(value);
+  if(!Number.isFinite(date.getTime()))return null;
+  return String(date.getUTCFullYear())+'-'+String(Math.floor(date.getUTCMonth()/3)+1);
+ };
+ const seasonLabel=key=>{
+  const match=/^([0-9]{4})-([1-4])$/.exec(key||'');
+  if(!match)return 'Temporada';
+  return 'Temporada '+match[1]+' · T'+match[2];
+ };
+ const trophyRules=[
+  {icon:'🏅',name:'Primer podio',description:'Conseguir tu primera medalla oficial',kind:'podium',target:1},
+  {icon:'🥇',name:'Primer oro',description:'Ganar tu primera competición',kind:'gold',target:1},
+  {icon:'🏆',name:'Doble corona',description:'Ganar 2 competiciones',kind:'gold',target:2},
+  {icon:'👑',name:'Triple corona',description:'Ganar 3 competiciones',kind:'gold',target:3},
+  {icon:'💎',name:'Leyenda del podio',description:'Conseguir 5 podios oficiales',kind:'podium',target:5},
+  {icon:'🌟',name:'Maestro de competiciones',description:'Conseguir 10 podios oficiales',kind:'podium',target:10}
+ ];
+ const trophyProgress=(rule,row)=>{
+  if(!row)return 0;
+  return rule.kind==='gold'?row.gold:row.gold+row.silver+row.bronze;
+ };
+ function renderExclusiveTrophies(container,ranking,profiles,viewerId){
+  container.replaceChildren();
+  container.append(make('p','sb-legend-caption',
+   'Trofeos exclusivos de tu colección, basados en medallas oficialmente entregadas. No se conceden puntos de tienda ni XP adicionales.'));
+  const myProfile=profiles.get(viewerId);
+  const own=ranking.find(row=>row.id===viewerId);
+  if(!myProfile){
+   container.append(make('p','sb-legend-empty',
+    'Para consultar tus trofeos, necesitas tener un perfil público. Las medallas oficiales se muestran solo cuando administración confirma el podio.'));
+  }
+  const unlocked=myProfile?trophyRules.filter(rule=>trophyProgress(rule,own)>=rule.target).length:0;
+  const title=make('div','sb-legend-collection-header');
+  title.append(make('h4','','🎖️ Colección de trofeos'),
+   make('span','',unlocked+' / '+trophyRules.length+' desbloqueados'));
+  container.append(title);
+  const gallery=make('div','sb-legend-trophies-grid');
+  for(const rule of trophyRules){
+   const value=myProfile?trophyProgress(rule,own):0;
+   const earned=value>=rule.target;
+   const card=make('article','sb-legend-trophy '+(earned?'is-earned':'is-locked'));
+   card.append(make('span','sb-legend-trophy-icon',rule.icon),
+    make('h5','',rule.name),
+    make('p','',rule.description),
+    make('strong','sb-legend-trophy-status',earned?'✓ Desbloqueado':'🔒 Pendiente'),
+    make('small','',Math.min(value,rule.target)+' / '+rule.target+' '+(rule.kind==='gold'?'victorias':'podios')));
+   gallery.append(card);
+  }
+  container.append(gallery);
+ }
+ function renderCompetitiveSeasons(container,competitions,entries,awards,profiles){
+  container.replaceChildren();
+  const bySeason=new Map();
+  const current=seasonKey(new Date().toISOString());
+  bySeason.set(current,[]);
+  for(const item of competitions){
+   const key=seasonKey(item.ends_at);
+   if(!key)continue;
+   if(!bySeason.has(key))bySeason.set(key,[]);
+   bySeason.get(key).push(item);
+  }
+  const seasons=[...bySeason.keys()].sort((a,b)=>b.localeCompare(a));
+  const toolbar=make('div','sb-legend-season-toolbar');
+  const selector=make('select','sb-legend-season-select');
+  selector.setAttribute('aria-label','Elegir temporada competitiva');
+  for(const key of seasons){
+   const option=make('option','',seasonLabel(key));
+   option.value=key;selector.append(option);
+  }
+  selector.value=current;
+  toolbar.append(make('label','', 'Temporada competitiva'),selector);
+  const output=make('div','sb-legend-season-content');
+  container.append(make('p','sb-legend-caption',
+   'Temporadas automáticas de tres meses (T1: enero-marzo, T2: abril-junio, T3: julio-septiembre, T4: octubre-diciembre). Cada reto se asigna por su fecha de finalización, en UTC.'),
+   toolbar,output);
+  const draw=()=>{
+   output.replaceChildren();
+   const key=selector.value;
+   const selected=bySeason.get(key)||[];
+   const ids=new Set(selected.map(c=>c.id));
+   const memberEntries=entries.filter(e=>ids.has(e.competition_id));
+   const memberAwards=awards.filter(a=>ids.has(a.competition_id));
+   const podiumEvents=new Set(memberAwards.map(a=>a.competition_id));
+   const finished=selected.filter(c=>new Date(c.ends_at).getTime()<=Date.now());
+   const unique=new Set(memberEntries.map(e=>e.user_id));
+   const metrics=make('div','sb-legend-season-stats');
+   for(const [label,value] of [
+    ['🏆 Competiciones',selected.length],
+    ['👥 Participantes',unique.size],
+    ['✅ Finalizadas',finished.length],
+    ['🏅 Podios confirmados',podiumEvents.size]
+   ]){
+    const tile=make('div','sb-legend-season-stat');
+    tile.append(make('strong','',String(value)),make('span','',label));metrics.append(tile);
+   }
+   const seasonTitle=make('h4','sb-legend-season-title',
+    '📆 '+seasonLabel(key)+(key===current?' · En curso':''));
+   output.append(seasonTitle,metrics);
+   if(!selected.length){
+    output.append(make('p','sb-legend-empty','Todavía no hay competiciones publicadas asignadas a esta temporada.'));
+    return;
+   }
+   const seasonRank=makeGlobalRows(memberEntries,memberAwards,selected,profiles);
+   const rankTitle=make('h5','sb-legend-season-subtitle','🎯 Clasificación de la temporada');
+   output.append(rankTitle);
+   if(!seasonRank.length){
+    output.append(make('p','sb-legend-empty','Aún no hay resultados públicos para esta temporada.'));
+   }else{
+    const ol=make('ol','sb-legend-season-ranking');
+    for(let i=0;i<Math.min(10,seasonRank.length);i++){
+     const member=seasonRank[i];
+     const row=make('li','sb-legend-season-ranking-row');
+     row.append(make('b','',i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1)+'.º'),
+      publicProfileLink(member.id,profileName(profiles.get(member.id))),
+      make('span','',member.score.toLocaleString('es-ES')+' puntos de reto'),
+      make('small','',member.gold+' oros · '+member.silver+' platas'));
+     ol.append(row);
+    }
+    output.append(ol);
+   }
+   const events=make('div','sb-legend-season-events');
+   events.append(make('h5','sb-legend-season-subtitle','Competiciones de la temporada'));
+   for(const comp of selected){
+    const card=make('div','sb-legend-season-event');
+    card.append(make('strong','',(comp.kind==='challenge'?'🎯 ':'🏆 ')+comp.title),
+     make('span','',dateText(comp.ends_at)+' · '+(podiumEvents.has(comp.id)?'Premios entregados':
+      new Date(comp.ends_at).getTime()<=Date.now()?'Pendiente de confirmar':'Por finalizar')));
+    events.append(card);
+   }
+   output.append(events);
+   const fullyFinished=finished.length===selected.length;
+   const hasAnyPodium=podiumEvents.size>0;
+   const completedWithResults=finished.filter(c=>
+    memberEntries.some(e=>e.competition_id===c.id&&(e.completed||Number(e.score)>0)));
+   const allPrizesConfirmed=completedWithResults.every(c=>podiumEvents.has(c.id));
+   if(fullyFinished&&hasAnyPodium&&allPrizesConfirmed&&seasonRank.some(row=>row.gold>0)){
+    const champion=seasonRank.find(row=>row.gold>0);
+    const notice=make('div','sb-legend-season-winner','👑 Campeón de la temporada: ');
+    notice.append(publicProfileLink(champion.id,profileName(profiles.get(champion.id))));
+    output.prepend(notice);
+   }else{
+    output.append(make('small','sb-legend-season-hint',
+     'La clasificación es provisional hasta que termine la temporada y se confirmen los podios. No se otorgan premios nuevos desde esta sección.'));
+   }
+  };
+  selector.onchange=draw;
+  draw();
+ }
+ function renderHallOfFame(container,ranking,profiles,awards,competitions){
+  container.replaceChildren();
+  container.append(make('p','sb-legend-caption',
+   'Salón de la Fama de miembros con medallas oficiales. Los logros solo se reconocen tras confirmar resultados en Administración.'));
+  const honored=ranking.filter(row=>row.gold+row.silver+row.bronze>0);
+  if(!honored.length){
+   setEmpty(container,'Aún no se han entregado medallas oficiales. Los primeros miembros del Salón de la Fama aparecerán cuando se confirme un podio.');
+   return;
+  }
+  const eventNames=new Map(competitions.map(c=>[c.id,c.title]));
+  const gallery=make('div','sb-legend-hall-grid');
+  for(let i=0;i<Math.min(honored.length,18);i++){
+   const member=honored[i],profile=profiles.get(member.id);
+   const card=make('article','sb-legend-hall-card');
+   if(i===0)card.classList.add('sb-legend-hall-featured');
+   const emblem=make('span','sb-legend-hall-crown',member.gold>=3?'👑':member.gold?'🏆':'🎖️');
+   const place=make('span','sb-legend-hall-place','#'+(i+1)+' Histórico');
+   const heading=make('h4','');
+   heading.append(publicProfileLink(profile.id,profileName(profile)));
+   const honor=member.gold>0?(member.gold>=3?'Leyenda competitiva':'Campeón histórico'):'Medallista oficial';
+   const medals=make('p','sb-legend-hall-medals',
+    '🥇 '+member.gold+' · 🥈 '+member.silver+' · 🥉 '+member.bronze);
+   card.append(emblem,place,heading,make('strong','sb-legend-hall-honor',honor),medals);
+   const won=awards.filter(a=>a.user_id===member.id&&Number(a.place)===1)
+    .sort((a,b)=>new Date(b.awarded_at)-new Date(a.awarded_at));
+   if(won.length)card.append(make('small','',
+    'Victoria destacada: '+(eventNames.get(won[0].competition_id)||'Competición')));
+   const link=publicProfileLink(profile.id,'👤 Ver perfil');
+   link.classList.add('sb-legend-hall-link');card.append(link);
+   gallery.append(card);
+  }
+  container.append(gallery);
+  if(honored.length>18)container.append(make('p','sb-legend-caption',
+   'Se muestran los 18 miembros más destacados. Consulta el Ranking general para ver más posiciones.'));
+ }
+
  function renderRanking(container,ranking,profiles){
   container.replaceChildren();
   const note=make('p','sb-legend-caption',
@@ -209,7 +395,7 @@
  }
  async function load(state){
   const token=++state.token;
-  state.status.textContent='Cargando historial, ranking y campeones…';
+  state.status.textContent='Cargando clasificaciones, trofeos y temporadas…';
   state.refresh.disabled=true;
   try{
    const {data:{user},error:authError}=await sb.auth.getUser();
@@ -238,6 +424,9 @@
    renderHistory(state.panels.history,events.rows,entries,resultAwards.rows,profiles);
    renderRanking(state.panels.ranking,ranking,profiles);
    renderChampions(state.panels.champions,ranking,profiles,awards,events.rows);
+   renderExclusiveTrophies(state.panels.trophies,ranking,profiles,user.id);
+   renderCompetitiveSeasons(state.panels.seasons,events.rows,entries,awards,profiles);
+   renderHallOfFame(state.panels.hall,ranking,profiles,awards,events.rows);
    state.status.textContent=(events.truncated||resultEntries.truncated||resultAwards.truncated)
     ?'Alcanzado el límite de consulta. Las clasificaciones muestran solo los registros recuperados.'
     :'Actualizado con los resultados registrados en Supabase.';
@@ -261,11 +450,11 @@
   if(state&&state.wrapper.isConnected)return;
   const wrapper=make('section','sb-legends');
   wrapper.id='community-competition-legends';
-  wrapper.setAttribute('aria-label','Historial, clasificación general y campeones');
+  wrapper.setAttribute('aria-label','Historial, clasificación general, trofeos, temporadas y Salón de la Fama');
   const heading=make('div','sb-legends-heading');
   const intro=make('div','');
   intro.append(make('h3','','🏆 Leyendas de la comunidad'),
-   make('p','','Consulta los torneos terminados, el ranking general y los perfiles de campeones confirmados.'));
+   make('p','','Explora torneos, clasificaciones, trofeos exclusivos, temporadas y el Salón de la Fama.'));
   const refresh=make('button','sb-legends-refresh','↻ Actualizar resultados');
   refresh.type='button';
   heading.append(intro,refresh);wrapper.append(heading);
@@ -274,7 +463,7 @@
   tabsBox.setAttribute('aria-label','Secciones de historial y rankings');
   const status=make('p','sb-legends-status','');
   status.setAttribute('role','status');
-  const defs=[['ranking','📊 Ranking general'],['history','📅 Historial'],['champions','👑 Campeones']];
+  const defs=[['ranking','📊 Ranking general'],['history','📅 Historial'],['champions','👑 Campeones'],['trophies','🏆 Mis trofeos'],['seasons','🗓️ Temporadas'],['hall','🌟 Salón de la Fama']];
   const panels={},tabs={};
   for(const [key,title] of defs){
    const button=make('button','sb-legends-tab',title);
