@@ -314,17 +314,33 @@ Deno.serve(async(req:Request)=>{
       const delivered=await dispatch(body.type,String(body.id||''),body.meta && typeof body.meta==='object' && !Array.isArray(body.meta)?body.meta:{});
       return reply({ok:true,delivered});
     }
-    if(body.type==='test'){
+    if(body.type==='test' || body.type==='test_appeal'){
       const auth=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
       const {data:{user},error}=await admin.auth.getUser(auth);
       if(error || !user)return reply({error:'Unauthorized'},401);
       const endpoint=typeof body.endpoint==='string'&&trustedPushEndpoint(body.endpoint)?body.endpoint:null;
       if(!endpoint)return reply({error:'Invalid push endpoint'},400);
-      const delivered=await notifyUser(user.id,{
-        title:'🎮 Notificaciones activadas',body:'¡Ya puedes recibir avisos fuera de Shadows Byte Gaming!',
-        path:'#/notificaciones',tag:'push-test-'+Math.floor(Date.now()/60000)
-      },undefined,endpoint);
-      return reply({ok:true,delivered});
+      const isAppealTest=body.type==='test_appeal';
+      const decision=body.decision;
+      if(isAppealTest && !['accepted','rejected'].includes(decision))
+        return reply({error:'Invalid test decision'},400);
+      // Las pruebas solo se envían a la suscripción autenticada del propio usuario.
+      // Nunca crean sanciones, apelaciones ni notificaciones persistentes.
+      const notice:Notice=isAppealTest
+        ? {
+          title:decision==='accepted'?'🧪 SIMULACIÓN: apelación aceptada':'🧪 SIMULACIÓN: apelación rechazada',
+          body:'Esto es solo una prueba. No hay ninguna decisión real sobre tu cuenta.',
+          path:'#/cuenta?focus=appeals',
+          tag:'push-appeal-demo-'+decision+'-'+crypto.randomUUID()
+        }
+        : {
+          title:'🎮 Notificaciones activadas',
+          body:'¡Ya puedes recibir avisos fuera de Shadows Byte Gaming!',
+          path:'#/notificaciones',
+          tag:'push-test-'+Math.floor(Date.now()/60000)
+        };
+      const delivered=await notifyUser(user.id,notice,undefined,endpoint);
+      return reply({ok:true,delivered,simulation:isAppealTest});
     }
     if(body.type==='test_delayed'){
       const auth=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
