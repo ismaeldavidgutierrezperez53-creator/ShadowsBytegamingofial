@@ -195,6 +195,48 @@
     }catch(error){host.textContent="No se pudieron cargar las estadísticas: "+error.message;}
   }
 
+  async function loadTeamStatistics(panel){
+    const host=panel?.querySelector("#sb-appeals-team-stats");
+    const mine=panel?.querySelector("#sb-appeals-mine-total");
+    if(!host||!panel.isConnected)return;
+    host.textContent="Cargando estadísticas del equipo…";
+    try{
+      const result=await invoke({action:"staff_team_stats"});
+      if(!panel.isConnected)return;
+      const members=result.members||[];
+      if(mine)mine.textContent=String(members.find(m=>m.id===result.my_id)?.pending||0);
+      host.replaceChildren();
+      const hint=el("p","sb-appeal-hint",
+        "Pendientes: expedientes asignados actualmente. Resueltas: decisiones aceptadas o rechazadas por cada miembro del equipo.");
+      host.append(hint);
+      if(!members.length){
+        host.append(el("p","","No hay miembros con permisos de moderación activos."));
+        return;
+      }
+      const scroll=el("div","sb-appeal-stats-scroll");
+      const table=el("table","sb-appeal-team-table");
+      const header=el("thead");
+      const headRow=el("tr");
+      for(const title of ["Miembro","Pendientes","Más de 24 h","Aceptadas","Rechazadas","Resueltas"]){
+        headRow.append(el("th","",title));
+      }
+      header.append(headRow);table.append(header);
+      const body=el("tbody");
+      for(const person of members){
+        const tr=el("tr",person.id===result.my_id?"sb-appeal-team-self":"");
+        const name=person.name+(person.id===result.my_id?" (tú)":"")+
+          " · "+(person.role==="moderator"?"Moderador":"Administrador");
+        const resolved=(person.accepted||0)+(person.rejected||0);
+        for(const value of [name,person.pending||0,person.overdue||0,
+          person.accepted||0,person.rejected||0,resolved]){
+          tr.append(el("td","",String(value)));
+        }
+        body.append(tr);
+      }
+      table.append(body);scroll.append(table);host.append(scroll);
+    }catch(error){feedback(host,"No se pudieron cargar las estadísticas del equipo: "+error.message,true);}
+  }
+
   async function mountPublic(){
     const root=document.getElementById("sb-appeal-public");
     if(!root||root.dataset.mounted==="true")return;
@@ -387,6 +429,7 @@
       drawStaff(panel);
       void refreshPendingCount();
       void loadStaffStatistics(panel);
+      void loadTeamStatistics(panel);
     }catch(error){
       if(seq!==staffRequest)return;
       host.textContent="No se pudo cargar la bandeja.";
@@ -446,7 +489,7 @@
           select.add(new Option(name(member.user_id)+" · "+kind,member.user_id));
         }
         select.value=record.assigned_to||"";
-        const save=el("button","admin-secondary mini","💾 Guardar responsable");
+        const save=el("button","admin-secondary mini",record.assigned_to?"🔄 Transferir responsable":"💾 Guardar responsable");
         save.type="button";
         const note=el("span","sb-appeal-assign-status");note.setAttribute("role","status");
         save.onclick=async()=>{
@@ -467,6 +510,40 @@
           "Los responsables los asigna un administrador."));
       }
       card.append(assignment);
+      const assignmentHistory=el("details","sb-appeal-transfer-log");
+      const historyToggle=el("summary","",
+        "🔄 Historial de asignaciones y transferencias");
+      const historyContent=el("div","sb-appeal-transfer-log-content");
+      assignmentHistory.append(historyToggle,historyContent);
+      let loadedTransfers=false,loadingTransfers=false;
+      assignmentHistory.addEventListener("toggle",async()=>{
+        if(!assignmentHistory.open||loadedTransfers||loadingTransfers)return;
+        loadingTransfers=true;
+        historyContent.textContent="Consultando el historial…";
+        try{
+          const data=await invoke({action:"assignment_history",appeal_id:record.id});
+          if(!assignmentHistory.isConnected)return;
+          loadedTransfers=true;
+          historyContent.replaceChildren();
+          const names=new Map((data.profiles||[]).map(p=>
+            [p.id,p.display_name||p.username||p.id.slice(0,8)+"…"]));
+          const label=id=>id?(names.get(id)||id.slice(0,8)+"…"):"Sin asignar";
+          if(!data.history?.length){
+            historyContent.append(el("p","","Todavía no hay cambios de responsable."));
+          }else{
+            for(const item of data.history){
+              const row=el("p","sb-appeal-transfer-log-row");
+              row.append(el("strong","",date(item.created_at)+" · "+label(item.changed_by)),
+                el("span","","De "+label(item.previous_assignee)+" a "+label(item.new_assignee)));
+              historyContent.append(row);
+            }
+          }
+          if(data.has_more)historyContent.append(el("p","sb-appeal-hint",
+            "Se muestran los 30 cambios más recientes. El PDF del expediente conserva el historial completo."));
+        }catch(error){historyContent.textContent="No se pudo cargar el historial: "+error.message;}
+        finally{loadingTransfers=false;}
+      });
+      card.append(assignmentHistory);
       const exportRow=el("div","sb-appeal-export-row");
       const exportButton=el("button","outline-btn mini","📄 Exportar expediente completo a PDF");
       exportButton.type="button";
@@ -582,9 +659,18 @@
         <p id="sb-appeals-assignment-overview-status" role="status" aria-live="polite">Comprobando las apelaciones pendientes…</p>
         <button id="sb-appeals-show-pending" class="outline-btn mini" type="button">📋 Ver apelaciones pendientes</button>
       </section>
+      <section class="sb-appeals-mine" aria-label="Mis expedientes asignados">
+        <div>
+          <h3>📋 Mis apelaciones asignadas <span id="sb-appeals-mine-total" class="sb-appeals-count">…</span></h3>
+          <p>Consulta las apelaciones pendientes de las que eres responsable.</p>
+        </div>
+        <button id="sb-appeals-show-mine" type="button" class="gradient-btn mini">Ver mis expedientes</button>
+      </section>
       <h3>📊 Estadísticas de apelaciones</h3>
       <div id="sb-appeal-statistics" class="sb-appeal-statistics" aria-live="polite">Cargando estadísticas…</div>
-      <p class="sb-appeal-hint">Las solicitudes pendientes durante más de 24 horas generan un aviso automático para el equipo.</p>
+      <h3>📊 Estadísticas por administrador y moderador</h3>
+      <div id="sb-appeals-team-stats" class="sb-appeals-team-stats" aria-live="polite">Cargando equipo…</div>
+      <p class="sb-appeal-hint">Una apelación asignada sin resolver durante 24 horas genera un único recordatorio privado para su responsable. Si se transfiere, el nuevo responsable recibe su propio plazo.</p>
       <p id="sb-appeals-staff-status" role="status" aria-live="polite"></p>
       <div id="sb-appeals-staff-list" class="sb-appeals-stack">Cargando…</div>
       <nav class="sb-appeals-pagination" aria-label="Páginas de apelaciones">
@@ -600,6 +686,15 @@
     else dashboard.prepend(panel);
     const filter=selector=>panel.querySelector(selector);
     const loadFirst=()=>loadStaff(panel,0);
+    filter("#sb-appeals-show-mine").addEventListener("click",()=>{
+      filter("#sb-appeals-filter").value="pending";
+      filter("#sb-appeals-assigned-filter").value="mine";
+      filter("#sb-appeals-search").value="";
+      filter("#sb-appeals-from").value="";
+      filter("#sb-appeals-to").value="";
+      loadFirst();
+      filter("#sb-appeals-staff-list").scrollIntoView({block:"start",behavior:"smooth"});
+    });
     filter("#sb-appeals-show-pending").addEventListener("click",()=>{
       filter("#sb-appeals-filter").value="pending";
       filter("#sb-appeals-assigned-filter").value="all";
@@ -642,6 +737,6 @@
   window.SBAppeals={mountPublic,mountAccount,mountStaff,refreshPendingCount};
   window.addEventListener("focus",()=>{
     const panel=document.getElementById("sb-appeals-staff");
-    if(panel){void refreshPendingCount();void loadStaffStatistics(panel);}
+    if(panel){void refreshPendingCount();void loadStaffStatistics(panel);void loadTeamStatistics(panel);}
   });
 })();
