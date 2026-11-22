@@ -738,10 +738,11 @@ function scheduleQuietEndNotice(userId){
 async function loadToastPreferences(userId){
  activeToastPreferences={popup_enabled:true,sound_enabled:false,...DEFAULT_NOTIFICATION_SOUNDS,...DEFAULT_QUIET_PREFERENCES};
  if(!userId)return;
- const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,dnd_until').eq('user_id',userId).maybeSingle();
+ const {data,error}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,dnd_until,alert_community_enabled,alert_followers_enabled,alert_tournaments_enabled,alert_polls_enabled,alert_rewards_enabled,alert_messages_enabled,alert_news_enabled').eq('user_id',userId).maybeSingle();
  if(!error&&notificationRealtimeUserId===userId)activeToastPreferences={
   popup_enabled:data?.popup_enabled!==false,
   sound_enabled:data?.sound_enabled===true,
+  ...Object.fromEntries(['alert_community_enabled','alert_followers_enabled','alert_tournaments_enabled','alert_polls_enabled','alert_rewards_enabled','alert_messages_enabled','alert_news_enabled'].map(field=>[field,data?.[field]!==false])),
   ...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(data?.[field],defaultSound)])),
   ...normalizeQuietPreferences(data)
  };
@@ -782,8 +783,22 @@ function notificationSoundKind(kind){
  return 'default';
 }
 const toastNotificationIds=new Set();
+
+function sbNotificationCategoryField(kind,newsId){
+ if(typeof kind!=='string')return null;
+ if(kind.startsWith('competition_')||kind.startsWith('tournament_'))return 'alert_tournaments_enabled';
+ if(['poll','poll_reminder','poll_trophy_like'].includes(kind))return 'alert_polls_enabled';
+ if(['poll_season_prize','poll_museum_prize','gift'].includes(kind))return 'alert_rewards_enabled';
+ if(kind==='follow')return 'alert_followers_enabled';
+ if(kind==='news_reply'||(kind==='mention'&&newsId))return 'alert_news_enabled';
+ if(['like','comment','mention','game_like','game_comment','game_reply'].includes(kind))return 'alert_community_enabled';
+ return null;
+}
+
 function showRealtimeNotificationToast(n){
  if(!n||!n.id||toastNotificationIds.has(n.id)||n.is_read)return;
+ const categoryFlag=sbNotificationCategoryField(n.kind,n.news_id);
+ if(categoryFlag&&activeToastPreferences[categoryFlag]===false)return;
  toastNotificationIds.add(n.id);if(isNotificationQuietNow())return;if(activeToastPreferences.sound_enabled)playNotificationSound(notificationSoundKind(n.kind));if(!activeToastPreferences.popup_enabled)return;
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
@@ -1311,10 +1326,10 @@ async function initAccountNotificationPreferences(userId,root){
   };
   controls.append(select,test);row.append(label,controls);soundSettings.append(row);soundSelectors.set(field,select);
  }
- const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,dnd_until').eq('user_id',userId).maybeSingle();
+ const {data:toastData,error:toastError}=await sb.from('member_notification_preferences').select('popup_enabled,sound_enabled,message_sound,comment_sound,gift_sound,follow_sound,dnd_enabled,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,dnd_until,alert_community_enabled,alert_followers_enabled,alert_tournaments_enabled,alert_polls_enabled,alert_rewards_enabled,alert_messages_enabled,alert_news_enabled').eq('user_id',userId).maybeSingle();
  if(section.isConnected){if(toastError){toastStatus.textContent='No se pudieron cargar las preferencias.';dndStatus.textContent='No se pudo cargar No molestar.';}else{
  popupToggle.checked=toastData?.popup_enabled!==false;soundToggle.checked=toastData?.sound_enabled===true;popupToggle.disabled=false;soundToggle.disabled=false;toastStatus.textContent='Preferencias listas.';
- activeToastPreferences={popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked,...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(toastData?.[field],defaultSound)])),...normalizeQuietPreferences(toastData)};
+ activeToastPreferences={...activeToastPreferences,popup_enabled:popupToggle.checked,sound_enabled:soundToggle.checked,...Object.fromEntries(Object.entries(DEFAULT_NOTIFICATION_SOUNDS).map(([field,defaultSound])=>[field,normalizeNotificationSound(toastData?.[field],defaultSound)])),...normalizeQuietPreferences(toastData)};
  scheduleQuietEndNotice(userId);
  refreshQuietControls();
  for(const control of quietControls)control.disabled=false;
@@ -3047,21 +3062,38 @@ async function loadMemberNotifications(){
  const heading=document.createElement('h2');heading.textContent='🔔 Centro de notificaciones';root.append(heading);
  const controls=document.createElement('div');controls.className='notification-center-controls';
  const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar notificaciones');
- for(const [value,label] of [['all','Todas'],['community','Comunidad'],['followers','👥 Seguidores'],['tournaments','🏆 Torneos'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['appeals','⚖️ Apelaciones'],['moderation','🛡️ Moderación'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ for(const [value,label] of [['all','Todas'],['community','Comunidad'],['followers','👥 Seguidores'],['tournaments','🏆 Torneos'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['appeals','⚖️ Apelaciones'],['moderation','🛡️ Moderación'],['news','📰 Noticias'],['rewards','🎁 Premios y medallas'],['mentions','🏷️ Menciones'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
  const search=document.createElement('input');search.type='search';search.placeholder='Buscar notificaciones';search.setAttribute('aria-label','Buscar notificaciones');
  const dateFilter=document.createElement('select');dateFilter.setAttribute('aria-label','Filtrar por fecha');for(const [value,label] of [['all','Cualquier fecha'],['today','Hoy'],['week','Últimos 7 días'],['month','Últimos 30 días']]){const option=document.createElement('option');option.value=value;option.textContent=label;dateFilter.append(option);}
  const counters=document.createElement('p');counters.className='notification-center-counts';
  const summary=document.createElement('span');summary.setAttribute('role','status');
- const markAll=document.createElement('button');markAll.type='button';markAll.className='outline-btn mini';markAll.textContent='Marcar avisos como leídos';
- controls.append(filter,search,dateFilter,markAll,summary);root.append(counters,controls);
+ const markAll=document.createElement('button');markAll.type='button';markAll.className='outline-btn mini';markAll.textContent='✓ Marcar todas como leídas';
+ const markVisible=document.createElement('button');markVisible.type='button';markVisible.className='outline-btn mini';markVisible.textContent='✓ Marcar visibles';
+ controls.append(filter,search,dateFilter,markVisible,markAll,summary);root.append(counters,controls);
  const list=document.createElement('div');root.append(list);
+ const matchCategory=(n,selected)=>{
+  if(selected==='news')return n.kind==='news_reply'||Boolean(n.news_id);
+  if(selected==='mentions')return n.kind==='mention';
+  if(selected==='rewards')return ['gift','poll_season_prize','poll_museum_prize','competition_medal'].includes(n.kind);
+  if(selected==='followers')return n.kind==='follow';
+  return n.category===selected;
+ };
+ const getVisible=()=>{
+  const now=Date.now(),limit=dateFilter.value==='today'?new Date().setHours(0,0,0,0)
+   :dateFilter.value==='week'?now-7*86400000:dateFilter.value==='month'?now-30*86400000:0;
+  return items.filter(n=>(filter.value==='archived'?!!n.dismissed_at:!n.dismissed_at)
+   &&(filter.value==='all'||filter.value==='archived'
+    ||(filter.value==='unread'?!n.is_read:matchCategory(n,filter.value)))
+   &&n.title.toLocaleLowerCase('es').includes(search.value.trim().toLocaleLowerCase('es'))
+   &&new Date(n.created_at).getTime()>=limit);
+ };
  const draw=()=>{
   list.replaceChildren();
   const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Seguidores: '+unread.filter(n=>n.kind==='follow').length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Torneos: '+unread.filter(n=>n.category==='tournaments').length+' · Encuestas: '+unread.filter(n=>n.category==='polls').length+' · Visitas: '+unread.filter(n=>n.category==='visits').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length+' · Apelaciones: '+unread.filter(n=>n.category==='appeals').length+' · Moderación: '+unread.filter(n=>n.category==='moderation').length;
-  const now=Date.now();const limit=dateFilter.value==='today'?new Date().setHours(0,0,0,0):dateFilter.value==='week'?now-7*86400000:dateFilter.value==='month'?now-30*86400000:0;
-  const visible=items.filter(n=>(filter.value==='archived'?!!n.dismissed_at:!n.dismissed_at)&&(filter.value==='all'||filter.value==='archived'||(filter.value==='unread'?!n.is_read:filter.value==='followers'?n.kind==='follow':n.category===filter.value))&&n.title.toLocaleLowerCase('es').includes(search.value.trim().toLocaleLowerCase('es'))&&new Date(n.created_at).getTime()>=limit);
+  const visible=getVisible();
   summary.textContent=visible.length+' notificaciones';
   markAll.disabled=!items.some(n=>!n.is_read&&n.table&&!n.dismissed_at);
+  markVisible.disabled=!visible.some(n=>!n.is_read&&n.table&&!n.dismissed_at);
   if(!visible.length){list.textContent='No hay notificaciones en esta categoría.';return;}
   for(const n of visible){
    const row=document.createElement('article');row.className='notification-item notification-center-item'+(n.is_read?'':' unread');
@@ -3083,7 +3115,26 @@ async function loadMemberNotifications(){
   for(const n of items)if(n.table&&!n.dismissed_at)n.is_read=true;
   draw();refreshNotificationBadge(user.id);
  };
+ markVisible.onclick=async()=>{
+  const pending=getVisible().filter(n=>!n.is_read&&n.table&&!n.dismissed_at);
+  if(!pending.length)return;
+  markVisible.disabled=true;
+  const tables=['member_notifications','member_report_notifications','member_appeal_notifications'];
+  const results=await Promise.all(tables.map(table=>{
+   const ids=pending.filter(n=>n.table===table).map(n=>n.id);
+   return ids.length
+    ?sb.from(table).update({is_read:true}).eq('recipient_id',user.id).in('id',ids)
+    :Promise.resolve({error:null});
+  }));
+  if(results.some(x=>x.error)){
+   summary.textContent='No se pudieron marcar los avisos visibles: '+(results.find(x=>x.error)?.error?.message||'Error');
+   markVisible.disabled=false;return;
+  }
+  for(const n of pending)n.is_read=true;
+  draw();refreshNotificationBadge(user.id);
+ };
  filter.onchange=draw;search.oninput=draw;dateFilter.onchange=draw;draw();
+ window.SBNotificationCenterPreferences?.mount(root,user.id);
  if(window.notificationCenterChannel){sb.removeChannel(window.notificationCenterChannel);window.notificationCenterChannel=null;}
  window.notificationCenterChannel=sb.channel('notification-center-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_appeal_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).subscribe();
 }
