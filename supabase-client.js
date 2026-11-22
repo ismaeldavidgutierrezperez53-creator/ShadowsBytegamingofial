@@ -6127,6 +6127,8 @@ function syncReportLiveAlerts(userId){
 }
 async function notifyPrivateConversationEvent(userId,partnerId,kind='message'){
  if(!userId||!partnerId||userId===partnerId)return;
+ if(kind==='message'&&activeToastPreferences.alert_messages_enabled===false)return;
+ if(kind==='gift'&&activeToastPreferences.alert_rewards_enabled===false)return;
  if(isNotificationQuietNow()||document.visibilityState!=='visible')return;
  const {data,error}=await sb.from('member_private_chat_notifications')
   .select('muted,popup_enabled,sound').eq('user_id',userId).eq('partner_id',partnerId).maybeSingle();
