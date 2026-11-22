@@ -60,3 +60,33 @@
 #admin-surprise-boxes .sb-box-editor__demo{width:100%;max-width:170px;min-height:38px;border:1px solid #a882d2;border-radius:10px;background:#332045;color:#faecff;padding:8px;font:700 14px Rajdhani,Arial,sans-serif;cursor:pointer}
 #admin-surprise-boxes .sb-box-editor__demo:hover{background:#472b61}
 #admin-surprise-boxes .sb-box-editor__demo:focus-visible{outline:3px solid #a7eaff;outline-offset:2px}
+
+/* Transparencia de probabilidades en la tienda de cajas misteriosas */
+.sb-box-shop-card__odds{
+ flex:1 0 100%;min-width:0;width:100%;border-top:1px solid #6a4b7b;
+ margin-top:5px;padding:12px 2px 3px;color:#f6eeff;
+}
+.sb-box-shop-card__odds summary{
+ cursor:pointer;font-weight:700;font-size:14px;
+ color:#c6ebff;list-style:revert;
+}
+.sb-box-shop-card__odds[open] summary{margin-bottom:11px}
+.sb-box-shop-card__odds-line{
+ display:flex;justify-content:space-between;align-items:center;
+ gap:10px;font-size:13px;line-height:1.4;margin:7px 0 4px;
+}
+.sb-box-shop-card__odds-line span{min-width:0;overflow-wrap:anywhere}
+.sb-box-shop-card__odds-line strong{
+ flex:none;color:#9af7cb;font-size:13px;white-space:nowrap;
+}
+.sb-box-shop-card__odds-bar{
+ height:7px;border-radius:99px;background:#1a1328;overflow:hidden;
+ border:1px solid #563d71;
+}
+.sb-box-shop-card__odds-bar>div{
+ height:100%;min-width:2px;background:linear-gradient(90deg,#8c6deb,#69dbdb);
+ border-radius:99px;
+}
+.sb-box-shop-card__odds>small{
+ display:block;font-size:12px;color:#c2b7d3;line-height:1.45;margin-top:12px;
+}
