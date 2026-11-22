@@ -215,8 +215,13 @@ async function renderRewardShop(){
  couponPanel.append(couponTitle,couponHelp,couponInput);host.append(couponPanel);
  const recipientLabel=document.createElement('label');recipientLabel.textContent='🎁 Enviar regalo a un miembro público: ';const recipient=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='Selecciona un miembro';recipient.append(blank);for(const member of members.data||[]){const option=document.createElement('option');option.value=member.id;option.textContent=member.display_name||member.username||'Miembro';recipient.append(option)}recipientLabel.append(recipient);host.append(recipientLabel);const giftHelp=document.createElement('p');giftHelp.textContent='El regalo consume tus puntos y desbloquea el artículo para el destinatario. No se pueden regalar artículos que ya posee.';host.append(giftHelp);
  const mystery=document.createElement('section');mystery.className='profile-panel';mystery.style.cssText='padding:18px;margin:18px 0;border:1px solid #ffffff44;border-radius:14px';const mysteryTitle=document.createElement('h3');mysteryTitle.textContent='🎁 Caja misteriosa · 150 puntos';mystery.append(mysteryTitle);const mysteryInfo=document.createElement('p');mysteryInfo.textContent='Envía una recompensa aleatoria que el destinatario aún no tenga. La sorpresa aparecerá en su buzón de regalos y recibirá una notificación.';mystery.append(mysteryInfo);const mysteryButton=document.createElement('button');mysteryButton.type='button';mysteryButton.className='gradient-btn mini';mysteryButton.textContent='🎲 Enviar regalo sorpresa · 150 puntos';mysteryButton.disabled=Number(balance.data||0)<150||!(members.data||[]).length;const mysteryStatus=document.createElement('p');mysteryStatus.setAttribute('role','status');mysteryButton.onclick=async()=>{if(!recipient.value){mysteryStatus.textContent='Selecciona primero un miembro en el selector de arriba.';return}const who=recipient.options[recipient.selectedIndex].textContent;if(!confirm('¿Enviar una caja misteriosa a '+who+' por 150 puntos?'))return;mysteryButton.disabled=true;mysteryStatus.textContent='Enviando regalo sorpresa…';const {data,error}=await sb.rpc('send_surprise_reward_gift',{target_member:recipient.value});if(error){mysteryStatus.textContent=error.message;mysteryButton.disabled=false;return}mysteryStatus.textContent='🎉 ¡Regalo sorpresa enviado!';await renderRewardShop()};mystery.append(mysteryButton,mysteryStatus);host.append(mystery);
- const {data:boxTiers,error:boxError}=await sb.from('surprise_box_tiers')
-  .select('tier,name,price,active,image_url,rarity,animation_style').eq('active',true);
+ const [tiersResponse,oddsResponse]=await Promise.all([
+  sb.from('surprise_box_tiers').select('tier,name,price,active,image_url,rarity,animation_style').eq('active',true),
+  sb.from('surprise_box_rewards').select('tier,item_id,weight')
+ ]);
+ const {data:boxTiers,error:boxError}=tiersResponse;
+ const {data:boxOdds,error:oddsError}=oddsResponse;
+ const boxPrizeNames=new Map((catalog.data||[]).map(item=>[item.id,item.name]));
  if(!boxError){
   const section=document.createElement('section');
   section.className='profile-panel';
@@ -245,7 +250,35 @@ async function renderRewardShop(){
     if(error){status.textContent=error.message;button.disabled=false;return}
     status.textContent='🎉 Regalo enviado';await renderRewardShop();
    };
-   actions.append(button,status);row.append(actions);section.append(row);
+   actions.append(button,status);row.append(actions);
+   if(!oddsError){
+    const entries=(boxOdds||[]).filter(x=>x.tier===tier.tier);
+    if(entries.length){
+     const details=document.createElement('details');
+     details.className='sb-box-shop-card__odds';
+     const summary=document.createElement('summary');
+     summary.textContent='🎯 Ver probabilidades de los premios';
+     details.append(summary);
+     const total=entries.reduce((sum,x)=>sum+Number(x.weight||1),0);
+     for(const entry of entries.sort((a,b)=>Number(b.weight||1)-Number(a.weight||1))){
+      const line=document.createElement('div');line.className='sb-box-shop-card__odds-line';
+      const name=document.createElement('span');name.textContent=boxPrizeNames.get(entry.item_id)||'Recompensa';
+      const percent=document.createElement('strong');
+      percent.textContent=(100*Number(entry.weight||1)/total)
+       .toLocaleString('es-ES',{maximumFractionDigits:1})+' %';
+      line.append(name,percent);
+      const bar=document.createElement('div');bar.className='sb-box-shop-card__odds-bar';
+      const fill=document.createElement('div');
+      fill.style.width=(100*Number(entry.weight||1)/total)+'%';
+      bar.append(fill);
+      details.append(line,bar);
+     }
+     const notice=document.createElement('small');
+     notice.textContent='Porcentajes orientativos del catálogo. En cada envío se recalculan entre premios activos, disponibles y que el destinatario todavía no tenga.';
+     details.append(notice);row.append(details);
+    }
+   }
+   section.append(row);
   }
   host.append(section);
  }
