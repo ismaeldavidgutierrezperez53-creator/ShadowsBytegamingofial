@@ -418,7 +418,7 @@ Deno.serve(async req => {
     if(!idPattern.test(appealId) || (assignee!==null&&!idPattern.test(assignee)))
       return reply({error:"Identificador de apelación o responsable inválido"},400);
     const {data:record,error:lookupError}=await db.from("member_sanction_appeals")
-      .select("id,status,assigned_to,member_id").eq("id",appealId).maybeSingle();
+      .select("id,status,assigned_to,member_id,sanction_event_id").eq("id",appealId).maybeSingle();
     if(lookupError||!record)return reply({error:"Apelación no encontrada"},404);
     if(record.status!=="pending")return reply({error:"Solo se pueden asignar apelaciones pendientes"},409);
     if(assignee===record.assigned_to)return reply({ok:true,assigned_to:assignee,unchanged:true});
@@ -431,6 +431,15 @@ Deno.serve(async req => {
       if(!target?.user || target.user.app_metadata?.role!==(
         targetRole.role==="moderator"?"moderator":"admin"))
         return reply({error:"El responsable no tiene permisos activos"},403);
+      if(targetRole.role==="moderator"){
+        const {data:sanction}=await db.from("member_moderation_events")
+          .select("action,actor_id").eq("id",record.sanction_event_id).maybeSingle();
+        if(!sanction)return reply({error:"No se pudo comprobar la sanción"},500);
+        if(sanction.action==="ban")return reply({
+          error:"Las apelaciones por expulsión solo se asignan a administradores"},403);
+        if(sanction.actor_id===assignee)return reply({
+          error:"El moderador que aplicó la sanción no puede revisar su propia apelación"},403);
+      }
     }
     let update=db.from("member_sanction_appeals").update({
       assigned_to:assignee,assigned_by:viewer.id,
