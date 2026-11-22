@@ -1715,7 +1715,10 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
    feedback.textContent='No se pudieron cargar las estadísticas: '+(error.message||'Error desconocido');
    feedback.dataset.type='error';
    kpis.replaceChildren();rankings.hidden=true;
-   empty(tableBody,'No se pudo cargar el historial.');
+   tableBody.replaceChildren();
+   const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=7;
+   td.className='sb-surprise-stats__no-rows';td.textContent='No se pudo cargar el historial.';
+   tr.append(td);tableBody.append(tr);
   }finally{
    if(request===requestNumber&&section.isConnected)refresh.disabled=false;
   }
