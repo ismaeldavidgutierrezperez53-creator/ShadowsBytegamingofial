@@ -622,8 +622,13 @@
   state={root,wrapper,tabs,panels,status,refresh,token:0};
   instances.set(root,state);
   refresh.onclick=()=>void load(state);
-  activate(state,'ranking');
+  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const selected=params.get('legends');
+  activate(state,Object.hasOwn(panels,selected)?selected:'ranking');
   void load(state);
+  if(Object.hasOwn(panels,selected))requestAnimationFrame(()=>{
+   if(wrapper.isConnected&&location.hash.startsWith('#/comunidad'))wrapper.scrollIntoView({block:'start'});
+  });
  };
  const refresh=root=>{
   const state=instances.get(root);
