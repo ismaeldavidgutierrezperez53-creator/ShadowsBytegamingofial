@@ -463,7 +463,8 @@ async function refreshAccountActions() {
 async function markAllMemberNotifications(userId,button){
  if(!userId||!button||button.disabled)return;
  button.disabled=true;const original=button.textContent;button.textContent='Marcando…';
- const {error}=await sb.from('member_notifications').update({is_read:true}).eq('recipient_id',userId).eq('is_read',false);
+ const updates=await Promise.all(['member_notifications','member_report_notifications','member_appeal_notifications'].map(table=>sb.from(table).update({is_read:true}).eq('recipient_id',userId).eq('is_read',false)));
+ const error=updates.find(result=>result.error)?.error;
  if(error){button.textContent='Error. Reintentar';button.disabled=false;console.warn('No se pudieron marcar las notificaciones:',error.message);return;}
  button.textContent='Todas leídas';
  await refreshNotificationBadge(userId);
@@ -538,6 +539,35 @@ async function loadNotificationPreview(userId){
   root.append(item);
  }
  await appendFollowBackActions(root,data||[],userId);
+ const {data:appealAlerts,error:appealAlertsError}=await sb.from('member_appeal_notifications')
+   .select('id,kind,appeal_id,created_at,is_read').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(6);
+ if(!root.isConnected)return;
+ if(!appealAlertsError&&appealAlerts?.length){
+  root.append(Object.assign(document.createElement('strong'),{textContent:'⚖️ Avisos de apelaciones'}));
+  for(const appeal of appealAlerts){
+   const card=document.createElement('div');card.className='notification-preview-item'+(appeal.is_read?'':' unread');
+   const title=document.createElement('p');
+   title.textContent=appeal.kind==='submitted'?'⚖️ Nueva apelación pendiente de revisión':
+     appeal.kind==='accepted'?'✅ Tu apelación ha sido aceptada':'⚖️ Tu apelación ha sido rechazada';
+   const time=document.createElement('small');time.textContent=new Date(appeal.created_at).toLocaleString('es-ES');
+   const link=document.createElement('a');link.href=appeal.kind==='submitted'?'#/admin?focus=appeals':'#/cuenta';
+   link.textContent='Ver apelación';link.className='notification-jump';
+   card.append(title,time,link);
+   if(!appeal.is_read){
+    const button=document.createElement('button');button.type='button';button.textContent='Marcar como leída';
+    button.onclick=async()=>{
+     button.disabled=true;
+     const {error}=await sb.from('member_appeal_notifications').update({is_read:true})
+       .eq('id',appeal.id).eq('recipient_id',userId);
+     if(error){button.disabled=false;return;}
+     refreshNotificationBadge(userId);loadNotificationPreview(userId);
+     if(document.getElementById('member-notifications'))loadMemberNotifications();
+    };
+    card.append(button);
+   }
+   root.append(card);
+  }
+ }
  const {data:reports,error:reportsError}=await sb.from('member_report_notifications').select('id,status,created_at,is_read').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(5);
  if(!root.isConnected)return;
  if(!reportsError&&reports?.length){
@@ -778,6 +808,12 @@ function syncNotificationRealtime(userId){
    if(document.getElementById('member-notifications'))loadMemberNotifications();
   })
   .on('postgres_changes',{event:'*',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+userId},()=>{refreshNotificationBadge(userId);if(document.getElementById('notification-popover')?.hidden===false)loadNotificationPreview(userId);if(document.getElementById('account-report-history'))loadAccountReportHistory(userId);})
+  .on('postgres_changes',{event:'*',schema:'public',table:'member_appeal_notifications',filter:'recipient_id=eq.'+userId},()=>{
+   refreshNotificationBadge(userId);
+   if(document.getElementById('notification-popover')?.hidden===false)loadNotificationPreview(userId);
+   if(document.getElementById('member-notifications'))loadMemberNotifications();
+   window.SBAppeals?.refreshPendingCount?.();
+  })
   .subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('No se pudo conectar el canal de notificaciones en tiempo real.');});
 }
 sb.auth.onAuthStateChange(()=>{setTimeout(refreshAccountActions,0);});
@@ -2924,14 +2960,15 @@ async function loadMemberNotifications(){
  const {data:{user}}=await sb.auth.getUser();
  if(!root.isConnected)return;root.replaceChildren();
  if(!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para ver tus notificaciones';root.append(link);return;}
- const [communityResult,reportsResult,messagesResult]=await Promise.all([
+ const [communityResult,reportsResult,messagesResult,appealsResult]=await Promise.all([
   sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_report_notifications').select('id,status,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
-  sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100)
+  sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_appeal_notifications').select('id,kind,appeal_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100)
  ]);
  if(!root.isConnected)return;
- if(communityResult.error||reportsResult.error||messagesResult.error){root.textContent='No se pudieron cargar todas las notificaciones. Inténtalo de nuevo.';return;}
- const community=communityResult.data||[],reports=reportsResult.data||[],messages=messagesResult.data||[];
+ if(communityResult.error||reportsResult.error||messagesResult.error||appealsResult.error){root.textContent='No se pudieron cargar todas las notificaciones. Inténtalo de nuevo.';return;}
+ const community=communityResult.data||[],reports=reportsResult.data||[],messages=messagesResult.data||[],appealAlerts=appealsResult.data||[];
  const ids=[...new Set([...community.map(x=>x.actor_id),...messages.map(x=>x.sender_id)].filter(Boolean))];
  const {data:profiles}=ids.length?await sb.from('profiles').select('id,display_name,username').in('id',ids):{data:[]};
  const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
@@ -2959,12 +2996,13 @@ async function loadMemberNotifications(){
  return prize?'🏆 ¡Felicidades! '+prize.badge+' · +'+prize.points+' puntos · '+formatSeason(n.season_month):'🏆 Premio de temporada de encuestas';
  })():n.kind==='poll_reminder'?'⏰ Aún puedes votar: '+(pollNames.get(n.poll_id)||'Encuesta abierta')+' · +15 puntos.':n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa con tu voto'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?' dio Me gusta a tu publicación.':' comentó tu publicación.'),href:notificationDestination(n),table:'member_notifications'})),
   ...reports.map(n=>({...n,category:'reports',title:'Tu denuncia fue '+(n.status==='reviewed'?'revisada.':'descartada.'),href:'#/cuenta',table:'member_report_notifications'})),
+  ...appealAlerts.map(n=>({...n,category:'appeals',title:n.kind==='submitted'?'⚖️ Nueva apelación para revisar':n.kind==='accepted'?'✅ Tu apelación ha sido aceptada':'⚖️ Tu apelación ha sido rechazada',href:n.kind==='submitted'?'#/admin?focus=appeals':'#/cuenta',table:'member_appeal_notifications'})),
   ...messages.map(n=>({...n,category:'messages',title:'Mensaje privado de '+(names.get(n.sender_id)||'un miembro'),href:'#/mensajes?id='+encodeURIComponent(n.sender_id),table:null}))
  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
  const heading=document.createElement('h2');heading.textContent='🔔 Centro de notificaciones';root.append(heading);
  const controls=document.createElement('div');controls.className='notification-center-controls';
  const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar notificaciones');
- for(const [value,label] of [['all','Todas'],['community','Comunidad'],['followers','👥 Seguidores'],['tournaments','🏆 Torneos'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ for(const [value,label] of [['all','Todas'],['community','Comunidad'],['followers','👥 Seguidores'],['tournaments','🏆 Torneos'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['appeals','⚖️ Apelaciones'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
  const search=document.createElement('input');search.type='search';search.placeholder='Buscar notificaciones';search.setAttribute('aria-label','Buscar notificaciones');
  const dateFilter=document.createElement('select');dateFilter.setAttribute('aria-label','Filtrar por fecha');for(const [value,label] of [['all','Cualquier fecha'],['today','Hoy'],['week','Últimos 7 días'],['month','Últimos 30 días']]){const option=document.createElement('option');option.value=value;option.textContent=label;dateFilter.append(option);}
  const counters=document.createElement('p');counters.className='notification-center-counts';
@@ -2974,7 +3012,7 @@ async function loadMemberNotifications(){
  const list=document.createElement('div');root.append(list);
  const draw=()=>{
   list.replaceChildren();
-  const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Seguidores: '+unread.filter(n=>n.kind==='follow').length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Torneos: '+unread.filter(n=>n.category==='tournaments').length+' · Encuestas: '+unread.filter(n=>n.category==='polls').length+' · Visitas: '+unread.filter(n=>n.category==='visits').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length;
+  const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Seguidores: '+unread.filter(n=>n.kind==='follow').length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Torneos: '+unread.filter(n=>n.category==='tournaments').length+' · Encuestas: '+unread.filter(n=>n.category==='polls').length+' · Visitas: '+unread.filter(n=>n.category==='visits').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length+' · Apelaciones: '+unread.filter(n=>n.category==='appeals').length;
   const now=Date.now();const limit=dateFilter.value==='today'?new Date().setHours(0,0,0,0):dateFilter.value==='week'?now-7*86400000:dateFilter.value==='month'?now-30*86400000:0;
   const visible=items.filter(n=>(filter.value==='archived'?!!n.dismissed_at:!n.dismissed_at)&&(filter.value==='all'||filter.value==='archived'||(filter.value==='unread'?!n.is_read:filter.value==='followers'?n.kind==='follow':n.category===filter.value))&&n.title.toLocaleLowerCase('es').includes(search.value.trim().toLocaleLowerCase('es'))&&new Date(n.created_at).getTime()>=limit);
   summary.textContent=visible.length+' notificaciones';
@@ -2995,14 +3033,14 @@ async function loadMemberNotifications(){
  };
  markAll.onclick=async()=>{
   markAll.disabled=true;
-  const results=await Promise.all(['member_notifications','member_report_notifications'].map(table=>sb.from(table).update({is_read:true}).eq('recipient_id',user.id).eq('is_read',false).is('dismissed_at',null)));
+  const results=await Promise.all(['member_notifications','member_report_notifications','member_appeal_notifications'].map(table=>sb.from(table).update({is_read:true}).eq('recipient_id',user.id).eq('is_read',false).is('dismissed_at',null)));
   if(results.some(x=>x.error)){summary.textContent='No se pudieron marcar todos los avisos.';markAll.disabled=false;return;}
   for(const n of items)if(n.table&&!n.dismissed_at)n.is_read=true;
   draw();refreshNotificationBadge(user.id);
  };
  filter.onchange=draw;search.oninput=draw;dateFilter.onchange=draw;draw();
  if(window.notificationCenterChannel){sb.removeChannel(window.notificationCenterChannel);window.notificationCenterChannel=null;}
- window.notificationCenterChannel=sb.channel('notification-center-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).subscribe();
+ window.notificationCenterChannel=sb.channel('notification-center-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'member_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_report_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_appeal_notifications',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).on('postgres_changes',{event:'*',schema:'public',table:'member_direct_messages',filter:'recipient_id=eq.'+user.id},()=>{if(root.isConnected)loadMemberNotifications();}).subscribe();
 }
 
 async function refreshNotificationBadge(expectedUserId){
@@ -3014,8 +3052,9 @@ async function refreshNotificationBadge(expectedUserId){
  if(error){console.warn('No se pudieron cargar las notificaciones:',error.message);return;}
  const {count:messageCount}=await sb.from('member_direct_messages').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false);
  const {count:reportCount,error:reportError}=await sb.from('member_report_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false).is('dismissed_at',null);
+ const {count:appealCount,error:appealError}=await sb.from('member_appeal_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',expectedUserId).eq('is_read',false).is('dismissed_at',null);
  if(!badge.isConnected||!bell.isConnected)return;
- const total=(count||0)+(messageCount||0)+(reportError?0:(reportCount||0));
+ const total=(count||0)+(messageCount||0)+(reportError?0:(reportCount||0))+(appealError?0:(appealCount||0));
  badge.hidden=total===0;
  badge.textContent=total>99?'99+':String(total);
  bell.setAttribute('aria-label',total?'Notificaciones: '+total+' sin leer':'Notificaciones: ninguna sin leer');
