@@ -11,7 +11,7 @@ const reply = (payload: unknown, status = 200) =>
   new Response(JSON.stringify(payload), { status, headers: cors });
 const idPattern = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-type Body = {action?: string; email?: string; code?: string; reason?: string; sanction_event_id?: number; appeal_id?: string; decision?: string; note?: string; message?: string; access_token?: string; before?: string};
+type Body = {action?: string; email?: string; code?: string; reason?: string; sanction_event_id?: number; appeal_id?: string; decision?: string; note?: string; message?: string; access_token?: string; before?: string; search?: string; status?: string; date_from?: string; date_to?: string; assigned_filter?: string; page?: number; assigned_to?: string | null};
 const usable = (event: any) =>
   event && ["warning","suspend","ban"].includes(event.action) &&
   (event.action === "ban" || Date.now() - Date.parse(event.created_at) < 90 * 86400000);
@@ -335,17 +335,151 @@ Deno.serve(async req => {
       rejected:rejected.count||0,overdue:overdue.count||0}});
   }
   if(action==="staff_list"){
-    const [{data:appeals,error:appealError},{data:profiles,error:profilesError}]=await Promise.all([
-      db.from("member_sanction_appeals").select("*").order("created_at",{ascending:false}).limit(150),
-      db.from("profiles").select("id,display_name,username").limit(2000),
-    ]);
-    if(appealError||profilesError)return reply({error:"No se pudo cargar la bandeja de apelaciones"},500);
+    const status=String(body.status||"pending");
+    const search=String(body.search||"").trim().slice(0,80);
+    const dateFrom=String(body.date_from||"");
+    const dateTo=String(body.date_to||"");
+    const assignFilter=String(body.assigned_filter||"all");
+    const page=Math.max(0,Math.min(99,Number.isSafeInteger(body.page)?Number(body.page):0));
+    const perPage=25;
+    const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&
+      new Date(s+"T00:00:00.000Z").toISOString().slice(0,10)===s;
+    if(!["pending","accepted","rejected","all"].includes(status) ||
+      !["all","unassigned","mine"].includes(assignFilter) ||
+      dateFrom&&(!validDate(dateFrom)) || dateTo&&(!validDate(dateTo)) ||
+      (dateFrom&&dateTo&&dateFrom>dateTo))
+      return reply({error:"Filtros de apelaciones inválidos"},400);
+    const {data:roles,error:rolesError}=await db.from("site_staff_roles")
+      .select("user_id,role").in("role",["owner","admin","moderator"]).limit(300);
+    if(rolesError)return reply({error:"No se pudo consultar el equipo"},500);
+    const checked=await Promise.all((roles||[]).map(async member=>{
+      const {data:verified}=await db.auth.admin.getUserById(member.user_id);
+      return verified?.user?.app_metadata?.role ===
+        (member.role==="moderator"?"moderator":"admin") ? member : null;
+    }));
+    const staff=checked.filter(Boolean);
+    let matchingMembers:string[]|null=null;
+    if(search){
+      if(idPattern.test(search))matchingMembers=[search];
+      else{
+        // Use parameterized PostgREST ilike values, not an interpolated .or() filter.
+        const pattern="%"+search.replace(/[%_\\]/g,"\\$&")+"%";
+        const [byName,byUser]=await Promise.all([
+          db.from("profiles").select("id").ilike("display_name",pattern).limit(800),
+          db.from("profiles").select("id").ilike("username",pattern).limit(800)
+        ]);
+        if(byName.error||byUser.error)return reply({error:"No se pudo buscar al miembro"},500);
+        matchingMembers=[...new Set([...(byName.data||[]),...(byUser.data||[])].map(p=>p.id))];
+      }
+    }
+    let query=db.from("member_sanction_appeals")
+      .select("*",{count:"exact"}).order("created_at",{ascending:false})
+      .order("id",{ascending:false});
+    if(status!=="all")query=query.eq("status",status);
+    if(assignFilter==="unassigned")query=query.is("assigned_to",null);
+    if(assignFilter==="mine")query=query.eq("assigned_to",viewer.id);
+    if(dateFrom)query=query.gte("created_at",dateFrom+"T00:00:00.000Z");
+    if(dateTo)query=query.lt("created_at",
+      new Date(Date.parse(dateTo+"T00:00:00.000Z")+86400000).toISOString());
+    if(search){
+      if(matchingMembers?.length)query=query.in("member_id",matchingMembers);
+      else return reply({appeals:[],profiles:[],sanctions:[],staff_members:staff,
+        is_admin:isAdmin,viewer_id:viewer.id,total:0,page,per_page:perPage});
+    }
+    const {data:appeals,error:appealError,count}=await query.range(
+      page*perPage,page*perPage+perPage-1);
+    if(appealError)return reply({error:"No se pudieron cargar las apelaciones"},500);
     const ids=(appeals||[]).map(a=>a.sanction_event_id);
-    const {data:sanctions,error:eventsError}=ids.length
-      ?await db.from("member_moderation_events").select("id,action,actor_id,reason,expires_at,created_at").in("id",ids)
+    const {data:sanctions,error:eventError}=ids.length
+      ?await db.from("member_moderation_events")
+        .select("id,action,actor_id,reason,expires_at,created_at").in("id",ids)
       :{data:[],error:null};
-    if(eventsError)return reply({error:"No se pudieron cargar las sanciones vinculadas"},500);
-    return reply({appeals,profiles,sanctions,is_admin:isAdmin});
+    if(eventError)return reply({error:"No se pudieron cargar las sanciones vinculadas"},500);
+    const profileIds=[...new Set([
+      ...staff.map(m=>m.user_id),
+      ...(appeals||[]).flatMap(a=>[a.member_id,a.reviewer_id,a.assigned_to,a.assigned_by]),
+      ...(sanctions||[]).map(s=>s.actor_id)
+    ].filter(Boolean))];
+    const {data:profiles,error:profileError}=profileIds.length
+      ?await db.from("profiles").select("id,display_name,username").in("id",profileIds)
+      :{data:[],error:null};
+    if(profileError)return reply({error:"No se pudieron cargar los perfiles del equipo"},500);
+    return reply({appeals:appeals||[],profiles:profiles||[],sanctions:sanctions||[],
+      staff_members:staff,is_admin:isAdmin,viewer_id:viewer.id,total:count||0,
+      page,per_page:perPage});
+  }
+  if(action==="assign"){
+    if(!isAdmin)return reply({error:"Solo un administrador puede asignar apelaciones"},403);
+    const appealId=String(body.appeal_id||"");
+    const assignee=body.assigned_to===null || body.assigned_to==="" ? null :
+      String(body.assigned_to||"");
+    if(!idPattern.test(appealId) || (assignee!==null&&!idPattern.test(assignee)))
+      return reply({error:"Identificador de apelación o responsable inválido"},400);
+    const {data:record,error:lookupError}=await db.from("member_sanction_appeals")
+      .select("id,status,assigned_to,member_id").eq("id",appealId).maybeSingle();
+    if(lookupError||!record)return reply({error:"Apelación no encontrada"},404);
+    if(record.status!=="pending")return reply({error:"Solo se pueden asignar apelaciones pendientes"},409);
+    if(assignee===record.assigned_to)return reply({ok:true,assigned_to:assignee,unchanged:true});
+    if(assignee){
+      const {data:targetRole}=await db.from("site_staff_roles")
+        .select("role").eq("user_id",assignee).maybeSingle();
+      if(!targetRole||!["owner","admin","moderator"].includes(targetRole.role))
+        return reply({error:"El responsable debe pertenecer al equipo de moderación"},403);
+      const {data:target}=await db.auth.admin.getUserById(assignee);
+      if(!target?.user || target.user.app_metadata?.role!==(
+        targetRole.role==="moderator"?"moderator":"admin"))
+        return reply({error:"El responsable no tiene permisos activos"},403);
+    }
+    let update=db.from("member_sanction_appeals").update({
+      assigned_to:assignee,assigned_by:viewer.id,
+      assigned_at:assignee?new Date().toISOString():null
+    }).eq("id",appealId).eq("status","pending");
+    // Optimistic lock prevents two admins from silently overwriting each other.
+    update=record.assigned_to?update.eq("assigned_to",record.assigned_to):
+      update.is("assigned_to",null);
+    const {data:written,error:writeError}=await update.select("assigned_to").maybeSingle();
+    if(writeError||!written)return reply({error:"El responsable cambió. Actualiza la bandeja e inténtalo nuevamente"},409);
+    return reply({ok:true,assigned_to:written.assigned_to});
+  }
+  if(action==="case_export"){
+    const appealId=String(body.appeal_id||"");
+    if(!idPattern.test(appealId))return reply({error:"Identificador de apelación inválido"},400);
+    const {data:appeal,error:appealError}=await db.from("member_sanction_appeals")
+      .select("*").eq("id",appealId).maybeSingle();
+    if(appealError||!appeal)return reply({error:"Apelación no encontrada"},404);
+    const [{data:sanction,error:sanctionError},{data:assignmentHistory,error:historyError}]=
+      await Promise.all([
+        db.from("member_moderation_events").select("*")
+          .eq("id",appeal.sanction_event_id).maybeSingle(),
+        db.from("member_appeal_assignment_history").select("*")
+          .eq("appeal_id",appealId).order("created_at",{ascending:true}).order("id",{ascending:true})
+          .limit(1000)
+      ]);
+    if(sanctionError||historyError)return reply({error:"No se pudo cargar el expediente completo"},500);
+    const messages:any[]=[];
+    for(let offset=0;offset<=5000;offset+=250){
+      const {data:batch,error:messageError}=await db.from("member_appeal_messages")
+        .select("id,sender_id,sender_role,body,created_at")
+        .eq("appeal_id",appealId).order("created_at",{ascending:true})
+        .order("id",{ascending:true}).range(offset,offset+249);
+      if(messageError)return reply({error:"No se pudo cargar el historial de mensajes"},500);
+      if(offset===5000 && batch?.length)
+        return reply({error:"El expediente supera el límite de exportación; contacta con soporte para una copia íntegra"},413);
+      messages.push(...batch||[]);
+      if(!batch || batch.length<250)break;
+    }
+    const members=[...new Set([
+      appeal.member_id,appeal.reviewer_id,appeal.assigned_to,appeal.assigned_by,
+      sanction?.actor_id,
+      ...(assignmentHistory||[]).flatMap(h=>[h.changed_by,h.previous_assignee,h.new_assignee]),
+      ...messages.map(m=>m.sender_id)
+    ].filter(Boolean))];
+    const {data:profiles,error:profileError}=members.length
+      ?await db.from("profiles").select("id,display_name,username").in("id",members)
+      :{data:[],error:null};
+    if(profileError)return reply({error:"No se pudo preparar la exportación"},500);
+    return reply({document:{appeal,sanction,assignment_history:assignmentHistory||[],
+      messages,profiles:profiles||[],generated_at:new Date().toISOString()}});
   }
   if(action==="decide"){
     if(!idPattern.test(String(body.appeal_id||""))||!["accepted","rejected"].includes(body.decision||""))
