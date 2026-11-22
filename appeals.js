@@ -255,7 +255,7 @@
       if(!panel.isConnected)return;
       const appeals=new Map((result.appeals||[]).map(a=>[a.sanction_event_id,a]));
       content.replaceChildren();
-      const events=(result.events||[]).filter(usable);
+      const events=(result.events||[]).filter(event=>usable(event)||appeals.has(event.id));
       if(!events.length){
         const empty=el("div","sb-appeals-empty");
         const icon=el("span","sb-appeals-empty-icon","✓");
