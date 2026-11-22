@@ -191,6 +191,36 @@
     }catch(err){setStatus('No se pudo enviar el aviso de prueba: '+(err?.message||'error desconocido'),'error');}
     finally{busy(false);}
   }
+  async function testAppealDecision(decision){
+    if(!supported() || Notification.permission!=='granted'){
+      setStatus('Primero activa las notificaciones de este dispositivo.','error');
+      return;
+    }
+    if(!['accepted','rejected'].includes(decision))return;
+    busy(true);
+    try{
+      const reg=await registration();
+      const sub=reg && await reg.pushManager.getSubscription();
+      if(!sub)throw new Error('Activa primero las notificaciones.');
+      const user=await currentUser();
+      if(!user)throw new Error('Inicia sesión para hacer la prueba.');
+      const {data:registered,error:registrationError}=await sb.from('member_web_push_subscriptions')
+        .select('endpoint').eq('user_id',user.id).eq('endpoint',sub.endpoint).maybeSingle();
+      if(registrationError || !registered)
+        throw new Error('Este dispositivo no está registrado. Pulsa Activar notificaciones.');
+      const {data,error}=await sb.functions.invoke('dispatch-web-push',{
+        body:{type:'test_appeal',decision,endpoint:sub.endpoint}
+      });
+      if(error || data?.error)throw new Error(data?.error || error?.message || 'No se pudo enviar.');
+      const name=decision==='accepted'?'aceptada':'rechazada';
+      setStatus(data?.delivered>0
+        ? '✅ SIMULACIÓN enviada: apelación '+name+'. Comprueba el aviso del sistema. No se ha creado ninguna sanción ni apelación.'
+        : 'No se ha entregado la simulación. Comprueba No molestar y los permisos del navegador.',
+        data?.delivered>0?'ok':'error');
+    }catch(err){
+      setStatus('No se pudo enviar la simulación: '+(err?.message||'error desconocido'),'error');
+    }finally{busy(false);}
+  }
   // Inventario privado: sólo mostramos las suscripciones del usuario con sesión.
   const deviceLabel=(agent)=>{
     const ua=String(agent||'');
@@ -323,6 +353,10 @@
       +'<button type="button" class="sb-webpush-delayed" data-push="delayed">📱💻 Probar con la app cerrada (20 s)</button>'
       +'<button type="button" data-push="repair">🔄 Comprobar y reparar este dispositivo</button>'
       +'<button type="button" class="sb-webpush-disable" data-push="disable">Desactivar</button></div>'
+      +'<details class="sb-webpush-appeal-demo"><summary>⚖️ Probar avisos de apelación (simulación)</summary>'
+      +'<p>Son avisos de demostración enviados solo a este dispositivo. No crean ni modifican sanciones, apelaciones o decisiones reales.</p>'
+      +'<div class="sb-webpush-actions"><button type="button" data-push="appeal-accepted">🧪 Simular apelación aceptada</button>'
+      +'<button type="button" data-push="appeal-rejected">🧪 Simular apelación rechazada</button></div></details>'
       +'<details class="sb-webpush-devices"><summary>📱💻 Mis dispositivos con notificaciones</summary>'
       +'<p>Consulta los equipos conectados a tu cuenta. Puedes quitar los antiguos sin desactivar el que estás usando.</p>'
       +'<button type="button" data-push="devices-refresh">🔄 Actualizar dispositivos</button>'
@@ -333,6 +367,8 @@
     }
     root.querySelector('[data-push="enable"]').addEventListener('click',enable);
     root.querySelector('[data-push="test"]').addEventListener('click',test);
+    root.querySelector('[data-push="appeal-accepted"]').addEventListener('click',()=>testAppealDecision('accepted'));
+    root.querySelector('[data-push="appeal-rejected"]').addEventListener('click',()=>testAppealDecision('rejected'));
     root.querySelector('[data-push="delayed"]').addEventListener('click',delayedTest);
     root.querySelector('[data-push="repair"]').addEventListener('click',async()=>{
       busy(true);
