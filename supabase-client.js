@@ -2670,12 +2670,14 @@ async function loadCommunityCompetitions(root){
    }
    list.append(empty);return;
   }
+  const targetedCompetition=new URLSearchParams(location.hash.split('?')[1]||'').get('competition');
   for(const c of visible){
    const own=entries.some(e=>e.competition_id===c.id&&e.user_id===user?.id);
    const members=entries.filter(e=>e.competition_id===c.id);
    const medals=awards.filter(a=>a.competition_id===c.id).sort((a,b)=>a.place-b.place);
    const now=Date.now(),end=new Date(c.ends_at).getTime(),start=new Date(c.starts_at).getTime();
    const card=document.createElement('article');card.className='community-contest-card';
+   if(targetedCompetition===c.id)card.classList.add('sb-competition-notice-target');
    const title=document.createElement('h3');title.textContent=(c.kind==='challenge'?'🎯 Reto: ':'🏆 Torneo: ')+c.title;
    const description=document.createElement('p');description.textContent=c.description||'Sin descripción adicional.';
    const dates=document.createElement('p');dates.textContent='📅 Inicio: '+new Date(c.starts_at).toLocaleString('es-ES')+' · Final: '+new Date(c.ends_at).toLocaleString('es-ES');
@@ -2740,6 +2742,9 @@ async function loadCommunityCompetitions(root){
     ranking.append(ol);
    }
    card.append(ranking);list.append(card);
+   if(targetedCompetition===c.id)requestAnimationFrame(()=>{
+    if(card.isConnected&&location.hash.startsWith('#/comunidad'))card.scrollIntoView({block:'center'});
+   });
   }
  };
  const reload=async()=>{
