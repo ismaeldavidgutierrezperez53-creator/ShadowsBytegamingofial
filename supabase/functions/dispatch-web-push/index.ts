@@ -167,6 +167,8 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     const {data:notice,error}=await admin.from('member_appeal_notifications')
       .select('id,recipient_id,kind,appeal_id').eq('id',id).maybeSingle();
     if(error || !notice)return 0;
+    // Ir a la apelación exacta sin mostrar datos sensibles en la notificación.
+    const memberPath='#/cuenta?focus=appeals&appeal='+encodeURIComponent(notice.appeal_id);
     const info=notice.kind==='submitted'
       ? {title:'⚖️ Nueva apelación pendiente',body:'Un miembro ha solicitado revisar una sanción.',path:'#/admin?focus=appeals'}
       : notice.kind==='overdue'
@@ -176,10 +178,10 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       : notice.kind==='message_to_staff'
       ? {title:'💬 Mensaje de apelación',body:'Un miembro ha enviado un nuevo mensaje a moderación.',path:'#/admin?focus=appeals'}
       : notice.kind==='message_to_member'
-      ? {title:'💬 Respuesta de moderación',body:'Tienes un nuevo mensaje sobre tu apelación.',path:'#/cuenta'}
+      ? {title:'💬 Respuesta de moderación',body:'Tienes un nuevo mensaje sobre tu apelación.',path:memberPath}
       : notice.kind==='accepted'
-      ? {title:'✅ Apelación aceptada',body:'El equipo ha aceptado tu apelación. Consulta la resolución.',path:'#/cuenta'}
-      : {title:'⚖️ Apelación revisada',body:'Se ha rechazado tu apelación. Consulta los detalles.',path:'#/cuenta'};
+      ? {title:'✅ Apelación aceptada',body:'El equipo ha aceptado tu apelación. Consulta la resolución.',path:memberPath}
+      : {title:'⚖️ Apelación revisada',body:'Se ha rechazado tu apelación. Consulta los detalles.',path:memberPath};
     return notifyUser(notice.recipient_id,{...info,tag:'appeal-'+notice.id});
   }
   if (type==='member_report_notifications') {
