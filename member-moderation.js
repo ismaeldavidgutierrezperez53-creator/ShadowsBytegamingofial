@@ -247,7 +247,9 @@
     if (events.error || current.error) {
       body.textContent = "No se pudo consultar tu historial de moderación."; return;
     }
-    body.append(create("p", "sb-sanction-current sb-my-sanctions-status", labelState(current.data)));
+    const status = create("p", "sb-sanction-current sb-my-sanctions-status", labelState(current.data));
+    status.dataset.active = String(validState(current.data));
+    body.append(status);
     if (!events.data?.length) {
       const empty = create("div", "sb-my-sanctions-empty");
       empty.append(
