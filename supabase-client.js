@@ -4602,7 +4602,7 @@ async function initGroupChats(userId,root){
   thread.append(form);
   if(activeGroupChatChannel)sb.removeChannel(activeGroupChatChannel);
   activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'*',schema:'public',table:'member_chat_group_labels',filter:'group_id=eq.'+group.id},async()=>{await groupLabels.reload();refresh();}).subscribe();
-  thread.addEventListener('sb-group-label-changed',refresh);
+  groupLabels.panel?.addEventListener('sb-group-label-changed',refresh);
   refresh();
  }
  async function loadGroups(){

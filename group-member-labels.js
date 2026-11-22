@@ -69,7 +69,7 @@
    }
    labels.set(userId,next);await reload();
    status.textContent=next?'✅ Etiqueta guardada en este grupo.':'✅ Etiqueta quitada de este grupo.';
-   form.hidden=true;thread.dispatchEvent(new CustomEvent('sb-group-label-changed'));
+   form.hidden=true;panel.dispatchEvent(new CustomEvent('sb-group-label-changed'));
   };
   edit.addEventListener('click',()=>{
    form.hidden=!form.hidden;if(!form.hidden){input.value=labels.get(userId)||'';status.textContent='';previewLabel();input.focus();}
@@ -78,6 +78,6 @@
   form.addEventListener('submit',async event=>{event.preventDefault();await setLabel(input.value);});
   remove.addEventListener('click',()=>setLabel(''));
   cancel.addEventListener('click',()=>{form.hidden=true;status.textContent='';});
-  await reload();previewLabel();return {createBadge,reload};
+  await reload();previewLabel();return {createBadge,reload,panel};
  };
 })();
