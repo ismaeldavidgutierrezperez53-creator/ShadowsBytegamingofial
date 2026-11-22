@@ -192,3 +192,36 @@
  #admin-surprise-boxes .sb-surprise-admin__create-toolbar .sb-surprise-admin__create-button{width:100%}
  #admin-surprise-boxes .sb-surprise-admin__create-actions{display:grid;grid-template-columns:1fr}
 }
+
+
+/* Acciones por caja misteriosa · edición, copia y eliminación */
+#admin-surprise-boxes [hidden]{display:none!important}
+#admin-surprise-boxes .sb-surprise-admin__field--name{grid-column:1/-1}
+#admin-surprise-boxes .sb-surprise-admin__card-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;min-width:0}
+#admin-surprise-boxes .sb-surprise-admin__action,
+#admin-surprise-boxes .sb-surprise-admin__cancel{
+ min-height:43px;min-width:0;padding:9px 10px;
+ border:1px solid #815cac;border-radius:11px;background:#2a1d3b;color:#f0e6ff;
+ font:700 16px Rajdhani,Arial,sans-serif;cursor:pointer;
+ transition:background .15s,border-color .15s;overflow-wrap:anywhere;
+}
+#admin-surprise-boxes .sb-surprise-admin__action--edit{background:#2a2345;border-color:#8774c4}
+#admin-surprise-boxes .sb-surprise-admin__action--duplicate{background:#173348;border-color:#509ac0}
+#admin-surprise-boxes .sb-surprise-admin__action--delete{background:#3b1b2b;border-color:#ae5673;color:#ffccdb}
+#admin-surprise-boxes .sb-surprise-admin__cancel{background:#271a37}
+#admin-surprise-boxes .sb-surprise-admin__action:hover:not(:disabled),
+#admin-surprise-boxes .sb-surprise-admin__cancel:hover:not(:disabled){background:#423053;border-color:#b489db}
+#admin-surprise-boxes .sb-surprise-admin__action:disabled{opacity:.5;cursor:not-allowed}
+#admin-surprise-boxes .sb-surprise-admin__card .sb-surprise-admin__field input:disabled{opacity:.86;cursor:default;background:#171020;color:#f9eeff}
+#admin-surprise-boxes .sb-surprise-admin__card .sb-surprise-admin__active:has(input:disabled){cursor:default}
+#admin-surprise-boxes .sb-surprise-admin__card .sb-surprise-admin__active input:disabled{cursor:default;opacity:.85}
+#admin-surprise-boxes .sb-surprise-admin__card .sb-surprise-admin__prize:has(input:disabled){cursor:default}
+#admin-surprise-boxes .sb-surprise-admin__card .sb-surprise-admin__prize input:disabled{cursor:default;opacity:.8}
+#admin-surprise-boxes .sb-surprise-admin__status[data-type=info]{color:#cdd5ec}
+@media(max-width:460px){
+ #admin-surprise-boxes .sb-surprise-admin__card-actions{grid-template-columns:1fr 1fr}
+ #admin-surprise-boxes .sb-surprise-admin__action--delete{grid-column:1/-1}
+}
+@media(prefers-reduced-motion:reduce){
+ #admin-surprise-boxes .sb-surprise-admin__action{transition:none}
+}
