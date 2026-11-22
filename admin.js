@@ -1086,6 +1086,8 @@ async function adminInitSurpriseBoxes(){
  });
  newActiveLabel.append(newActiveCopy,newActive);
  fieldGrid.append(nameLabel,newPriceLabel,newActiveLabel);
+ const newVisuals=sbSurpriseBoxVisuals.editor({name:'Nueva caja',rarity:'common',animation_style:'sparkle'});
+ fieldGrid.append(newVisuals.element);
  const newPrizes=document.createElement('fieldset');
  newPrizes.className='sb-surprise-admin__prizes';
  const newPrizesTitle=document.createElement('legend');
@@ -1163,9 +1165,11 @@ async function adminInitSurpriseBoxes(){
   createStatus.textContent='';
   delete createStatus.dataset.type;
   try{
-   const {data,error}=await sb.rpc('admin_create_surprise_box',{
+   const visual=await newVisuals.values();
+   const {data,error}=await sb.rpc('admin_create_surprise_box_visual',{
     p_name:nameInput.value.trim(),p_price:Number(newPrice.value),
-    p_active:newActive.checked,p_items:selected
+    p_active:newActive.checked,p_items:selected,
+    p_image_url:visual.image_url,p_rarity:visual.rarity,p_animation_style:visual.animation_style
    });
    if(error)throw error;
    await adminInitSurpriseBoxes();
@@ -1248,6 +1252,7 @@ async function adminInitSurpriseBoxes(){
   price.disabled=true;
   active.disabled=true;
   controls.append(nameLabel,priceLabel,activeLabel);
+  const visuals=sbSurpriseBoxVisuals.editor(tier,{editable:false});
 
   const prizeSection=document.createElement('fieldset');
   prizeSection.className='sb-surprise-admin__prizes';
@@ -1320,12 +1325,13 @@ async function adminInitSurpriseBoxes(){
   status.setAttribute('role','status');
   status.setAttribute('aria-live','polite');
   footer.append(actionRow,save,cancelButton,status);
-  form.append(header,controls,prizeSection,footer);
+  form.append(header,controls,visuals.element,prizeSection,footer);
   let saved={
    name:tier.name,
    price:Number(tier.price),
    active:!!tier.active,
-   items:checks.filter(([,check])=>check.checked).map(([id])=>id)
+   items:checks.filter(([,check])=>check.checked).map(([id])=>id),
+   image_url:tier.image_url||null,rarity:tier.rarity||'common',animation_style:tier.animation_style||'sparkle',tier:tier.tier
   };
   let editing=false;
   const showStatus=(message,type='error')=>{
@@ -1342,7 +1348,9 @@ async function adminInitSurpriseBoxes(){
     checks.forEach(([id,check])=>{check.checked=selected.has(id);});
     syncActive();
     syncCount();
+    visuals.reset(saved);
    }
+   visuals.setEditable(enabled);
    nameLabel.hidden=!enabled;
    title.hidden=enabled;
    nameInput.disabled=!enabled;
@@ -1379,14 +1387,17 @@ async function adminInitSurpriseBoxes(){
    status.textContent='';
    delete status.dataset.type;
    try{
+    const visual=await visuals.values();
     const data={
      p_tier:tier.tier,p_name:nameInput.value.trim(),p_price:Number(price.value),
-     p_active:active.checked,p_items:selected
+     p_active:active.checked,p_items:selected,
+     p_image_url:visual.image_url,p_rarity:visual.rarity,p_animation_style:visual.animation_style
     };
-    const {error}=await sb.rpc('admin_update_surprise_box',data);
+    const {error}=await sb.rpc('admin_update_surprise_box_visual',data);
     if(error)throw error;
-    saved={name:data.p_name,price:data.p_price,active:data.p_active,items:[...selected]};
+    saved={name:data.p_name,price:data.p_price,active:data.p_active,items:[...selected],image_url:data.p_image_url,rarity:data.p_rarity,animation_style:data.p_animation_style,tier:tier.tier};
     title.textContent=saved.name;
+    visuals.reset(saved);
     toggleEditing(false);
     showStatus('✓ Cambios guardados correctamente.','success');
    }catch(error){
@@ -1404,8 +1415,9 @@ async function adminInitSurpriseBoxes(){
    delete status.dataset.type;
    try{
     const duplicateName=Array.from(saved.name).slice(0,55).join('')+' (copia)';
-    const {data,error}=await sb.rpc('admin_create_surprise_box',{
-     p_name:duplicateName,p_price:saved.price,p_active:false,p_items:saved.items
+    const {data,error}=await sb.rpc('admin_create_surprise_box_visual',{
+     p_name:duplicateName,p_price:saved.price,p_active:false,p_items:saved.items,
+     p_image_url:saved.image_url,p_rarity:saved.rarity,p_animation_style:saved.animation_style
     });
     if(error)throw error;
     await adminInitSurpriseBoxes();
