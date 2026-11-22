@@ -1023,7 +1023,7 @@ async function adminInitSurpriseBoxes(){
  const anchor=document.getElementById('admin-shop-root');if(!anchor)return;
  let root=document.getElementById('admin-surprise-boxes');if(root)root.remove();root=document.createElement('section');root.id='admin-surprise-boxes';root.className='admin-panel sb-surprise-admin';anchor.before(root);
  const h=document.createElement('h2');h.textContent='🎁 Administración de cajas misteriosas';root.append(h);const intro=document.createElement('p');intro.className='sb-surprise-admin__intro';intro.textContent='Gestiona las cajas misteriosas de la tienda de recompensas.';root.append(intro); const previews=document.createElement('section');previews.className='sb-surprise-admin__previews';previews.style.cssText='padding:16px;margin:12px 0;border:1px solid #ffffff33;border-radius:14px';const previewsHeading=document.createElement('h3');previewsHeading.textContent='✨ Vistas previas gratuitas de cajas misteriosas';previews.append(previewsHeading);const previewNote=document.createElement('p');previewNote.textContent='Estas animaciones no descuentan puntos ni envían regalos.';previews.append(previewNote);const soundLabel=document.createElement('label');soundLabel.style.cssText='display:flex;align-items:center;gap:8px;margin:12px 0';const soundToggle=document.createElement('input');soundToggle.type='checkbox';soundToggle.checked=localStorage.getItem('mystery_box_sound')!=='off';soundToggle.onchange=()=>{localStorage.setItem('mystery_box_sound',soundToggle.checked?'on':'off')};soundLabel.append(soundToggle,document.createTextNode('🔊 Activar sonidos al abrir cajas'));previews.append(soundLabel);const previewTypes=[{name:'Bronce',emoji:'🥉',color:'#cd7f32',particle:'✦'},{name:'Plata',emoji:'🥈',color:'#c0c0c0',particle:'✧'},{name:'Oro',emoji:'🥇',color:'#ffd700',particle:'★'},{name:'Diamante',emoji:'💎',color:'#67e8f9',particle:'💎'}];for(const tier of previewTypes){const preview=document.createElement('div');preview.style.cssText='padding:12px;margin:12px 0;border:1px solid '+tier.color+'66;border-radius:12px;text-align:center';const title=document.createElement('h4');title.textContent=tier.emoji+' Vista previa de Caja '+tier.name;const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';button.textContent=tier.emoji+' Probar animación '+tier.name;const stage=document.createElement('div');stage.style.cssText='position:relative;height:130px;overflow:hidden;display:grid;place-items:center';const status=document.createElement('p');status.setAttribute('role','status');button.onclick=async()=>{button.disabled=true;stage.replaceChildren();const countdown=document.createElement('strong');countdown.style.cssText='font-size:58px;color:'+tier.color;stage.append(countdown);for(let n=3;n>=1;n--){countdown.textContent=String(n);status.textContent='🎁 Abriendo Caja '+tier.name+' en '+n+'…';await new Promise(resolve=>setTimeout(resolve,1000));if(!stage.isConnected)return}playMysteryBoxSound(({Bronce:'bronze',Plata:'silver',Oro:'gold',Diamante:'diamond'})[tier.name]);stage.replaceChildren();const center=document.createElement('span');center.textContent=tier.emoji;center.style.cssText='font-size:70px;display:block;transition:transform .9s ease,opacity .9s ease';stage.append(center);status.textContent='Abriendo Caja '+tier.name+'…';for(let k=0;k<20;k++){const p=document.createElement('span');p.textContent=tier.particle;p.style.cssText='position:absolute;left:50%;top:50%;color:'+tier.color+';font-size:'+(15+k%4*5)+'px;transition:transform 1s ease-out,opacity 1s ease-out';stage.append(p);requestAnimationFrame(()=>{const angle=k*Math.PI/10;p.style.transform='translate('+Math.round(Math.cos(angle)*125)+'px,'+Math.round(Math.sin(angle)*53)+'px) rotate('+(k*30)+'deg)';p.style.opacity='0'})}requestAnimationFrame(()=>{center.style.transform='scale(1.5) rotate(12deg)';center.style.opacity='.3'});setTimeout(()=>{status.textContent='🎉 ¡Caja '+tier.name+' abierta!';button.disabled=false;showMysteryBoxCelebration(tier.name,({Bronce:'bronze',Plata:'silver',Oro:'gold',Diamante:'diamond'})[tier.name],true)},1100)};preview.append(title,button,stage,status);previews.append(preview)}root.append(previews);
- const [tiers,rewards,items]=await Promise.all([sb.from('surprise_box_tiers').select('*'),sb.from('surprise_box_rewards').select('tier,item_id'),sb.rpc('admin_shop_items')]);
+ const [tiers,rewards,items]=await Promise.all([sb.from('surprise_box_tiers').select('*'),sb.from('surprise_box_rewards').select('tier,item_id,weight'),sb.rpc('admin_shop_items')]);
  if([tiers,rewards,items].some(x=>x.error)){root.append(document.createTextNode('No se pudo cargar la configuración de las cajas.'));return}
  const config=document.createElement('section');
  config.className='sb-surprise-admin__configuration';
@@ -1102,21 +1102,41 @@ async function adminInitSurpriseBoxes(){
  newPrizeGrid.className='sb-surprise-admin__prize-grid';
  const newChecks=[];
  for(const item of items.data||[]){
-  const choice=document.createElement('label');
-  choice.className='sb-surprise-admin__prize';
-  const check=document.createElement('input');
-  check.type='checkbox';
-  const caption=document.createElement('span');
-  caption.textContent=item.name;
-  choice.append(check,caption);
+  const choice=document.createElement('div');
+  choice.className='sb-surprise-admin__prize sb-surprise-admin__prize--weighted';
+  const checkLabel=document.createElement('label');
+  checkLabel.className='sb-surprise-admin__prize-choice';
+  const check=document.createElement('input');check.type='checkbox';
+  const caption=document.createElement('span');caption.textContent=item.name;
+  checkLabel.append(check,caption);
+  const weightLabel=document.createElement('label');
+  weightLabel.className='sb-surprise-admin__weight-label';
+  weightLabel.textContent='Peso';
+  const weight=document.createElement('input');
+  weight.type='number';weight.min='1';weight.max='1000';weight.step='1';
+  weight.value='1';weight.required=true;weight.disabled=true;
+  weight.setAttribute('aria-label','Peso de '+item.name);
+  weightLabel.append(weight);
+  const percent=document.createElement('output');
+  percent.className='sb-surprise-admin__percent';percent.textContent='0 %';
+  choice.append(checkLabel,weightLabel,percent);
   newPrizeGrid.append(choice);
-  newChecks.push([item.id,check]);
+  newChecks.push([item.id,check,weight,percent]);
  }
  const updateNewCount=()=>{
-  const total=newChecks.filter(([,check])=>check.checked).length;
-  newCount.textContent=total+' de '+newChecks.length+' premios seleccionados';
+  const chosen=newChecks.filter(([,check])=>check.checked);
+  const total=chosen.reduce((sum,[,check,weight])=>sum+Math.max(0,Number(weight.value)||0),0);
+  for(const [,check,weight,percent] of newChecks){
+   weight.disabled=!check.checked;
+   const value=check.checked&&total>0?(100*Math.max(0,Number(weight.value)||0)/total):0;
+   percent.textContent=value.toLocaleString('es-ES',{maximumFractionDigits:1})+' %';
+  }
+  newCount.textContent=chosen.length+' de '+newChecks.length+' premios · '+(chosen.length?'100 % distribuido':'Selecciona premios');
  };
- newChecks.forEach(([,check])=>check.addEventListener('change',updateNewCount));
+ newChecks.forEach(([,check,weight])=>{
+  check.addEventListener('change',updateNewCount);
+  weight.addEventListener('input',updateNewCount);
+ });
  updateNewCount();
  if(!newChecks.length){
   const notice=document.createElement('p');
@@ -1124,7 +1144,11 @@ async function adminInitSurpriseBoxes(){
   notice.textContent='Crea primero un artículo en la tienda de recompensas.';
   newPrizeGrid.append(notice);
  }
- newPrizes.append(newPrizesTitle,newPrizesHelp,newCount,newPrizeGrid);
+ newPrizesHelp.textContent='Marca premios y ajusta su peso (1–1000). El porcentaje se calcula automáticamente hasta el 100 %.';
+ const oddsNotice=document.createElement('small');
+ oddsNotice.className='sb-surprise-admin__odds-note';
+ oddsNotice.textContent='Las probabilidades son orientativas: al regalar una caja solo participan premios activos que el destinatario no tenga.';
+ newPrizes.append(newPrizesTitle,newPrizesHelp,newCount,newPrizeGrid,oddsNotice);
  const createActions=document.createElement('div');
  createActions.className='sb-surprise-admin__create-actions';
  const submitCreate=document.createElement('button');
@@ -1154,22 +1178,27 @@ async function adminInitSurpriseBoxes(){
  config.append(newBoxToolbar,newForm,grid);
  newForm.addEventListener('submit',async event=>{
   event.preventDefault();
-  const selected=newChecks.filter(([,check])=>check.checked).map(([id])=>id);
+  const selectedRows=newChecks.filter(([,check])=>check.checked);
+  const selected=selectedRows.map(([id])=>id);
+  const weights=selectedRows.map(([,check,weight])=>Number(weight.value));
   if(!selected.length){
    createStatus.dataset.type='error';
    createStatus.textContent='Selecciona al menos un premio antes de crear la caja.';
    return;
   }
   if(!newForm.reportValidity())return;
+  if(weights.some(n=>!Number.isInteger(n)||n<1||n>1000)){
+   createStatus.dataset.type='error';createStatus.textContent='Los pesos deben ser enteros entre 1 y 1000.';return;
+  }
   submitCreate.disabled=true;
   submitCreate.textContent='Creando caja…';
   createStatus.textContent='';
   delete createStatus.dataset.type;
   try{
    const visual=await newVisuals.values();
-   const {data,error}=await sb.rpc('admin_create_surprise_box_visual',{
+   const {data,error}=await sb.rpc('admin_create_surprise_box_weighted',{
     p_name:nameInput.value.trim(),p_price:Number(newPrice.value),
-    p_active:newActive.checked,p_items:selected,
+    p_active:newActive.checked,p_items:selected,p_weights:weights,
     p_image_url:visual.image_url,p_rarity:visual.rarity,p_animation_style:visual.animation_style
    });
    if(error)throw error;
@@ -1268,22 +1297,45 @@ async function adminInitSurpriseBoxes(){
   list.className='sb-surprise-admin__prize-grid';
   const checks=[];
   for(const item of items.data||[]){
-   const label=document.createElement('label');
-   label.className='sb-surprise-admin__prize';
-   const check=document.createElement('input');
-   check.type='checkbox';
-   check.checked=(rewards.data||[]).some(x=>x.tier===tier.tier&&x.item_id===item.id);
-   const name=document.createElement('span');
-   name.textContent=item.name;
-   label.append(check,name);
-   list.append(label);
-   checks.push([item.id,check]);
+   const row=document.createElement('div');
+   row.className='sb-surprise-admin__prize sb-surprise-admin__prize--weighted';
+   const checkLabel=document.createElement('label');
+   checkLabel.className='sb-surprise-admin__prize-choice';
+   const check=document.createElement('input');check.type='checkbox';
+   const existing=(rewards.data||[]).find(x=>x.tier===tier.tier&&x.item_id===item.id);
+   check.checked=!!existing;
+   const name=document.createElement('span');name.textContent=item.name;
+   checkLabel.append(check,name);
+   const weightLabel=document.createElement('label');
+   weightLabel.className='sb-surprise-admin__weight-label';
+   weightLabel.textContent='Peso';
+   const weight=document.createElement('input');
+   weight.type='number';weight.min='1';weight.max='1000';weight.step='1';
+   weight.required=true;weight.value=String(existing?.weight||1);
+   weight.disabled=true;weight.setAttribute('aria-label','Peso de '+item.name);
+   weightLabel.append(weight);
+   const percent=document.createElement('output');
+   percent.className='sb-surprise-admin__percent';percent.textContent='0 %';
+   row.append(checkLabel,weightLabel,percent);
+   list.append(row);
+   checks.push([item.id,check,weight,percent]);
   }
   const syncCount=()=>{
-   const n=checks.filter(x=>x[1].checked).length;
-   count.textContent=n+' de '+checks.length+' premios seleccionados';
+   const chosen=checks.filter(([,check])=>check.checked);
+   const total=chosen.reduce((sum,[,check,weight])=>sum+Math.max(0,Number(weight.value)||0),0);
+   for(const [,check,weight,percent] of checks){
+    weight.disabled=check.disabled||!check.checked;
+    percent.textContent=(check.checked&&total>0
+     ?100*Math.max(0,Number(weight.value)||0)/total:0)
+      .toLocaleString('es-ES',{maximumFractionDigits:1})+' %';
+   }
+   count.textContent=chosen.length+' de '+checks.length+' premios · '+(chosen.length?'100 % distribuido':'Sin premios');
   };
-  checks.forEach(([,check])=>{check.addEventListener('change',syncCount);check.disabled=true;});
+  checks.forEach(([,check,weight])=>{
+   check.addEventListener('change',syncCount);
+   check.disabled=true;
+   weight.addEventListener('input',syncCount);
+  });
   syncCount();
   if(!checks.length){
    const empty=document.createElement('p');
@@ -1291,7 +1343,11 @@ async function adminInitSurpriseBoxes(){
    empty.textContent='Todavía no hay artículos disponibles para seleccionar.';
    list.append(empty);
   }
-  prizeSection.append(legend,prizeCaption,count,list);
+  prizeCaption.textContent='Los pesos determinan qué premio tiene más posibilidades de aparecer. Puedes ajustarlos al editar.';
+  const oddsNotice=document.createElement('small');
+  oddsNotice.className='sb-surprise-admin__odds-note';
+  oddsNotice.textContent='Los porcentajes son orientativos: se recalculan según los premios disponibles y no poseídos por el destinatario.';
+  prizeSection.append(legend,prizeCaption,count,list,oddsNotice);
 
   const footer=document.createElement('div');
   footer.className='sb-surprise-admin__footer';
@@ -1332,6 +1388,7 @@ async function adminInitSurpriseBoxes(){
    price:Number(tier.price),
    active:!!tier.active,
    items:checks.filter(([,check])=>check.checked).map(([id])=>id),
+   weights:Object.fromEntries(checks.filter(([,check])=>check.checked).map(([id,check,weight])=>[id,Number(weight.value)])),
    image_url:tier.image_url||null,rarity:tier.rarity||'common',animation_style:tier.animation_style||'sparkle',tier:tier.tier
   };
   let editing=false;
@@ -1346,7 +1403,7 @@ async function adminInitSurpriseBoxes(){
     price.value=String(saved.price);
     active.checked=saved.active;
     const selected=new Set(saved.items);
-    checks.forEach(([id,check])=>{check.checked=selected.has(id);});
+    checks.forEach(([id,check,weight])=>{check.checked=selected.has(id);weight.value=String(saved.weights[id]??1);});
     syncActive();
     syncCount();
     visuals.reset(saved);
@@ -1357,7 +1414,8 @@ async function adminInitSurpriseBoxes(){
    nameInput.disabled=!enabled;
    price.disabled=!enabled;
    active.disabled=!enabled;
-   checks.forEach(([,check])=>{check.disabled=!enabled;});
+   checks.forEach(([,check,weight])=>{check.disabled=!enabled;weight.disabled=!enabled||!check.checked;});
+   syncCount();
    actionRow.hidden=enabled;
    save.hidden=!enabled;
    cancelButton.hidden=!enabled;
@@ -1376,12 +1434,17 @@ async function adminInitSurpriseBoxes(){
   form.addEventListener('submit',async e=>{
    e.preventDefault();
    if(!editing)return;
-   const selected=checks.filter(([,check])=>check.checked).map(([id])=>id);
+   const chosen=checks.filter(([,check])=>check.checked);
+   const selected=chosen.map(([id])=>id);
+   const weights=chosen.map(([,check,weight])=>Number(weight.value));
    if(!selected.length){
     showStatus('Selecciona al menos un premio.');
     return;
    }
    if(!form.reportValidity())return;
+   if(weights.some(n=>!Number.isInteger(n)||n<1||n>1000)){
+    showStatus('Los pesos deben ser enteros entre 1 y 1000.');return;
+   }
    save.disabled=true;
    cancelButton.disabled=true;
    save.textContent='Guardando…';
@@ -1391,12 +1454,12 @@ async function adminInitSurpriseBoxes(){
     const visual=await visuals.values();
     const data={
      p_tier:tier.tier,p_name:nameInput.value.trim(),p_price:Number(price.value),
-     p_active:active.checked,p_items:selected,
+     p_active:active.checked,p_items:selected,p_weights:weights,
      p_image_url:visual.image_url,p_rarity:visual.rarity,p_animation_style:visual.animation_style
     };
-    const {error}=await sb.rpc('admin_update_surprise_box_visual',data);
+    const {error}=await sb.rpc('admin_update_surprise_box_weighted',data);
     if(error)throw error;
-    saved={name:data.p_name,price:data.p_price,active:data.p_active,items:[...selected],image_url:data.p_image_url,rarity:data.p_rarity,animation_style:data.p_animation_style,tier:tier.tier};
+    saved={name:data.p_name,price:data.p_price,active:data.p_active,items:[...selected],weights:Object.fromEntries(selected.map((id,i)=>[id,weights[i]])),image_url:data.p_image_url,rarity:data.p_rarity,animation_style:data.p_animation_style,tier:tier.tier};
     title.textContent=saved.name;
     visuals.reset(saved);
     toggleEditing(false);
@@ -1416,8 +1479,9 @@ async function adminInitSurpriseBoxes(){
    delete status.dataset.type;
    try{
     const duplicateName=Array.from(saved.name).slice(0,55).join('')+' (copia)';
-    const {data,error}=await sb.rpc('admin_create_surprise_box_visual',{
+    const {data,error}=await sb.rpc('admin_create_surprise_box_weighted',{
      p_name:duplicateName,p_price:saved.price,p_active:false,p_items:saved.items,
+     p_weights:saved.items.map(id=>saved.weights[id]??1),
      p_image_url:saved.image_url,p_rarity:saved.rarity,p_animation_style:saved.animation_style
     });
     if(error)throw error;
