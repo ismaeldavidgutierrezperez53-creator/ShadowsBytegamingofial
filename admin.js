@@ -436,6 +436,91 @@ async function adminLoadReportAudit(){
  }
 }
 
+function adminBuildCompetitionInsights(people,eventAwards,names){
+ const el=(tag,cls,content)=>{
+  const node=document.createElement(tag);
+  if(cls)node.className=cls;
+  if(content!==undefined)node.textContent=String(content);
+  return node;
+ };
+ const section=el('section','admin-competition-insights');
+ section.setAttribute('aria-label','Clasificación y estadísticas de participantes');
+ const heading=el('div','admin-competition-insights-heading');
+ heading.append(el('h4','','📊 Clasificación y estadísticas'));
+ const finalized=eventAwards.length>0;
+ heading.append(el('p','',
+  finalized
+   ?'Podio confirmado: las medallas y los puntos de tienda ya se registraron.'
+   :'Clasificación provisional. Las medallas y puntos de tienda solo se entregan al finalizar y confirmar los premios.'));
+ section.append(heading);
+ const scored=people.filter(person=>Number(person.score)>0);
+ const completed=people.filter(person=>person.completed).length;
+ const stats=el('div','admin-competition-stats');
+ const data=[
+  ['👥','Inscritos',people.length],
+  ['✅','Completados',completed],
+  ['🎯','Con puntuación',scored.length],
+  ['📈','Finalización',people.length?Math.round(completed/people.length*100)+'%':'0%']
+ ];
+ for(const [icon,label,value] of data){
+  const card=el('div','admin-competition-stat');
+  card.append(el('span','admin-competition-stat-icon',icon),
+   el('strong','',value),el('span','admin-competition-stat-label',label));
+  stats.append(card);
+ }
+ section.append(stats);
+ const ranked=people
+  .filter(person=>person.completed||Number(person.score)>0)
+  .slice()
+  .sort((a,b)=>Number(b.score||0)-Number(a.score||0)||
+   new Date(a.joined_at)-new Date(b.joined_at)||
+   String(a.user_id).localeCompare(String(b.user_id)));
+ const actual=eventAwards.slice().sort((a,b)=>Number(a.place)-Number(b.place));
+ const rewardedIds=new Set(actual.map(award=>award.user_id));
+ const ranking=finalized
+  ?[
+   ...actual.map(award=>({id:award.user_id,score:award.score,place:Number(award.place),badge:award.badge})),
+   ...ranked.filter(person=>!rewardedIds.has(person.user_id))
+    .map((person,index)=>({id:person.user_id,score:person.score,place:actual.length+index+1,badge:''}))
+  ]
+  :ranked.map((person,index)=>({id:person.user_id,score:person.score,place:index+1,badge:''}));
+ const header=el('div','admin-competition-ranking-header');
+ header.append(el('h4','',finalized?'🏆 Podio confirmado':'🏅 Podio provisional'),
+  el('span','',ranking.length+' clasificados'));
+ section.append(header);
+ if(!ranking.length){
+  section.append(el('p','admin-competition-ranking-empty',
+   'Todavía no hay participantes con puntuación positiva ni resultados marcados como completados.'));
+  return section;
+ }
+ const medals=['🥇','🥈','🥉'];
+ const makeRow=item=>{
+  const row=el('li','admin-competition-ranking-row');
+  const icon=medals[item.place-1]||'🏁';
+  const place=el('span','admin-competition-ranking-place',icon+' '+item.place+'.º');
+  const name=el('span','admin-competition-ranking-name',names.get(item.id)||'Miembro sin perfil público');
+  const score=el('strong','admin-competition-ranking-points',Number(item.score||0).toLocaleString('es-ES')+' pts');
+  const state=el('small','admin-competition-ranking-state',
+   item.badge||(!finalized&&item.place<=3?'Puesto provisional':'Clasificado'));
+  row.append(place,name,score,state);
+  return row;
+ };
+ const top=el('ol','admin-competition-ranking');
+ for(const item of ranking.slice(0,3))top.append(makeRow(item));
+ section.append(top);
+ if(ranking.length>3){
+  const more=el('details','admin-competition-ranking-more');
+  more.append(el('summary','','Ver clasificación completa ('+ranking.length+' participantes)'));
+  const rest=el('ol','admin-competition-ranking');
+  for(const item of ranking.slice(3))rest.append(makeRow(item));
+  more.append(rest);
+  section.append(more);
+ }
+ section.append(el('small','admin-competition-insights-footnote',
+  'Estadísticas calculadas con las inscripciones consultadas. El listado puede estar limitado a 700 registros entre las competiciones.'));
+ return section;
+}
+
 async function adminInitCompetitions(){
  const dashboard=document.querySelector('#admin-root .admin-dashboard');if(!dashboard)return;
  const panel=document.createElement('section');panel.className='admin-panel admin-competitions-panel';panel.id='admin-competitions-management';
@@ -506,6 +591,7 @@ async function adminInitCompetitions(){
     }
    }
    box.append(prizePanel);
+   box.append(adminBuildCompetitionInsights(people,eventAwards,names));
    const membersHeading=document.createElement('div');membersHeading.className='admin-competition-members-heading';
    const count=document.createElement('strong');count.textContent='👥 '+people.length+' participantes registrados';
    const limitNote=document.createElement('small');limitNote.textContent='Hasta 700 inscripciones consultadas';
@@ -528,8 +614,8 @@ async function adminInitCompetitions(){
      const {error}=await sb.from('community_competition_entries').update({score:value,completed:completed.checked})
       .eq('competition_id',event.id).eq('user_id',person.user_id);
      if(error){note.textContent='No se pudo guardar: '+error.message;save.disabled=false;return;}
-     note.textContent='Resultado guardado para '+label.textContent+'. No se ha modificado el XP.';
-     save.disabled=false;
+     await reload();
+     note.textContent='Resultado guardado para '+label.textContent+'. Clasificación y estadísticas actualizadas. No se ha modificado el XP.';
     };
     row.append(label,scoreField,completedLabel,save);box.append(row);
    }
