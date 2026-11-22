@@ -406,6 +406,9 @@
         select.setAttribute("aria-label","Elegir administrador o moderador responsable");
         select.add(new Option("Sin asignar",""));
         for(const member of staffCache.staff_members||[]){
+          if(member.role==="moderator" && (
+            sanction?.action==="ban" || sanction?.actor_id===member.user_id
+          ))continue;
           const kind=member.role==="moderator"?"Moderador":"Administrador";
           select.add(new Option(name(member.user_id)+" · "+kind,member.user_id));
         }
