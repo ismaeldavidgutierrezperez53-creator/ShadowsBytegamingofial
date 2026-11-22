@@ -272,3 +272,136 @@
  }
  #admin-surprise-boxes .sb-surprise-admin__percent{font-size:12px}
 }
+
+
+/* Historial y estadísticas de aperturas: cajas misteriosas (solo administración) */
+#admin-surprise-boxes .sb-surprise-stats{
+ display:grid;gap:17px;min-width:0;margin:24px 0 26px;
+ padding:clamp(14px,2.3vw,23px);border:1px solid #75579a;
+ border-radius:18px;background:linear-gradient(145deg,#251a35,#131321);
+ box-shadow:0 12px 30px #0004;color:#f7efff;
+}
+#admin-surprise-boxes .sb-surprise-stats__heading h3{
+ margin:0 0 5px;font-size:clamp(19px,2.6vw,25px);color:#e6cbff;
+}
+#admin-surprise-boxes .sb-surprise-stats__heading p{
+ margin:0;color:#bfb0d2;line-height:1.4;
+}
+#admin-surprise-boxes .sb-surprise-stats__filters{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end;
+}
+#admin-surprise-boxes .sb-surprise-stats__field{
+ display:grid;gap:6px;min-width:0;font-weight:700;font-size:14px;color:#e1d4f0;
+}
+#admin-surprise-boxes .sb-surprise-stats__field select{
+ width:100%;min-height:43px;min-width:0;padding:8px 10px;
+ border:1px solid #7f66a2;border-radius:10px;
+ background:#161122;color:#f7efff;font:600 15px Rajdhani,Arial,sans-serif;
+}
+#admin-surprise-boxes .sb-surprise-stats__refresh,
+#admin-surprise-boxes .sb-surprise-stats__pager button{
+ min-height:43px;padding:9px 15px;cursor:pointer;
+ border:1px solid #ac82db;border-radius:10px;background:#36234e;
+ color:#fff;font:700 15px Rajdhani,Arial,sans-serif;
+}
+#admin-surprise-boxes .sb-surprise-stats__refresh:hover:not(:disabled),
+#admin-surprise-boxes .sb-surprise-stats__pager button:hover:not(:disabled){
+ background:#4b3167;
+}
+#admin-surprise-boxes .sb-surprise-stats button:disabled{opacity:.55;cursor:not-allowed}
+#admin-surprise-boxes .sb-surprise-stats__note{
+ margin:0;font-size:13px;line-height:1.5;color:#c0b4d2;
+}
+#admin-surprise-boxes .sb-surprise-stats__feedback{
+ margin:0;min-height:21px;color:#ddc9ef;font-weight:600;
+}
+#admin-surprise-boxes .sb-surprise-stats__feedback[data-type=success]{color:#a9efce}
+#admin-surprise-boxes .sb-surprise-stats__feedback[data-type=error]{color:#ffb6c4}
+#admin-surprise-boxes .sb-surprise-stats__kpis{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,142px),1fr));gap:10px;
+}
+#admin-surprise-boxes .sb-surprise-stats__kpi{
+ display:grid;gap:10px;padding:14px 12px;border:1px solid #675084;
+ border-radius:13px;background:#2e2040;min-width:0;
+}
+#admin-surprise-boxes .sb-surprise-stats__kpi span{font-size:13px;color:#dccbea}
+#admin-surprise-boxes .sb-surprise-stats__kpi strong{
+ font-size:clamp(23px,3vw,30px);line-height:1;color:#f7edff;
+ font-variant-numeric:tabular-nums;
+}
+#admin-surprise-boxes .sb-surprise-stats__rankings{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;
+}
+#admin-surprise-boxes .sb-surprise-stats__rank{
+ padding:15px;border:1px solid #55436c;border-radius:12px;background:#1a1629;min-width:0;
+}
+#admin-surprise-boxes .sb-surprise-stats__rank h4,
+#admin-surprise-boxes .sb-surprise-stats__history h4{
+ margin:0 0 14px;font-size:17px;color:#e8d5ff;
+}
+#admin-surprise-boxes .sb-surprise-stats__bar-item{display:grid;gap:5px;margin-bottom:14px}
+#admin-surprise-boxes .sb-surprise-stats__bar-head,
+#admin-surprise-boxes .sb-surprise-stats__prize{
+ display:flex;justify-content:space-between;gap:12px;align-items:start;
+ font-size:14px;line-height:1.35;
+}
+#admin-surprise-boxes .sb-surprise-stats__bar-head span,
+#admin-surprise-boxes .sb-surprise-stats__prize span{
+ min-width:0;overflow-wrap:anywhere;
+}
+#admin-surprise-boxes .sb-surprise-stats__bar-head strong,
+#admin-surprise-boxes .sb-surprise-stats__prize strong{
+ font-size:13px;color:#a4f4da;white-space:nowrap;
+}
+#admin-surprise-boxes .sb-surprise-stats__track{
+ height:9px;overflow:hidden;border:1px solid #62457d;border-radius:99px;background:#281e36;
+}
+#admin-surprise-boxes .sb-surprise-stats__fill{
+ height:100%;background:linear-gradient(90deg,#8864e7,#4bdfd8);
+ border-radius:99px;min-width:0;
+}
+#admin-surprise-boxes .sb-surprise-stats__bar-item small{color:#bcb0cb}
+#admin-surprise-boxes .sb-surprise-stats__prize{
+ padding:10px 0;border-bottom:1px solid #43344e;
+}
+#admin-surprise-boxes .sb-surprise-stats__empty{font-size:14px;color:#bdb0cf;margin:0}
+#admin-surprise-boxes .sb-surprise-stats__history{
+ padding:15px;border:1px solid #55436c;border-radius:12px;background:#1a1629;min-width:0;
+}
+#admin-surprise-boxes .sb-surprise-stats__table-scroll{
+ overflow:auto;max-width:100%;border:1px solid #49375c;border-radius:11px;
+}
+#admin-surprise-boxes .sb-surprise-stats__table{
+ border-collapse:collapse;width:100%;min-width:830px;font-size:13px;
+}
+#admin-surprise-boxes .sb-surprise-stats__table th{
+ padding:11px;text-align:left;background:#312342;
+ color:#eddbff;border-bottom:1px solid #70558e;white-space:nowrap;
+}
+#admin-surprise-boxes .sb-surprise-stats__table td{
+ padding:11px;color:#e4d8ed;border-bottom:1px solid #42344f;
+ vertical-align:top;overflow-wrap:anywhere;
+}
+#admin-surprise-boxes .sb-surprise-stats__table tr:last-child td{border-bottom:0}
+#admin-surprise-boxes .sb-surprise-stats__table tbody tr:hover{background:#2b2137}
+#admin-surprise-boxes .sb-surprise-stats__table .sb-surprise-stats__opened{color:#a5f5d0;font-weight:700}
+#admin-surprise-boxes .sb-surprise-stats__table .sb-surprise-stats__pending{color:#ffdf9a;font-weight:700}
+#admin-surprise-boxes .sb-surprise-stats__no-rows{text-align:center;color:#c4b6d3!important;padding:18px!important}
+#admin-surprise-boxes .sb-surprise-stats__pager{
+ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin:15px 0 0;
+}
+#admin-surprise-boxes .sb-surprise-stats__pager span{font-size:13px;color:#ded0ec;text-align:center}
+#admin-surprise-boxes .sb-surprise-stats [hidden]{display:none!important}
+#admin-surprise-boxes .sb-surprise-stats button:focus-visible,
+#admin-surprise-boxes .sb-surprise-stats select:focus-visible{
+ outline:3px solid #9ae9fc;outline-offset:2px;
+}
+@media(max-width:850px){
+ #admin-surprise-boxes .sb-surprise-stats__filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #admin-surprise-boxes .sb-surprise-stats__rankings{grid-template-columns:1fr}
+}
+@media(max-width:490px){
+ #admin-surprise-boxes .sb-surprise-stats__filters{grid-template-columns:minmax(0,1fr)}
+ #admin-surprise-boxes .sb-surprise-stats__refresh{width:100%}
+ #admin-surprise-boxes .sb-surprise-stats__table{min-width:780px}
+}
