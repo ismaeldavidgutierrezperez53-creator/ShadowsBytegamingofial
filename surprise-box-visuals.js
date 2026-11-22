@@ -142,7 +142,14 @@
     else{thumb.replaceChildren();const image=document.createElement('img');image.src=objectUrl;image.alt='Vista previa de imagen';thumb.append(image);}}
    const label=badge(displayed);
    const effect=document.createElement('small');effect.textContent='✨ '+EFFECTS[displayed.animation_style];
-   visual.replaceChildren(thumb,label,effect);
+   const demo=document.createElement('button');
+   demo.type='button';demo.className='sb-box-editor__demo';
+   demo.textContent='✨ Probar animación';
+   demo.addEventListener('click',()=>burst(visual,{
+    name:saved.name,rarity:raritySelect.value,animation_style:effectSelect.value,
+    image_url:objectUrl||urlInput.value||saved.image_url
+   }));
+   visual.replaceChildren(thumb,label,effect,demo);
   }
   uploadInput.addEventListener('change',()=>{
    if(uploadInput.files?.[0]&&(!TYPES[uploadInput.files[0].type]||uploadInput.files[0].size>5*1024*1024)){
