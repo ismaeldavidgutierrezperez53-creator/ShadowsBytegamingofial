@@ -99,7 +99,16 @@
       content.replaceChildren();
       const events=(result.events||[]).filter(usable);
       if(!events.length){
-        content.append(el("p","","No hay sanciones recientes que puedas apelar."));
+        const empty=el("div","sb-appeals-empty");
+        const icon=el("span","sb-appeals-empty-icon","✓");
+        icon.setAttribute("aria-hidden","true");
+        const copy=el("div","sb-appeals-empty-copy");
+        copy.append(
+          el("h3","","No tienes sanciones que puedas apelar ahora"),
+          el("p","","Si recibes una sanción apelable, aparecerá aquí con la opción de solicitar una revisión.")
+        );
+        empty.append(icon,copy);
+        content.append(empty);
       }
       for(const event of events){
         const card=el("article","sb-appeal-card");
@@ -135,8 +144,8 @@
         }
         content.append(card);
       }
-      content.append(el("p","sb-appeal-hint","Si tu cuenta está bloqueada y no puedes iniciar sesión, usa el formulario de apelaciones por correo."));
-      const link=el("a","outline-btn mini","📩 Apelar con código de correo");
+      content.append(el("p","sb-appeal-hint sb-appeals-help","¿No puedes iniciar sesión por un bloqueo? Puedes solicitar una revisión utilizando tu correo."));
+      const link=el("a","outline-btn mini sb-appeals-mail-link","📩 Apelar con código de correo");
       link.href="#/apelaciones";content.append(link);
     }catch(error){
       content.textContent="No se pudieron cargar las apelaciones: "+error.message;
