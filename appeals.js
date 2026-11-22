@@ -144,6 +144,18 @@
   }
 
   let staffCache=null;
+  // El recuento consulta el total real en Supabase, no solo las últimas 150 filas.
+  async function refreshPendingCount(){
+    const panel=document.getElementById("sb-appeals-staff");
+    if(!panel||!panel.isConnected)return;
+    const badge=panel.querySelector("#sb-appeals-pending-count");
+    const {count,error}=await sb.from("member_sanction_appeals")
+      .select("id",{count:"exact",head:true}).eq("status","pending");
+    if(error||!panel.isConnected)return;
+    if(badge)badge.textContent=(count||0)+" pendientes";
+    const direct=document.querySelector('#admin-root .admin-quicklinks a[href="#/admin?focus=appeals"]');
+    if(direct)direct.textContent="⚖️ Apelaciones ("+(count||0)+")";
+  }
   async function loadStaff(panel){
     const host=panel.querySelector("#sb-appeals-staff-list");
     const status=panel.querySelector("#sb-appeals-staff-status");
@@ -154,6 +166,7 @@
       if(!host.isConnected)return;
       feedback(status,"Apelaciones actualizadas.");
       drawStaff(panel);
+      void refreshPendingCount();
     }catch(error){host.textContent="No se pudo cargar la bandeja.";feedback(status,error.message,true);}
   }
   function drawStaff(panel){
@@ -231,7 +244,7 @@
     panel.innerHTML=`
       <div class="admin-panel-heading">
         <div><span class="admin-kicker">JUSTICIA Y MODERACIÓN</span>
-          <h2>⚖️ Apelaciones de sanciones</h2>
+          <h2>⚖️ Apelaciones de sanciones <span id="sb-appeals-pending-count" class="sb-appeals-count" aria-live="polite">… pendientes</span></h2>
           <p>Revisa las solicitudes de los miembros. Cada decisión exige un motivo y queda registrada.</p>
         </div><button id="sb-appeals-reload" class="admin-secondary" type="button">🔄 Actualizar</button>
       </div>
@@ -254,5 +267,6 @@
     const focus=new URLSearchParams(location.hash.split("?")[1]||"").get("focus");
     if(focus==="appeals"&&panel.isConnected)panel.scrollIntoView({block:"start",behavior:"smooth"});
   }
-  window.SBAppeals={mountPublic,mountAccount,mountStaff};
+  window.SBAppeals={mountPublic,mountAccount,mountStaff,refreshPendingCount};
+  window.addEventListener("focus",()=>{if(document.getElementById("sb-appeals-staff"))void refreshPendingCount();});
 })();
