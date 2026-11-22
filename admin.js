@@ -530,6 +530,7 @@ async function adminInitCompetitions(){
  const form=panel.querySelector('#admin-competition-create');
  const list=panel.querySelector('#admin-competition-list');
  const note=panel.querySelector('#admin-competition-status');
+ window.SBChampionExclusives?.mountAdmin(panel);
  const reload=async()=>{
   list.textContent='Cargando competiciones…';
   const {data:events,error}=await sb.from('community_competitions').select('id,kind,title,description,starts_at,ends_at,status,created_at').order('created_at',{ascending:false}).limit(70);
