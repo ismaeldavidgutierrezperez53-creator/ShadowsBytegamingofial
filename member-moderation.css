@@ -80,6 +80,11 @@
   line-height:1.4;
   overflow-wrap:anywhere;
 }
+.sb-account-page #sb-my-sanctions .sb-my-sanctions-status[data-active="true"] {
+  border-color:rgba(255,165,178,.65);
+  background:rgba(145,37,67,.33);
+  color:#ffe0e6;
+}
 .sb-account-page #sb-my-sanctions .sb-my-sanctions-empty {
   display:grid;
   justify-items:center;
