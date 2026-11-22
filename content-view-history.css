@@ -81,3 +81,35 @@
  .sb-analytics-number span{font-size:.67rem}
  .sb-analytics-bars{min-width:550px}
 }
+
+/* Entrada accesible a estadísticas personales en Noticias y Comunidad. */
+.sb-content-stats-entry{
+ display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;
+ margin:13px 0 18px;padding:14px 16px;
+ border:1px solid rgba(161,200,255,.43);border-radius:15px;
+ background:linear-gradient(125deg,rgba(40,74,135,.35),rgba(48,26,91,.68));
+ color:#f9f5ff
+}
+.sb-content-stats-entry-button{
+ border:1px solid #9bdcf6;border-radius:12px;
+ background:linear-gradient(115deg,#254e89,#6142a7);
+ color:#fff;font:inherit;font-weight:800;font-size:1rem;
+ padding:10px 18px;min-height:46px;cursor:pointer;
+ box-shadow:0 3px 13px rgba(24,35,94,.21)
+}
+.sb-content-stats-entry-button:hover{background:linear-gradient(115deg,#2b629f,#7249bd)}
+.sb-content-stats-entry-button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.sb-content-stats-entry small{font-size:.85rem;color:#e5dafa;line-height:1.4}
+.sb-analytics-index-modal{width:min(100%,700px)}
+.sb-analytics-index-list{display:grid;gap:10px;max-height:48vh;overflow-y:auto;padding-right:3px}
+.sb-analytics-index-item{display:flex;align-items:center;justify-content:space-between;gap:13px;padding:12px;border:1px solid rgba(168,144,212,.3);border-radius:12px;background:rgba(255,255,255,.04)}
+.sb-analytics-index-meta{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.sb-analytics-index-meta strong{font-size:.9rem;color:#fff;line-height:1.35}
+.sb-analytics-index-meta small{font-size:.74rem;color:#d7c8ed}
+.sb-analytics-index-item button{flex:none}
+@media(max-width:600px){
+ .sb-content-stats-entry{padding:12px}
+ .sb-content-stats-entry-button{width:100%}
+ .sb-analytics-index-item{flex-direction:column;align-items:stretch}
+ .sb-analytics-index-item button{width:100%;min-height:40px}
+}
