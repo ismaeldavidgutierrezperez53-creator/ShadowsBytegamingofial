@@ -3,6 +3,11 @@
  'use strict';
  const COLORS=[['purple','💜 Violeta'],['blue','💙 Azul'],['pink','🩷 Rosa'],['green','💚 Verde'],['orange','🧡 Naranja'],['gold','💛 Dorado'],['slate','🩶 Gris']];
  const EMOJIS=['👑','⭐','🛡️','💜','🌸','🎮','🏆','🔥','🐉','✨','💎','🎨','🎧'];
+ const ANIMATIONS=[
+  ['none','Sin animación'],['shine','✨ Brillo en movimiento'],
+  ['neon','💡 Neón brillante'],['pulse','💓 Pulso suave'],
+  ['float','🌠 Flotante'],['sparkle','🌟 Destellos anime']
+ ];
  const uuid=/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i;
  const memberMap=new Map();
  let catalog=[];
@@ -16,6 +21,7 @@
   if(!badge?.label)return null;
   const el=make('span','sb-exclusive-tag',''+(badge.emoji||'⭐')+' '+badge.label);
   el.dataset.color=COLORS.some(item=>item[0]===badge.color)?badge.color:'purple';
+  el.dataset.animation=ANIMATIONS.some(item=>item[0]===badge.animation)?badge.animation:'none';
   el.title='Distintivo exclusivo otorgado por administración. No concede permisos.';
   el.setAttribute('aria-label',el.textContent+'; distintivo otorgado por administración, sin permisos especiales');
   return el;
@@ -26,7 +32,7 @@
   if(!valid.length)return byUser;
   const [rows,defs]=await Promise.all([
    sb.from('sb_exclusive_tag_assignments').select('user_id,tag_id').in('user_id',valid).limit(500),
-   sb.from('sb_exclusive_tag_catalog').select('id,label,emoji,color').limit(150)
+   sb.from('sb_exclusive_tag_catalog').select('id,label,emoji,color,animation').limit(150)
   ]);
   if(rows.error||defs.error)throw rows.error||defs.error;
   const tags=new Map((defs.data||[]).map(item=>[item.id,item]));
@@ -109,8 +115,23 @@
    for(const icon of EMOJIS)emoji.add(new Option(icon,icon));
    const color=make('select');color.setAttribute('aria-label','Color de la etiqueta');
    for(const [key,title]of COLORS)color.add(new Option(title,key));
+   const animation=make('select');
+   animation.setAttribute('aria-label','Animación de la nueva etiqueta');
+   for(const [value,title] of ANIMATIONS)animation.add(new Option(title,value));
    const create=make('button','gradient-btn mini','➕ Crear etiqueta');create.type='submit';
-   createForm.append(name,emoji,color,create);createSection.append(createForm);
+   const preview=make('div','sb-exclusive-animation-preview');
+   const redrawPreview=()=>{
+    preview.replaceChildren();
+    const badge=createBadge({label:name.value.trim()||'Mi etiqueta anime',emoji:emoji.value,color:color.value,animation:animation.value});
+    if(badge)preview.append(badge);
+   };
+   for(const control of [name,emoji,color,animation]){
+    control.addEventListener('input',redrawPreview);
+    control.addEventListener('change',redrawPreview);
+   }
+   createForm.append(name,emoji,color,animation,create);
+   createSection.append(createForm,make('h4','','Vista previa de la animación'),preview);
+   redrawPreview();
    const manageSection=make('section','sb-exclusive-admin-section');
    manageSection.append(make('h3','','Asignar etiquetas a un miembro'));
    const search=make('input');search.type='search';search.placeholder='Buscar miembro por nombre o usuario';search.setAttribute('aria-label','Buscar miembro');
@@ -143,7 +164,7 @@
    }
    async function loadCatalog(){
     const {data,error}=await sb.from('sb_exclusive_tag_catalog')
-     .select('id,label,emoji,color,is_system').order('created_at',{ascending:true}).limit(150);
+     .select('id,label,emoji,color,is_system,animation').order('created_at',{ascending:true}).limit(150);
     if(error)throw error;
     catalog=data||[];
     const previous=chooseTag.value;
@@ -152,7 +173,35 @@
     for(const badge of catalog){
      chooseTag.add(new Option((badge.emoji||'⭐')+' '+badge.label,badge.id));
      const line=make('div','sb-exclusive-catalog-item');
-     line.append(createBadge(badge));
+     const view=createBadge(badge);
+     line.append(view);
+     const animateSelect=make('select','sb-exclusive-animation-select');
+     animateSelect.setAttribute('aria-label','Animación de '+badge.label);
+     for(const [value,title] of ANIMATIONS)animateSelect.add(new Option(title,value));
+     animateSelect.value=badge.animation||'none';
+     const saveEffect=make('button','outline-btn mini','Guardar efecto');
+     saveEffect.type='button';saveEffect.disabled=true;
+     animateSelect.addEventListener('change',()=>{
+      if(view)view.dataset.animation=animateSelect.value;
+      saveEffect.disabled=animateSelect.value===(badge.animation||'none');
+     });
+     saveEffect.addEventListener('click',async()=>{
+      const next=animateSelect.value;
+      if(!ANIMATIONS.some(([value])=>value===next))return;
+      saveEffect.disabled=true;animateSelect.disabled=true;
+      const {data,error}=await sb.from('sb_exclusive_tag_catalog')
+       .update({animation:next}).eq('id',badge.id).select('id');
+      animateSelect.disabled=false;
+      if(error||!data?.length){
+       setStatus('No se pudo guardar la animación: '+(error?.message||'Sin permisos de edición'),true);
+       saveEffect.disabled=false;return;
+      }
+      setStatus('✅ Animación guardada para '+badge.label+'.');
+      await loadCatalog();await loadCurrent();
+     });
+     const animationTools=make('div','sb-exclusive-animation-tools');
+     animationTools.append(animateSelect,saveEffect);
+     line.append(animationTools);
      if(!badge.is_system){
       const del=make('button','outline-btn mini','Eliminar etiqueta');
       del.type='button';del.addEventListener('click',async()=>{
@@ -203,11 +252,11 @@
     if(label.length<2||label.length>30){setStatus('La etiqueta debe tener entre 2 y 30 caracteres.',true);return;}
     create.disabled=true;
     const {error}=await sb.from('sb_exclusive_tag_catalog').insert({
-     label,emoji:emoji.value,color:color.value,is_system:false,created_by:current
+     label,emoji:emoji.value,color:color.value,animation:animation.value,is_system:false,created_by:current
     });
     create.disabled=false;
     if(error){setStatus('No se pudo crear: '+error.message,true);return;}
-    name.value='';setStatus('✅ Etiqueta exclusiva creada. Ahora puedes asignarla.');
+    name.value='';redrawPreview();setStatus('✅ Etiqueta exclusiva animada creada. Ahora puedes asignarla.');
     await loadCatalog();
    });
    grant.addEventListener('click',async()=>{
