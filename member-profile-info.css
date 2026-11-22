@@ -1,0 +1,22 @@
+/* Mi Info y pensamientos de los miembros · tema neon / responsive */
+.sb-member-info{border:1px solid rgba(166,111,255,.44);border-radius:16px;background:linear-gradient(140deg,rgba(40,22,68,.94),rgba(25,20,49,.95));box-shadow:0 8px 26px rgba(19,9,48,.16);color:#f6eeff;min-width:0}
+.sb-member-info-own{margin:18px 0;padding:20px}
+.sb-member-info h2,.sb-member-info h3{margin:0 0 9px;font-size:1.2rem;color:#fff}
+.sb-member-info-help{margin:8px 0 13px;color:#d8c5ee;line-height:1.5}
+.sb-member-info-form{display:grid;gap:12px}
+.sb-member-info-form>label:first-child{display:grid;gap:7px;font-weight:700}
+.sb-member-info-input{width:100%;box-sizing:border-box;min-height:72px;resize:vertical;padding:12px 14px;border-radius:12px;border:1px solid #986bd0;background:#1b1330;color:#fff;font:inherit;line-height:1.4}
+.sb-member-info-input::placeholder{color:#c7b0dd}
+.sb-member-info-input:focus-visible{outline:2px solid #d8a7ff;outline-offset:2px}
+.sb-member-info-counter{text-align:right;font-size:.8rem;color:#d9c6f4}
+.sb-member-info-privacy{display:flex;align-items:center;gap:9px;font-weight:600;cursor:pointer}
+.sb-member-info-privacy input{width:18px;height:18px;accent-color:#aa67ed}
+.sb-member-info-actions{display:flex;flex-wrap:wrap;gap:10px}
+.sb-member-info-status{margin:0;color:#e5d2fc;font-weight:600;min-height:1.3em}
+.sb-member-info-public{padding:16px 18px;margin:14px 0 18px}
+.sb-member-info-public[hidden]{display:none!important}
+.sb-member-info-message{font-size:1.07rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0 9px;color:#fff}
+.sb-member-info-date{font-size:.82rem;color:#cbb7e6}
+.sb-member-info-card{margin:6px 0 12px;padding:10px 12px;border-radius:11px;background:rgba(133,79,194,.18);border:1px solid rgba(166,111,255,.28);color:#f1e5ff;line-height:1.4;overflow-wrap:anywhere}
+.sb-member-info-card strong{color:#e3baff}
+@media(max-width:600px){.sb-member-info-own{padding:15px;margin:14px 0}.sb-member-info-public{padding:13px}.sb-member-info-actions>*{flex:1 1 130px}}
