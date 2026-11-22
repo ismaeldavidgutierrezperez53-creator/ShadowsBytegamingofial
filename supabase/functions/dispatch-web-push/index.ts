@@ -55,11 +55,21 @@ function isQuiet(preference: Record<string,unknown>|null): boolean {
     return start===end ? false : start<end ? current>=start && current<end : current>=start || current<end;
   } catch { return false; }
 }
-async function notifyUser(userId:string, notice:Notice, partnerId?:string, onlyEndpoint?:string): Promise<number> {
+function alertCategoryField(kind:string,newsId?:string|null):string|null {
+ if(kind.startsWith('competition_')||kind.startsWith('tournament_'))return 'alert_tournaments_enabled';
+ if(['poll','poll_reminder','poll_trophy_like'].includes(kind))return 'alert_polls_enabled';
+ if(['poll_season_prize','poll_museum_prize','gift'].includes(kind))return 'alert_rewards_enabled';
+ if(kind==='follow')return 'alert_followers_enabled';
+ if(kind==='news_reply'||(kind==='mention'&&Boolean(newsId)))return 'alert_news_enabled';
+ if(['like','comment','mention','game_like','game_comment','game_reply'].includes(kind))return 'alert_community_enabled';
+ return null; // Los avisos de seguridad y moderación siguen activos.
+}
+async function notifyUser(userId:string, notice:Notice, partnerId?:string, onlyEndpoint?:string, categoryField?:string): Promise<number> {
   const preferences=await admin.from('member_notification_preferences')
-    .select('dnd_enabled,dnd_until,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone')
+    .select('dnd_enabled,dnd_until,dnd_schedule_enabled,dnd_start,dnd_end,dnd_timezone,alert_community_enabled,alert_followers_enabled,alert_tournaments_enabled,alert_polls_enabled,alert_rewards_enabled,alert_messages_enabled,alert_news_enabled')
     .eq('user_id',userId).maybeSingle();
   if (isQuiet(preferences.data)) return 0;
+  if (categoryField && (preferences.data as Record<string,unknown>|null)?.[categoryField]===false) return 0;
   if (partnerId) {
     const privatePrefs=await admin.from('member_private_chat_notifications')
       .select('muted,popup_enabled').eq('user_id',userId).eq('partner_id',partnerId).maybeSingle();
@@ -144,7 +154,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       const actorName=String(actor?.display_name || actor?.username || 'Un miembro').trim().slice(0,60);
       info=['👥 Nuevo seguidor',actorName+' empezó a seguirte.','#/perfil?id='+encodeURIComponent(n.actor_id)];
     }
-    return await notifyUser(n.recipient_id,{title:info[0],body:info[1],path:info[2],tag:'notice-'+n.id});
+    return await notifyUser(n.recipient_id,{title:info[0],body:info[1],path:info[2],tag:'notice-'+n.id},undefined,undefined,alertCategoryField(n.kind,n.news_id));
   }
   if(type==='news'){
     const {data:article,error}=await admin.from('news')
@@ -166,7 +176,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       path:'#/noticia?id='+encodeURIComponent(article.id),tag:'news-'+article.id
     };
     let delivered=0;
-    for(const userId of subscribers)delivered+=await notifyUser(userId,notice);
+    for(const userId of subscribers)delivered+=await notifyUser(userId,notice,undefined,undefined,'alert_news_enabled');
     return delivered;
   }
   if (type==='member_appeal_notifications') {
@@ -268,7 +278,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       body:type==='community_competition_awards'?'Has conseguido una medalla oficial. Consulta tu podio y tus trofeos.':award.body,
       path:award.path,
       tag:'award-'+type+'-'+id+'-'+award.keys.map(key=>String(extra[key])).join('-').slice(0,90)
-    });
+    },undefined,undefined,'alert_rewards_enabled');
   }
   if (type==='member_direct_messages') {
     const {data:m,error}=await admin.from('member_direct_messages')
@@ -277,7 +287,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     return await notifyUser(m.recipient_id,{
       title:'💬 Mensaje privado nuevo',body:'Has recibido un mensaje en Shadows Byte Gaming.',
       path:'#/mensajes',tag:'dm-'+m.id
-    },m.sender_id);
+    },m.sender_id,undefined,'alert_messages_enabled');
   }
   if (type==='member_chat_group_messages') {
     const {data:m,error}=await admin.from('member_chat_group_messages')
@@ -290,7 +300,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       count+=await notifyUser(member.user_id,{
         title:'👥 Mensaje de grupo nuevo',body:'Tienes un mensaje nuevo en un grupo.',
         path:'#/mensajes',tag:'group-'+m.id
-      });
+      },undefined,undefined,'alert_messages_enabled');
     }
     return count;
   }
