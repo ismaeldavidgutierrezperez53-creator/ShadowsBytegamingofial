@@ -315,6 +315,7 @@
   }
 
   let staffCache=null;
+  let staffRequest=0;
   // El recuento consulta el total real en Supabase, no solo las últimas 150 filas.
   async function refreshPendingCount(){
     const panel=document.getElementById("sb-appeals-staff");
@@ -327,30 +328,58 @@
     const direct=document.querySelector('#admin-root .admin-quicklinks a[href="#/admin?focus=appeals"]');
     if(direct)direct.textContent="⚖️ Apelaciones ("+(count||0)+")";
   }
-  async function loadStaff(panel){
+  async function loadStaff(panel,page=0){
     const host=panel.querySelector("#sb-appeals-staff-list");
     const status=panel.querySelector("#sb-appeals-staff-status");
     if(!host)return;
+    const seq=++staffRequest;
     host.textContent="Cargando apelaciones…";
+    const input=id=>panel.querySelector(id);
+    const query={
+      action:"staff_list",page,
+      status:input("#sb-appeals-filter")?.value||"pending",
+      search:input("#sb-appeals-search")?.value?.trim()||"",
+      date_from:input("#sb-appeals-from")?.value||"",
+      date_to:input("#sb-appeals-to")?.value||"",
+      assigned_filter:input("#sb-appeals-assigned-filter")?.value||"all"
+    };
+    if(query.date_from&&query.date_to&&query.date_from>query.date_to){
+      host.textContent="";
+      feedback(status,"La fecha de inicio debe ser anterior a la fecha final.",true);
+      return;
+    }
     try{
-      staffCache=await invoke({action:"staff_list"});
-      if(!host.isConnected)return;
-      feedback(status,"Apelaciones actualizadas.");
+      const result=await invoke(query);
+      if(!host.isConnected||seq!==staffRequest)return;
+      staffCache=result;
+      const total=result.total||0,perPage=result.per_page||25,currentPage=result.page||0;
+      feedback(status,"Mostrando "+(total?currentPage*perPage+1:0)+"–"+
+        Math.min(total,(currentPage+1)*perPage)+" de "+total+" apelaciones.");
+      const previous=panel.querySelector("#sb-appeals-previous");
+      const next=panel.querySelector("#sb-appeals-next");
+      const pageInfo=panel.querySelector("#sb-appeals-page-info");
+      if(previous)previous.disabled=currentPage<=0;
+      if(next)next.disabled=(currentPage+1)*perPage>=total;
+      if(pageInfo)pageInfo.textContent="Página "+(currentPage+1)+" de "+
+        Math.max(1,Math.ceil(total/perPage));
       drawStaff(panel);
       void refreshPendingCount();
       void loadStaffStatistics(panel);
-    }catch(error){host.textContent="No se pudo cargar la bandeja.";feedback(status,error.message,true);}
+    }catch(error){
+      if(seq!==staffRequest)return;
+      host.textContent="No se pudo cargar la bandeja.";
+      feedback(status,error.message,true);
+    }
   }
   function drawStaff(panel){
     const host=panel.querySelector("#sb-appeals-staff-list");
     if(!host||!staffCache)return;
-    const filter=panel.querySelector("#sb-appeals-filter").value;
     const people=new Map((staffCache.profiles||[]).map(p=>[p.id,p]));
     const sanctions=new Map((staffCache.sanctions||[]).map(p=>[p.id,p]));
     const name=id=>{const p=people.get(id);return p?.display_name||p?.username||(id?id.slice(0,8)+"…":"Sin usuario");};
-    const rows=(staffCache.appeals||[]).filter(a=>filter==="all"||a.status===filter);
+    const rows=staffCache.appeals||[];
     host.replaceChildren();
-    if(!rows.length){host.append(el("p","","No hay apelaciones en este estado."));return;}
+    if(!rows.length){host.append(el("p","","No hay apelaciones que coincidan con los filtros."));return;}
     for(const record of rows){
       const sanction=sanctions.get(record.sanction_event_id);
       const card=el("article","sb-appeal-card");
@@ -361,6 +390,60 @@
         card.append(el("small","","Sanción impuesta: "+date(sanction.created_at)+" · Por: "+name(sanction.actor_id)));
       }
       card.append(el("p","","Motivo de la apelación: "+record.reason));
+      const assignment=el("div","sb-appeal-assignment");
+      const assignedLabel=el("strong","",
+        "👤 Responsable: "+(record.assigned_to?name(record.assigned_to):"Sin asignar"));
+      assignment.append(assignedLabel);
+      if(record.assigned_at)assignment.append(
+        el("small","","Último cambio: "+date(record.assigned_at)));
+      if(record.status==="pending"&&staffCache.is_admin){
+        const group=el("div","sb-appeal-assignment-actions");
+        const select=el("select");
+        select.setAttribute("aria-label","Elegir administrador o moderador responsable");
+        select.add(new Option("Sin asignar",""));
+        for(const member of staffCache.staff_members||[]){
+          const kind=member.role==="moderator"?"Moderador":"Administrador";
+          select.add(new Option(name(member.user_id)+" · "+kind,member.user_id));
+        }
+        select.value=record.assigned_to||"";
+        const save=el("button","admin-secondary mini","💾 Guardar responsable");
+        save.type="button";
+        const note=el("span","sb-appeal-assign-status");note.setAttribute("role","status");
+        save.onclick=async()=>{
+          const target=select.value||null;
+          if(target===(record.assigned_to||null))return;
+          if(!confirm("¿Guardar el responsable de esta apelación? El cambio quedará en el historial."))return;
+          save.disabled=true;feedback(note,"Guardando asignación…");
+          try{
+            await invoke({action:"assign",appeal_id:record.id,assigned_to:target});
+            feedback(note,"✅ Responsable actualizado.");
+            await loadStaff(panel,staffCache.page||0);
+          }catch(error){feedback(note,error.message,true);save.disabled=false;}
+        };
+        group.append(select,save,note);
+        assignment.append(group);
+      }else if(record.status==="pending"){
+        assignment.append(el("small","",
+          "Los responsables los asigna un administrador."));
+      }
+      card.append(assignment);
+      const exportRow=el("div","sb-appeal-export-row");
+      const exportButton=el("button","outline-btn mini","📄 Exportar expediente completo a PDF");
+      exportButton.type="button";
+      const exportStatus=el("span","sb-appeal-export-status");
+      exportStatus.setAttribute("role","status");
+      exportButton.onclick=async()=>{
+        exportButton.disabled=true;
+        feedback(exportStatus,"Preparando el historial completo…");
+        try{
+          const data=await invoke({action:"case_export",appeal_id:record.id});
+          if(!window.SBAppealsPDF?.download)throw new Error("El exportador PDF no está disponible. Actualiza la aplicación.");
+          const size=window.SBAppealsPDF.download(data.document);
+          feedback(exportStatus,"✅ Archivo PDF generado ("+Math.ceil(size/1024)+" KB). Contiene datos privados.");
+        }catch(error){feedback(exportStatus,error.message,true);}finally{exportButton.disabled=false;}
+      };
+      exportRow.append(exportButton,exportStatus);
+      card.append(exportRow);
       if(record.status==="pending"&&Date.now()-Date.parse(record.created_at)>24*3600000)
         card.append(el("p","sb-appeal-overdue","⏰ Más de 24 horas esperando revisión"));
       if(record.status==="pending"){
@@ -423,24 +506,81 @@
           <p>Revisa las solicitudes de los miembros. Cada decisión exige un motivo y queda registrada.</p>
         </div><button id="sb-appeals-reload" class="admin-secondary" type="button">🔄 Actualizar</button>
       </div>
-      <div class="sb-appeals-controls"><label for="sb-appeals-filter">Mostrar apelaciones</label>
-        <select id="sb-appeals-filter">
-          <option value="pending">Pendientes</option><option value="all">Todas</option>
-          <option value="accepted">Aceptadas</option><option value="rejected">Rechazadas</option>
-        </select></div>
+      <div class="sb-appeals-advanced-filters" role="search" aria-label="Buscar y filtrar apelaciones">
+        <label>Estado
+          <select id="sb-appeals-filter">
+            <option value="pending">Pendientes</option>
+            <option value="all">Todas</option>
+            <option value="accepted">Aceptadas</option>
+            <option value="rejected">Rechazadas</option>
+          </select>
+        </label>
+        <label>Buscar miembro
+          <input type="search" id="sb-appeals-search" maxlength="80"
+            placeholder="Nombre, usuario o ID" autocomplete="off">
+        </label>
+        <label>Desde
+          <input type="date" id="sb-appeals-from">
+        </label>
+        <label>Hasta
+          <input type="date" id="sb-appeals-to">
+        </label>
+        <label>Asignación
+          <select id="sb-appeals-assigned-filter">
+            <option value="all">Todos los responsables</option>
+            <option value="unassigned">Sin asignar</option>
+            <option value="mine">Asignadas a mí</option>
+          </select>
+        </label>
+        <div class="sb-appeals-filter-actions">
+          <button id="sb-appeals-apply" class="gradient-btn mini" type="button">🔍 Buscar</button>
+          <button id="sb-appeals-clear" class="outline-btn mini" type="button">Limpiar filtros</button>
+        </div>
+      </div>
       <h3>📊 Estadísticas de apelaciones</h3>
       <div id="sb-appeal-statistics" class="sb-appeal-statistics" aria-live="polite">Cargando estadísticas…</div>
       <p class="sb-appeal-hint">Las solicitudes pendientes durante más de 24 horas generan un aviso automático para el equipo.</p>
       <p id="sb-appeals-staff-status" role="status" aria-live="polite"></p>
       <div id="sb-appeals-staff-list" class="sb-appeals-stack">Cargando…</div>
+      <nav class="sb-appeals-pagination" aria-label="Páginas de apelaciones">
+        <button id="sb-appeals-previous" class="outline-btn mini" type="button" disabled>Anterior</button>
+        <span id="sb-appeals-page-info">Página 1</span>
+        <button id="sb-appeals-next" class="outline-btn mini" type="button" disabled>Siguiente</button>
+      </nav>
     `;
     const sanction=dashboard.querySelector("#sb-sanction-panel");
     const welcome=dashboard.querySelector(".admin-welcome");
     if(sanction)sanction.after(panel);
     else if(welcome)welcome.after(panel);
     else dashboard.prepend(panel);
-    panel.querySelector("#sb-appeals-filter").addEventListener("change",()=>drawStaff(panel));
-    panel.querySelector("#sb-appeals-reload").addEventListener("click",()=>loadStaff(panel));
+    const filter=selector=>panel.querySelector(selector);
+    const loadFirst=()=>loadStaff(panel,0);
+    filter("#sb-appeals-filter").addEventListener("change",loadFirst);
+    filter("#sb-appeals-assigned-filter").addEventListener("change",loadFirst);
+    filter("#sb-appeals-apply").addEventListener("click",loadFirst);
+    filter("#sb-appeals-search").addEventListener("keydown",event=>{
+      if(event.key==="Enter"){event.preventDefault();loadFirst();}
+    });
+    for(const id of ["#sb-appeals-from","#sb-appeals-to"])
+      filter(id).addEventListener("change",loadFirst);
+    filter("#sb-appeals-clear").addEventListener("click",()=>{
+      filter("#sb-appeals-filter").value="pending";
+      filter("#sb-appeals-search").value="";
+      filter("#sb-appeals-from").value="";
+      filter("#sb-appeals-to").value="";
+      filter("#sb-appeals-assigned-filter").value="all";
+      loadFirst();
+    });
+    filter("#sb-appeals-previous").addEventListener("click",()=>{
+      if(staffCache?.page>0)void loadStaff(panel,staffCache.page-1);
+    });
+    filter("#sb-appeals-next").addEventListener("click",()=>{
+      if(staffCache && (staffCache.page+1)*staffCache.per_page<staffCache.total)
+        void loadStaff(panel,staffCache.page+1);
+    });
+    filter("#sb-appeals-reload").addEventListener("click",()=>{
+      loadStaff(panel,staffCache?.page||0);
+    });
     await loadStaff(panel);
     const focus=new URLSearchParams(location.hash.split("?")[1]||"").get("focus");
     if(focus==="appeals"&&panel.isConnected)panel.scrollIntoView({block:"start",behavior:"smooth"});
