@@ -92,7 +92,7 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
   if (!/^[0-9a-f-]{36}$/i.test(id)) return 0;
   if (type==='member_notifications') {
     const {data:n,error}=await admin.from('member_notifications')
-      .select('id,recipient_id,kind,actor_id,game_id,news_id,news_comment_id,post_id,poll_id,tournament_id,trophy_month,season_month,museum_month').eq('id',id).maybeSingle();
+      .select('id,recipient_id,kind,actor_id,game_id,news_id,news_comment_id,post_id,poll_id,tournament_id,trophy_month,season_month,museum_month,competition_id').eq('id',id).maybeSingle();
     if (error || !n) return 0;
     const kinds:Record<string,[string,string,string]> = {
       follow:['👤 Nuevo seguidor','Una persona ha comenzado a seguirte.','#/notificaciones'],
@@ -116,7 +116,11 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       poll_museum_prize:['🏛️ Premio del museo','Has ganado un premio mensual del Museo de trofeos.','#/encuestas'],
       tournament_full:['🎟️ Torneo completo','El torneo ya tiene todas sus plazas ocupadas.','#/tienda'],
       tournament_match:['⚔️ Nuevo enfrentamiento','Tienes un nuevo enfrentamiento en un torneo.','#/tienda'],
-      tournament_finished:['🏆 Torneo finalizado','Consulta los resultados y tus premios.','#/tienda']
+      tournament_finished:['🏆 Torneo finalizado','Consulta los resultados y tus premios.','#/tienda'],
+      competition_published:['📢 Nuevo reto o torneo','Se ha publicado una competición. Ya puedes inscribirte.','#/comunidad'],
+      competition_start:['⏰ Tu torneo comienza pronto','Tu reto o torneo comenzará en las próximas 24 horas.','#/comunidad'],
+      competition_mission_reminder:['🎯 Misión pendiente','Tienes una competición activa que todavía puedes completar.','#/comunidad?legends=missions'],
+      competition_medal:['🏅 Medalla conseguida','Has ganado una medalla en una competición.','#/comunidad?legends=champions']
     };
     let info=kinds[n.kind] || ['🔔 Nueva notificación','Tienes novedades en Shadows Byte Gaming.','#/notificaciones'];
     if (['game_like','game_comment','game_reply'].includes(n.kind) && n.game_id) info[2]='#/perfil?id='+encodeURIComponent(n.recipient_id)+'&game='+encodeURIComponent(n.game_id);
@@ -128,6 +132,8 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     }
     if ((n.kind==='poll'||n.kind==='poll_reminder') && n.poll_id) info[2]='#/encuestas?poll='+encodeURIComponent(n.poll_id);
     if (['tournament_full','tournament_match','tournament_finished'].includes(n.kind) && n.tournament_id) info[2]='#/tienda?tournament='+encodeURIComponent(n.tournament_id);
+    if (['competition_published','competition_start','competition_medal'].includes(n.kind) && n.competition_id)
+      info[2]='#/comunidad?competition='+encodeURIComponent(n.competition_id);
     if (n.kind==='poll_season_prize' && n.season_month) info[2]='#/encuestas?temporada='+encodeURIComponent(n.season_month);
     if (n.kind==='poll_museum_prize' && n.museum_month) info[2]='#/encuestas?museo='+encodeURIComponent(n.museum_month);
     if (n.kind==='poll_trophy_like' && n.trophy_month) info[2]='#/cuenta?trofeo='+encodeURIComponent(n.trophy_month);
@@ -255,8 +261,12 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     }
     const {data:row,error}=await query.maybeSingle();
     if(error || !row)return 0;
+    const medalPlace=Number(extra.place);
+    const medalTitle=medalPlace===1?'🥇 ¡Medalla de oro ganada!':medalPlace===2?'🥈 ¡Medalla de plata ganada!':medalPlace===3?'🥉 ¡Medalla de bronce ganada!':'🏅 Premio de competición';
     return notifyUser(row.user_id,{
-      title:award.title,body:award.body,path:award.path,
+      title:type==='community_competition_awards'?medalTitle:award.title,
+      body:type==='community_competition_awards'?'Has conseguido una medalla oficial. Consulta tu podio y tus trofeos.':award.body,
+      path:award.path,
       tag:'award-'+type+'-'+id+'-'+award.keys.map(key=>String(extra[key])).join('-').slice(0,90)
     });
   }
