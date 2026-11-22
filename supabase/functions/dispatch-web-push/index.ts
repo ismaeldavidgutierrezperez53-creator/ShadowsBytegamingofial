@@ -169,9 +169,15 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     if(error || !notice)return 0;
     const info=notice.kind==='submitted'
       ? {title:'⚖️ Nueva apelación pendiente',body:'Un miembro ha solicitado revisar una sanción.',path:'#/admin?focus=appeals'}
+      : notice.kind==='overdue'
+      ? {title:'⏰ Apelación sin revisar tras 24 horas',body:'Hay una apelación pendiente desde hace más de 24 horas.',path:'#/admin?focus=appeals'}
+      : notice.kind==='message_to_staff'
+      ? {title:'💬 Mensaje de apelación',body:'Un miembro ha enviado un nuevo mensaje a moderación.',path:'#/admin?focus=appeals'}
+      : notice.kind==='message_to_member'
+      ? {title:'💬 Respuesta de moderación',body:'Tienes un nuevo mensaje sobre tu apelación.',path:'#/cuenta'}
       : notice.kind==='accepted'
-      ? {title:'✅ Apelación aceptada',body:'El equipo ha aceptado tu apelación. Consulta la resolución.',path:'#/apelaciones'}
-      : {title:'⚖️ Apelación revisada',body:'Se ha rechazado tu apelación. Consulta los detalles.',path:'#/apelaciones'};
+      ? {title:'✅ Apelación aceptada',body:'El equipo ha aceptado tu apelación. Consulta la resolución.',path:'#/cuenta'}
+      : {title:'⚖️ Apelación revisada',body:'Se ha rechazado tu apelación. Consulta los detalles.',path:'#/cuenta'};
     return notifyUser(notice.recipient_id,{...info,tag:'appeal-'+notice.id});
   }
   if (type==='member_report_notifications') {
