@@ -307,6 +307,35 @@ Deno.serve(async req => {
     if(eventError||appealError)return reply({error:"No se pudieron cargar tus apelaciones"},500);
     return reply({events:events||[],appeals:appeals||[]});
   }
+  if(action==="my_history"){
+    // Historial privado y paginado. El miembro se obtiene exclusivamente del JWT verificado.
+    const filter=String(body.status||"all");
+    const focusAppeal=String(body.appeal_id||"").trim();
+    if(!["all","pending","accepted","rejected"].includes(filter) ||
+      (focusAppeal && !idPattern.test(focusAppeal)))
+      return reply({error:"Filtro de historial inválido"},400);
+    const perPage=10;
+    const page=Number.isSafeInteger(body.page) && Number(body.page)>=0
+      ?Math.min(Number(body.page),9999):0;
+    let query=db.from("member_sanction_appeals")
+      .select("id,sanction_event_id,reason,status,review_note,created_at,reviewed_at",{count:"exact"})
+      .eq("member_id",viewer.id)
+      .order("created_at",{ascending:false}).order("id",{ascending:false});
+    if(focusAppeal)query=query.eq("id",focusAppeal);
+    else if(filter!=="all")query=query.eq("status",filter);
+    const start=focusAppeal?0:page*perPage;
+    const {data:history,error:historyError,count}=await query.range(start,start+(focusAppeal?0:perPage-1));
+    if(historyError)return reply({error:"No se pudo consultar tu historial de apelaciones"},500);
+    const sanctionIds=[...new Set((history||[]).map(a=>a.sanction_event_id))];
+    const {data:sanctions,error:sanctionError}=sanctionIds.length
+      ?await db.from("member_moderation_events")
+        .select("id,action,reason,created_at,expires_at")
+        .eq("target_id",viewer.id).in("id",sanctionIds)
+      :{data:[],error:null};
+    if(sanctionError)return reply({error:"No se pudieron cargar los expedientes vinculados"},500);
+    return reply({history:history||[],sanctions:sanctions||[],total:count||0,
+      page:focusAppeal?0:page,per_page:perPage,focused:!!focusAppeal});
+  }
   if(action==="submit"){
     if(!Number.isSafeInteger(eventId)||eventId<1)return reply({error:"Selecciona una sanción"},400);
     if(reason.length<15||reason.length>1500)return reply({error:"Explica tu apelación en 15–1500 caracteres"},400);

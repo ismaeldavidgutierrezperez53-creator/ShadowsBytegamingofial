@@ -292,29 +292,141 @@
     }
   }
 
+  // Historial integral: utiliza el mismo control de acceso del backend que el chat de apelaciones.
+  async function mountHistory(panel){
+    if(panel.querySelector("#sb-appeals-history"))return;
+    const history=el("section","sb-appeals-history");
+    history.id="sb-appeals-history";
+    const title=el("h3","","📜 Historial completo de apelaciones");
+    const intro=el("p","sb-appeal-hint","Consulta solicitudes, fechas, decisiones y conversaciones anteriores.");
+    const controls=el("div","sb-appeals-history-controls");
+    const label=el("label","","Estado");
+    const filter=el("select","sb-appeals-history-filter");
+    filter.setAttribute("aria-label","Filtrar historial de apelaciones por estado");
+    for(const [key,name] of [
+      ["all","Todas"],["pending","Pendientes"],["accepted","Aceptadas"],["rejected","Rechazadas"]
+    ]){
+      const option=el("option","",name);option.value=key;filter.append(option);
+    }
+    label.append(filter);
+    const all=el("button","outline-btn mini","Ver todas");
+    all.type="button";all.hidden=true;
+    controls.append(label,all);
+    const summary=el("p","sb-appeals-history-summary","Cargando historial…");
+    summary.setAttribute("role","status");
+    const list=el("div","sb-appeals-history-list");
+    const paging=el("nav","sb-appeals-history-pagination");
+    paging.setAttribute("aria-label","Páginas del historial de apelaciones");
+    const prev=el("button","outline-btn mini","Anterior");
+    const next=el("button","outline-btn mini","Siguiente");
+    prev.type=next.type="button";
+    const pages=el("span","","");
+    paging.append(prev,pages,next);
+    history.append(title,intro,controls,summary,list,paging);
+    panel.insertBefore(history,panel.querySelector(".sb-appeals-eligible-heading")||panel.querySelector(".sb-appeals-stack"));
+    const hashParams=new URLSearchParams(location.hash.split("?")[1]||"");
+    let focused=hashParams.get("focus")==="appeals" ? hashParams.get("appeal")||"" : "";
+    let currentPage=0,requestSeq=0;
+    const load=async()=>{
+      const seq=++requestSeq;
+      summary.textContent="Cargando historial…";
+      prev.disabled=next.disabled=true;
+      try{
+        const payload={action:"my_history",status:filter.value,page:currentPage};
+        if(focused)payload.appeal_id=focused;
+        const result=await invoke(payload);
+        if(!history.isConnected||seq!==requestSeq)return;
+        list.replaceChildren();
+        const records=result.history||[];
+        const sanctions=new Map((result.sanctions||[]).map(s=>[s.id,s]));
+        all.hidden=!focused;
+        if(!records.length){
+          const empty=el("p","sb-appeals-history-empty",
+            focused?"Este expediente no está disponible en tu historial.":
+            filter.value==="all"?"Todavía no has presentado ninguna apelación.":
+            "No hay apelaciones con este estado.");
+          list.append(empty);
+        }
+        for(const record of records){
+          const card=el("article","sb-appeals-history-card");
+          card.dataset.appealId=record.id;
+          card.dataset.status=record.status;
+          card.tabIndex=-1;
+          const sanction=sanctions.get(record.sanction_event_id);
+          const top=el("div","sb-appeals-history-top");
+          const kind=el("strong","",kinds[sanction?.action]||"Sanción");
+          const state=el("span","sb-appeals-history-state",outcomes[record.status]||record.status);
+          top.append(kind,state);
+          card.append(top,
+            el("p","","📅 Solicitud enviada: "+date(record.created_at)),
+            el("p","","📝 Tu explicación: "+record.reason));
+          if(sanction){
+            card.append(el("p","","📌 Motivo original: "+sanction.reason));
+          }
+          if(record.status==="pending"){
+            card.append(el("p","sb-appeal-hint","Pendiente de revisión por el equipo."));
+          }else{
+            card.append(el("p","","🗓️ Resolución: "+date(record.reviewed_at)));
+            card.append(el("p","sb-appeal-review-note",
+              "🛡️ Respuesta del equipo: "+(record.review_note||"Sin explicación registrada")));
+          }
+          card.append(threadPanel(record.id));
+          list.append(card);
+        }
+        const total=result.total||0,perPage=result.per_page||10;
+        const totalPages=Math.max(1,Math.ceil(total/perPage));
+        summary.textContent=focused?"Mostrando el expediente seleccionado.":total+
+          " apelación"+(total===1?"":"es")+" · "+(filter.options[filter.selectedIndex]?.textContent||"Todas");
+        pages.textContent=focused?"Expediente seleccionado":"Página "+(result.page+1)+" de "+totalPages;
+        paging.hidden=!!focused||total===0;
+        prev.disabled=!!focused||currentPage===0;
+        next.disabled=!!focused||(currentPage+1)*perPage>=total;
+        if(focused&&records.length){
+          requestAnimationFrame(()=>{
+            const target=list.querySelector("[data-appeal-id]");
+            if(target?.isConnected){
+              target.scrollIntoView({block:"center",behavior:"smooth"});
+              target.focus({preventScroll:true});
+            }
+          });
+        }
+      }catch(error){
+        if(!history.isConnected||seq!==requestSeq)return;
+        summary.textContent="No se pudo cargar el historial: "+error.message;
+        paging.hidden=true;
+      }
+    };
+    filter.onchange=()=>{focused="";currentPage=0;void load();};
+    all.onclick=()=>{focused="";currentPage=0;filter.value="all";void load();};
+    prev.onclick=()=>{if(currentPage>0){currentPage--;void load();}};
+    next.onclick=()=>{currentPage++;void load();};
+    await load();
+  }
+
   async function mountAccount(){
     const page=document.querySelector(".sb-account-page");
     if(!page||document.getElementById("sb-my-appeals"))return;
     const panel=el("section","section sb-appeals-account");
     panel.id="sb-my-appeals";
     panel.append(el("h2","", "🛡️ Mis apelaciones"),el("p","","Puedes solicitar una revisión y consultar la decisión del equipo."));
+    const eligibleHeading=el("h3","sb-appeals-eligible-heading","⚖️ Solicitar una apelación");
     const content=el("div","sb-appeals-stack","Cargando tus sanciones apelables…");
-    panel.append(content);
+    panel.append(eligibleHeading,content);
     page.append(panel);
     try{
       const result=await invoke({action:"my_list"});
       if(!panel.isConnected)return;
       const appeals=new Map((result.appeals||[]).map(a=>[a.sanction_event_id,a]));
       content.replaceChildren();
-      const events=(result.events||[]).filter(event=>usable(event)||appeals.has(event.id));
+      const events=(result.events||[]).filter(event=>usable(event)&&!appeals.has(event.id));
       if(!events.length){
         const empty=el("div","sb-appeals-empty");
         const icon=el("span","sb-appeals-empty-icon","✓");
         icon.setAttribute("aria-hidden","true");
         const copy=el("div","sb-appeals-empty-copy");
         copy.append(
-          el("h3","","No tienes sanciones que puedas apelar ahora"),
-          el("p","","Si recibes una sanción apelable, aparecerá aquí con la opción de solicitar una revisión.")
+          el("h3","","No tienes sanciones pendientes de apelación"),
+          el("p","","Si recibes una sanción apelable, aparecerá aquí. Tus solicitudes anteriores se conservan en el historial.")
         );
         empty.append(icon,copy);
         content.append(empty);
@@ -362,6 +474,7 @@
     }catch(error){
       content.textContent="No se pudieron cargar las apelaciones: "+error.message;
     }
+    await mountHistory(panel);
     const focusParams=new URLSearchParams(location.hash.split("?")[1]||"");
     if(focusParams.get("focus")==="appeals"){
       requestAnimationFrame(()=>{
