@@ -2066,6 +2066,7 @@ async function loadPublicMemberProfile(){
   }
  }).catch(()=>{if(showcaseList.isConnected)showcaseList.textContent='No se pudieron cargar las insignias.'});
  content.append(earnedPanel);
+ window.SBCompetitionLegends?.mountProfileTrophies(content,member.id);
  window.SBPollSeasonExtras?.mountProfileTrophies(content,member.id,{own:false});
  window.SBPollTrophyMuseum?.mount(content,member.id,{own:false});
  window.SBProfileNow?.mount(content,member.id,{own:false});
