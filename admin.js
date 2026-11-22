@@ -1536,6 +1536,198 @@ async function adminInitSurpriseBoxes(){
   grid.append(form);
  }
  root.insertBefore(config,previews);
+ await adminInitSurpriseBoxAnalytics(root,tiers.data||[]);
 }
+
+async function adminInitSurpriseBoxAnalytics(root,tiers){
+ const section=document.createElement('section');
+ section.className='sb-surprise-stats';
+ section.id='sb-surprise-stats';
+ section.setAttribute('aria-labelledby','sb-surprise-stats-heading');
+ const create=(tag,cls,content)=>{
+  const e=document.createElement(tag);
+  if(cls)e.className=cls;
+  if(content!==undefined)e.textContent=String(content);
+  return e;
+ };
+ const heading=create('div','sb-surprise-stats__heading');
+ const title=create('h3',null,'📊 Historial de aperturas y estadísticas');
+ title.id='sb-surprise-stats-heading';
+ const subtitle=create('p',null,'Consulta las cajas enviadas, las que se han abierto y los premios revelados.');
+ heading.append(title,subtitle);
+ const filters=create('div','sb-surprise-stats__filters');
+ const makeSelect=(labelText,options)=>{
+  const label=create('label','sb-surprise-stats__field');
+  const span=create('span',null,labelText);
+  const select=document.createElement('select');
+  for(const [value,name] of options){
+   const option=document.createElement('option');option.value=value;option.textContent=name;select.append(option);
+  }
+  label.append(span,select);filters.append(label);return select;
+ };
+ const tierSelect=makeSelect('Caja',[['','Todas las cajas'],...tiers.map(t=>[t.tier,t.name])]);
+ const periodSelect=makeSelect('Periodo',[['','Todo el historial'],['7','Últimos 7 días'],['30','Últimos 30 días'],['90','Últimos 90 días']]);
+ const statusSelect=makeSelect('Estado en el historial',[['all','Todas'],['opened','Abiertas'],['pending','Pendientes']]);
+ const refresh=create('button','sb-surprise-stats__refresh','↻ Actualizar');
+ refresh.type='button';
+ filters.append(refresh);
+ const note=create('p','sb-surprise-stats__note',
+  'El periodo se calcula desde el envío de cada caja. Los totales incluyen abiertas y pendientes; el filtro de estado se aplica al historial. Un premio cuenta como revelado al abrirse el regalo.');
+ const feedback=create('p','sb-surprise-stats__feedback','Cargando estadísticas…');
+ feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+ const kpis=create('div','sb-surprise-stats__kpis');
+ const breakdown=create('div','sb-surprise-stats__breakdown');
+ const prizeHeading=create('h4',null,'🏆 Premios revelados con más frecuencia');
+ const boxHeading=create('h4',null,'🎁 Estadísticas por caja');
+ const prizes=create('div','sb-surprise-stats__prizes');
+ const boxes=create('div','sb-surprise-stats__boxes');
+ const rankings=create('div','sb-surprise-stats__rankings');
+ const prizeGroup=create('section','sb-surprise-stats__rank');
+ prizeGroup.append(prizeHeading,prizes);
+ const boxGroup=create('section','sb-surprise-stats__rank');
+ boxGroup.append(boxHeading,boxes);
+ rankings.append(boxGroup,prizeGroup);
+ const history=create('section','sb-surprise-stats__history');
+ const historyTitle=create('h4',null,'📜 Historial de cajas enviadas');
+ const historyHint=create('p','sb-surprise-stats__note','Los premios de las cajas pendientes se mantienen ocultos hasta su apertura.');
+ const tableWrap=create('div','sb-surprise-stats__table-scroll');
+ const table=create('table','sb-surprise-stats__table');
+ const tableHead=document.createElement('thead');
+ const headerRow=document.createElement('tr');
+ for(const name of ['Enviada','Caja','Premio','De','Para','Estado','Puntos']){
+  const th=document.createElement('th');th.scope='col';th.textContent=name;headerRow.append(th);
+ }
+ tableHead.append(headerRow);
+ const tableBody=document.createElement('tbody');
+ table.append(tableHead,tableBody);
+ tableWrap.append(table);
+ const pager=create('div','sb-surprise-stats__pager');
+ const prev=create('button',null,'← Anterior');
+ prev.type='button';
+ const pageLabel=create('span',null,'Página 1');
+ const next=create('button',null,'Siguiente →');
+ next.type='button';
+ pager.append(prev,pageLabel,next);
+ history.append(historyTitle,historyHint,tableWrap,pager);
+ section.append(heading,filters,note,feedback,kpis,rankings,history);
+ root.querySelector('.sb-surprise-admin__configuration').after(section);
+
+ const number=v=>Number(v||0).toLocaleString('es-ES');
+ const formatDate=value=>{
+  if(!value)return '—';
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?'—':date.toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
+ };
+ const empty=(target,message)=>{target.replaceChildren(create('p','sb-surprise-stats__empty',message));};
+ let page=0,requestNumber=0;
+ const pageSize=25;
+ const row=(label,value)=>{
+  const stat=create('article','sb-surprise-stats__kpi');
+  stat.append(create('span',null,label),create('strong',null,number(value)));
+  return stat;
+ };
+ const show=payload=>{
+  const summary=payload?.summary||{};
+  kpis.replaceChildren(
+   row('📦 Cajas enviadas',summary.sent),
+   row('🎉 Cajas abiertas',summary.opened),
+   row('⏳ Pendientes',summary.pending),
+   row('🪙 Puntos utilizados',summary.points),
+   row('👤 Destinatarios',summary.recipients)
+  );
+  boxes.replaceChildren();
+  const byBox=Array.isArray(payload?.by_box)?payload.by_box:[];
+  if(!byBox.length)empty(boxes,'Todavía no hay cajas enviadas para estos filtros.');
+  for(const box of byBox){
+   const item=create('div','sb-surprise-stats__bar-item');
+   const line=create('div','sb-surprise-stats__bar-head');
+   line.append(create('span',null,box.name||box.tier),create('strong',null,number(box.opened)+' / '+number(box.sent)+' abiertas'));
+   const track=create('div','sb-surprise-stats__track');
+   const fill=create('div','sb-surprise-stats__fill');
+   fill.style.width=(box.sent>0?100*Number(box.opened)/Number(box.sent):0)+'%';
+   track.append(fill);
+   item.append(line,track,create('small',null,number(box.pending)+' pendientes'));
+   boxes.append(item);
+  }
+  prizes.replaceChildren();
+  const top=Array.isArray(payload?.top_prizes)?payload.top_prizes:[];
+  if(!top.length)empty(prizes,'Aún no hay premios revelados en cajas abiertas.');
+  for(const prize of top){
+   const item=create('div','sb-surprise-stats__prize');
+   item.append(create('span',null,prize.name||'Recompensa'),create('strong',null,number(prize.opens)+' aperturas'));
+   prizes.append(item);
+  }
+  const list=Array.isArray(payload?.history)?payload.history:[];
+  tableBody.replaceChildren();
+  if(!list.length){
+   const tr=document.createElement('tr');
+   const td=document.createElement('td');td.colSpan=7;td.className='sb-surprise-stats__no-rows';
+   td.textContent='No hay regalos de cajas misteriosas con estos filtros.';
+   tr.append(td);tableBody.append(tr);
+  }
+  for(const item of list){
+   const tr=document.createElement('tr');
+   const opened=!!item.opened_at;
+   const values=[
+    formatDate(item.created_at),
+    item.box_name||item.tier||'Caja',
+    opened?(item.item_name||'Recompensa'):'🔒 Sin revelar',
+    item.sender_name||'Miembro',
+    item.recipient_name||'Miembro',
+    opened?'✓ Abierta: '+formatDate(item.opened_at):'⏳ Pendiente',
+    number(item.price_paid)
+   ];
+   for(let i=0;i<values.length;i++){
+    const td=document.createElement('td');td.textContent=String(values[i]);
+    if(i===5)td.className=opened?'sb-surprise-stats__opened':'sb-surprise-stats__pending';
+    tr.append(td);
+   }
+   tableBody.append(tr);
+  }
+  const total=Math.max(0,Number(payload?.history_total||0));
+  const totalPages=Math.max(1,Math.ceil(total/pageSize));
+  pageLabel.textContent='Página '+(page+1)+' de '+totalPages+' · '+number(total)+' registros';
+  prev.disabled=page===0;
+  next.disabled=(page+1)*pageSize>=total;
+  pager.hidden=total<=pageSize;
+ };
+ const load=async()=>{
+  const request=++requestNumber;
+  refresh.disabled=true;
+  prev.disabled=true;next.disabled=true;
+  feedback.textContent='Cargando estadísticas…';
+  delete feedback.dataset.type;
+  try{
+   const args={
+    p_tier:tierSelect.value||null,
+    p_days:periodSelect.value?Number(periodSelect.value):null,
+    p_status:statusSelect.value,
+    p_limit:pageSize,p_offset:page*pageSize
+   };
+   const {data,error}=await sb.rpc('admin_surprise_box_analytics',args);
+   if(request!==requestNumber||!section.isConnected)return;
+   if(error)throw error;
+   show(data);
+   feedback.textContent='Datos actualizados.';
+   feedback.dataset.type='success';
+  }catch(error){
+   if(request!==requestNumber||!section.isConnected)return;
+   feedback.textContent='No se pudieron cargar las estadísticas: '+(error.message||'Error desconocido');
+   feedback.dataset.type='error';
+   kpis.replaceChildren();rankings.hidden=true;
+   empty(tableBody,'No se pudo cargar el historial.');
+  }finally{
+   if(request===requestNumber&&section.isConnected)refresh.disabled=false;
+  }
+ };
+ for(const select of [tierSelect,periodSelect,statusSelect]){
+  select.addEventListener('change',()=>{page=0;rankings.hidden=false;load()});
+ }
+ refresh.addEventListener('click',()=>{rankings.hidden=false;load()});
+ prev.addEventListener('click',()=>{if(page>0){page--;load()}});
+ next.addEventListener('click',()=>{page++;load()});
+ await load();
+}
+
 const previousAdminInitRewardShop=adminInitRewardShop;
 adminInitRewardShop=async function(){await previousAdminInitRewardShop();await adminInitSurpriseBoxes()};
