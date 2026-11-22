@@ -171,6 +171,8 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       ? {title:'⚖️ Nueva apelación pendiente',body:'Un miembro ha solicitado revisar una sanción.',path:'#/admin?focus=appeals'}
       : notice.kind==='overdue'
       ? {title:'⏰ Apelación sin revisar tras 24 horas',body:'Hay una apelación pendiente desde hace más de 24 horas.',path:'#/admin?focus=appeals'}
+      : notice.kind==='assigned'
+      ? {title:'👑 Te han asignado una apelación',body:'Tienes una apelación asignada para revisar en el panel de moderación.',path:'#/admin?focus=appeals'}
       : notice.kind==='message_to_staff'
       ? {title:'💬 Mensaje de apelación',body:'Un miembro ha enviado un nuevo mensaje a moderación.',path:'#/admin?focus=appeals'}
       : notice.kind==='message_to_member'
