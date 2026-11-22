@@ -345,3 +345,166 @@
  border:1px dashed rgba(191,159,227,.4);
  border-radius:10px;
 }
+
+/* Misiones especiales, recompensas de temporada y eventos de campeones 2026-11-22 */
+#community-competitions .sb-special-missions-heading {
+ display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;
+ gap:8px 16px;margin:8px 0 13px;
+}
+#community-competitions .sb-special-missions-heading h4 {
+ margin:0;color:#f9eaff;font-size:clamp(19px,2.4vw,24px);line-height:1.3;
+}
+#community-competitions .sb-special-missions-heading>span {
+ border:1px solid rgba(188,142,242,.36);border-radius:999px;
+ padding:7px 12px;background:rgba(111,72,167,.2);
+ color:#f2d7ff;font-weight:700;font-variant-numeric:tabular-nums;
+}
+#community-competitions .sb-season-rewards-grid {
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));
+ gap:13px;margin-top:16px;
+}
+#community-competitions .sb-season-reward-card {
+ display:flex;flex-direction:column;gap:9px;min-width:0;
+ padding:17px;border:1px solid rgba(169,132,219,.37);
+ border-radius:15px;background:linear-gradient(135deg,#261c3e,#171429);
+}
+#community-competitions .sb-season-reward-card.is-earned {
+ border-color:rgba(231,196,113,.58);
+ background:radial-gradient(circle at 50% 0%,rgba(203,165,89,.17),transparent 75%),#241b34;
+}
+#community-competitions .sb-season-reward-card.is-pending {opacity:.9}
+#community-competitions .sb-season-reward-icon {font-size:29px}
+#community-competitions .sb-season-reward-card>strong {
+ color:#f4e9ff;font-size:17px;line-height:1.2;
+}
+#community-competitions .sb-season-reward-card>p {
+ margin:0;color:#d3c5e2;font-size:14px;line-height:1.35;
+ min-height:37px;
+}
+#community-competitions .sb-season-reward-progress {
+ width:100%;height:10px;border:0;overflow:hidden;border-radius:99px;
+ background:#3e3159;accent-color:#b684f4;
+}
+#community-competitions .sb-season-reward-progress::-webkit-progress-bar {
+ background:#3e3159;border-radius:99px;
+}
+#community-competitions .sb-season-reward-progress::-webkit-progress-value {
+ border-radius:99px;background:linear-gradient(90deg,#a85fd6,#eec180);
+}
+#community-competitions .sb-season-reward-progress::-moz-progress-bar {
+ border-radius:99px;background:linear-gradient(90deg,#a85fd6,#eec180);
+}
+#community-competitions .sb-season-reward-card>small {color:#c7b6d8}
+#community-competitions .sb-season-reward-state {
+ margin-top:auto;color:#d5bcf1;font-size:13px;font-weight:700;
+}
+#community-competitions .sb-season-reward-card.is-earned .sb-season-reward-state {
+ color:#f5d899;
+}
+#community-competitions .sb-exclusive-intro {
+ margin:0 0 12px;color:#d4c4e4;line-height:1.5;
+}
+#community-competitions .sb-exclusive-toolbar {
+ display:flex;flex-wrap:wrap;gap:9px;
+}
+#community-competitions .sb-exclusive-status,
+#admin-competitions-management .sb-exclusive-status {
+ color:#e6c9f7;font-size:14px;line-height:1.5;
+ min-height:18px;overflow-wrap:anywhere;
+}
+#community-competitions .sb-exclusive-list {
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:13px;
+ margin-top:13px;
+}
+#community-competitions .sb-exclusive-card {
+ display:flex;flex-direction:column;gap:10px;min-width:0;
+ padding:17px;border:1px solid rgba(201,151,255,.39);
+ border-radius:14px;background:linear-gradient(150deg,#2f1f4b,#191429);
+}
+#community-competitions .sb-exclusive-card h4 {
+ margin:0;color:#f7ebff;font-size:19px;overflow-wrap:anywhere;
+}
+#community-competitions .sb-exclusive-card p {margin:0;color:#d6c5e4;line-height:1.4}
+#community-competitions .sb-exclusive-date {font-size:14px}
+#community-competitions .sb-exclusive-chip,
+#admin-competitions-management .sb-exclusive-chip {
+ align-self:flex-start;display:inline-flex;padding:5px 10px;
+ border:1px solid rgba(204,158,247,.42);border-radius:999px;
+ color:#f3d7ff;background:rgba(121,74,185,.21);font-weight:700;font-size:13px;
+}
+#community-competitions .sb-exclusive-action {
+ width:100%;min-height:44px;margin-top:auto;padding:9px 13px;
+ border:1px solid rgba(201,156,244,.52);border-radius:11px;
+ background:linear-gradient(115deg,#7538ba,#405aa8);
+ color:#fff;font:700 16px/1.3 Rajdhani,Arial,sans-serif;
+ cursor:pointer;
+}
+#community-competitions .sb-exclusive-action:disabled {
+ opacity:.72;cursor:not-allowed;
+ background:#372947;
+}
+#community-competitions .sb-exclusive-action:not(:disabled):hover {filter:brightness(1.13)}
+#admin-competitions-management .sb-exclusive-admin {
+ min-width:0;margin-top:25px;padding:clamp(14px,2.3vw,23px);
+ border:1px solid rgba(185,139,242,.42);border-radius:16px;
+ background:linear-gradient(145deg,rgba(45,25,69,.75),rgba(18,17,35,.89));
+}
+#admin-competitions-management .sb-exclusive-admin-heading h3 {
+ margin:0 0 8px;color:#f3e3ff;font-size:clamp(21px,2vw,25px);
+}
+#admin-competitions-management .sb-exclusive-admin-heading p {
+ margin:0 0 17px;color:#d0bedf;line-height:1.45;
+}
+#admin-competitions-management .sb-exclusive-admin-form {
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:14px;padding:17px;
+ border:1px solid rgba(169,131,213,.3);border-radius:13px;
+ background:rgba(19,15,35,.6);
+}
+#admin-competitions-management .sb-exclusive-admin-form label {
+ display:flex;flex-direction:column;gap:7px;min-width:0;
+ color:#e8d6f9;font-size:15px;font-weight:700;
+}
+#admin-competitions-management .sb-exclusive-admin-form label:nth-child(2) {
+ grid-column:1/-1;
+}
+#admin-competitions-management .sb-exclusive-admin-form :is(input,textarea,select) {
+ box-sizing:border-box;width:100%;min-width:0;min-height:44px;
+ padding:10px 12px;border:1px solid rgba(179,140,224,.46);border-radius:10px;
+ background:#17122b;color:#fff;font:600 16px/1.35 Rajdhani,Arial,sans-serif;
+ color-scheme:dark;
+}
+#admin-competitions-management .sb-exclusive-admin-form textarea {
+ min-height:90px;resize:vertical;
+}
+#admin-competitions-management .sb-exclusive-admin-form>button {
+ grid-column:1/-1;min-height:46px;justify-self:start;
+}
+#admin-competitions-management .sb-exclusive-admin-list {
+ display:grid;gap:10px;margin-top:16px;
+}
+#admin-competitions-management .sb-exclusive-admin-card {
+ display:flex;flex-wrap:wrap;align-items:center;gap:9px 14px;
+ padding:13px 15px;border:1px solid rgba(179,133,228,.32);
+ border-radius:12px;background:rgba(20,17,36,.8);
+}
+#admin-competitions-management .sb-exclusive-admin-card h4 {
+ margin:0;min-width:0;flex:1 1 180px;color:#f2e5ff;overflow-wrap:anywhere;
+}
+#admin-competitions-management .sb-exclusive-admin-card p {
+ margin:0;color:#d1c0dd;line-height:1.4;
+ flex:1 1 180px;
+}
+#admin-competitions-management .sb-exclusive-admin-card button {
+ min-height:42px;
+}
+@media(max-width:680px){
+ #admin-competitions-management .sb-exclusive-admin-form {
+  grid-template-columns:minmax(0,1fr);padding:13px;
+ }
+ #admin-competitions-management .sb-exclusive-admin-form label:nth-child(2) {
+  grid-column:auto;
+ }
+ #admin-competitions-management .sb-exclusive-admin-form>button {width:100%}
+ #community-competitions .sb-season-rewards-grid {grid-template-columns:minmax(0,1fr)}
+}
