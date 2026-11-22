@@ -1035,12 +1035,161 @@ async function adminInitSurpriseBoxes(){
  configHeading.append(configTitle,configHelp);
  const grid=document.createElement('div');
  grid.className='sb-surprise-admin__grid';
- config.append(configHeading,grid);
+ config.append(configHeading);
+ const newBoxToolbar=document.createElement('div');
+ newBoxToolbar.className='sb-surprise-admin__create-toolbar';
+ const createButton=document.createElement('button');
+ createButton.type='button';
+ createButton.className='gradient-btn sb-surprise-admin__create-button';
+ createButton.textContent='➕ Crear caja misteriosa';
+ createButton.setAttribute('aria-expanded','false');
+ const newForm=document.createElement('form');
+ newForm.className='sb-surprise-admin__new-form';
+ newForm.id='sb-surprise-admin-create-form';
+ newForm.hidden=true;
+ createButton.setAttribute('aria-controls',newForm.id);
+ const newHeading=document.createElement('h4');
+ newHeading.textContent='✨ Nueva caja misteriosa';
+ const newHelp=document.createElement('p');
+ newHelp.textContent='Ponle un nombre, elige su precio y selecciona qué premios podrá entregar.';
+ const fieldGrid=document.createElement('div');
+ fieldGrid.className='sb-surprise-admin__new-fields';
+ const nameLabel=document.createElement('label');
+ nameLabel.className='sb-surprise-admin__field';
+ const nameText=document.createElement('span');
+ nameText.textContent='Nombre de la caja';
+ const nameInput=document.createElement('input');
+ nameInput.type='text';nameInput.required=true;nameInput.minLength=2;nameInput.maxLength=64;
+ nameInput.placeholder='Ej.: 🌌 Caja Galáctica';nameInput.autocomplete='off';
+ nameLabel.append(nameText,nameInput);
+ const newPriceLabel=document.createElement('label');
+ newPriceLabel.className='sb-surprise-admin__field';
+ const newPriceText=document.createElement('span');
+ newPriceText.textContent='🪙 Precio en puntos';
+ const newPrice=document.createElement('input');
+ newPrice.type='number';newPrice.min='1';newPrice.max='100000';newPrice.step='1';
+ newPrice.inputMode='numeric';newPrice.required=true;newPrice.value='250';
+ newPriceLabel.append(newPriceText,newPrice);
+ const newActiveLabel=document.createElement('label');
+ newActiveLabel.className='sb-surprise-admin__active';
+ const newActiveCopy=document.createElement('span');
+ newActiveCopy.className='sb-surprise-admin__active-copy';
+ const newActiveTitle=document.createElement('strong');
+ newActiveTitle.textContent='Caja activa';
+ const newActiveHelp=document.createElement('small');
+ newActiveHelp.textContent='Disponible para todos los miembros';
+ newActiveCopy.append(newActiveTitle,newActiveHelp);
+ const newActive=document.createElement('input');
+ newActive.type='checkbox';newActive.checked=true;
+ newActive.addEventListener('change',()=>{
+  newActiveHelp.textContent=newActive.checked?'Disponible para todos los miembros':'Se creará desactivada';
+ });
+ newActiveLabel.append(newActiveCopy,newActive);
+ fieldGrid.append(nameLabel,newPriceLabel,newActiveLabel);
+ const newPrizes=document.createElement('fieldset');
+ newPrizes.className='sb-surprise-admin__prizes';
+ const newPrizesTitle=document.createElement('legend');
+ newPrizesTitle.textContent='🎁 Premios que puede entregar';
+ const newPrizesHelp=document.createElement('p');
+ newPrizesHelp.className='sb-surprise-admin__prize-hint';
+ newPrizesHelp.textContent='Selecciona al menos un artículo para la nueva caja.';
+ const newCount=document.createElement('p');
+ newCount.className='sb-surprise-admin__count';
+ const newPrizeGrid=document.createElement('div');
+ newPrizeGrid.className='sb-surprise-admin__prize-grid';
+ const newChecks=[];
+ for(const item of items.data||[]){
+  const choice=document.createElement('label');
+  choice.className='sb-surprise-admin__prize';
+  const check=document.createElement('input');
+  check.type='checkbox';
+  const caption=document.createElement('span');
+  caption.textContent=item.name;
+  choice.append(check,caption);
+  newPrizeGrid.append(choice);
+  newChecks.push([item.id,check]);
+ }
+ const updateNewCount=()=>{
+  const total=newChecks.filter(([,check])=>check.checked).length;
+  newCount.textContent=total+' de '+newChecks.length+' premios seleccionados';
+ };
+ newChecks.forEach(([,check])=>check.addEventListener('change',updateNewCount));
+ updateNewCount();
+ if(!newChecks.length){
+  const notice=document.createElement('p');
+  notice.className='sb-surprise-admin__empty';
+  notice.textContent='Crea primero un artículo en la tienda de recompensas.';
+  newPrizeGrid.append(notice);
+ }
+ newPrizes.append(newPrizesTitle,newPrizesHelp,newCount,newPrizeGrid);
+ const createActions=document.createElement('div');
+ createActions.className='sb-surprise-admin__create-actions';
+ const submitCreate=document.createElement('button');
+ submitCreate.type='submit';
+ submitCreate.className='gradient-btn sb-surprise-admin__create-confirm';
+ submitCreate.textContent='💾 Crear y guardar caja';
+ submitCreate.disabled=newChecks.length===0;
+ const cancelCreate=document.createElement('button');
+ cancelCreate.type='button';
+ cancelCreate.className='outline-btn sb-surprise-admin__create-cancel';
+ cancelCreate.textContent='Cancelar';
+ const createStatus=document.createElement('p');
+ createStatus.className='sb-surprise-admin__status';
+ createStatus.setAttribute('role','status');
+ createStatus.setAttribute('aria-live','polite');
+ createActions.append(submitCreate,cancelCreate);
+ newForm.append(newHeading,newHelp,fieldGrid,newPrizes,createActions,createStatus);
+ const setCreateOpen=(opened)=>{
+  newForm.hidden=!opened;
+  createButton.setAttribute('aria-expanded',String(opened));
+  createButton.textContent=opened?'✕ Ocultar formulario':'➕ Crear caja misteriosa';
+  if(opened)nameInput.focus();
+ };
+ createButton.addEventListener('click',()=>setCreateOpen(newForm.hidden));
+ cancelCreate.addEventListener('click',()=>setCreateOpen(false));
+ newBoxToolbar.append(createButton);
+ config.append(newBoxToolbar,newForm,grid);
+ newForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const selected=newChecks.filter(([,check])=>check.checked).map(([id])=>id);
+  if(!selected.length){
+   createStatus.dataset.type='error';
+   createStatus.textContent='Selecciona al menos un premio antes de crear la caja.';
+   return;
+  }
+  if(!newForm.reportValidity())return;
+  submitCreate.disabled=true;
+  submitCreate.textContent='Creando caja…';
+  createStatus.textContent='';
+  delete createStatus.dataset.type;
+  try{
+   const {data,error}=await sb.rpc('admin_create_surprise_box',{
+    p_name:nameInput.value.trim(),p_price:Number(newPrice.value),
+    p_active:newActive.checked,p_items:selected
+   });
+   if(error)throw error;
+   await adminInitSurpriseBoxes();
+   const created=[...document.querySelectorAll('#admin-surprise-boxes .sb-surprise-admin__card')]
+     .find(card=>card.dataset.tier===data);
+   if(created){
+    const success=created.querySelector('.sb-surprise-admin__status');
+    if(success){success.dataset.type='success';success.textContent='✓ Caja creada correctamente.';}
+    created.scrollIntoView({block:'center',behavior:'auto'});
+   }
+  }catch(error){
+   createStatus.dataset.type='error';
+   createStatus.textContent='No se pudo crear la caja: '+(error.message||'Error desconocido');
+  }finally{
+   submitCreate.disabled=false;
+   submitCreate.textContent='💾 Crear y guardar caja';
+  }
+ });
  for(const tier of tiers.data||[]){
   const kind=String(tier.tier||tier.name||'').toLowerCase();
   const tone=/diam|diamond/.test(kind)?'diamond':/oro|gold/.test(kind)?'gold':/plata|silver/.test(kind)?'silver':/bronce|bronze/.test(kind)?'bronze':'default';
   const form=document.createElement('form');
   form.className='sb-surprise-admin__card sb-surprise-admin__card--'+tone;
+  form.dataset.tier=tier.tier;
   const header=document.createElement('div');
   header.className='sb-surprise-admin__card-header';
   const heading=document.createElement('div');
