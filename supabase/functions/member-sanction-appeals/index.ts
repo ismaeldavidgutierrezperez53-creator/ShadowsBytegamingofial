@@ -259,8 +259,9 @@ Deno.serve(async req => {
       if(messageError)return reply({error:"No se pudo consultar el historial"},500);
       const more=(messages||[]).length>100;
       const batch=(messages||[]).slice(0,100);
+      const nextBefore=more?batch[batch.length-1]?.created_at:null;
       return reply({appeal,sanction,messages:batch.reverse(),has_more:more,
-        next_before:more?batch[batch.length-1]?.created_at:null,
+        next_before:nextBefore,
         viewer_role:allowedStaff?"staff":"member"});
     }
     if(appeal.status!=="pending")return reply({error:"La apelación ya está cerrada. Puedes consultar su historial"},409);
