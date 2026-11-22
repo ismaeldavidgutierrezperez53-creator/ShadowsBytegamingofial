@@ -156,3 +156,145 @@
  #community-competitions .sb-legend-general-trophies,
  #community-competitions .sb-legend-general-score {grid-column:2;text-align:left}
 }
+
+/* Trofeos exclusivos, temporadas y Salón de la Fama · v2 */
+#community-competitions .sb-legend-collection-header {
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+ margin:8px 0 14px;
+}
+#community-competitions .sb-legend-collection-header h4,
+#community-competitions .sb-legend-season-title {
+ margin:0;color:#f4eaff;font-size:clamp(19px,2.2vw,23px);
+}
+#community-competitions .sb-legend-collection-header>span {
+ color:#c9b7dd;font-weight:700;font-variant-numeric:tabular-nums;
+}
+#community-competitions .sb-legend-trophies-grid {
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:13px;
+}
+#community-competitions .sb-legend-trophy {
+ display:flex;flex-direction:column;align-items:center;gap:9px;
+ min-width:0;padding:20px 15px;border-radius:15px;
+ background:linear-gradient(155deg,#2e2145,#171628);
+ border:1px solid rgba(203,167,239,.37);text-align:center;
+}
+#community-competitions .sb-legend-trophy.is-earned {
+ border-color:rgba(241,198,101,.7);
+ background:radial-gradient(circle at 50% 0%,rgba(253,207,114,.19),transparent 75%),#241d32;
+ box-shadow:0 4px 20px rgba(188,129,56,.14);
+}
+#community-competitions .sb-legend-trophy.is-locked {opacity:.79}
+#community-competitions .sb-legend-trophy-icon {
+ display:grid;place-items:center;width:62px;height:62px;border-radius:15px;
+ border:1px solid rgba(189,153,255,.28);
+ background:rgba(127,89,189,.15);font-size:32px;
+}
+#community-competitions .sb-legend-trophy.is-earned .sb-legend-trophy-icon {
+ background:rgba(199,147,51,.17);
+}
+#community-competitions .sb-legend-trophy h5 {margin:0;font-size:18px;color:#f6e9ff}
+#community-competitions .sb-legend-trophy p {margin:0;color:#cfc4dc;line-height:1.35}
+#community-competitions .sb-legend-trophy-status {margin-top:auto;color:#eac994}
+#community-competitions .sb-legend-trophy.is-locked .sb-legend-trophy-status {color:#bcb0d1}
+#community-competitions .sb-legend-trophy small {color:#d9cfe7}
+#community-competitions .sb-legend-season-toolbar {
+ display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+ margin:12px 0 18px;
+}
+#community-competitions .sb-legend-season-toolbar>label {font-weight:700;color:#ead6ff}
+#community-competitions .sb-legend-season-select {
+ min-height:46px;min-width:min(100%,225px);
+ padding:8px 13px;border-radius:11px;
+ border:1px solid rgba(202,157,250,.58);
+ background:#251a3b;color:#fff;
+ font:700 16px/1.3 Rajdhani,Arial,sans-serif;
+ color-scheme:dark;
+}
+#community-competitions .sb-legend-season-title {margin:0 0 16px}
+#community-competitions .sb-legend-season-stats {
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+ margin:0 0 20px;
+}
+#community-competitions .sb-legend-season-stat {
+ display:grid;gap:8px;padding:15px 11px;border:1px solid rgba(186,149,233,.32);
+ border-radius:12px;background:#1b172f;text-align:center;
+}
+#community-competitions .sb-legend-season-stat strong {
+ color:#f5d8ab;font-size:clamp(23px,3vw,32px);font-variant-numeric:tabular-nums;
+}
+#community-competitions .sb-legend-season-stat span {color:#d2c5e4;font-size:14px}
+#community-competitions .sb-legend-season-subtitle {
+ font-size:18px;color:#f2e6ff;margin:20px 0 11px;
+}
+#community-competitions .sb-legend-season-ranking {
+ display:grid;gap:8px;padding:0;margin:0;list-style:none;
+}
+#community-competitions .sb-legend-season-ranking-row {
+ display:grid;grid-template-columns:45px minmax(0,1fr) minmax(90px,140px) minmax(90px,155px);
+ gap:10px;align-items:center;min-width:0;
+ padding:11px 13px;border:1px solid rgba(169,127,222,.33);
+ border-radius:11px;background:#19162c;
+}
+#community-competitions .sb-legend-season-ranking-row b {color:#f3d9a4}
+#community-competitions .sb-legend-season-ranking-row>span {color:#afe3f5}
+#community-competitions .sb-legend-season-ranking-row small {color:#ccbedf;text-align:right}
+#community-competitions .sb-legend-season-events {display:grid;gap:9px;margin:10px 0}
+#community-competitions .sb-legend-season-event {
+ display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;
+ gap:8px 15px;padding:12px 14px;border-radius:10px;
+ border:1px solid rgba(175,143,212,.25);background:rgba(22,21,38,.75);
+}
+#community-competitions .sb-legend-season-event strong {color:#f0e3ff;overflow-wrap:anywhere}
+#community-competitions .sb-legend-season-event span {color:#cbb9d9;font-size:13px}
+#community-competitions .sb-legend-season-winner {
+ display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;padding:13px 16px;
+ border:1px solid rgba(245,203,108,.6);
+ border-radius:12px;background:rgba(160,106,40,.16);
+ font-weight:700;color:#f9dfa8;
+}
+#community-competitions .sb-legend-season-hint {
+ display:block;margin-top:14px;color:#c7b6db;line-height:1.5;
+}
+#community-competitions .sb-legend-hall-grid {
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:14px;
+}
+#community-competitions .sb-legend-hall-card {
+ display:flex;flex-direction:column;align-items:center;gap:9px;
+ position:relative;min-width:0;padding:21px 16px;
+ border:1px solid rgba(197,155,230,.43);border-radius:15px;
+ background:radial-gradient(circle at 50% 0%,rgba(139,77,211,.16),transparent 73%),#1d1831;
+ text-align:center;
+}
+#community-competitions .sb-legend-hall-card.sb-legend-hall-featured {
+ border-color:rgba(237,197,103,.68);
+ background:radial-gradient(circle at 50% 0%,rgba(216,160,58,.21),transparent 73%),#241c31;
+}
+#community-competitions .sb-legend-hall-crown {font-size:40px;line-height:1.2}
+#community-competitions .sb-legend-hall-place {font-weight:700;color:#dabaf5}
+#community-competitions .sb-legend-hall-card h4 {margin:4px 0 0;font-size:20px}
+#community-competitions .sb-legend-hall-honor {color:#f3da99}
+#community-competitions .sb-legend-hall-medals {margin:0;color:#f1e7fc}
+#community-competitions .sb-legend-hall-card small {color:#c9bed6;line-height:1.4}
+#community-competitions .sb-legend-hall-link {
+ margin-top:auto;padding:8px 14px;border:1px solid rgba(199,166,232,.49);
+ border-radius:9px;background:rgba(113,58,168,.22);text-decoration:none;
+}
+@media(max-width:850px){
+ #community-competitions .sb-legend-season-stats {grid-template-columns:repeat(2,minmax(0,1fr))}
+ #community-competitions .sb-legend-season-ranking-row {
+  grid-template-columns:38px minmax(0,1fr) minmax(100px,145px);
+ }
+ #community-competitions .sb-legend-season-ranking-row small {
+  grid-column:2 / -1;text-align:left;
+ }
+}
+@media(max-width:550px){
+ #community-competitions .sb-legend-season-toolbar {display:grid;grid-template-columns:minmax(0,1fr)}
+ #community-competitions .sb-legend-season-select {width:100%;max-width:none}
+ #community-competitions .sb-legend-season-ranking-row {grid-template-columns:35px minmax(0,1fr)}
+ #community-competitions .sb-legend-season-ranking-row>span,
+ #community-competitions .sb-legend-season-ranking-row small {
+  grid-column:2;text-align:left;
+ }
+ #community-competitions .sb-legend-season-stat {padding:11px 8px}
+}
