@@ -10,6 +10,7 @@
   ['polls','📊 Encuestas'],['tournaments','🏆 Torneos'],
   ['news','📰 Noticias'],['visits','👤 Visitas al perfil'],['reports','🛡️ Denuncias']
  ];
+ const MODERATION_TITLES={moderation_warning:'⚠️ Advertencia del equipo',moderation_suspend:'⏳ Suspensión temporal',moderation_ban:'🚫 Expulsión',moderation_lift:'✅ Restricción retirada'};
  const ICONS={followers:'👥',community:'❤️',messages:'💬',calls:'📞',shop:'🎁',
   achievements:'🏅',polls:'📊',tournaments:'🏆',news:'📰',visits:'👤',reports:'🛡️'};
  const isValidRoute=value=>typeof value==='string'&&value.length<350&&/^#\/[a-z0-9/?=&%_-]+$/i.test(value);
@@ -96,17 +97,17 @@
    const article=document.createElement('article');article.className='sb-history-item';
    if(row.is_read===false)article.classList.add('sb-history-unread');
    const icon=document.createElement('span');icon.className='sb-history-icon';
-   icon.textContent=ICONS[row.category]||'🔔';icon.setAttribute('aria-hidden','true');
+   icon.textContent=MODERATION_TITLES[row.kind]?'🛡️':ICONS[row.category]||'🔔';icon.setAttribute('aria-hidden','true');
    const body=document.createElement('div');body.className='sb-history-body';
-   const title=document.createElement('strong');title.textContent=row.title||'Notificación';
+   const title=document.createElement('strong');title.textContent=MODERATION_TITLES[row.kind]||row.title||'Notificación';
    const meta=document.createElement('small');
    const when=row.occurred_at?new Date(row.occurred_at):null;
    const date=when&&!Number.isNaN(when.getTime())?when.toLocaleString('es-ES'):'Fecha desconocida';
-   const category=CATEGORIES.find(c=>c[0]===row.category)?.[1]||'🔔 Otra actividad';
+   const category=MODERATION_TITLES[row.kind]?'🛡️ Moderación':CATEGORIES.find(c=>c[0]===row.category)?.[1]||'🔔 Otra actividad';
    meta.textContent=date+' · '+category+(row.archived_at?' · Archivada':row.is_read===false?' · Sin leer':'');
    const buttons=document.createElement('div');buttons.className='sb-history-row-actions';
    if(isValidRoute(row.href)){
-    const link=document.createElement('a');link.href=row.href;link.textContent='Ver';link.className='notification-jump';
+    const link=document.createElement('a');link.href=MODERATION_TITLES[row.kind]?(row.kind==='moderation_ban'?'#/apelaciones':'#/cuenta?focus=sanctions'):row.href;link.textContent='Ver';link.className='notification-jump';
     buttons.append(link);
    }
    {
