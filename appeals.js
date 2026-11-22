@@ -183,6 +183,15 @@
         box.append(el("span","",label),el("strong","",String(value)));
         host.append(box);
       }
+      const assignmentStatus=panel.querySelector("#sb-appeals-assignment-overview-status");
+      if(assignmentStatus){
+        const pending=stats.pending||0;
+        assignmentStatus.textContent=staffCache?.is_admin
+          ?pending===0
+            ?"No hay apelaciones pendientes para asignar. El botón «Guardar responsable» aparecerá dentro de una apelación cuando un miembro presente una nueva solicitud."
+            :"Hay "+pending+" apelación"+(pending===1?"":"es")+" pendiente"+(pending===1?"":"s")+". Abre una solicitud para elegir su responsable y guardar la asignación."
+          :"Los moderadores pueden consultar quién está asignado a cada apelación, pero solo los administradores pueden cambiar el responsable.";
+      }
     }catch(error){host.textContent="No se pudieron cargar las estadísticas: "+error.message;}
   }
 
@@ -383,7 +392,22 @@
     const name=id=>{const p=people.get(id);return p?.display_name||p?.username||(id?id.slice(0,8)+"…":"Sin usuario");};
     const rows=staffCache.appeals||[];
     host.replaceChildren();
-    if(!rows.length){host.append(el("p","","No hay apelaciones que coincidan con los filtros."));return;}
+    if(!rows.length){
+      const info=el("div","sb-appeals-empty sb-appeals-assign-empty");
+      const copy=el("div","sb-appeals-empty-copy");
+      const unfiltered=panel.querySelector("#sb-appeals-filter")?.value==="pending" &&
+        !panel.querySelector("#sb-appeals-search")?.value &&
+        !panel.querySelector("#sb-appeals-from")?.value &&
+        !panel.querySelector("#sb-appeals-to")?.value &&
+        panel.querySelector("#sb-appeals-assigned-filter")?.value==="all";
+      copy.append(
+        el("h3","",unfiltered?"📭 No hay apelaciones pendientes":"🔍 Sin resultados"),
+        el("p","",unfiltered
+          ?"Para asignar un responsable, primero debe llegar una apelación real de un miembro. Cuando aparezca aquí, podrás seleccionar un administrador o moderador y pulsar «Guardar responsable»."
+          :"No hay apelaciones que coincidan con estos filtros. Puedes elegir «Todas» o limpiar los filtros.")
+      );
+      info.append(copy);host.append(info);return;
+    }
     for(const record of rows){
       const sanction=sanctions.get(record.sanction_event_id);
       const card=el("article","sb-appeal-card");
@@ -544,6 +568,11 @@
           <button id="sb-appeals-clear" class="outline-btn mini" type="button">Limpiar filtros</button>
         </div>
       </div>
+      <section class="sb-appeals-assignment-overview" aria-labelledby="sb-appeals-assign-heading">
+        <h3 id="sb-appeals-assign-heading">👑 Asignar responsable de una apelación</h3>
+        <p id="sb-appeals-assignment-overview-status" role="status" aria-live="polite">Comprobando las apelaciones pendientes…</p>
+        <button id="sb-appeals-show-pending" class="outline-btn mini" type="button">📋 Ver apelaciones pendientes</button>
+      </section>
       <h3>📊 Estadísticas de apelaciones</h3>
       <div id="sb-appeal-statistics" class="sb-appeal-statistics" aria-live="polite">Cargando estadísticas…</div>
       <p class="sb-appeal-hint">Las solicitudes pendientes durante más de 24 horas generan un aviso automático para el equipo.</p>
@@ -562,6 +591,15 @@
     else dashboard.prepend(panel);
     const filter=selector=>panel.querySelector(selector);
     const loadFirst=()=>loadStaff(panel,0);
+    filter("#sb-appeals-show-pending").addEventListener("click",()=>{
+      filter("#sb-appeals-filter").value="pending";
+      filter("#sb-appeals-assigned-filter").value="all";
+      filter("#sb-appeals-search").value="";
+      filter("#sb-appeals-from").value="";
+      filter("#sb-appeals-to").value="";
+      loadFirst();
+      filter("#sb-appeals-staff-list").scrollIntoView({block:"start",behavior:"smooth"});
+    });
     filter("#sb-appeals-filter").addEventListener("change",loadFirst);
     filter("#sb-appeals-assigned-filter").addEventListener("change",loadFirst);
     filter("#sb-appeals-apply").addEventListener("click",loadFirst);
