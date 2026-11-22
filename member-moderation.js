@@ -231,13 +231,13 @@
     if (!page || document.getElementById("sb-my-sanctions")) return;
     const root = create("section", "section sb-my-sanctions");
     root.id = "sb-my-sanctions";
-    root.innerHTML = '<h2>🛡️ Mis advertencias y sanciones</h2><p class="sb-my-sanctions-intro">Consulta tu estado actual y tu historial de moderación.</p><div id="sb-my-sanctions-list" role="status" aria-live="polite">Consultando historial personal…</div>';
+    root.innerHTML = '<h2>🛡️ Mis advertencias y sanciones</h2><p class="sb-my-sanctions-intro">Consulta tu estado actual, los motivos y las fechas de cada decisión.</p><div class="sb-my-sanctions-toolbar"><a class="outline-btn mini" href="#/cuenta?focus=appeals">⚖️ Mis apelaciones</a><a class="outline-btn mini" href="#/notificaciones">🔔 Mis avisos</a></div><div id="sb-my-sanctions-list" role="status" aria-live="polite">Consultando historial personal…</div>';
     page.append(root);
     const { data: { user }, error: userError } = await sb.auth.getUser();
     if (!root.isConnected) return;
     if (userError || !user) { root.remove(); return; }
     const [events, current] = await Promise.all([
-      sb.from("member_moderation_events").select("action,reason,expires_at,created_at")
+      sb.from("member_moderation_events").select("id,action,reason,expires_at,created_at")
         .eq("target_id", user.id).order("created_at", { ascending: false }).limit(30),
       sb.from("member_moderation_status").select("action,expires_at").eq("user_id", user.id).maybeSingle()
     ]);
@@ -245,7 +245,8 @@
     const body = root.querySelector("#sb-my-sanctions-list");
     body.replaceChildren();
     if (events.error || current.error) {
-      body.textContent = "No se pudo consultar tu historial de moderación."; return;
+      body.textContent = "No se pudo consultar tu historial de moderación. Vuelve a intentarlo más tarde.";
+      return;
     }
     const status = create("p", "sb-sanction-current sb-my-sanctions-status", labelState(current.data));
     status.dataset.active = String(validState(current.data));
@@ -253,21 +254,43 @@
     if (!events.data?.length) {
       const empty = create("div", "sb-my-sanctions-empty");
       empty.append(
-        create("span", "sb-my-sanctions-empty-icon", "✅"),
-        create("p", "sb-my-sanctions-empty-title", "Todo en orden"),
-        create("p", "sb-my-sanctions-empty-note", "No tienes advertencias ni sanciones registradas. Tu cuenta está en regla.")
+        create("span", "sb-my-sanctions-empty-icon", validState(current.data) ? "ℹ️" : "✅"),
+        create("p", "sb-my-sanctions-empty-title", validState(current.data) ? "Historial no disponible" : "Todo en orden"),
+        create("p", "sb-my-sanctions-empty-note", validState(current.data)
+          ? "Existe una restricción activa, pero no se han encontrado sus movimientos. Contacta con el equipo."
+          : "No tienes advertencias ni sanciones registradas. Tu cuenta está en regla.")
       );
       body.append(empty);
-      return;
+    } else {
+      body.append(create("p", "sb-my-sanctions-count", "Últimos movimientos: " + events.data.length));
+      for (const item of events.data) {
+        const card = create("details", "sb-sanction-event sb-sanction-detail");
+        const head = create("summary", "sb-sanction-detail-summary");
+        head.append(create("strong", "", types[item.action] || item.action));
+        head.append(create("small", "", dateLabel(item.created_at) + " · Ver detalles"));
+        card.append(head);
+        const content = create("div", "sb-sanction-detail-content");
+        content.append(create("p", "", "Motivo: " + item.reason));
+        content.append(create("small", "", "Fecha de la decisión: " + dateLabel(item.created_at)));
+        if (item.expires_at) {
+          content.append(create("small", "", "Finalización prevista: " + dateLabel(item.expires_at)));
+        }
+        const canAppeal = item.action === "ban" ||
+          (["warning", "suspend"].includes(item.action) &&
+            Date.now() - Date.parse(item.created_at) < 90 * 86400000);
+        if (canAppeal) {
+          const link = create("a", "outline-btn mini", "⚖️ Consultar o solicitar apelación");
+          link.href = "#/cuenta?focus=appeals";
+          content.append(link);
+        }
+        card.append(content);
+        body.append(card);
+      }
     }
-    for (const item of events.data) {
-      const card = create("article", "sb-sanction-event");
-      card.append(create("strong", "", types[item.action] || item.action));
-      card.append(create("small", "", dateLabel(item.created_at)));
-      card.append(create("p", "", item.reason));
-      if (item.expires_at) card.append(create("small", "", "Finaliza: " + dateLabel(item.expires_at)));
-      body.append(card);
-    }
+    const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("focus");
+    if (focus === "sanctions") requestAnimationFrame(() => {
+      if (root.isConnected) root.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
   }
   window.SBMemberModeration = { mountPanel, mountAccountPanel };
 })();
