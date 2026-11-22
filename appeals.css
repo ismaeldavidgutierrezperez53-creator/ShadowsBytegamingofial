@@ -248,3 +248,49 @@
 @media(max-width:600px){
   .sb-appeals-assignment-overview button{justify-self:stretch;width:100%;}
 }
+
+/* Seguimiento de apelaciones asignadas al equipo. */
+.sb-appeals-mine{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:14px;margin:16px 0;padding:16px;
+  border:1px solid rgba(155,116,216,.5);border-radius:13px;
+  background:rgba(47,28,82,.52);
+}
+.sb-appeals-mine h3,.sb-appeals-mine p{margin:0 0 7px;}
+.sb-appeals-mine p{color:#ece0fb;line-height:1.5;}
+.sb-appeals-mine .sb-appeals-count{font-size:.86rem;}
+.sb-appeals-mine button{white-space:normal;max-width:100%;}
+.sb-appeals-team-stats{min-width:0;margin:8px 0 20px;}
+.sb-appeals-team-stats > .sb-appeal-hint{margin:0 0 10px;line-height:1.55;}
+.sb-appeal-stats-scroll{
+  max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+  border:1px solid rgba(171,126,221,.37);border-radius:12px;
+}
+.sb-appeal-team-table{width:100%;border-collapse:collapse;min-width:630px;font-size:.87rem;}
+.sb-appeal-team-table th,.sb-appeal-team-table td{
+  padding:11px 10px;text-align:left;border-bottom:1px solid rgba(171,126,221,.25);
+}
+.sb-appeal-team-table th{
+  color:#f7ebff;background:rgba(51,27,79,.8);font-weight:700;
+}
+.sb-appeal-team-table td{color:#f1e8ff;}
+.sb-appeal-team-self{background:rgba(122,78,176,.22);}
+.sb-appeal-transfer-log{
+  margin:8px 0 12px;border:1px solid rgba(175,133,226,.35);
+  border-radius:10px;background:rgba(28,18,46,.34);
+}
+.sb-appeal-transfer-log summary{
+  padding:12px 14px;cursor:pointer;font-weight:650;color:#f7ebff;
+}
+.sb-appeal-transfer-log-content{padding:2px 14px 12px;}
+.sb-appeal-transfer-log-row{
+  display:flex;flex-direction:column;gap:4px;padding:9px 0;
+  border-top:1px solid rgba(175,133,226,.22);margin:0;
+  overflow-wrap:anywhere;
+}
+.sb-appeal-transfer-log-row strong{color:#f0d9ff;}
+.sb-appeal-transfer-log-row span{color:#e4daee;}
+@media(max-width:620px){
+ .sb-appeals-mine{align-items:stretch;}
+ .sb-appeals-mine button{width:100%;}
+}
