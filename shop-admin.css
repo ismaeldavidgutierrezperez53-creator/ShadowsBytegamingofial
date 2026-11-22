@@ -94,3 +94,77 @@
 #admin-shop-root .sb-shop-admin__item-actions .sb-shop-admin__promote{background:#2d2540;color:#ffdf9d;border-color:#a28543}
 #admin-shop-root .sb-shop-admin__item-actions button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:690px){#admin-shop-root .sb-shop-admin__merch-form{grid-template-columns:1fr}#admin-shop-root .sb-shop-admin__merch-form .sb-shop-admin__toggle{grid-column:1}#admin-shop-root .sb-shop-admin__merch-actions button{flex:1}}
+
+
+/* Cajas misteriosas · diseño de administración responsive */
+#admin-surprise-boxes.sb-surprise-admin{
+ min-width:0;margin:18px 0;padding:clamp(16px,2.7vw,26px);
+ color:#f5edff;background:linear-gradient(140deg,#1b142b,#10101e);
+ border:1px solid #59416f;border-radius:22px;box-shadow:0 16px 35px #07040d55;
+}
+#admin-surprise-boxes *{box-sizing:border-box}
+#admin-surprise-boxes>h2{margin:0;font-size:clamp(22px,3vw,30px);line-height:1.25;overflow-wrap:anywhere}
+#admin-surprise-boxes .sb-surprise-admin__intro{color:#c7b7d8;margin:9px 0 22px;line-height:1.5}
+#admin-surprise-boxes .sb-surprise-admin__configuration{min-width:0}
+#admin-surprise-boxes .sb-surprise-admin__section-heading{margin-bottom:16px}
+#admin-surprise-boxes .sb-surprise-admin__section-heading h3{margin:0 0 5px;font-size:clamp(19px,2.7vw,24px);color:#f3d6ff}
+#admin-surprise-boxes .sb-surprise-admin__section-heading p{margin:0;color:#c1b5cf;line-height:1.4}
+#admin-surprise-boxes .sb-surprise-admin__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:18px;align-items:start;min-width:0}
+#admin-surprise-boxes .sb-surprise-admin__card{--box-accent:#bc83fa;--box-tint:#7d43ba29;display:grid;gap:18px;min-width:0;padding:0;overflow:hidden;border:1px solid #65487e;border-radius:18px;background:linear-gradient(140deg,#20172e,#131121);box-shadow:0 10px 25px #0003}
+#admin-surprise-boxes .sb-surprise-admin__card--bronze{--box-accent:#f4ab6b;--box-tint:#bb6c2f28}
+#admin-surprise-boxes .sb-surprise-admin__card--silver{--box-accent:#c9def8;--box-tint:#87a7d022}
+#admin-surprise-boxes .sb-surprise-admin__card--gold{--box-accent:#f7d777;--box-tint:#b68e2529}
+#admin-surprise-boxes .sb-surprise-admin__card--diamond{--box-accent:#8fe9ff;--box-tint:#238aa52b}
+#admin-surprise-boxes .sb-surprise-admin__card-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:17px 18px;border-bottom:1px solid #644878;background:radial-gradient(circle at 0 0,var(--box-tint),transparent 80%)}
+#admin-surprise-boxes .sb-surprise-admin__card-heading{min-width:0}
+#admin-surprise-boxes .sb-surprise-admin__eyebrow{display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--box-accent)}
+#admin-surprise-boxes .sb-surprise-admin__card-heading h4{margin:5px 0 0;color:#fff;font-size:clamp(20px,2.5vw,24px);overflow-wrap:anywhere}
+#admin-surprise-boxes .sb-surprise-admin__badge{display:inline-flex;align-items:center;min-height:29px;padding:5px 11px;border:1px solid #3b927a;border-radius:999px;background:#15392f;color:#abf4d7;font-size:13px;font-weight:700}
+#admin-surprise-boxes .sb-surprise-admin__badge[data-state=inactive]{border-color:#9e7149;background:#3a261b;color:#ffd2a7}
+#admin-surprise-boxes .sb-surprise-admin__controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:13px;padding:0 18px}
+#admin-surprise-boxes .sb-surprise-admin__field{display:flex;flex-direction:column;gap:8px;min-width:0;color:#f1e8ff;font-weight:700}
+#admin-surprise-boxes .sb-surprise-admin__field>span{font-size:16px}
+#admin-surprise-boxes .sb-surprise-admin__field input{display:block;width:100%;min-width:0;min-height:46px;padding:10px 12px;border:1px solid #8766a3;border-radius:10px;background:#0e0c19;color:#fff;font:700 19px Rajdhani,Arial,sans-serif;box-shadow:none}
+#admin-surprise-boxes .sb-surprise-admin__field small,#admin-surprise-boxes .sb-surprise-admin__active small{display:block;font-size:13px;font-weight:500;color:#bfb1ce;line-height:1.3}
+#admin-surprise-boxes .sb-surprise-admin__active{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:85px;padding:12px;border:1px solid #604879;border-radius:11px;background:#241b32;cursor:pointer}
+#admin-surprise-boxes .sb-surprise-admin__active-copy{min-width:0;display:grid;gap:6px}
+#admin-surprise-boxes .sb-surprise-admin__active strong{font-size:16px;color:#f4eaff}
+#admin-surprise-boxes .sb-surprise-admin__active input{position:relative;flex:0 0 43px;width:43px;height:25px;margin:0;appearance:none;-webkit-appearance:none;border:1px solid #887494;border-radius:99px;background:#62546d;cursor:pointer;transition:background .18s ease}
+#admin-surprise-boxes .sb-surprise-admin__active input::before{content:'';position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .18s ease}
+#admin-surprise-boxes .sb-surprise-admin__active input:checked{background:#238e70;border-color:#50d1a6}
+#admin-surprise-boxes .sb-surprise-admin__active input:checked::before{transform:translateX(18px)}
+#admin-surprise-boxes .sb-surprise-admin__prizes{min-width:0;min-inline-size:0;margin:0 18px;padding:14px;border:1px solid #5b4770;border-radius:12px;background:#171321}
+#admin-surprise-boxes .sb-surprise-admin__prizes legend{padding:0 5px;color:var(--box-accent);font-size:17px;font-weight:700}
+#admin-surprise-boxes .sb-surprise-admin__prize-hint{margin:0 0 9px;color:#c8bad5;font-size:14px;line-height:1.4}
+#admin-surprise-boxes .sb-surprise-admin__count{display:inline-block;margin:0 0 13px;padding:5px 10px;background:#2a1d39;border:1px solid #57416c;border-radius:999px;color:#e7d2ff;font-size:13px;font-weight:700}
+#admin-surprise-boxes .sb-surprise-admin__prize-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+#admin-surprise-boxes .sb-surprise-admin__prize{display:flex;align-items:center;gap:9px;min-width:0;min-height:42px;padding:9px 10px;border:1px solid #4e405d;border-radius:10px;background:#261d32;color:#f2e8fc;cursor:pointer;overflow-wrap:anywhere;line-height:1.25}
+#admin-surprise-boxes .sb-surprise-admin__prize:has(input:checked){border-color:#936bba;background:#352141}
+#admin-surprise-boxes .sb-surprise-admin__prize input{flex:0 0 auto;width:18px;height:18px;margin:0;accent-color:#ba83f1;cursor:pointer}
+#admin-surprise-boxes .sb-surprise-admin__prize span{min-width:0}
+#admin-surprise-boxes .sb-surprise-admin__empty{grid-column:1/-1;color:#dbbfdf;margin:0}
+#admin-surprise-boxes .sb-surprise-admin__footer{display:grid;gap:9px;padding:0 18px 18px}
+#admin-surprise-boxes .sb-surprise-admin__save{width:100%;min-height:46px;padding:11px 14px;border-radius:11px;font:700 17px Rajdhani,Arial,sans-serif;cursor:pointer}
+#admin-surprise-boxes .sb-surprise-admin__save:disabled{opacity:.65;cursor:wait}
+#admin-surprise-boxes .sb-surprise-admin__status{margin:0;color:#e9dcf6;line-height:1.4;overflow-wrap:anywhere}
+#admin-surprise-boxes .sb-surprise-admin__status:empty{display:none}
+#admin-surprise-boxes .sb-surprise-admin__status[data-type=success]{color:#aef1d3}
+#admin-surprise-boxes .sb-surprise-admin__status[data-type=error]{color:#ffb3c3}
+#admin-surprise-boxes .sb-surprise-admin__previews{margin-top:24px!important;background:#171226}
+#admin-surprise-boxes input:focus-visible,#admin-surprise-boxes button:focus-visible,#admin-surprise-boxes label:has(input:focus-visible){outline:3px solid #aeefff;outline-offset:3px}
+@media(max-width:740px){
+ #admin-surprise-boxes .sb-surprise-admin__controls{grid-template-columns:1fr}
+ #admin-surprise-boxes .sb-surprise-admin__active{min-height:66px}
+ #admin-surprise-boxes .sb-surprise-admin__prize-grid{grid-template-columns:1fr}
+}
+@media(max-width:460px){
+ #admin-surprise-boxes.sb-surprise-admin{padding:14px}
+ #admin-surprise-boxes .sb-surprise-admin__grid{grid-template-columns:minmax(0,1fr);gap:14px}
+ #admin-surprise-boxes .sb-surprise-admin__card-header{padding:15px}
+ #admin-surprise-boxes .sb-surprise-admin__controls{padding:0 14px}
+ #admin-surprise-boxes .sb-surprise-admin__prizes{margin:0 14px}
+ #admin-surprise-boxes .sb-surprise-admin__footer{padding:0 14px 14px}
+}
+@media(prefers-reduced-motion:reduce){
+ #admin-surprise-boxes .sb-surprise-admin__active input,#admin-surprise-boxes .sb-surprise-admin__active input::before{transition:none}
+}
