@@ -1,0 +1,22 @@
+/* Etiquetas que se desbloquean al conseguir XP, retos y metas. */
+.sb-exclusive-tag[data-source="automatic"]{border-style:double;border-width:2px}
+.sb-exclusive-goals-panel{display:grid;gap:.7rem;margin:1rem 0;padding:1rem;min-width:0;border:1px solid rgba(174,145,255,.36);border-radius:14px;background:rgba(27,20,49,.43)}
+.sb-exclusive-goals-panel h3{margin:0;font-size:1.15rem;color:#f3e4ff}
+.sb-exclusive-goals-panel>p{margin:0;line-height:1.45}
+.sb-exclusive-goals-toolbar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:.5rem}
+.sb-exclusive-goals-status{font-size:.85rem;opacity:.95}
+.sb-exclusive-goal-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.7rem}
+.sb-exclusive-goal{padding:.75rem;background:rgba(111,80,151,.13);border:1px solid rgba(188,163,244,.3);border-radius:11px;min-width:0}
+.sb-exclusive-goal.is-unlocked{border-color:rgba(110,236,177,.55);background:rgba(30,115,94,.14)}
+.sb-exclusive-goal-header{display:flex;align-items:center;justify-content:space-between;gap:.4rem;flex-wrap:wrap}
+.sb-exclusive-goal-header small{font-size:.75rem;opacity:.88}
+.sb-exclusive-goal.is-locked .sb-exclusive-tag{animation:none!important;box-shadow:none;opacity:.68}
+.sb-exclusive-goal.is-locked .sb-exclusive-tag::after{display:none!important}
+.sb-exclusive-goal-meter{display:block;width:100%;height:10px;margin:.6rem 0 .3rem;accent-color:#ac78ff}
+.sb-exclusive-goal.is-unlocked .sb-exclusive-goal-meter{accent-color:#5ce7a3}
+.sb-exclusive-goal-count{margin:.2rem 0 0!important;font-size:.8rem;opacity:.88;overflow-wrap:anywhere}
+.sb-exclusive-auto-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:.6rem}
+.sb-exclusive-auto-rule{display:flex;align-items:flex-start;flex-wrap:wrap;gap:.4rem;padding:.6rem;border:1px solid rgba(166,123,211,.3);border-radius:10px;background:rgba(107,67,146,.12)}
+.sb-exclusive-auto-rule small{flex-basis:100%;font-size:.8rem}
+@media(max-width:600px){.sb-exclusive-goals-panel{padding:.7rem}.sb-exclusive-goal-list,.sb-exclusive-auto-rules{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.sb-exclusive-goal .sb-exclusive-tag{animation:none!important}}
