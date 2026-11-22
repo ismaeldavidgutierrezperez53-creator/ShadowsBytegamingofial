@@ -231,6 +231,103 @@
   }
  }
 
+
+ const seasonProgress=(season,competitions,entries,awards,viewerId)=>{
+  const ids=new Set(competitions.filter(c=>seasonKey(c.ends_at)===season).map(c=>c.id));
+  const yours=entries.filter(e=>ids.has(e.competition_id)&&e.user_id===viewerId);
+  const trophies=awards.filter(a=>ids.has(a.competition_id)&&a.user_id===viewerId);
+  return {
+   joined:new Set(yours.map(e=>e.competition_id)).size,
+   completed:yours.filter(e=>e.completed).length,
+   scored:yours.filter(e=>Number(e.score)>0).length,
+   points:yours.reduce((sum,e)=>sum+Math.max(0,Number(e.score)||0),0),
+   medals:trophies.filter(a=>[1,2,3].includes(Number(a.place))).length,
+   gold:trophies.filter(a=>Number(a.place)===1).length
+  };
+ };
+ const specialMissions=[
+  {icon:'🎮',title:'Primera misión',hint:'Inscríbete en una competición de la temporada',field:'joined',target:1},
+  {icon:'✅',title:'Desafío completado',hint:'Completa un reto o torneo',field:'completed',target:1},
+  {icon:'🎯',title:'Puntos de habilidad',hint:'Acumula 50 puntos de competición',field:'points',target:50},
+  {icon:'⚔️',title:'Doble desafío',hint:'Inscríbete en 2 competiciones diferentes',field:'joined',target:2},
+  {icon:'🥉',title:'Alcanza el podio',hint:'Consigue una medalla oficial',field:'medals',target:1},
+  {icon:'👑',title:'Misión del campeón',hint:'Consigue tu primera medalla de oro',field:'gold',target:1}
+ ];
+ const seasonRewards=[
+  {icon:'🌱',title:'Insignia de participación',hint:'1 inscripción',field:'joined',target:1},
+  {icon:'⚔️',title:'Escudo de competidor',hint:'2 desafíos completados',field:'completed',target:2},
+  {icon:'✨',title:'Estrella de temporada',hint:'100 puntos de reto',field:'points',target:100},
+  {icon:'🏅',title:'Emblema de finalista',hint:'1 podio oficial',field:'medals',target:1},
+  {icon:'👑',title:'Corona de campeón',hint:'1 oro oficial',field:'gold',target:1}
+ ];
+ function renderProgressCard(item,stats,variant){
+  const n=Math.max(0,Number(stats[item.field])||0);
+  const earned=n>=item.target;
+  const row=make('article','sb-season-reward-card '+(earned?'is-earned':'is-pending'));
+  const icon=make('span','sb-season-reward-icon',item.icon);
+  const title=make('strong','',item.title);
+  const hint=make('p','',item.hint);
+  const state=make('span','sb-season-reward-state',
+   earned?(variant==='mission'?'✅ Misión completada':'✓ Insignia conseguida'):'🔒 Pendiente');
+  const progress=make('progress','sb-season-reward-progress');
+  progress.max=item.target;
+  progress.value=Math.min(n,item.target);
+  progress.setAttribute('aria-label',item.title);
+  const count=make('small','',Math.min(n,item.target).toLocaleString('es-ES')+
+   ' / '+item.target.toLocaleString('es-ES'));
+  row.append(icon,title,hint,progress,count,state);
+  return row;
+ }
+ function renderSpecialMissions(container,competitions,entries,awards,viewerId){
+  container.replaceChildren();
+  const current=seasonKey(new Date().toISOString());
+  const stats=seasonProgress(current,competitions,entries,awards,viewerId);
+  const complete=specialMissions.filter(m=>stats[m.field]>=m.target).length;
+  const headline=make('div','sb-special-missions-heading');
+  headline.append(make('h4','','🎮 Misiones especiales · '+seasonLabel(current)),
+   make('span','',complete+' / '+specialMissions.length+' completadas'));
+  const info=make('p','sb-legend-caption',
+   'Retos automáticos de la temporada actual. Su progreso se calcula a partir de inscripciones, puntuaciones y medallas verificadas. No generan XP ni saldo de tienda.');
+  const cards=make('div','sb-season-rewards-grid');
+  for(const mission of specialMissions)cards.append(renderProgressCard(mission,stats,'mission'));
+  container.append(headline,info,cards);
+ }
+ function renderSeasonRewards(container,competitions,entries,awards,viewerId){
+  container.replaceChildren();
+  const current=seasonKey(new Date().toISOString());
+  const seasons=new Set([current]);
+  for(const competition of competitions){
+   const key=seasonKey(competition.ends_at);
+   if(key)seasons.add(key);
+  }
+  const toolbar=make('div','sb-legend-season-toolbar');
+  const select=make('select','sb-legend-season-select');
+  select.setAttribute('aria-label','Ver recompensas de una temporada');
+  for(const season of [...seasons].sort((a,b)=>b.localeCompare(a))){
+   const option=make('option','',seasonLabel(season));option.value=season;
+   select.append(option);
+  }
+  select.value=current;
+  const label=make('label','','Temporada');
+  label.append(select);
+  toolbar.append(label);
+  const info=make('p','sb-legend-caption',
+   'Recompensas digitales de reconocimiento: se desbloquean automáticamente al cumplir los objetivos de cada temporada. Son insignias visuales, no puntos de tienda ni XP.');
+  const summary=make('div','sb-special-missions-heading');
+  const cards=make('div','sb-season-rewards-grid');
+  container.append(info,toolbar,summary,cards);
+  const paint=()=>{
+   const stats=seasonProgress(select.value,competitions,entries,awards,viewerId);
+   const complete=seasonRewards.filter(item=>stats[item.field]>=item.target).length;
+   summary.replaceChildren(make('h4','','🎁 '+seasonLabel(select.value)),
+    make('span','',complete+' / '+seasonRewards.length+' desbloqueadas'));
+   cards.replaceChildren();
+   for(const item of seasonRewards)cards.append(renderProgressCard(item,stats,'reward'));
+  };
+  select.onchange=paint;
+  paint();
+ }
+
  function renderCompetitiveSeasons(container,competitions,entries,awards,profiles){
   container.replaceChildren();
   const bySeason=new Map();
@@ -465,6 +562,9 @@
    renderExclusiveTrophies(state.panels.trophies,ranking,profiles,user.id);
    renderCompetitiveSeasons(state.panels.seasons,events.rows,entries,awards,profiles);
    renderHallOfFame(state.panels.hall,ranking,profiles,awards,events.rows);
+   renderSpecialMissions(state.panels.missions,events.rows,resultEntries.rows,resultAwards.rows,user.id);
+   renderSeasonRewards(state.panels.rewards,events.rows,resultEntries.rows,resultAwards.rows,user.id);
+   if(window.SBChampionExclusives)void window.SBChampionExclusives.mount(state.panels.exclusives);
    state.status.textContent=(events.truncated||resultEntries.truncated||resultAwards.truncated)
     ?'Alcanzado el límite de consulta. Las clasificaciones muestran solo los registros recuperados.'
     :'Actualizado con los resultados registrados en Supabase.';
@@ -492,7 +592,7 @@
   const heading=make('div','sb-legends-heading');
   const intro=make('div','');
   intro.append(make('h3','','🏆 Leyendas de la comunidad'),
-   make('p','','Explora torneos, clasificaciones, trofeos exclusivos, temporadas y el Salón de la Fama.'));
+   make('p','','Explora clasificaciones, misiones, recompensas de temporada y eventos reservados a campeones.'));
   const refresh=make('button','sb-legends-refresh','↻ Actualizar resultados');
   refresh.type='button';
   heading.append(intro,refresh);wrapper.append(heading);
@@ -501,7 +601,7 @@
   tabsBox.setAttribute('aria-label','Secciones de historial y rankings');
   const status=make('p','sb-legends-status','');
   status.setAttribute('role','status');
-  const defs=[['ranking','📊 Ranking general'],['history','📅 Historial'],['champions','👑 Campeones'],['trophies','🏆 Mis trofeos'],['seasons','🗓️ Temporadas'],['hall','🌟 Salón de la Fama']];
+  const defs=[['ranking','📊 Ranking general'],['history','📅 Historial'],['champions','👑 Campeones'],['trophies','🏆 Mis trofeos'],['seasons','🗓️ Temporadas'],['hall','🌟 Salón de la Fama'],['missions','🎯 Misiones especiales'],['rewards','🎁 Recompensas'],['exclusives','👑 Eventos exclusivos']];
   const panels={},tabs={};
   for(const [key,title] of defs){
    const button=make('button','sb-legends-tab',title);
