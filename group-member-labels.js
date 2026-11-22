@@ -32,6 +32,7 @@
  window.sbGroupMemberTagBadge = makeBadge;
  window.sbBuildGroupMemberLabels = async ({sb,group,userId,members,thread}) => {
   const labels = new Map();
+  const specialBadges = new Map();
   const userIds = (members || []).map(m=>m.user_id);
   const {data:profiles} = userIds.length
     ? await sb.from('profiles').select('id,display_name,username').in('id',userIds)
@@ -99,7 +100,19 @@
   summary.textContent = '👥 Ver etiquetas de los miembros';
   const list = document.createElement('ul');
   details.append(summary,list); panel.append(bar,form,status,details); thread.append(panel);
-  const createBadge = id => makeBadge(labels.get(id));
+  const createBadge = id => {
+   const personal = makeBadge(labels.get(id));
+   const specials = specialBadges.get(id) || [];
+   if (!personal && !specials.length) return null;
+   const wrap = document.createElement('span');
+   wrap.className = 'sb-group-tags-inline';
+   if (personal) wrap.append(personal);
+   for (const badge of specials) {
+    const node = window.SBExclusiveMemberTags?.makeBadge(badge);
+    if (node) wrap.append(node);
+   }
+   return wrap;
+  };
   const currentFields = () => ({
    label: input.value.trim(),
    color: colorSelect.value,
@@ -145,6 +158,17 @@
    labels.clear();
    for (const row of data || []) labels.set(row.user_id, normalize(row));
    draw();
+  };
+  const reloadSpecial = async () => {
+   if (!window.SBExclusiveMemberTags) return;
+   try {
+    const byUser = await window.SBExclusiveMemberTags.loadForUsers(userIds);
+    specialBadges.clear();
+    for (const [id,items] of byUser) specialBadges.set(id,items);
+    draw();
+   } catch (error) {
+    console.warn('No se pudieron cargar distintivos exclusivos:',error);
+   }
   };
   let saving = false;
   const setLabel = async requested => {
@@ -198,7 +222,7 @@
   form.addEventListener('submit', async event => {event.preventDefault();await setLabel(currentFields());});
   remove.addEventListener('click', () => setLabel({label:'',color:'purple',emoji:'',style:'filled'}));
   cancel.addEventListener('click', () => {form.hidden=true;status.textContent='';});
-  await reload(); refreshPreview();
-  return {createBadge,reload,panel};
+  await reload(); await reloadSpecial(); refreshPreview();
+  return {createBadge,reload,reloadSpecial,panel};
  };
 })();

@@ -4602,7 +4602,7 @@ async function initGroupChats(userId,root){
    else{input.value='';upload.value='';recordedFile=null;recordingStatus.textContent='';onceInput.checked=false;spoilerToggle.setAttribute('aria-pressed','false');spoilerToggle.textContent='🙈 Spoiler';updateOnceOption();refresh();}};
   thread.append(form);
   if(activeGroupChatChannel)sb.removeChannel(activeGroupChatChannel);
-  activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'*',schema:'public',table:'member_chat_group_labels',filter:'group_id=eq.'+group.id},async()=>{await groupLabels.reload();refresh();}).subscribe();
+  activeGroupChatChannel=sb.channel('group-chat-'+group.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'UPDATE',schema:'public',table:'member_chat_group_messages',filter:'group_id=eq.'+group.id},refresh).on('postgres_changes',{event:'*',schema:'public',table:'member_chat_group_labels',filter:'group_id=eq.'+group.id},async()=>{await groupLabels.reload();refresh();}).on('postgres_changes',{event:'*',schema:'public',table:'sb_exclusive_tag_assignments'},async()=>{await groupLabels.reloadSpecial?.();refresh();}).subscribe();
   groupLabels.panel?.addEventListener('sb-group-label-changed',refresh);
   refresh();
  }
