@@ -231,7 +231,7 @@
     if (!page || document.getElementById("sb-my-sanctions")) return;
     const root = create("section", "section sb-my-sanctions");
     root.id = "sb-my-sanctions";
-    root.innerHTML = "<h2>🛡️ Mis advertencias y sanciones</h2><div id='sb-my-sanctions-list' role='status' aria-live='polite'>Consultando historial personal…</div>";
+    root.innerHTML = '<h2>🛡️ Mis advertencias y sanciones</h2><p class="sb-my-sanctions-intro">Consulta tu estado actual y tu historial de moderación.</p><div id="sb-my-sanctions-list" role="status" aria-live="polite">Consultando historial personal…</div>';
     page.append(root);
     const { data: { user }, error: userError } = await sb.auth.getUser();
     if (!root.isConnected) return;
@@ -247,8 +247,17 @@
     if (events.error || current.error) {
       body.textContent = "No se pudo consultar tu historial de moderación."; return;
     }
-    body.append(create("p", "sb-sanction-current", labelState(current.data)));
-    if (!events.data?.length) { body.append(create("p", "", "No tienes advertencias ni sanciones registradas.")); return; }
+    body.append(create("p", "sb-sanction-current sb-my-sanctions-status", labelState(current.data)));
+    if (!events.data?.length) {
+      const empty = create("div", "sb-my-sanctions-empty");
+      empty.append(
+        create("span", "sb-my-sanctions-empty-icon", "✅"),
+        create("p", "sb-my-sanctions-empty-title", "Todo en orden"),
+        create("p", "sb-my-sanctions-empty-note", "No tienes advertencias ni sanciones registradas. Tu cuenta está en regla.")
+      );
+      body.append(empty);
+      return;
+    }
     for (const item of events.data) {
       const card = create("article", "sb-sanction-event");
       card.append(create("strong", "", types[item.action] || item.action));
