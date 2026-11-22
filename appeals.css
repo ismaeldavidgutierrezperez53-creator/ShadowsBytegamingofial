@@ -232,3 +232,19 @@
  .sb-appeals-filter-actions {grid-column:1/-1;}
  .sb-appeal-assignment-actions button,.sb-appeal-export-row button{width:100%;}
 }
+
+/* Informar claramente al equipo incluso cuando todavía no hay expedientes. */
+.sb-appeals-assignment-overview{
+  display:grid;gap:10px;padding:15px 17px;margin:14px 0 20px;
+  border:1px solid rgba(179,134,232,.52);border-radius:13px;
+  background:rgba(71,43,99,.24);
+}
+.sb-appeals-assignment-overview h3,.sb-appeals-assignment-overview p{margin:0;}
+.sb-appeals-assignment-overview p{color:#eee0fb;line-height:1.55;}
+.sb-appeals-assignment-overview button{justify-self:start;white-space:normal;max-width:100%;}
+.sb-appeals-assign-empty{margin:4px 0;padding:18px;border:1px dashed rgba(179,134,232,.53);border-radius:12px;}
+.sb-appeals-assign-empty .sb-appeals-empty-copy h3{margin:0 0 9px;}
+.sb-appeals-assign-empty .sb-appeals-empty-copy p{margin:0;line-height:1.55;}
+@media(max-width:600px){
+  .sb-appeals-assignment-overview button{justify-self:stretch;width:100%;}
+}
