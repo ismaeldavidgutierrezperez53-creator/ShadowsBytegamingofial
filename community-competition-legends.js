@@ -193,6 +193,41 @@
   }
   container.append(gallery);
  }
+
+ async function mountProfileTrophies(container,memberId){
+  if(!container||!memberId||container.querySelector('.sb-legend-profile-trophies'))return;
+  const section=make('section','profile-panel sb-legend-profile-trophies');
+  const title=make('h2','','🏆 Trofeos competitivos');
+  const detail=make('p','sb-legend-caption',
+   'Colección de trofeos exclusivos ganados en retos y torneos con podio oficial.');
+  const gallery=make('div','sb-legend-profile-trophy-list');
+  gallery.textContent='Cargando trofeos…';
+  section.append(title,detail,gallery);container.append(section);
+  try{
+   const result=await readPaged('community_competition_awards','place,competition_id',query=>query.eq('user_id',memberId),1000);
+   if(!section.isConnected)return;
+   gallery.replaceChildren();
+   const medals=result.rows;
+   const metrics={gold:medals.filter(a=>Number(a.place)===1).length};
+   metrics.podium=medals.filter(a=>[1,2,3].includes(Number(a.place))).length;
+   const earned=trophyRules.filter(rule=>trophyProgress(rule,metrics)>=rule.target);
+   if(!earned.length){
+    gallery.append(make('p','sb-legend-empty',
+     'Este miembro todavía no tiene trofeos confirmados. Se desbloquean después de recibir medallas oficiales.'));
+   }else{
+    for(const rule of earned){
+     const badge=make('span','sb-legend-profile-trophy-chip',rule.icon+' '+rule.name);
+     badge.title=rule.description;
+     gallery.append(badge);
+    }
+   }
+   if(result.truncated)section.append(make('small','',
+    'Colección calculada con los primeros 1000 premios consultados.'));
+  }catch(error){
+   if(section.isConnected)gallery.textContent='No se pudieron cargar los trofeos competitivos.';
+  }
+ }
+
  function renderCompetitiveSeasons(container,competitions,entries,awards,profiles){
   container.replaceChildren();
   const bySeason=new Map();
@@ -492,5 +527,5 @@
   if(state&&state.wrapper.isConnected)void load(state);
   else mount(root);
  };
- window.SBCompetitionLegends={mount,refresh};
+ window.SBCompetitionLegends={mount,refresh,mountProfileTrophies};
 })();
