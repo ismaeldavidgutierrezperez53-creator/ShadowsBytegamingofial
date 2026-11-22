@@ -2375,3 +2375,170 @@ body *::-webkit-scrollbar{
   #admin-competition-create > button[type="submit"] { transition: none; }
   #admin-competition-create > button[type="submit"]:hover { transform: none; }
 }
+
+/* Gestión de competiciones: participantes y puntuaciones 2026-11-22 */
+#admin-competitions-management .admin-competition-members-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 15px;
+  margin: 20px 0 13px;
+  padding: 0 2px;
+}
+#admin-competitions-management .admin-competition-members-heading strong {
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.25;
+  color: #f3e8ff;
+  overflow-wrap: anywhere;
+}
+#admin-competitions-management .admin-competition-members-heading small {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 11px;
+  background: rgba(85, 70, 117, .18);
+  border: 1px solid rgba(173, 150, 209, .24);
+  border-radius: 999px;
+  color: #c1b7d2;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+#admin-competitions-management .admin-competition-score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px 155px minmax(160px, 190px);
+  align-items: center;
+  gap: 15px;
+  padding: 15px 17px;
+  margin: 10px 0;
+  background: linear-gradient(115deg, rgba(45, 31, 68, .86), rgba(26, 22, 44, .96));
+  border: 1px solid rgba(162, 121, 222, .32);
+  border-radius: 13px;
+}
+#admin-competitions-management .admin-competition-score-row:hover {
+  border-color: rgba(188, 143, 250, .58);
+}
+#admin-competitions-management .admin-competition-score-row > .admin-competition-person-name {
+  display: block;
+  flex: none;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #f8f2ff;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+#admin-competitions-management .admin-competition-score-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  color: #cfc4e2;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+#admin-competitions-management .admin-competition-score-field input[type="number"] {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(176, 143, 230, .54);
+  border-radius: 9px;
+  background: #151123;
+  color: #f8f3ff;
+  color-scheme: dark;
+  font: 700 17px/1.3 Rajdhani, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+#admin-competitions-management .admin-competition-score-field input[type="number"]:focus-visible {
+  outline: 2px solid #ba83ff;
+  outline-offset: 2px;
+  border-color: #d4aaff;
+}
+#admin-competitions-management .admin-competition-completed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 11px;
+  border: 1px solid rgba(163, 132, 211, .25);
+  border-radius: 10px;
+  background: rgba(119, 80, 158, .11);
+  color: #e7ddf5;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+#admin-competitions-management .admin-competition-completed input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  accent-color: #a86bff;
+  cursor: pointer;
+}
+#admin-competitions-management .admin-competition-score-row > button {
+  box-sizing: border-box;
+  justify-self: stretch;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid rgba(166, 133, 243, .55);
+  border-radius: 10px;
+  background: linear-gradient(115deg, #6939a9, #3b5eb3);
+  color: #fff;
+  font: 700 15px/1.3 Rajdhani, Arial, sans-serif;
+  white-space: normal;
+}
+#admin-competitions-management .admin-competition-score-row > button:not(:disabled):hover {
+  filter: brightness(1.13);
+}
+#admin-competitions-management .admin-competition-score-row > button:focus-visible,
+#admin-competitions-management .admin-competition-completed input:focus-visible {
+  outline: 2px solid #d4aaff;
+  outline-offset: 3px;
+}
+#admin-competitions-management .admin-competition-score-row :is(button, input):disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
+@media (max-width: 950px) {
+  #admin-competitions-management .admin-competition-score-row {
+    grid-template-columns: minmax(0, 1fr) 155px minmax(160px, 190px);
+    gap: 12px;
+  }
+  #admin-competitions-management .admin-competition-person-name { grid-column: 1 / -1; }
+}
+@media (max-width: 680px) {
+  #admin-competitions-management .admin-competition-score-row {
+    grid-template-columns: minmax(0, 1fr) minmax(125px, 1fr);
+    padding: 14px;
+  }
+  #admin-competitions-management .admin-competition-person-name,
+  #admin-competitions-management .admin-competition-score-row > button {
+    grid-column: 1 / -1;
+  }
+  #admin-competitions-management .admin-competition-completed { align-self: end; }
+}
+@media (max-width: 420px) {
+  #admin-competitions-management .admin-competition-score-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  #admin-competitions-management .admin-competition-score-row > * { grid-column: 1 / -1; }
+  #admin-competitions-management .admin-competition-completed { justify-self: stretch; }
+  #admin-competitions-management .admin-competition-members-heading small { border-radius: 9px; }
+}
