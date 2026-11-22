@@ -1020,19 +1020,155 @@ async function adminInitRewardShop(){
 
 async function adminInitSurpriseBoxes(){
  const anchor=document.getElementById('admin-shop-root');if(!anchor)return;
- let root=document.getElementById('admin-surprise-boxes');if(root)root.remove();root=document.createElement('section');root.id='admin-surprise-boxes';root.className='admin-panel';root.style.cssText='padding:18px;margin:16px 0';anchor.before(root);
- const h=document.createElement('h2');h.textContent='🎁 Administración de cajas misteriosas';root.append(h); const previews=document.createElement('section');previews.style.cssText='padding:16px;margin:12px 0;border:1px solid #ffffff33;border-radius:14px';const previewsHeading=document.createElement('h3');previewsHeading.textContent='✨ Vistas previas gratuitas de cajas misteriosas';previews.append(previewsHeading);const previewNote=document.createElement('p');previewNote.textContent='Estas animaciones no descuentan puntos ni envían regalos.';previews.append(previewNote);const soundLabel=document.createElement('label');soundLabel.style.cssText='display:flex;align-items:center;gap:8px;margin:12px 0';const soundToggle=document.createElement('input');soundToggle.type='checkbox';soundToggle.checked=localStorage.getItem('mystery_box_sound')!=='off';soundToggle.onchange=()=>{localStorage.setItem('mystery_box_sound',soundToggle.checked?'on':'off')};soundLabel.append(soundToggle,document.createTextNode('🔊 Activar sonidos al abrir cajas'));previews.append(soundLabel);const previewTypes=[{name:'Bronce',emoji:'🥉',color:'#cd7f32',particle:'✦'},{name:'Plata',emoji:'🥈',color:'#c0c0c0',particle:'✧'},{name:'Oro',emoji:'🥇',color:'#ffd700',particle:'★'},{name:'Diamante',emoji:'💎',color:'#67e8f9',particle:'💎'}];for(const tier of previewTypes){const preview=document.createElement('div');preview.style.cssText='padding:12px;margin:12px 0;border:1px solid '+tier.color+'66;border-radius:12px;text-align:center';const title=document.createElement('h4');title.textContent=tier.emoji+' Vista previa de Caja '+tier.name;const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';button.textContent=tier.emoji+' Probar animación '+tier.name;const stage=document.createElement('div');stage.style.cssText='position:relative;height:130px;overflow:hidden;display:grid;place-items:center';const status=document.createElement('p');status.setAttribute('role','status');button.onclick=async()=>{button.disabled=true;stage.replaceChildren();const countdown=document.createElement('strong');countdown.style.cssText='font-size:58px;color:'+tier.color;stage.append(countdown);for(let n=3;n>=1;n--){countdown.textContent=String(n);status.textContent='🎁 Abriendo Caja '+tier.name+' en '+n+'…';await new Promise(resolve=>setTimeout(resolve,1000));if(!stage.isConnected)return}playMysteryBoxSound(({Bronce:'bronze',Plata:'silver',Oro:'gold',Diamante:'diamond'})[tier.name]);stage.replaceChildren();const center=document.createElement('span');center.textContent=tier.emoji;center.style.cssText='font-size:70px;display:block;transition:transform .9s ease,opacity .9s ease';stage.append(center);status.textContent='Abriendo Caja '+tier.name+'…';for(let k=0;k<20;k++){const p=document.createElement('span');p.textContent=tier.particle;p.style.cssText='position:absolute;left:50%;top:50%;color:'+tier.color+';font-size:'+(15+k%4*5)+'px;transition:transform 1s ease-out,opacity 1s ease-out';stage.append(p);requestAnimationFrame(()=>{const angle=k*Math.PI/10;p.style.transform='translate('+Math.round(Math.cos(angle)*125)+'px,'+Math.round(Math.sin(angle)*53)+'px) rotate('+(k*30)+'deg)';p.style.opacity='0'})}requestAnimationFrame(()=>{center.style.transform='scale(1.5) rotate(12deg)';center.style.opacity='.3'});setTimeout(()=>{status.textContent='🎉 ¡Caja '+tier.name+' abierta!';button.disabled=false;showMysteryBoxCelebration(tier.name,({Bronce:'bronze',Plata:'silver',Oro:'gold',Diamante:'diamond'})[tier.name],true)},1100)};preview.append(title,button,stage,status);previews.append(preview)}root.append(previews);
+ let root=document.getElementById('admin-surprise-boxes');if(root)root.remove();root=document.createElement('section');root.id='admin-surprise-boxes';root.className='admin-panel sb-surprise-admin';anchor.before(root);
+ const h=document.createElement('h2');h.textContent='🎁 Administración de cajas misteriosas';root.append(h);const intro=document.createElement('p');intro.className='sb-surprise-admin__intro';intro.textContent='Gestiona las cajas misteriosas de la tienda de recompensas.';root.append(intro); const previews=document.createElement('section');previews.className='sb-surprise-admin__previews';previews.style.cssText='padding:16px;margin:12px 0;border:1px solid #ffffff33;border-radius:14px';const previewsHeading=document.createElement('h3');previewsHeading.textContent='✨ Vistas previas gratuitas de cajas misteriosas';previews.append(previewsHeading);const previewNote=document.createElement('p');previewNote.textContent='Estas animaciones no descuentan puntos ni envían regalos.';previews.append(previewNote);const soundLabel=document.createElement('label');soundLabel.style.cssText='display:flex;align-items:center;gap:8px;margin:12px 0';const soundToggle=document.createElement('input');soundToggle.type='checkbox';soundToggle.checked=localStorage.getItem('mystery_box_sound')!=='off';soundToggle.onchange=()=>{localStorage.setItem('mystery_box_sound',soundToggle.checked?'on':'off')};soundLabel.append(soundToggle,document.createTextNode('🔊 Activar sonidos al abrir cajas'));previews.append(soundLabel);const previewTypes=[{name:'Bronce',emoji:'🥉',color:'#cd7f32',particle:'✦'},{name:'Plata',emoji:'🥈',color:'#c0c0c0',particle:'✧'},{name:'Oro',emoji:'🥇',color:'#ffd700',particle:'★'},{name:'Diamante',emoji:'💎',color:'#67e8f9',particle:'💎'}];for(const tier of previewTypes){const preview=document.createElement('div');preview.style.cssText='padding:12px;margin:12px 0;border:1px solid '+tier.color+'66;border-radius:12px;text-align:center';const title=document.createElement('h4');title.textContent=tier.emoji+' Vista previa de Caja '+tier.name;const button=document.createElement('button');button.type='button';button.className='gradient-btn mini';button.textContent=tier.emoji+' Probar animación '+tier.name;const stage=document.createElement('div');stage.style.cssText='position:relative;height:130px;overflow:hidden;display:grid;place-items:center';const status=document.createElement('p');status.setAttribute('role','status');button.onclick=async()=>{button.disabled=true;stage.replaceChildren();const countdown=document.createElement('strong');countdown.style.cssText='font-size:58px;color:'+tier.color;stage.append(countdown);for(let n=3;n>=1;n--){countdown.textContent=String(n);status.textContent='🎁 Abriendo Caja '+tier.name+' en '+n+'…';await new Promise(resolve=>setTimeout(resolve,1000));if(!stage.isConnected)return}playMysteryBoxSound(({Bronce:'bronze',Plata:'silver',Oro:'gold',Diamante:'diamond'})[tier.name]);stage.replaceChildren();const center=document.createElement('span');center.textContent=tier.emoji;center.style.cssText='font-size:70px;display:block;transition:transform .9s ease,opacity .9s ease';stage.append(center);status.textContent='Abriendo Caja '+tier.name+'…';for(let k=0;k<20;k++){const p=document.createElement('span');p.textContent=tier.particle;p.style.cssText='position:absolute;left:50%;top:50%;color:'+tier.color+';font-size:'+(15+k%4*5)+'px;transition:transform 1s ease-out,opacity 1s ease-out';stage.append(p);requestAnimationFrame(()=>{const angle=k*Math.PI/10;p.style.transform='translate('+Math.round(Math.cos(angle)*125)+'px,'+Math.round(Math.sin(angle)*53)+'px) rotate('+(k*30)+'deg)';p.style.opacity='0'})}requestAnimationFrame(()=>{center.style.transform='scale(1.5) rotate(12deg)';center.style.opacity='.3'});setTimeout(()=>{status.textContent='🎉 ¡Caja '+tier.name+' abierta!';button.disabled=false;showMysteryBoxCelebration(tier.name,({Bronce:'bronze',Plata:'silver',Oro:'gold',Diamante:'diamond'})[tier.name],true)},1100)};preview.append(title,button,stage,status);previews.append(preview)}root.append(previews);
  const [tiers,rewards,items]=await Promise.all([sb.from('surprise_box_tiers').select('*'),sb.from('surprise_box_rewards').select('tier,item_id'),sb.rpc('admin_shop_items')]);
  if([tiers,rewards,items].some(x=>x.error)){root.append(document.createTextNode('No se pudo cargar la configuración de las cajas.'));return}
+ const config=document.createElement('section');
+ config.className='sb-surprise-admin__configuration';
+ const configHeading=document.createElement('div');
+ configHeading.className='sb-surprise-admin__section-heading';
+ const configTitle=document.createElement('h3');
+ configTitle.textContent='⚙️ Configuración de cajas';
+ const configHelp=document.createElement('p');
+ configHelp.textContent='Ajusta los puntos, la disponibilidad y los premios de cada categoría.';
+ configHeading.append(configTitle,configHelp);
+ const grid=document.createElement('div');
+ grid.className='sb-surprise-admin__grid';
+ config.append(configHeading,grid);
  for(const tier of tiers.data||[]){
-  const form=document.createElement('form');form.style.cssText='padding:14px;margin:12px 0;border:1px solid #ffffff33;border-radius:12px';const title=document.createElement('h3');title.textContent=tier.name;form.append(title);
-  const priceLabel=document.createElement('label');priceLabel.textContent='Precio en puntos ';const price=document.createElement('input');price.type='number';price.min='1';price.max='100000';price.required=true;price.value=tier.price;priceLabel.append(price);form.append(priceLabel);
-  const activeLabel=document.createElement('label');const active=document.createElement('input');active.type='checkbox';active.checked=tier.active;activeLabel.append(active,document.createTextNode(' Caja activa'));form.append(activeLabel);
-  const prizeTitle=document.createElement('p');prizeTitle.textContent='Selecciona los premios posibles:';form.append(prizeTitle);
-  const checks=[];for(const item of items.data||[]){const label=document.createElement('label');label.style.cssText='display:block;margin:6px 0';const check=document.createElement('input');check.type='checkbox';check.checked=(rewards.data||[]).some(x=>x.tier===tier.tier&&x.item_id===item.id);label.append(check,document.createTextNode(' '+item.name));form.append(label);checks.push([item.id,check])}
-  const save=document.createElement('button');save.type='submit';save.className='gradient-btn mini';save.textContent='Guardar '+tier.name;const status=document.createElement('p');status.setAttribute('role','status');form.append(save,status);
-  form.onsubmit=async e=>{e.preventDefault();const selected=checks.filter(x=>x[1].checked).map(x=>x[0]);if(!selected.length){status.textContent='Selecciona al menos un premio.';return}save.disabled=true;const {error}=await sb.rpc('admin_save_surprise_box',{p_tier:tier.tier,p_price:Number(price.value),p_active:active.checked,p_items:selected});status.textContent=error?'Error: '+error.message:'✓ Caja guardada';save.disabled=false};root.append(form)
+  const kind=String(tier.tier||tier.name||'').toLowerCase();
+  const tone=/diam|diamond/.test(kind)?'diamond':/oro|gold/.test(kind)?'gold':/plata|silver/.test(kind)?'silver':/bronce|bronze/.test(kind)?'bronze':'default';
+  const form=document.createElement('form');
+  form.className='sb-surprise-admin__card sb-surprise-admin__card--'+tone;
+  const header=document.createElement('div');
+  header.className='sb-surprise-admin__card-header';
+  const heading=document.createElement('div');
+  heading.className='sb-surprise-admin__card-heading';
+  const eyebrow=document.createElement('span');
+  eyebrow.className='sb-surprise-admin__eyebrow';
+  eyebrow.textContent='CAJA MISTERIOSA';
+  const title=document.createElement('h4');
+  title.textContent=tier.name;
+  heading.append(eyebrow,title);
+  const badge=document.createElement('span');
+  badge.className='sb-surprise-admin__badge';
+  header.append(heading,badge);
+
+  const controls=document.createElement('div');
+  controls.className='sb-surprise-admin__controls';
+  const priceLabel=document.createElement('label');
+  priceLabel.className='sb-surprise-admin__field';
+  const priceText=document.createElement('span');
+  priceText.textContent='🪙 Precio en puntos';
+  const price=document.createElement('input');
+  price.type='number';price.min='1';price.max='100000';price.step='1';
+  price.inputMode='numeric';price.required=true;price.value=tier.price;
+  priceLabel.append(priceText,price);
+  const priceHint=document.createElement('small');
+  priceHint.textContent='Puntos necesarios para abrir esta caja';
+  priceLabel.append(priceHint);
+  const activeLabel=document.createElement('label');
+  activeLabel.className='sb-surprise-admin__active';
+  const activeCopy=document.createElement('span');
+  activeCopy.className='sb-surprise-admin__active-copy';
+  const activeTitle=document.createElement('strong');
+  activeTitle.textContent='Caja activa';
+  const activeHint=document.createElement('small');
+  activeHint.textContent='Visible para los miembros';
+  activeCopy.append(activeTitle,activeHint);
+  const active=document.createElement('input');
+  active.type='checkbox';active.checked=!!tier.active;
+  const syncActive=()=>{
+   badge.textContent=active.checked?'● Activa':'● Inactiva';
+   badge.dataset.state=active.checked?'active':'inactive';
+   activeHint.textContent=active.checked?'Disponible para los miembros':'No disponible para los miembros';
+  };
+  active.addEventListener('change',syncActive);
+  syncActive();
+  activeLabel.append(activeCopy,active);
+  controls.append(priceLabel,activeLabel);
+
+  const prizeSection=document.createElement('fieldset');
+  prizeSection.className='sb-surprise-admin__prizes';
+  const legend=document.createElement('legend');
+  legend.textContent='🎁 Premios posibles';
+  const prizeCaption=document.createElement('p');
+  prizeCaption.className='sb-surprise-admin__prize-hint';
+  prizeCaption.textContent='Elige qué artículos pueden aparecer al abrir esta caja.';
+  const count=document.createElement('p');
+  count.className='sb-surprise-admin__count';
+  const list=document.createElement('div');
+  list.className='sb-surprise-admin__prize-grid';
+  const checks=[];
+  for(const item of items.data||[]){
+   const label=document.createElement('label');
+   label.className='sb-surprise-admin__prize';
+   const check=document.createElement('input');
+   check.type='checkbox';
+   check.checked=(rewards.data||[]).some(x=>x.tier===tier.tier&&x.item_id===item.id);
+   const name=document.createElement('span');
+   name.textContent=item.name;
+   label.append(check,name);
+   list.append(label);
+   checks.push([item.id,check]);
+  }
+  const syncCount=()=>{
+   const n=checks.filter(x=>x[1].checked).length;
+   count.textContent=n+' de '+checks.length+' premios seleccionados';
+  };
+  checks.forEach(([,check])=>check.addEventListener('change',syncCount));
+  syncCount();
+  if(!checks.length){
+   const empty=document.createElement('p');
+   empty.className='sb-surprise-admin__empty';
+   empty.textContent='Todavía no hay artículos disponibles para seleccionar.';
+   list.append(empty);
+  }
+  prizeSection.append(legend,prizeCaption,count,list);
+
+  const footer=document.createElement('div');
+  footer.className='sb-surprise-admin__footer';
+  const save=document.createElement('button');
+  save.type='submit';save.className='gradient-btn sb-surprise-admin__save';
+  const saveText='💾 Guardar '+tier.name;
+  save.textContent=saveText;
+  const status=document.createElement('p');
+  status.className='sb-surprise-admin__status';
+  status.setAttribute('role','status');
+  status.setAttribute('aria-live','polite');
+  footer.append(save,status);
+  form.append(header,controls,prizeSection,footer);
+  form.onsubmit=async e=>{
+   e.preventDefault();
+   const selected=checks.filter(x=>x[1].checked).map(x=>x[0]);
+   if(!selected.length){
+    status.dataset.type='error';
+    status.textContent='Selecciona al menos un premio.';
+    return;
+   }
+   save.disabled=true;
+   save.textContent='Guardando…';
+   status.textContent='';
+   delete status.dataset.type;
+   try{
+    const {error}=await sb.rpc('admin_save_surprise_box',{
+     p_tier:tier.tier,p_price:Number(price.value),p_active:active.checked,p_items:selected
+    });
+    if(error)throw error;
+    status.dataset.type='success';
+    status.textContent='✓ Cambios guardados correctamente.';
+   }catch(error){
+    status.dataset.type='error';
+    status.textContent='No se pudo guardar: '+(error.message||'error desconocido');
+   }finally{
+    save.disabled=false;
+    save.textContent=saveText;
+   }
+  };
+  grid.append(form);
  }
+ root.insertBefore(config,previews);
 }
 const previousAdminInitRewardShop=adminInitRewardShop;
 adminInitRewardShop=async function(){await previousAdminInitRewardShop();await adminInitSurpriseBoxes()};
