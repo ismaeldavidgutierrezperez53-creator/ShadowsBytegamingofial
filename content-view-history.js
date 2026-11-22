@@ -488,7 +488,7 @@
   button.type='button';button.className='sb-content-stats-entry-button';
   button.textContent='📊 Mis estadísticas';
   const label=document.createElement('small');
-  label.textContent='Consulta los gráficos de tus noticias y publicaciones.';
+  label.textContent='Panel general, contenidos más vistos y gráficos de tus noticias y publicaciones.';
   button.onclick=openMyStatistics;
   entry.append(button,label);
   const preference=page.querySelector('.sb-content-views-preference');
@@ -559,9 +559,9 @@
   const heading=document.createElement('h2');
   heading.id='sb-analytics-index-heading';heading.textContent='📊 Mis estadísticas';
   const intro=document.createElement('p');intro.className='sb-content-view-help';
-  intro.textContent='Elige una noticia o publicación para consultar sus visitas por día, semana y mes.';
+  intro.textContent='Consulta tus visitas totales y los contenidos más vistos, o elige una noticia o publicación para ver su gráfico individual.';
   const tabs=document.createElement('div');tabs.className='sb-analytics-tabs';
-  const kinds=[['news','📰 Noticias'],['post','💬 Publicaciones']];
+  const kinds=[['overview','🌐 General'],['news','📰 Noticias'],['post','💬 Publicaciones']];
   const buttons=kinds.map(([kind,label])=>{
    const button=document.createElement('button');button.type='button';
    button.dataset.kind=kind;button.textContent=label;
@@ -593,12 +593,149 @@
   document.addEventListener('keydown',onKey);
   window.addEventListener('hashchange',dismiss);
   close.focus();
+
   let version=0;
+  async function loadOverview(){
+   list.classList.add('sb-analytics-overview-list');
+   const panel=document.createElement('div');
+   panel.className='sb-analytics-overview';
+   const periodTabs=document.createElement('div');
+   periodTabs.className='sb-analytics-period-tabs';
+   periodTabs.setAttribute('aria-label','Agrupación de las visualizaciones');
+   const periods=[['day','Días'],['week','Semanas'],['month','Meses']];
+   const cards=document.createElement('div');
+   cards.className='sb-analytics-overview-cards';
+   const chartBox=document.createElement('section');
+   chartBox.className='sb-analytics-overview-chart';
+   const topBox=document.createElement('section');
+   topBox.className='sb-analytics-overview-ranking';
+   panel.append(periodTabs,cards,chartBox,topBox);
+   list.append(panel);
+   const periodButtons=periods.map(([period,title])=>{
+    const button=document.createElement('button');
+    button.type='button';button.textContent=title;
+    button.dataset.period=period;
+    button.onclick=()=>refresh(period);
+    periodTabs.append(button);
+    return button;
+   });
+   async function refresh(period){
+    const request=++version;
+    periodButtons.forEach(button=>
+     button.setAttribute('aria-pressed',String(button.dataset.period===period)));
+    state.textContent='Cargando el panel general…';
+    cards.replaceChildren();chartBox.replaceChildren();topBox.replaceChildren();
+    try{
+     const {data,error}=await sb.rpc('content_view_overview',{p_period:period});
+     if(request!==version||!overlay.isConnected||!panel.isConnected)return;
+     if(error)throw error;
+     const summary=data?.summary||{};
+     const trend=Array.isArray(data?.trend)?data.trend:[];
+     const ranking=Array.isArray(data?.top)?data.top:[];
+     const newsViews=Number(summary.news_views||0);
+     const postViews=Number(summary.post_views||0);
+     const newsCount=Number(summary.news_count||0);
+     const postCount=Number(summary.post_count||0);
+     const values=[
+      [formatCount(Number(summary.total_views||0)),'👁️ Visualizaciones totales'],
+      [formatCount(newsViews),'📰 Visitas a noticias'],
+      [formatCount(postViews),'💬 Visitas a publicaciones'],
+      [formatCount(newsCount+postCount),'📄 Contenidos · '+formatCount(newsCount)+' noticias / '+formatCount(postCount)+' publicaciones']
+     ];
+     for(const [number,label] of values){
+      const card=document.createElement('div');
+      card.className='sb-analytics-number';
+      const big=document.createElement('strong');big.textContent=number;
+      const small=document.createElement('span');small.textContent=label;
+      card.append(big,small);cards.append(card);
+     }
+     const header=document.createElement('h3');
+     header.textContent='📈 Evolución de las visualizaciones';
+     const explanation=document.createElement('p');
+     explanation.className='sb-content-view-help';
+     explanation.textContent='Cada visitante se cuenta una vez por noticia o publicación. Si ve dos contenidos, suma dos visualizaciones.';
+     const legend=document.createElement('div');
+     legend.className='sb-analytics-overview-legend';
+     for(const [kind,label] of [['news','Noticias'],['post','Publicaciones']]){
+      const item=document.createElement('span');
+      const symbol=document.createElement('i');symbol.className='sb-overview-legend-'+kind;symbol.setAttribute('aria-hidden','true');
+      item.append(symbol,document.createTextNode(label));legend.append(item);
+     }
+     const scroll=document.createElement('div');
+     scroll.className='sb-analytics-chart-scroll';
+     const chart=document.createElement('div');
+     chart.className='sb-analytics-bars sb-analytics-overview-bars';
+     chart.style.setProperty('--sb-bars',String(trend.length||12));
+     chart.setAttribute('role','group');
+     chart.setAttribute('aria-label','Visualizaciones de noticias y publicaciones por período');
+     const peak=Math.max(0,...trend.map(item=>Number(item.news_views||0)+Number(item.post_views||0)));
+     for(const item of trend){
+      const news=Number(item.news_views||0),posts=Number(item.post_views||0);
+      const total=news+posts;
+      const label=formatAnalyticsDate(item.bucket_start,period);
+      const column=document.createElement('div');column.className='sb-analytics-column';
+      column.setAttribute('role','img');
+      column.setAttribute('aria-label',label+': '+formatCount(news)+' noticias y '+formatCount(posts)+' publicaciones');
+      const number=document.createElement('strong');number.textContent=formatCount(total);
+      const frame=document.createElement('div');frame.className='sb-analytics-bar-frame';
+      const stacked=document.createElement('div');stacked.className='sb-overview-stack';
+      stacked.style.height=(peak?total/peak*100:0)+'%';
+      const newsPart=document.createElement('span');
+      newsPart.className='sb-overview-stack-news';newsPart.style.flexGrow=String(news);
+      const postPart=document.createElement('span');
+      postPart.className='sb-overview-stack-post';postPart.style.flexGrow=String(posts);
+      stacked.append(newsPart,postPart);frame.append(stacked);
+      const date=document.createElement('small');date.textContent=label;
+      column.append(number,frame,date);chart.append(column);
+     }
+     scroll.append(chart);chartBox.append(header,explanation,legend,scroll);
+     const topHeading=document.createElement('h3');
+     topHeading.textContent='🏆 Los 10 contenidos más vistos';
+     topBox.append(topHeading);
+     if(!ranking.length){
+      const empty=document.createElement('p');
+      empty.className='sb-content-view-help';
+      empty.textContent='Todavía no tienes noticias publicadas ni publicaciones para analizar.';
+      topBox.append(empty);
+     }else{
+      const listRank=document.createElement('div');
+      listRank.className='sb-analytics-ranking-list';
+      for(const [index,item] of ranking.entries()){
+       if(!uuid.test(item.content_id||'')||!['post','news'].includes(item.kind))continue;
+       const rank=document.createElement('div');rank.className='sb-analytics-ranking-item';
+       const ordinal=document.createElement('span');ordinal.className='sb-analytics-ranking-position';
+       ordinal.textContent=String(index+1)+'.';
+       const body=document.createElement('div');body.className='sb-analytics-ranking-text';
+       const title=document.createElement('strong');
+       title.textContent=(item.kind==='news'?'📰 ':'💬 ')+(item.title||'Contenido');
+       const sub=document.createElement('small');
+       sub.textContent=formatCount(item.views||0)+' visualizaciones';
+       body.append(title,sub);
+       const button=document.createElement('button');
+       button.type='button';button.className='sb-content-view-readers';
+       button.textContent='Ver gráfico';
+       button.onclick=()=>{dismiss();openStats(item.kind,item.content_id);};
+       rank.append(ordinal,body,button);listRank.append(rank);
+      }
+      topBox.append(listRank);
+     }
+     const range=period==='day'?'14 días':period==='week'?'12 semanas':'12 meses';
+     state.textContent='Resumen actualizado · Evolución de los últimos '+range+'.';
+    }catch(error){
+     if(request!==version||!overlay.isConnected)return;
+     console.warn('Panel general de visualizaciones:',error);
+     state.textContent='No se pudo cargar el panel general. Revisa tu sesión o inténtalo de nuevo.';
+    }
+   }
+   refresh('day');
+  }
   async function load(kind){
    const v=++version;
    buttons.forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.kind===kind)));
    state.textContent='Cargando tus contenidos…';
    list.replaceChildren();
+   list.classList.remove('sb-analytics-overview-list');
+   if(kind==='overview'){loadOverview();return;}
    try{
     let rows=[];
     if(kind==='post'){
@@ -650,7 +787,7 @@
     state.textContent='No se pudieron cargar tus contenidos. Revisa tu sesión e inténtalo otra vez.';
    }
   }
-  load(pagePath()==='/comunidad'?'post':'news');
+  load('overview');
  }
  function scan(){
   mountPreference();
