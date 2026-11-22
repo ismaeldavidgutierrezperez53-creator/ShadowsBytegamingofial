@@ -342,8 +342,11 @@ Deno.serve(async req => {
     const assignFilter=String(body.assigned_filter||"all");
     const page=Math.max(0,Math.min(99,Number.isSafeInteger(body.page)?Number(body.page):0));
     const perPage=25;
-    const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&
-      new Date(s+"T00:00:00.000Z").toISOString().slice(0,10)===s;
+    // Calendar inputs are converted in the user's local timezone to ISO UTC.
+    const validDate=(s:string)=>!s || (
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(s) &&
+      Number.isFinite(Date.parse(s)) && new Date(s).toISOString()===s
+    );
     if(!["pending","accepted","rejected","all"].includes(status) ||
       !["all","unassigned","mine"].includes(assignFilter) ||
       dateFrom&&(!validDate(dateFrom)) || dateTo&&(!validDate(dateTo)) ||
@@ -378,9 +381,8 @@ Deno.serve(async req => {
     if(status!=="all")query=query.eq("status",status);
     if(assignFilter==="unassigned")query=query.is("assigned_to",null);
     if(assignFilter==="mine")query=query.eq("assigned_to",viewer.id);
-    if(dateFrom)query=query.gte("created_at",dateFrom+"T00:00:00.000Z");
-    if(dateTo)query=query.lt("created_at",
-      new Date(Date.parse(dateTo+"T00:00:00.000Z")+86400000).toISOString());
+    if(dateFrom)query=query.gte("created_at",dateFrom);
+    if(dateTo)query=query.lt("created_at",dateTo);
     if(search){
       if(matchingMembers?.length)query=query.in("member_id",matchingMembers);
       else return reply({appeals:[],profiles:[],sanctions:[],staff_members:staff,
@@ -453,9 +455,11 @@ Deno.serve(async req => {
           .eq("id",appeal.sanction_event_id).maybeSingle(),
         db.from("member_appeal_assignment_history").select("*")
           .eq("appeal_id",appealId).order("created_at",{ascending:true}).order("id",{ascending:true})
-          .limit(1000)
+          .limit(1001)
       ]);
     if(sanctionError||historyError)return reply({error:"No se pudo cargar el expediente completo"},500);
+    if((assignmentHistory||[]).length>1000)
+      return reply({error:"El historial de asignaciones supera el límite seguro de exportación"},413);
     const messages:any[]=[];
     for(let offset=0;offset<=5000;offset+=250){
       const {data:batch,error:messageError}=await db.from("member_appeal_messages")
@@ -465,7 +469,7 @@ Deno.serve(async req => {
       if(messageError)return reply({error:"No se pudo cargar el historial de mensajes"},500);
       if(offset===5000 && batch?.length)
         return reply({error:"El expediente supera el límite de exportación; contacta con soporte para una copia íntegra"},413);
-      messages.push(...batch||[]);
+      messages.push(...(batch||[]));
       if(!batch || batch.length<250)break;
     }
     const members=[...new Set([
