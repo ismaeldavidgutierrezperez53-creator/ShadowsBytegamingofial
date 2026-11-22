@@ -150,6 +150,9 @@
     }catch(error){
       content.textContent="No se pudieron cargar las apelaciones: "+error.message;
     }
+    if(new URLSearchParams(location.hash.split("?")[1]||"").get("focus")==="appeals"){
+      requestAnimationFrame(()=>{if(panel.isConnected)panel.scrollIntoView({block:"start",behavior:"smooth"});});
+    }
   }
 
   let staffCache=null;
