@@ -168,3 +168,27 @@
 @media(prefers-reduced-motion:reduce){
  #admin-surprise-boxes .sb-surprise-admin__active input,#admin-surprise-boxes .sb-surprise-admin__active input::before{transition:none}
 }
+
+
+/* Crear caja personalizada · administración */
+#admin-surprise-boxes .sb-surprise-admin__create-toolbar{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 18px}
+#admin-surprise-boxes .sb-surprise-admin__create-button{min-height:47px;padding:10px 19px;border-radius:12px;font:700 18px Rajdhani,Arial,sans-serif;cursor:pointer;white-space:normal}
+#admin-surprise-boxes .sb-surprise-admin__new-form{display:grid;gap:16px;min-width:0;margin:0 0 22px;padding:clamp(15px,2.5vw,24px);border:1px solid #9a6cc3;border-radius:16px;background:linear-gradient(125deg,#2a1940,#171323);box-shadow:0 14px 35px #0003}
+#admin-surprise-boxes .sb-surprise-admin__new-form[hidden]{display:none!important}
+#admin-surprise-boxes .sb-surprise-admin__new-form h4{margin:0;font-size:clamp(19px,2.7vw,23px);color:#f2d6ff}
+#admin-surprise-boxes .sb-surprise-admin__new-form>p{margin:0;color:#cdbbdf;line-height:1.5}
+#admin-surprise-boxes .sb-surprise-admin__new-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;align-items:stretch}
+#admin-surprise-boxes .sb-surprise-admin__new-fields .sb-surprise-admin__active{grid-column:1/-1}
+#admin-surprise-boxes .sb-surprise-admin__new-form .sb-surprise-admin__prizes{margin:0}
+#admin-surprise-boxes .sb-surprise-admin__create-actions{display:flex;align-items:center;flex-wrap:wrap;gap:11px}
+#admin-surprise-boxes .sb-surprise-admin__create-confirm,#admin-surprise-boxes .sb-surprise-admin__create-cancel{min-height:45px;padding:10px 18px;border-radius:11px;font:700 17px Rajdhani,Arial,sans-serif;cursor:pointer}
+#admin-surprise-boxes .sb-surprise-admin__create-cancel{color:#f5e9ff;background:#281b39;border:1px solid #8a65a9}
+#admin-surprise-boxes .sb-surprise-admin__create-confirm:disabled{opacity:.5;cursor:wait}
+@media(max-width:740px){
+ #admin-surprise-boxes .sb-surprise-admin__new-fields{grid-template-columns:1fr}
+ #admin-surprise-boxes .sb-surprise-admin__new-fields .sb-surprise-admin__active{grid-column:1}
+}
+@media(max-width:460px){
+ #admin-surprise-boxes .sb-surprise-admin__create-toolbar .sb-surprise-admin__create-button{width:100%}
+ #admin-surprise-boxes .sb-surprise-admin__create-actions{display:grid;grid-template-columns:1fr}
+}
