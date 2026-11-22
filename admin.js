@@ -506,16 +506,20 @@ async function adminInitCompetitions(){
     }
    }
    box.append(prizePanel);
-   const count=document.createElement('strong');count.textContent='👥 '+people.length+' participantes registrados (hasta 700 inscripciones consultadas)';
-   box.append(count);
+   const membersHeading=document.createElement('div');membersHeading.className='admin-competition-members-heading';
+   const count=document.createElement('strong');count.textContent='👥 '+people.length+' participantes registrados';
+   const limitNote=document.createElement('small');limitNote.textContent='Hasta 700 inscripciones consultadas';
+   membersHeading.append(count,limitNote);box.append(membersHeading);
    if(!people.length){
     const noPeople=document.createElement('p');noPeople.textContent='Todavía no hay inscripciones.';box.append(noPeople);
    }
    for(const person of people){
     const row=document.createElement('div');row.className='admin-competition-score-row';
-    const label=document.createElement('span');label.textContent=names.get(person.user_id)||'Miembro sin perfil público';
+    const label=document.createElement('span');label.className='admin-competition-person-name';label.textContent=names.get(person.user_id)||'Miembro sin perfil público';
     const score=document.createElement('input');score.type='number';score.min='0';score.max='100000';score.step='1';score.value=String(person.score);score.disabled=eventAwards.length>0;score.setAttribute('aria-label','Puntuación de '+label.textContent);
-    const completedLabel=document.createElement('label');const completed=document.createElement('input');completed.type='checkbox';completed.checked=person.completed;completed.disabled=eventAwards.length>0;completedLabel.append(completed,document.createTextNode(' Completado'));
+    const scoreField=document.createElement('label');scoreField.className='admin-competition-score-field';
+    const scoreCaption=document.createElement('span');scoreCaption.textContent='Puntuación';scoreField.append(scoreCaption,score);
+    const completedLabel=document.createElement('label');completedLabel.className='admin-competition-completed';const completed=document.createElement('input');completed.type='checkbox';completed.checked=person.completed;completed.disabled=eventAwards.length>0;completedLabel.append(completed,document.createTextNode(' Completado'));
     const save=document.createElement('button');save.type='button';save.className='admin-secondary';save.textContent=eventAwards.length?'Premios cerrados':'Guardar puntuación';save.disabled=eventAwards.length>0;
     save.onclick=async()=>{
      const value=Number(score.value);
@@ -527,7 +531,7 @@ async function adminInitCompetitions(){
      note.textContent='Resultado guardado para '+label.textContent+'. No se ha modificado el XP.';
      save.disabled=false;
     };
-    row.append(label,score,completedLabel,save);box.append(row);
+    row.append(label,scoreField,completedLabel,save);box.append(row);
    }
    list.append(box);
   }
