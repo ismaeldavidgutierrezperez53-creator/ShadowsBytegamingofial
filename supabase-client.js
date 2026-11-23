@@ -837,6 +837,7 @@ function showRealtimeNotificationToast(n){
  open.href=n.kind?.startsWith('competition_')?notificationDestination(n):MODERATION_NOTIFICATION_TEXT[n.kind]?notificationDestination(n):n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id||'')
   ? '#/perfil?id='+encodeURIComponent(n.actor_id)
   : (n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'||n.kind==='news_reply'||(n.kind==='mention'&&(n.news_id||n.post_id))||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize'||n.kind==='poll_trophy_like'||((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id))?notificationDestination(n):'#/notificaciones';
+ if(n.kind==='exclusive_tag_unlock')open.href='#/cuenta?focus=unlock-tags';
  open.textContent=n.kind?.startsWith('competition_')?(n.kind==='competition_mission_reminder'?'🎯 Ver misiones':'🏆 Ver competición'):n.kind==='follow'?'👤 Ver perfil':n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'?'🏆 Ver torneo':n.kind==='poll_season_prize'?'🏆 Ver premio':n.kind==='poll_museum_prize'?'🏛️ Ver ranking':n.kind==='poll_trophy_like'?'❤️ Ver trofeo':(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
  const close=document.createElement('button');close.type='button';close.className='outline-btn mini';close.textContent='Cerrar';
  let timer;const dismiss=()=>{clearTimeout(timer);toast.remove();};close.onclick=dismiss;open.onclick=dismiss;
