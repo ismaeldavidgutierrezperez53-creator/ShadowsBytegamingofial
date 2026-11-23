@@ -350,3 +350,78 @@
   .sb-appeals-history-pagination button {min-width:90px;}
   .sb-appeals-history-pagination span {font-size:.85rem;}
 }
+
+
+/* Estadísticas personales de apelaciones */
+#sb-appeals-history .sb-appeals-stats {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+#sb-appeals-history .sb-appeals-stat-card {
+  display:flex;
+  min-width:0;
+  min-height:100px;
+  padding:14px 12px;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  border:1px solid rgba(176,139,226,.55);
+  border-radius:14px;
+  background:linear-gradient(155deg,rgba(47,30,83,.97),rgba(26,25,53,.94));
+  color:#f6ecff;
+  text-align:left;
+  font:inherit;
+  cursor:pointer;
+  transition:border-color .16s ease,background .16s ease,transform .16s ease;
+}
+#sb-appeals-history .sb-appeals-stat-card:hover {
+  border-color:#d1b1ff;
+  background:linear-gradient(155deg,rgba(74,42,118,.99),rgba(34,30,70,.99));
+  transform:translateY(-1px);
+}
+#sb-appeals-history .sb-appeals-stat-card[aria-pressed="true"] {
+  border-color:#9ce0ff;
+  box-shadow:inset 0 0 0 1px rgba(156,224,255,.36);
+}
+#sb-appeals-history .sb-appeals-stat-card:focus-visible {
+  outline:3px solid #a8dcff;
+  outline-offset:3px;
+}
+#sb-appeals-history .sb-appeals-stat-label {
+  color:#eee1ff;
+  font-size:.9rem;
+  font-weight:650;
+  line-height:1.35;
+}
+#sb-appeals-history .sb-appeals-stat-number {
+  color:#fff;
+  font-size:clamp(24px,3vw,34px);
+  font-weight:800;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+#sb-appeals-history .sb-appeals-stats-actions {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+#sb-appeals-history .sb-appeals-stats-note {
+  margin:0;
+  color:#ded1ed;
+  font-size:.88rem;
+}
+@media(max-width:850px) {
+  #sb-appeals-history .sb-appeals-stats {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:360px) {
+  #sb-appeals-history .sb-appeals-stats {grid-template-columns:minmax(0,1fr);}
+  #sb-appeals-history .sb-appeals-stat-card {min-height:75px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  #sb-appeals-history .sb-appeals-stat-card {transition:none;}
+  #sb-appeals-history .sb-appeals-stat-card:hover {transform:none;}
+}
