@@ -58,7 +58,7 @@ function isQuiet(preference: Record<string,unknown>|null): boolean {
 function alertCategoryField(kind:string,newsId?:string|null):string|null {
  if(kind.startsWith('competition_')||kind.startsWith('tournament_'))return 'alert_tournaments_enabled';
  if(['poll','poll_reminder','poll_trophy_like'].includes(kind))return 'alert_polls_enabled';
- if(['poll_season_prize','poll_museum_prize','gift'].includes(kind))return 'alert_rewards_enabled';
+ if(['poll_season_prize','poll_museum_prize','gift','exclusive_tag_unlock'].includes(kind))return 'alert_rewards_enabled';
  if(kind==='follow')return 'alert_followers_enabled';
  if(kind==='news_reply'||(kind==='mention'&&Boolean(newsId)))return 'alert_news_enabled';
  if(['like','comment','mention','game_like','game_comment','game_reply'].includes(kind))return 'alert_community_enabled';
@@ -102,13 +102,14 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
   if (!/^[0-9a-f-]{36}$/i.test(id)) return 0;
   if (type==='member_notifications') {
     const {data:n,error}=await admin.from('member_notifications')
-      .select('id,recipient_id,kind,actor_id,game_id,news_id,news_comment_id,post_id,poll_id,tournament_id,trophy_month,season_month,museum_month,competition_id').eq('id',id).maybeSingle();
+      .select('id,recipient_id,kind,actor_id,game_id,news_id,news_comment_id,post_id,poll_id,tournament_id,trophy_month,season_month,museum_month,competition_id,auto_tag_id').eq('id',id).maybeSingle();
     if (error || !n) return 0;
     const kinds:Record<string,[string,string,string]> = {
       follow:['👤 Nuevo seguidor','Una persona ha comenzado a seguirte.','#/notificaciones'],
       like:['❤️ Nuevo me gusta','A alguien le ha gustado tu publicación.','#/comunidad'],
       comment:['💬 Nuevo comentario','Has recibido un comentario en tu publicación.','#/comunidad'],
       gift:['🎁 Has recibido un regalo','Tienes un regalo nuevo en tu buzón.','#/regalos'],
+      exclusive_tag_unlock:['🏅 Etiqueta desbloqueada','Has conseguido una etiqueta exclusiva por tus logros.','#/cuenta'],
       poll:['🗳️ Nueva encuesta','Ya puedes participar en una encuesta.','#/encuestas'],
       poll_reminder:['🗳️ Encuesta pendiente','Tienes una encuesta por responder.','#/encuestas'],
       profile_view:['👀 Visita a tu perfil','Alguien ha visto tu perfil.','#/cuenta'],
@@ -147,6 +148,15 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     if (n.kind==='poll_season_prize' && n.season_month) info[2]='#/encuestas?temporada='+encodeURIComponent(n.season_month);
     if (n.kind==='poll_museum_prize' && n.museum_month) info[2]='#/encuestas?museo='+encodeURIComponent(n.museum_month);
     if (n.kind==='poll_trophy_like' && n.trophy_month) info[2]='#/cuenta?trofeo='+encodeURIComponent(n.trophy_month);
+    if (n.kind==='exclusive_tag_unlock' && n.auto_tag_id) {
+      const {data:tag}=await admin.from('sb_exclusive_tag_catalog')
+        .select('label,emoji').eq('id',n.auto_tag_id).maybeSingle();
+      if (tag)info=[
+        (tag.emoji||'🏅')+' ¡Etiqueta desbloqueada!',
+        'Has conseguido «'+String(tag.label||'Etiqueta exclusiva').slice(0,70)+'» por tus logros.',
+        '#/cuenta'
+      ];
+    }
     // El aviso externo de Seguidores identifica al miembro y abre directamente su perfil.
     if (n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id || '')) {
       const {data:actor}=await admin.from('profiles').select('display_name,username')
