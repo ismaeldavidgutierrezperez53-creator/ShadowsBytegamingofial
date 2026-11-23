@@ -744,7 +744,8 @@
       if(!output || !Number.isFinite(scheduled) || !Number.isFinite(eligible))continue;
       node.dataset.state=now>=scheduled?"elapsed":now>=eligible?"eligible":"waiting";
       if(now>=scheduled){
-        output.textContent="⏰ Plazo alcanzado · comprueba el aviso 🔔";
+        output.textContent="⏰ Revisión programada hace "+
+          formatAppealCountdown(now-scheduled)+" · comprueba el aviso 🔔";
       }else{
         output.textContent=(now>=eligible
           ?"⏰ Próxima revisión automática en "
@@ -752,19 +753,24 @@
       }
     }
   }
+  // The app rebuilds its admin panel during navigation. Keep a single
+  // timer and locate the current panel at each tick; never retain a stale
+  // detached element, which previously stopped the countdown permanently.
   let reminderCountdownInterval=null;
-  function startAppealCountdowns(panel){
-    if(reminderCountdownInterval!==null)clearInterval(reminderCountdownInterval);
-    reminderCountdownInterval=setInterval(()=>{
-      if(!panel.isConnected){
-        clearInterval(reminderCountdownInterval);
-        reminderCountdownInterval=null;
-        return;
-      }
-      if(!document.hidden)updateAppealReminderCountdowns(panel);
-    },1000);
-    updateAppealReminderCountdowns(panel);
+  function refreshAppealCountdowns(){
+    const active=document.getElementById("sb-appeals-staff");
+    if(active?.isConnected)updateAppealReminderCountdowns(active);
   }
+  function startAppealCountdowns(){
+    if(reminderCountdownInterval===null){
+      reminderCountdownInterval=setInterval(refreshAppealCountdowns,1000);
+    }
+    refreshAppealCountdowns();
+  }
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden)refreshAppealCountdowns();
+  });
+  window.addEventListener("pageshow",refreshAppealCountdowns);
   function drawStaff(panel){
     const host=panel.querySelector("#sb-appeals-staff-list");
     if(!host||!staffCache)return;
@@ -1088,7 +1094,7 @@
     filter("#sb-appeals-reload").addEventListener("click",()=>{
       loadStaff(panel,staffCache?.page||0);
     });
-    startAppealCountdowns(panel);
+    startAppealCountdowns();
     await loadStaff(panel);
     const focus=new URLSearchParams(location.hash.split("?")[1]||"").get("focus");
     if(focus==="appeals"&&panel.isConnected)panel.scrollIntoView({block:"start",behavior:"smooth"});
@@ -1096,6 +1102,11 @@
   window.SBAppeals={mountPublic,mountAccount,mountStaff,refreshPendingCount};
   window.addEventListener("focus",()=>{
     const panel=document.getElementById("sb-appeals-staff");
-    if(panel){void refreshPendingCount();void loadStaffStatistics(panel);void loadTeamStatistics(panel);}
+    if(panel){
+      refreshAppealCountdowns();
+      void refreshPendingCount();
+      void loadStaffStatistics(panel);
+      void loadTeamStatistics(panel);
+    }
   });
 })();
