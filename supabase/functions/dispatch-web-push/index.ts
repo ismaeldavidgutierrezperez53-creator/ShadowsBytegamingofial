@@ -61,7 +61,7 @@ function alertCategoryField(kind:string,newsId?:string|null):string|null {
  if(['poll_season_prize','poll_museum_prize','gift','exclusive_tag_unlock'].includes(kind))return 'alert_rewards_enabled';
  if(kind==='follow')return 'alert_followers_enabled';
  if(kind==='news_reply'||(kind==='mention'&&Boolean(newsId)))return 'alert_news_enabled';
- if(['like','comment','mention','game_like','game_comment','game_reply'].includes(kind))return 'alert_community_enabled';
+ if(['like','comment','mention','info_reaction','game_like','game_comment','game_reply'].includes(kind))return 'alert_community_enabled';
  return null; // Los avisos de seguridad y moderación siguen activos.
 }
 async function notifyUser(userId:string, notice:Notice, partnerId?:string, onlyEndpoint?:string, categoryField?:string): Promise<number> {
@@ -102,11 +102,12 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
   if (!/^[0-9a-f-]{36}$/i.test(id)) return 0;
   if (type==='member_notifications') {
     const {data:n,error}=await admin.from('member_notifications')
-      .select('id,recipient_id,kind,actor_id,game_id,news_id,news_comment_id,post_id,poll_id,tournament_id,trophy_month,season_month,museum_month,competition_id,auto_tag_id').eq('id',id).maybeSingle();
+      .select('id,recipient_id,kind,actor_id,game_id,news_id,news_comment_id,post_id,poll_id,tournament_id,trophy_month,season_month,museum_month,competition_id,auto_tag_id,info_reaction').eq('id',id).maybeSingle();
     if (error || !n) return 0;
     const kinds:Record<string,[string,string,string]> = {
       follow:['👤 Nuevo seguidor','Una persona ha comenzado a seguirte.','#/notificaciones'],
       like:['❤️ Nuevo me gusta','A alguien le ha gustado tu publicación.','#/comunidad'],
+      info_reaction:['💜 Reacción a tu Info','Un miembro ha reaccionado a tu Info.','#/cuenta'],
       comment:['💬 Nuevo comentario','Has recibido un comentario en tu publicación.','#/comunidad'],
       gift:['🎁 Has recibido un regalo','Tienes un regalo nuevo en tu buzón.','#/regalos'],
       exclusive_tag_unlock:['🏅 Etiqueta desbloqueada','Has conseguido una etiqueta exclusiva por tus logros.','#/cuenta'],
@@ -158,6 +159,17 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       ];
     }
     // El aviso externo de Seguidores identifica al miembro y abre directamente su perfil.
+    if (n.kind==='info_reaction') {
+      const symbols:Record<string,string>={heart:'❤️',laugh:'😂',fire:'🔥',like:'👍'};
+      const emoji=symbols[String(n.info_reaction||'')]||'💜';
+      let actorName='Un miembro';
+      if (/^[0-9a-f-]{36}$/i.test(n.actor_id||'')) {
+        const {data:actor}=await admin.from('profiles').select('display_name,username')
+          .eq('id',n.actor_id).eq('is_public',true).maybeSingle();
+        actorName=String(actor?.display_name||actor?.username||actorName).trim().slice(0,60);
+      }
+      info=[emoji+' Reacción a tu Info',actorName+' reaccionó '+emoji+' a tu Info.','#/perfil?id='+encodeURIComponent(n.recipient_id)];
+    }
     if (n.kind==='follow' && /^[0-9a-f-]{36}$/i.test(n.actor_id || '')) {
       const {data:actor}=await admin.from('profiles').select('display_name,username')
         .eq('id',n.actor_id).eq('is_public',true).maybeSingle();
