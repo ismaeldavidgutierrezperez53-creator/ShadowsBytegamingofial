@@ -1748,16 +1748,11 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
   });
   return window.sbMysteryBoxExcelJsPromise;
  };
- const exportExcel=async(data,rows)=>{
+ const exportExcel=async(data,rows,filterDescription)=>{
   const ExcelJS=await ensureExcelJS();
   const wb=new ExcelJS.Workbook();
   wb.creator='Shadows Byte Gaming Official V2';
   wb.created=new Date();
-  const filterDescription=[
-   'Caja: '+(tierSelect.options[tierSelect.selectedIndex]?.textContent||'Todas'),
-   'Periodo: '+(periodSelect.options[periodSelect.selectedIndex]?.textContent||'Todo'),
-   'Estado: '+(statusSelect.options[statusSelect.selectedIndex]?.textContent||'Todas')
-  ];
   const summary=data.summary||{};
   const sum=wb.addWorksheet('Resumen',{views:[{state:'frozen',ySplit:3}]});
   sum.columns=[{width:31},{width:24}];
@@ -1811,6 +1806,14 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
  const exportAll=async(format)=>{
   if(csvButton.disabled||excelButton.disabled)return;
   csvButton.disabled=true;excelButton.disabled=true;
+  const controls=[tierSelect,periodSelect,statusSelect,refresh,prev,next];
+  const controlStates=controls.map(input=>input.disabled);
+  controls.forEach(input=>{input.disabled=true});
+  const filterDescription=[
+   'Caja: '+(tierSelect.options[tierSelect.selectedIndex]?.textContent||'Todas'),
+   'Periodo: '+(periodSelect.options[periodSelect.selectedIndex]?.textContent||'Todo'),
+   'Estado: '+(statusSelect.options[statusSelect.selectedIndex]?.textContent||'Todas')
+  ];
   exportStatus.dataset.type='info';
   exportStatus.textContent='Preparando exportación…';
   try{
@@ -1847,7 +1850,7 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
     const records=[csvColumns,...rows].map(row=>row.map(asCsvCell).join(','));
     const blob=new Blob(['\ufeff',records.join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8'});
     saveDownload(blob,makeFileName('csv'));
-   }else await exportExcel(data,rows);
+   }else await exportExcel(data,rows,filterDescription);
    exportStatus.dataset.type='success';
    exportStatus.textContent='✓ '+(format==='xlsx'?'Excel':'CSV')+' descargado: '+total+' registros.';
   }catch(error){
@@ -1855,6 +1858,7 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
    exportStatus.textContent='No se pudo exportar: '+(error.message||'Error desconocido');
   }finally{
    csvButton.disabled=false;excelButton.disabled=false;
+   controls.forEach((input,i)=>{input.disabled=controlStates[i]});
   }
  };
  csvButton.addEventListener('click',()=>exportAll('csv'));
