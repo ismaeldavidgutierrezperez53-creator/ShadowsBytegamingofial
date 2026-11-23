@@ -405,3 +405,49 @@
  #admin-surprise-boxes .sb-surprise-stats__refresh{width:100%}
  #admin-surprise-boxes .sb-surprise-stats__table{min-width:780px}
 }
+
+
+/* Descargas seguras de estadísticas y aperturas: CSV y Excel */
+#admin-surprise-boxes .sb-surprise-stats__export-toolbar{
+ display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+ min-width:0;padding:11px 0;
+ border-top:1px solid #54436c;border-bottom:1px solid #54436c;
+}
+#admin-surprise-boxes .sb-surprise-stats__export{
+ display:inline-flex;align-items:center;justify-content:center;gap:7px;
+ min-height:45px;padding:10px 16px;border-radius:11px;
+ border:1px solid #a186c9;cursor:pointer;
+ background:#342747;color:#fff;font:700 16px Rajdhani,Arial,sans-serif;
+ transition:background-color .16s ease,border-color .16s ease;
+}
+#admin-surprise-boxes .sb-surprise-stats__export--csv{
+ background:#163f3b;border-color:#4ba99c;color:#e5fff9;
+}
+#admin-surprise-boxes .sb-surprise-stats__export--excel{
+ background:#23412b;border-color:#6ab477;color:#e2ffe5;
+}
+#admin-surprise-boxes .sb-surprise-stats__export:hover:not(:disabled){
+ background:#46405c;border-color:#e0c4ff;
+}
+#admin-surprise-boxes .sb-surprise-stats__export:disabled{
+ opacity:.55;cursor:wait;
+}
+#admin-surprise-boxes .sb-surprise-stats__export-status{
+ flex:1 1 210px;min-width:0;margin:0;
+ font-size:13px;font-weight:600;line-height:1.4;
+ color:#d3c4e5;overflow-wrap:anywhere;
+}
+#admin-surprise-boxes .sb-surprise-stats__export-status:empty{display:none}
+#admin-surprise-boxes .sb-surprise-stats__export-status[data-type=success]{color:#a7f3d0}
+#admin-surprise-boxes .sb-surprise-stats__export-status[data-type=error]{color:#ffc0cb}
+#admin-surprise-boxes .sb-surprise-stats__export-status[data-type=info]{color:#bedafa}
+@media(max-width:490px){
+ #admin-surprise-boxes .sb-surprise-stats__export-toolbar{
+  display:grid;grid-template-columns:minmax(0,1fr);
+ }
+ #admin-surprise-boxes .sb-surprise-stats__export{width:100%}
+ #admin-surprise-boxes .sb-surprise-stats__export-status{flex:initial}
+}
+@media(prefers-reduced-motion:reduce){
+ #admin-surprise-boxes .sb-surprise-stats__export{transition:none}
+}
