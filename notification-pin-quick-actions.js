@@ -56,7 +56,8 @@
     }
     feedback.textContent='Puedes usar estos botones ahora. Se guardarán en tu cuenta.';
     for(const row of data){
-     const card=make('article','sb-pin-priority-card'+(row.is_pinned?' is-pinned':''));
+     const card=make('article','sb-pin-priority-card'+(row.is_pinned?' is-pinned':'')+(row.is_priority?' is-priority':''));
+     card.dataset.sbCategory='news';
      const heading=make('strong','',row.title||'Aviso del historial');
      const date=make('small','',row.occurred_at?new Date(row.occurred_at).toLocaleString('es-ES'):'');
      const chips=make('div','sb-pin-priority-chips');
@@ -110,6 +111,7 @@
      .upsert(payload,{onConflict:'user_id,source_table,record_id'});
     if(error)throw error;
     await load();
+    window.dispatchEvent(new CustomEvent('sb-notification-highlights-updated'));
     if(section.isConnected)feedback.textContent='✅ Preferencia guardada. También aparece en el historial completo.';
    }catch(err){
     if(section.isConnected)feedback.textContent='No se pudo guardar: '+(err?.message||'Error desconocido');
