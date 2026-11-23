@@ -423,7 +423,7 @@
       const max=Math.max(1,...series.map(item=>Math.max(0,Number(item.total)||0)));
       const sum=series.reduce((acc,item)=>acc+Math.max(0,Number(item.total)||0),0);
       for(const item of series){
-        if(!/^\\d{4}-(0[1-9]|1[0-2])$/.test(String(item.month)))continue;
+        if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(item.month)))continue;
         const dateObj=new Date(item.month+"-01T00:00:00Z");
         const month=monthLabel.format(dateObj);
         const count=Math.max(0,Number(item.total)||0);
