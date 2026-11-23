@@ -86,13 +86,15 @@
           button.setAttribute('aria-pressed', String(selected));
           button.setAttribute('aria-label', info.label+': '+total+' reacciones'+(selected?', tu reacción':''));
           button.classList.toggle('sb-info-reaction-selected',selected);
-          button.disabled = busy || owner || viewerId === infoUserId;
+          button.disabled = busy;
         }
         if (!busy) {
-          if (owner || viewerId === infoUserId) {
-            note.textContent = options.compact ? 'Esta es tu Info.' : 'Aquí verás cómo reaccionan los demás miembros a tu Info.';
-          } else if (viewerId) {
-            note.textContent = options.compact ? (currentReaction ? 'Tu reacción está marcada ✓' : 'Toca un emoji para reaccionar') : 'Puedes cambiar tu reacción o quitarla tocando el mismo emoji.';
+          if (viewerId) {
+            note.textContent = currentReaction
+              ? (options.compact ? '✓ Tu reacción está marcada. Toca otra o quítala.' : 'Tu reacción está marcada. Toca el mismo emoji para quitarla.')
+              : (owner || viewerId === infoUserId
+                ? 'Esta es tu Info. También puedes reaccionar con un emoji.'
+                : 'Toca un emoji para reaccionar.');
           } else {
             note.replaceChildren(document.createTextNode('Para reaccionar, '));
             const login = create('a',null,'inicia sesión');
@@ -106,17 +108,13 @@
       }
     };
     async function react(key) {
-      if (busy || !loaded || owner) return;
+      if (busy || !loaded) return;
       if (!viewerId) {
         note.replaceChildren();
         note.append(document.createTextNode('Para reaccionar, '));
         const login = create('a',null,'inicia sesión');
         login.href = '#/auth';
         note.append(login,document.createTextNode('.'));
-        return;
-      }
-      if (viewerId === infoUserId) {
-        note.textContent = 'No puedes reaccionar a tu propia Info.';
         return;
       }
       busy = true;
@@ -148,7 +146,7 @@
         busy = false;
         if (root.isConnected) {
           note.textContent = 'No se pudo guardar. Verifica tu sesión y que la Info siga siendo pública.';
-          for (const {button} of elements.values()) button.disabled = owner || !viewerId || viewerId === infoUserId;
+          for (const {button} of elements.values()) button.disabled = false;
         }
       }
     }
