@@ -293,6 +293,71 @@
     bulkPending=false;bulkRead.disabled=false;bulkArchive.disabled=false;
    }
   }
+
+  function csvSafe(value){
+   let s=String(value??'').replace(/[\r\n]+/g,' ');
+   // Protect against spreadsheet formula injection.
+   if(/^\s*[=+\-@]/.test(s))s="'"+s;
+   return '"'+s.replace(/"/g,'""')+'"';
+  }
+  async function exportFilteredCSV(){
+   if(exportBtn.disabled)return;
+   const {data:{user},error:authError}=await sb.auth.getUser();
+   if(authError||!user){status.textContent='Inicia sesión para exportar el historial.';return;}
+   if(fields.from.value&&fields.to.value&&fields.from.value>fields.to.value){
+    status.textContent='Comprueba el intervalo de fechas antes de exportar.';return;
+   }
+   exportBtn.disabled=true;
+   status.textContent='Preparando archivo CSV de tu historial…';
+   try{
+    const limit=2000,batch=200,rows=[];
+    for(let offset=0;offset<limit;offset+=batch){
+     let query=sb.from('member_notification_history')
+      .select('record_id,category,kind,title,href,occurred_at,is_read,archived_at,source_table,is_pinned,is_priority,priority_override')
+      .order('is_pinned',{ascending:false});
+     if(fields.sort.value==='priority')query=query.order('is_priority',{ascending:false});
+     query=query.order('occurred_at',{ascending:fields.sort.value==='oldest'})
+      .order('record_id',{ascending:false});
+     if(fields.category.value!=='all')query=query.eq('category',fields.category.value);
+     if(fields.state.value==='active')query=query.is('archived_at',null);
+     else if(fields.state.value==='unread')query=query.eq('is_read',false).is('archived_at',null);
+     else if(fields.state.value==='archived')query=query.not('archived_at','is',null);
+     else if(fields.state.value==='priority')query=query.eq('is_priority',true);
+     else if(fields.state.value==='pinned')query=query.eq('is_pinned',true);
+     const term=fields.search.value.trim().replace(/[%_]/g,'').slice(0,80);
+     if(term)query=query.ilike('title','%'+term+'%');
+     if(fields.from.value)query=query.gte('occurred_at',new Date(fields.from.value+'T00:00:00').toISOString());
+     if(fields.to.value){
+      const until=new Date(fields.to.value+'T00:00:00');until.setDate(until.getDate()+1);
+      query=query.lt('occurred_at',until.toISOString());
+     }
+     const {data,error}=await query.range(offset,offset+batch-1);
+     if(error)throw error;
+     rows.push(...(data||[]));
+     if(!data||data.length<batch)break;
+    }
+    const table=[['Fecha','Categoría','Aviso','Prioritario','Fijado','Estado','Fuente','Enlace']];
+    for(const row of rows){
+     table.push([row.occurred_at,row.category,row.title,
+      row.is_priority?'Sí':'No',row.is_pinned?'Sí':'No',
+      row.archived_at?'Archivado':row.is_read?'Leído':'Sin leer',
+      row.source_table,row.href]);
+    }
+    const body='\ufeff'+table.map(row=>row.map(csvSafe).join(',')).join('\r\n');
+    const objectURL=URL.createObjectURL(new Blob([body],{type:'text/csv;charset=utf-8'}));
+    const link=document.createElement('a');link.href=objectURL;
+    link.download='historial-shadows-byte-'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.append(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectURL),1500);
+    status.textContent='Archivo CSV preparado con '+rows.length+' registros filtrados.'
+     +(rows.length===limit?' Se exportaron como máximo 2000 avisos.':'');
+   }catch(e){
+    status.textContent='No se pudo exportar el historial: '+(e?.message||'Error desconocido');
+   }finally{
+    exportBtn.disabled=false;
+   }
+  }
+
   bulkRead.onclick=()=>void runBulk('read');
   bulkArchive.onclick=()=>void runBulk('archive');
   const search=content.querySelector('[data-action="search"]');
@@ -304,6 +369,7 @@
    fields.from.value='';fields.to.value='';fields.sort.value='newest';void loadPage(0);
   };
   refresh.onclick=()=>loadPage(page);
+  exportBtn.onclick=()=>void exportFilteredCSV();
   previous.onclick=()=>loadPage(page-1);
   next.onclick=()=>loadPage(page+1);
   fields.category.onchange=()=>loadPage(0);
