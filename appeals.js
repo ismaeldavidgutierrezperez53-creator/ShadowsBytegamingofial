@@ -797,6 +797,20 @@
       const eligible=Number(node.dataset.eligibleAt);
       const output=node.querySelector(".sb-appeal-reminder-clock");
       if(!output || !Number.isFinite(scheduled) || !Number.isFinite(eligible))continue;
+      // Prueba aislada de 10 segundos: funciona sin apelaciones ni acceso a datos.
+      if(node.dataset.demo==="true"){
+        const complete=now>=scheduled;
+        node.dataset.state=complete?"elapsed":"waiting";
+        output.textContent=complete
+          ?"✅ Prueba correcta: el contador llegó a 00:00:00"
+          :"🧪 Prueba en directo: "+formatAppealCountdown(scheduled-now);
+        const testButton=panel.querySelector("#sb-appeals-demo-start");
+        if(complete&&testButton){
+          testButton.disabled=false;
+          testButton.textContent="🔁 Repetir prueba de 10 segundos";
+        }
+        continue;
+      }
       node.dataset.state=now>=scheduled?"elapsed":now>=eligible?"eligible":"waiting";
       if(now>=scheduled){
         output.textContent="⏰ Revisión programada hace "+
@@ -1078,6 +1092,15 @@
         <p id="sb-appeals-assignment-overview-status" role="status" aria-live="polite">Comprobando las apelaciones pendientes…</p>
         <button id="sb-appeals-show-pending" class="outline-btn mini" type="button">📋 Ver apelaciones pendientes</button>
       </section>
+      <section class="sb-appeals-countdown-test" aria-labelledby="sb-appeals-demo-heading">
+        <h3 id="sb-appeals-demo-heading">⏱️ Comprobar el contador en directo</h3>
+        <p>Prueba de 10 segundos sin apelaciones reales, sin sanciones y sin enviar notificaciones.</p>
+        <button id="sb-appeals-demo-start" type="button" class="outline-btn mini">▶️ Iniciar prueba de 10 segundos</button>
+        <div id="sb-appeals-demo-clock" class="sb-appeal-reminder-countdown" data-demo="true" hidden>
+          <strong class="sb-appeal-reminder-heading">🧪 Prueba del temporizador</strong>
+          <span class="sb-appeal-reminder-clock" aria-live="off">Pulsa el botón para iniciar.</span>
+        </div>
+      </section>
       <section class="sb-appeals-mine" aria-label="Mis expedientes asignados">
         <div>
           <h3>📋 Mis apelaciones asignadas <span id="sb-appeals-mine-total" class="sb-appeals-count">…</span></h3>
@@ -1105,6 +1128,18 @@
     else dashboard.prepend(panel);
     const filter=selector=>panel.querySelector(selector);
     const loadFirst=()=>loadStaff(panel,0);
+    filter("#sb-appeals-demo-start").addEventListener("click",()=>{
+      const testNode=filter("#sb-appeals-demo-clock");
+      const testButton=filter("#sb-appeals-demo-start");
+      const now=Date.now();
+      testNode.hidden=false;
+      testNode.dataset.scheduledAt=String(now+10000);
+      testNode.dataset.eligibleAt=String(now);
+      testNode.dataset.state="waiting";
+      testButton.disabled=true;
+      testButton.textContent="⏳ Prueba en curso…";
+      startAppealCountdowns();
+    });
     filter("#sb-appeals-show-mine").addEventListener("click",()=>{
       filter("#sb-appeals-filter").value="pending";
       filter("#sb-appeals-assigned-filter").value="mine";
