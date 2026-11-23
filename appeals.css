@@ -518,3 +518,41 @@
 @media (prefers-reduced-motion:reduce){
   #sb-appeals-history .sb-appeals-share-segment {transition:none;}
 }
+
+
+/* Exportación PDF de estadísticas personales */
+#sb-appeals-history .sb-appeals-download-stats {
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:9px 14px;
+  border:1px solid rgba(171,217,243,.7);
+  border-radius:11px;
+  background:linear-gradient(130deg,rgba(55,69,119,.94),rgba(76,43,124,.94));
+  color:#fff;
+  font:inherit;
+  font-weight:750;
+  text-align:center;
+  cursor:pointer;
+  white-space:normal;
+}
+#sb-appeals-history .sb-appeals-download-stats:hover {
+  border-color:#bfe4ff;
+  background:linear-gradient(130deg,rgba(72,86,149,.97),rgba(94,53,143,.97));
+}
+#sb-appeals-history .sb-appeals-download-stats:focus-visible {
+  outline:3px solid #a8dcff;
+  outline-offset:3px;
+}
+#sb-appeals-history .sb-appeals-download-stats:disabled {
+  opacity:.62;cursor:wait;
+}
+@media(max-width:570px) {
+  #sb-appeals-history .sb-appeals-stats-actions {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+  }
+  #sb-appeals-history .sb-appeals-stats-actions button {width:100%;}
+}
