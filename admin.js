@@ -1590,6 +1590,19 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
  const boxHeading=create('h4',null,'🎁 Estadísticas por caja');
  const prizes=create('div','sb-surprise-stats__prizes');
  const boxes=create('div','sb-surprise-stats__boxes');
+ const charts=window.SBSurpriseBoxCharts.mount({
+  onBoxSelect:tier=>{
+   if(![...tierSelect.options].some(o=>o.value===tier)){
+    feedback.textContent='Esta caja ya no existe en la configuración; no se puede aplicar su filtro.';
+    feedback.dataset.type='info';
+    return;
+   }
+   tierSelect.value=tier;
+   page=0;
+   rankings.hidden=false;
+   load();
+  }
+ });
  const rankings=create('div','sb-surprise-stats__rankings');
  const prizeGroup=create('section','sb-surprise-stats__rank');
  prizeGroup.append(prizeHeading,prizes);
@@ -1618,7 +1631,7 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
  next.type='button';
  pager.append(prev,pageLabel,next);
  history.append(historyTitle,historyHint,tableWrap,pager);
- section.append(heading,filters,exportToolbar,note,feedback,kpis,rankings,history);
+ section.append(heading,filters,exportToolbar,note,feedback,kpis,charts.element,rankings,history);
  root.querySelector('.sb-surprise-admin__configuration').after(section);
 
  const number=v=>Number(v||0).toLocaleString('es-ES');
@@ -1868,6 +1881,7 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
   refresh.disabled=true;
   prev.disabled=true;next.disabled=true;
   feedback.textContent='Cargando estadísticas…';
+  charts.setLoading();
   delete feedback.dataset.type;
   try{
    const args={
@@ -1876,16 +1890,28 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
     p_status:statusSelect.value,
     p_limit:pageSize,p_offset:page*pageSize
    };
-   const {data,error}=await sb.rpc('admin_surprise_box_analytics',args);
+   const [statsResult,dailyResult]=await Promise.all([
+    sb.rpc('admin_surprise_box_analytics',args),
+    sb.rpc('admin_surprise_box_daily_chart',{
+     p_tier:args.p_tier,
+     p_days:args.p_days||30
+    })
+   ]);
    if(request!==requestNumber||!section.isConnected)return;
-   if(error)throw error;
-   show(data);
-   feedback.textContent='Datos actualizados.';
-   feedback.dataset.type='success';
+   if(statsResult.error)throw statsResult.error;
+   show(statsResult.data);
+   charts.render(statsResult.data,dailyResult.error?null:dailyResult.data,{
+    allTime:!periodSelect.value
+   });
+   feedback.textContent=dailyResult.error
+    ?'Datos actualizados; no se pudo cargar la gráfica por día.'
+    :'Datos y gráficas actualizados.';
+   feedback.dataset.type=dailyResult.error?'info':'success';
   }catch(error){
    if(request!==requestNumber||!section.isConnected)return;
    feedback.textContent='No se pudieron cargar las estadísticas: '+(error.message||'Error desconocido');
    feedback.dataset.type='error';
+   charts.showError('No se pudieron cargar las gráficas.');
    kpis.replaceChildren();rankings.hidden=true;
    tableBody.replaceChildren();
    const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=7;
