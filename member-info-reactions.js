@@ -155,12 +155,20 @@
     for (const {button,info} of elements.values()) {
       button.addEventListener('click',() => { void react(info.key); });
     }
-    (async () => {
-      try { viewerId = options.hasOwnProperty('viewerId') ? options.viewerId : await getCurrentUserId(); }
-      catch (error) { console.warn('Reacciones de Info: sesión',error); }
+    // Iniciar únicamente después de insertar el widget en el DOM.
+    // Antes, una respuesta precargada podía resolverse de forma síncrona
+    // y dejaba la etiqueta «Cargando reacciones…» para siempre.
+    let initialized = false;
+    async function initialize() {
+      if (initialized || !root.isConnected) return;
+      initialized = true;
+      try {
+        viewerId = Object.prototype.hasOwnProperty.call(options,'viewerId')
+          ? options.viewerId : await getCurrentUserId();
+      } catch (error) { console.warn('Reacciones de Info: sesión',error); }
       if (root.isConnected) await refresh(options.preloaded ?? null);
-    })();
-    return {root,refresh};
+    }
+    return {root,refresh,initialize};
   }
   function mountPublic() {
     const id = routeId();
@@ -171,6 +179,7 @@
     if (info.querySelector('.sb-info-reactions')) return;
     const widget = createWidget(id);
     info.append(widget.root);
+    void widget.initialize();
   }
   async function mountOwn() {
     if (location.hash.split('?')[0] !== '#/cuenta' || !client()) return;
@@ -182,6 +191,7 @@
       if (!own.isConnected || !id) return;
       const widget = createWidget(id,true);
       own.append(widget.root);
+      void widget.initialize();
       const status = own.querySelector('.sb-member-info-status');
       if (status) new MutationObserver(() => {
         if (status.textContent?.startsWith('✅') && widget.root.isConnected) void widget.refresh();
@@ -233,6 +243,7 @@
           const widget=createWidget(row.id,row.id===viewerId,
             {compact:true, viewerId, preloaded:byId.get(row.id)||[]});
           row.info.after(widget.root);
+          void widget.initialize();
         }
       } catch(error) {
         console.warn('Reacciones directas en Miembros:',error);
