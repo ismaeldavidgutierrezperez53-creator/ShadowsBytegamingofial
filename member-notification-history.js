@@ -28,15 +28,21 @@
     '<label>Categoría <select data-field="category" aria-label="Categoría del historial"></select></label>'+
     '<label>Estado <select data-field="state" aria-label="Estado del historial">'+
      '<option value="all">Todos</option><option value="active">No archivados</option>'+
-     '<option value="unread">Sin leer</option><option value="archived">Archivados</option></select></label>'+
+     '<option value="unread">Sin leer</option><option value="archived">Archivados</option>'+
+     '<option value="priority">⭐ Prioritarios</option><option value="pinned">📌 Fijados</option></select></label>'+
     '<label class="sb-history-search-label">Buscar <input data-field="search" type="search" maxlength="90" placeholder="Buscar en el historial"></label>'+
     '<label>Desde <input data-field="from" type="date"></label>'+
     '<label>Hasta <input data-field="to" type="date"></label>'+
+    '<label>Orden <select data-field="sort" aria-label="Orden del historial">'+
+     '<option value="newest">Más recientes</option><option value="oldest">Más antiguos</option>'+
+     '<option value="priority">Prioritarios primero</option></select></label>'+
    '</div>'+
+   '<div class="sb-history-dashboard" aria-live="polite"></div>'+
    '<div class="sb-history-tools">'+
     '<button type="button" data-action="search">🔎 Buscar</button>'+
     '<button type="button" data-action="reset">Limpiar filtros</button>'+
     '<button type="button" data-action="refresh">🔄 Actualizar historial</button>'+
+    '<button type="button" data-action="export">⬇️ Exportar CSV (hasta 2000)</button>'+
    '</div>'+
    '<div class="sb-history-bulk" aria-label="Acciones para todas las notificaciones">'+
     '<button type="button" data-action="bulk-read">✅ Marcar todas como leídas</button>'+
@@ -51,11 +57,13 @@
     '<button type="button" data-action="next" disabled>Siguiente →</button>'+
    '</div>';
   panel.append(content);
-  const fields=Object.fromEntries(['category','state','search','from','to'].map(name=>[name,content.querySelector('[data-field="'+name+'"]')]));
+  const fields=Object.fromEntries(['category','state','search','from','to','sort'].map(name=>[name,content.querySelector('[data-field="'+name+'"]')]));
   for(const [value,label] of CATEGORIES){
    const option=document.createElement('option');option.value=value;option.textContent=label;
    fields.category.append(option);
   }
+  const dashboard=content.querySelector('.sb-history-dashboard');
+  const exportBtn=content.querySelector('[data-action="export"]');
   const status=content.querySelector('.sb-history-status');
   const list=content.querySelector('.sb-history-list');
   const pagination=content.querySelector('.sb-history-pagination');
@@ -96,6 +104,8 @@
   function renderRow(row,userId){
    const article=document.createElement('article');article.className='sb-history-item';
    if(row.is_read===false)article.classList.add('sb-history-unread');
+   if(row.is_pinned)article.classList.add('sb-history-pinned');
+   if(row.is_priority)article.classList.add('sb-history-priority');
    const icon=document.createElement('span');icon.className='sb-history-icon';
    icon.textContent=MODERATION_TITLES[row.kind]?'🛡️':ICONS[row.category]||'🔔';icon.setAttribute('aria-hidden','true');
    const body=document.createElement('div');body.className='sb-history-body';
@@ -105,6 +115,9 @@
    const date=when&&!Number.isNaN(when.getTime())?when.toLocaleString('es-ES'):'Fecha desconocida';
    const category=MODERATION_TITLES[row.kind]?'🛡️ Moderación':CATEGORIES.find(c=>c[0]===row.category)?.[1]||'🔔 Otra actividad';
    meta.textContent=date+' · '+category+(row.archived_at?' · Archivada':row.is_read===false?' · Sin leer':'');
+   const chips=document.createElement('div');chips.className='sb-history-chips';
+   if(row.is_pinned){const tag=document.createElement('span');tag.textContent='📌 Fijada';chips.append(tag);}
+   if(row.is_priority){const tag=document.createElement('span');tag.textContent='⭐ Prioritaria';chips.append(tag);}
    const buttons=document.createElement('div');buttons.className='sb-history-row-actions';
    if(isValidRoute(row.href)){
     const link=document.createElement('a');link.href=MODERATION_TITLES[row.kind]?(row.kind==='moderation_ban'?'#/apelaciones':'#/cuenta?focus=sanctions'):row.href;link.textContent='Ver';link.className='notification-jump';
@@ -127,7 +140,7 @@
      catch(e){archive.disabled=false;status.textContent='No se pudo actualizar el archivo: '+(e.message||'error');}
     };buttons.append(archive);
    }
-   body.append(title,meta,buttons);article.append(icon,body);
+   body.append(title,meta,chips,buttons);article.append(icon,body);
    return article;
   }
   async function loadPage(target=0){
@@ -147,14 +160,18 @@
    status.textContent='Cargando avisos anteriores…';
    previous.disabled=true;next.disabled=true;
    let query=sb.from('member_notification_history')
-    .select('record_id,category,kind,title,href,occurred_at,is_read,archived_at,source_table',{count:'exact'})
-    .order('occurred_at',{ascending:false})
+    .select('record_id,category,kind,title,href,occurred_at,is_read,archived_at,source_table,is_pinned,is_priority,priority_override',{count:'exact'})
+    .order('is_pinned',{ascending:false});
+   if(fields.sort.value==='priority')query=query.order('is_priority',{ascending:false});
+   query=query.order('occurred_at',{ascending:fields.sort.value==='oldest'})
     .order('record_id',{ascending:false})
     .range(page*PAGE_SIZE,page*PAGE_SIZE+PAGE_SIZE-1);
    if(fields.category.value!=='all')query=query.eq('category',fields.category.value);
    if(fields.state.value==='active')query=query.is('archived_at',null);
    else if(fields.state.value==='unread')query=query.eq('is_read',false).is('archived_at',null);
    else if(fields.state.value==='archived')query=query.not('archived_at','is',null);
+   else if(fields.state.value==='priority')query=query.eq('is_priority',true);
+   else if(fields.state.value==='pinned')query=query.eq('is_pinned',true);
    const term=fields.search.value.trim().replace(/[%_]/g,'').slice(0,80);
    if(term)query=query.ilike('title','%'+term+'%');
    if(fields.from.value){
@@ -174,6 +191,18 @@
     if(page>maxPage){void loadPage(maxPage);return;}
     list.replaceChildren();
     for(const row of data||[])list.append(renderRow(row,user.id));
+    dashboard.replaceChildren();
+    for(const [label,value] of [
+      ['🔔 Resultados',total],
+      ['📌 Fijados en página',(data||[]).filter(x=>x.is_pinned).length],
+      ['⭐ Prioritarios en página',(data||[]).filter(x=>x.is_priority).length],
+      ['🟣 Sin leer en página',(data||[]).filter(x=>x.is_read===false).length]
+    ]){
+      const metric=document.createElement('div');metric.className='sb-history-metric';
+      const number=document.createElement('strong');number.textContent=String(value);
+      const name=document.createElement('span');name.textContent=label;
+      metric.append(number,name);dashboard.append(metric);
+    }
     if(!data?.length)list.textContent='No se encontraron notificaciones con estos filtros.';
     status.textContent=total===1?'1 registro encontrado':total+' registros encontrados';
     previous.disabled=page===0;next.disabled=(page+1)*PAGE_SIZE>=total;
@@ -217,7 +246,7 @@
   search.onclick=()=>loadPage(0);
   reset.onclick=()=>{
    fields.category.value='all';fields.state.value='all';fields.search.value='';
-   fields.from.value='';fields.to.value='';void loadPage(0);
+   fields.from.value='';fields.to.value='';fields.sort.value='newest';void loadPage(0);
   };
   refresh.onclick=()=>loadPage(page);
   previous.onclick=()=>loadPage(page-1);
@@ -226,6 +255,7 @@
   fields.state.onchange=()=>loadPage(0);
   fields.from.onchange=()=>loadPage(0);
   fields.to.onchange=()=>loadPage(0);
+  fields.sort.onchange=()=>loadPage(0);
   fields.search.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();void loadPage(0);}};
   panel.addEventListener('toggle',()=>{
    if(panel.open&&!loaded)void loadPage(0);
