@@ -1,0 +1,78 @@
+/* Acciones destacadas en el Centro de notificaciones.
+   Diseñadas para que los controles se vean aunque no haya avisos nuevos. */
+#member-notifications .sb-pin-priority-quick{
+ box-sizing:border-box;display:block;width:100%;min-width:0;
+ margin:15px 0 20px;padding:18px;
+ border:1px solid rgba(225,182,107,.63);border-radius:16px;
+ background:linear-gradient(135deg,rgba(66,45,88,.86),rgba(21,20,40,.98));
+ color:#f6eeff;
+ box-shadow:0 8px 24px rgba(15,9,31,.22);
+}
+#member-notifications .sb-pin-priority-quick h3{
+ margin:0 0 9px;color:#f9e8b9;
+ font-size:clamp(18px,2.5vw,23px);
+}
+#member-notifications .sb-pin-priority-help{
+ margin:0 0 14px;color:#e2d3ee;font-size:15px;line-height:1.5;
+}
+#member-notifications .sb-pin-priority-status{
+ margin:12px 0 10px;min-height:20px;color:#e8cffa;
+ line-height:1.45;font-size:14px;overflow-wrap:anywhere;
+}
+#member-notifications .sb-pin-priority-cards{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr));
+ gap:12px;
+}
+#member-notifications .sb-pin-priority-card{
+ display:flex;flex-direction:column;gap:9px;
+ min-width:0;padding:14px;border-radius:12px;
+ border:1px solid rgba(177,144,218,.39);
+ background:rgba(17,13,33,.76);
+}
+#member-notifications .sb-pin-priority-card.is-pinned{
+ border-color:rgba(253,209,135,.78);
+ background:linear-gradient(140deg,rgba(107,64,43,.47),rgba(28,20,45,.95));
+}
+#member-notifications .sb-pin-priority-card strong{
+ font-size:16px;color:#f6eaff;line-height:1.35;overflow-wrap:anywhere;
+}
+#member-notifications .sb-pin-priority-card small{
+ color:#cfbfdc;font-size:12px;
+}
+#member-notifications .sb-pin-priority-chips{
+ display:flex;flex-wrap:wrap;gap:6px;
+}
+#member-notifications .sb-pin-priority-chips span{
+ font-size:12px;color:#ffe1ac;background:rgba(137,90,40,.3);
+ border:1px solid rgba(245,195,103,.54);
+ border-radius:99px;padding:4px 8px;
+}
+#member-notifications .sb-pin-priority-actions{
+ display:flex;flex-wrap:wrap;gap:8px;
+ margin-top:auto;
+}
+#member-notifications .sb-pin-priority-actions button{
+ box-sizing:border-box;flex:1 1 105px;min-height:44px;
+ white-space:normal;line-height:1.25;padding:9px 10px;
+ border:1px solid rgba(197,157,244,.55);border-radius:10px;
+ background:rgba(83,45,132,.69);color:#fff;
+ font:700 15px/1.25 Rajdhani,Arial,sans-serif;
+ cursor:pointer;
+}
+#member-notifications .sb-pin-priority-actions button[aria-pressed="true"]{
+ border-color:rgba(255,222,135,.83);background:rgba(126,83,43,.79);
+}
+#member-notifications .sb-pin-priority-actions button:disabled{
+ opacity:.55;cursor:wait;
+}
+#member-notifications .sb-pin-priority-quick>button{
+ min-height:44px;padding:10px 13px;border-radius:10px;
+ border:1px solid rgba(186,161,245,.67);
+ background:rgba(59,38,103,.88);color:#fff;font-weight:700;
+}
+@media(max-width:600px){
+ #member-notifications .sb-pin-priority-quick{padding:13px}
+ #member-notifications .sb-pin-priority-cards{grid-template-columns:minmax(0,1fr)}
+ #member-notifications .sb-pin-priority-actions button{flex:1 1 130px}
+ #member-notifications .sb-pin-priority-quick>button{width:100%}
+}
