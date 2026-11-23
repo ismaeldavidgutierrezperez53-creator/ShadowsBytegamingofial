@@ -3177,6 +3177,7 @@ async function loadMemberNotifications(){
   if(!visible.length){list.textContent='No hay notificaciones en esta categoría.';return;}
   for(const n of visible){
    const row=document.createElement('article');row.className='notification-item notification-center-item'+(n.is_read?'':' unread')+(n.is_pinned?' sb-center-pinned':'')+(n.is_priority?' sb-center-priority':'');
+   row.dataset.sbCategory=n.kind==='follow'?'followers':(['competition_medal','gift','poll_season_prize','poll_museum_prize','exclusive_tag_unlock'].includes(n.kind)?'rewards':n.kind==='news_reply'?'news':(['community','tournaments','polls','messages','news','rewards'].includes(n.category)?n.category:'community'));
    const title=document.createElement('strong');title.textContent=n.title;
    const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
    const link=document.createElement('a');link.href=n.href;link.className='notification-jump';link.textContent='Ver';
