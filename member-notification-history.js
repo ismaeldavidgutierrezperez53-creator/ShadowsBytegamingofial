@@ -123,6 +123,7 @@
 
   function renderRow(row,userId){
    const article=document.createElement('article');article.className='sb-history-item';
+   article.dataset.sbCategory=['shop','achievements'].includes(row.category)?'rewards':row.category;
    if(row.is_read===false)article.classList.add('sb-history-unread');
    if(row.is_pinned)article.classList.add('sb-history-pinned');
    if(row.is_priority)article.classList.add('sb-history-priority');
