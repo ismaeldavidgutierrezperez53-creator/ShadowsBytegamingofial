@@ -348,7 +348,31 @@
     refreshStats.type="button";
     const statsActions=el("div","sb-appeals-stats-actions");
     statsActions.append(statsNote,refreshStats);
-    history.append(title,intro,statsGrid,statsActions,controls,summary,list,paging);
+    const charts=el("div","sb-appeals-charts");
+    const distribution=el("section","sb-appeals-chart-panel");
+    distribution.setAttribute("aria-label","Distribución de apelaciones por estado");
+    const distHeading=el("h4","","📊 Porcentaje de apelaciones por estado");
+    const distDescription=el("p","sb-appeals-chart-description",
+      "Proporción entre pendientes, aceptadas y rechazadas.");
+    const distBar=el("div","sb-appeals-share-bar");
+    distBar.setAttribute("role","img");
+    const distLegend=el("ul","sb-appeals-chart-legend");
+    distribution.append(distHeading,distDescription,distBar,distLegend);
+    const evolution=el("section","sb-appeals-chart-panel");
+    evolution.setAttribute("aria-label","Evolución mensual de solicitudes de apelación");
+    const evolutionHeading=el("h4","","📅 Evolución mensual de solicitudes");
+    const evolutionDescription=el("p","sb-appeals-chart-description",
+      "Apelaciones presentadas cada mes durante los últimos 12 meses (UTC).");
+    const monthScroller=el("div","sb-appeals-month-scroll");
+    monthScroller.setAttribute("tabindex","0");
+    monthScroller.setAttribute("aria-label","Gráfico de solicitudes de los últimos 12 meses, desplazable");
+    const monthChart=el("div","sb-appeals-month-chart");
+    monthChart.setAttribute("role","list");
+    monthScroller.append(monthChart);
+    const monthNote=el("p","sb-appeals-chart-description","");
+    evolution.append(evolutionHeading,evolutionDescription,monthScroller,monthNote);
+    charts.append(distribution,evolution);
+    history.append(title,intro,statsGrid,statsActions,charts,controls,summary,list,paging);
     panel.insertBefore(history,panel.querySelector(".sb-appeals-eligible-heading")||panel.querySelector(".sb-appeals-stack"));
     const hashParams=new URLSearchParams(location.hash.split("?")[1]||"");
     let focused=hashParams.get("focus")==="appeals" ? hashParams.get("appeal")||"" : "";
@@ -356,6 +380,68 @@
     const markSelected=()=>{
       for(const [key,{button}] of statCards)
         button.setAttribute("aria-pressed",String(!focused&&filter.value===key));
+    };
+    const percentageLabel=new Intl.NumberFormat("es-ES",{maximumFractionDigits:1});
+    const monthLabel=new Intl.DateTimeFormat("es-ES",{month:"short",year:"2-digit",timeZone:"UTC"});
+    const renderCharts=data=>{
+      const stats=data?.stats||{};
+      const total=Math.max(0,Number(stats.total)||0);
+      distBar.replaceChildren();
+      distLegend.replaceChildren();
+      const shareNames=[
+        ["pending","Pendientes"],["accepted","Aceptadas"],["rejected","Rechazadas"]
+      ];
+      const labels=[];
+      for(const [status,name] of shareNames){
+        const count=Math.max(0,Number(stats[status])||0);
+        const percent=total>0?Math.min(100,100*count/total):0;
+        const display=percentageLabel.format(percent)+" %";
+        labels.push(name+": "+display);
+        if(count>0){
+          const segment=el("span","sb-appeals-share-segment sb-appeals-share-"+status);
+          segment.style.width=percent+"%";
+          segment.title=name+": "+count+" ("+display+")";
+          segment.setAttribute("aria-hidden","true");
+          distBar.append(segment);
+        }
+        const li=el("li","sb-appeals-legend-item");
+        const dot=el("span","sb-appeals-legend-dot sb-appeals-share-"+status);
+        dot.setAttribute("aria-hidden","true");
+        li.append(dot,el("span","",name+": "+count+" · "+display));
+        distLegend.append(li);
+      }
+      if(total===0){
+        const empty=el("span","sb-appeals-share-no-data");
+        empty.textContent="Sin datos todavía";
+        distBar.append(empty);
+      }
+      distBar.setAttribute("aria-label",total
+        ?"Distribución de "+total+" apelaciones. "+labels.join(". ")
+        :"Sin apelaciones registradas");
+      monthChart.replaceChildren();
+      const series=Array.isArray(data?.monthly)?data.monthly:[];
+      const max=Math.max(1,...series.map(item=>Math.max(0,Number(item.total)||0)));
+      const sum=series.reduce((acc,item)=>acc+Math.max(0,Number(item.total)||0),0);
+      for(const item of series){
+        if(!/^\\d{4}-(0[1-9]|1[0-2])$/.test(String(item.month)))continue;
+        const dateObj=new Date(item.month+"-01T00:00:00Z");
+        const month=monthLabel.format(dateObj);
+        const count=Math.max(0,Number(item.total)||0);
+        const column=el("div","sb-appeals-month-column");
+        column.setAttribute("role","listitem");
+        column.setAttribute("aria-label",month+": "+count+" apelaciones");
+        const value=el("strong","sb-appeals-month-value",String(count));
+        const track=el("div","sb-appeals-month-track");
+        const bar=el("span","sb-appeals-month-bar");
+        bar.style.height=(count===0?0:100*count/max)+"%";
+        bar.setAttribute("aria-hidden","true");
+        track.append(bar);
+        column.append(value,track,el("span","sb-appeals-month-label",month));
+        monthChart.append(column);
+      }
+      monthNote.textContent=sum===0
+        ?"Todavía no hay solicitudes registradas en este periodo."
+        :"Total de solicitudes presentadas en el periodo: "+sum+".";
     };
     const loadStats=async()=>{
       refreshStats.disabled=true;
@@ -365,6 +451,7 @@
         if(!history.isConnected)return;
         for(const {count,field} of statCards.values())
           count.textContent=String(data.stats?.[field]??"—");
+        renderCharts(data);
         statsNote.textContent="Datos privados de tu cuenta, actualizados.";
       }catch(error){
         if(history.isConnected)
