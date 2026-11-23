@@ -3166,12 +3166,47 @@ async function loadMemberNotifications(){
   markVisible.disabled=!visible.some(n=>!n.is_read&&n.table&&!n.dismissed_at);
   if(!visible.length){list.textContent='No hay notificaciones en esta categoría.';return;}
   for(const n of visible){
-   const row=document.createElement('article');row.className='notification-item notification-center-item'+(n.is_read?'':' unread');
+   const row=document.createElement('article');row.className='notification-item notification-center-item'+(n.is_read?'':' unread')+(n.is_pinned?' sb-center-pinned':'')+(n.is_priority?' sb-center-priority':'');
    const title=document.createElement('strong');title.textContent=n.title;
    const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');
    const link=document.createElement('a');link.href=n.href;link.className='notification-jump';link.textContent='Ver';
    row.append(title,date,link);
+   if(n.is_pinned||n.is_priority){
+    const badges=document.createElement('div');badges.className='sb-center-highlight-badges';
+    if(n.is_pinned){const badge=document.createElement('span');badge.textContent='📌 Fijada';badges.append(badge);}
+    if(n.is_priority){const badge=document.createElement('span');badge.textContent='⭐ Prioritaria';badges.append(badge);}
+    row.append(badges);
+   }
    if(n.table){
+
+    const pin=document.createElement('button');pin.type='button';pin.className='outline-btn mini';
+    pin.textContent=n.is_pinned?'📌 Desfijar':'📌 Fijar';
+    pin.setAttribute('aria-pressed',String(Boolean(n.is_pinned)));
+    pin.onclick=async()=>{
+     pin.disabled=true;
+     try{await saveMark(n,{is_pinned:!n.is_pinned});draw();}
+     catch(e){pin.disabled=false;summary.textContent='No se pudo fijar: '+(e?.message||'Error');}
+    };
+    row.append(pin);
+    const important=document.createElement('button');important.type='button';important.className='outline-btn mini';
+    important.textContent=n.is_priority?'⭐ Quitar prioridad':'⭐ Prioritario';
+    important.setAttribute('aria-pressed',String(Boolean(n.is_priority)));
+    important.onclick=async()=>{
+     important.disabled=true;
+     try{await saveMark(n,{priority_override:n.is_priority?'normal':'high'});draw();}
+     catch(e){important.disabled=false;summary.textContent='No se pudo cambiar la prioridad: '+(e?.message||'Error');}
+    };
+    row.append(important);
+    if(n.priority_override){
+     const auto=document.createElement('button');auto.type='button';auto.className='outline-btn mini';
+     auto.textContent='↺ Automática';
+     auto.onclick=async()=>{
+      auto.disabled=true;
+      try{await saveMark(n,{priority_override:null});draw();}
+      catch(e){auto.disabled=false;summary.textContent='No se pudo restaurar la prioridad: '+(e?.message||'Error');}
+     };
+     row.append(auto);
+    }
     if(!n.is_read&&!n.dismissed_at){const mark=document.createElement('button');mark.type='button';mark.className='outline-btn mini';mark.textContent='Marcar leída';mark.onclick=async()=>{mark.disabled=true;const {error}=await sb.from(n.table).update({is_read:true}).eq('id',n.id).eq('recipient_id',user.id);if(error){mark.disabled=false;return;}n.is_read=true;draw();refreshNotificationBadge(user.id);};row.append(mark);}
     const hide=document.createElement('button');hide.type='button';hide.className='outline-btn mini';hide.textContent=n.dismissed_at?'Restaurar aviso':'Archivar aviso';hide.onclick=async()=>{hide.disabled=true;const next=n.dismissed_at?null:new Date().toISOString();const {error}=await sb.from(n.table).update({dismissed_at:next}).eq('id',n.id).eq('recipient_id',user.id);if(error){hide.disabled=false;return;}n.dismissed_at=next;draw();refreshNotificationBadge(user.id);};row.append(hide);
    }
