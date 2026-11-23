@@ -101,6 +101,26 @@
    }
    refreshOtherCounters(userId);
   }
+
+  async function updateHighlight(row,patch,userId){
+   // Save only private display preferences; original notification data is untouched.
+   const next={
+    user_id:userId,
+    source_table:row.source_table,
+    record_id:String(row.record_id),
+    is_read:row.is_read!==false,
+    archived_at:row.archived_at||null,
+    is_pinned:Object.prototype.hasOwnProperty.call(patch,'is_pinned')
+      ?patch.is_pinned:Boolean(row.is_pinned),
+    priority_override:Object.prototype.hasOwnProperty.call(patch,'priority_override')
+      ?patch.priority_override:(row.priority_override||null),
+    updated_at:new Date().toISOString()
+   };
+   const {error}=await sb.from('member_notification_history_actions')
+     .upsert(next,{onConflict:'user_id,source_table,record_id'});
+   if(error)throw error;
+  }
+
   function renderRow(row,userId){
    const article=document.createElement('article');article.className='sb-history-item';
    if(row.is_read===false)article.classList.add('sb-history-unread');
@@ -131,6 +151,41 @@
       try{await updateSaved(row,{is_read:true},userId);void loadPage(page);}
       catch(e){mark.disabled=false;status.textContent='No se pudo marcar como leída: '+(e.message||'error');}
      };buttons.append(mark);
+    }
+
+    const pin=document.createElement('button');pin.type='button';
+    pin.textContent=row.is_pinned?'📌 Desfijar':'📌 Fijar';
+    pin.setAttribute('aria-pressed',String(Boolean(row.is_pinned)));
+    pin.onclick=async()=>{
+     pin.disabled=true;
+     try{
+      await updateHighlight(row,{is_pinned:!row.is_pinned},userId);
+      void loadPage(page);
+     }catch(e){pin.disabled=false;status.textContent='No se pudo cambiar el fijado: '+(e?.message||'Error');}
+    };
+    buttons.append(pin);
+    const star=document.createElement('button');star.type='button';
+    star.textContent=row.is_priority?'⭐ Quitar prioridad':'⭐ Dar prioridad';
+    star.setAttribute('aria-pressed',String(Boolean(row.is_priority)));
+    star.onclick=async()=>{
+     star.disabled=true;
+     try{
+      await updateHighlight(row,{priority_override:row.is_priority?'normal':'high'},userId);
+      void loadPage(page);
+     }catch(e){star.disabled=false;status.textContent='No se pudo cambiar la prioridad: '+(e?.message||'Error');}
+    };
+    buttons.append(star);
+    if(row.priority_override){
+     const resetPriority=document.createElement('button');resetPriority.type='button';
+     resetPriority.textContent='↺ Prioridad automática';
+     resetPriority.onclick=async()=>{
+      resetPriority.disabled=true;
+      try{
+       await updateHighlight(row,{priority_override:null},userId);
+       void loadPage(page);
+      }catch(e){resetPriority.disabled=false;status.textContent='No se pudo restaurar la prioridad: '+(e?.message||'Error');}
+     };
+     buttons.append(resetPriority);
     }
     const archive=document.createElement('button');archive.type='button';
     archive.textContent=row.archived_at?'Restaurar':'Archivar';
