@@ -1,0 +1,19 @@
+/* Historial privado de reacciones recibidas dentro de Mi Info. */
+.sb-info-received-history{margin:17px 0 0;padding:13px;border-radius:14px;border:1px solid rgba(197,153,252,.45);background:rgba(79,37,128,.2);color:#fff}
+.sb-info-history-summary{cursor:pointer;font-weight:750;font-size:1rem;line-height:1.45;min-height:32px;list-style-position:inside;color:#f9eaff}
+.sb-info-history-summary:focus-visible{outline:2px solid #e7bcff;outline-offset:4px}
+.sb-info-history-help{margin:10px 0 6px;color:#dfcff5;line-height:1.45;font-size:.88rem}
+.sb-info-history-status{margin:10px 0;color:#e8d6fa;line-height:1.5;font-size:.88rem}
+.sb-info-history-list{display:grid;gap:9px;list-style:none;margin:8px 0 10px;padding:0}
+.sb-info-history-item{display:flex;gap:12px;align-items:center;padding:11px;border-radius:12px;border:1px solid rgba(201,162,247,.23);background:rgba(22,15,49,.5);min-width:0}
+.sb-info-history-emoji{font-size:1.65rem;flex:0 0 40px;line-height:1;text-align:center}
+.sb-info-history-content{min-width:0;flex:1}
+.sb-info-history-firstline{display:flex;flex-wrap:wrap;gap:3px 6px;align-items:baseline;overflow-wrap:anywhere}
+.sb-info-history-member{font-weight:750;color:#f0d3ff;overflow-wrap:anywhere}
+a.sb-info-history-member{text-decoration:underline;text-underline-offset:3px}
+.sb-info-history-event{font-size:.89rem;color:#f7edff}
+.sb-info-history-date{display:block;margin-top:5px;color:#d5c0ee;font-size:.81rem}
+.sb-info-history-actions{display:flex;flex-wrap:wrap;gap:9px}
+.sb-info-history-actions button{min-height:42px}
+.sb-info-history-actions button[hidden]{display:none!important}
+@media(max-width:560px){.sb-info-received-history{padding:11px}.sb-info-history-actions button{flex:1 1 135px}.sb-info-history-emoji{font-size:1.45rem;flex-basis:32px}.sb-info-history-item{padding:10px;gap:9px}}
