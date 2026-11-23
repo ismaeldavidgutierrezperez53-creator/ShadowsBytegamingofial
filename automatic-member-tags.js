@@ -47,7 +47,11 @@
    const header=make('div','sb-exclusive-goals-toolbar');
    const refresh=make('button','outline-btn mini','🔄 Actualizar progreso');
    refresh.type='button';
-   header.append(refresh);
+   const demo=make('button','outline-btn mini','✨ Probar celebración');
+   demo.type='button';
+   demo.setAttribute('aria-label','Ver demostración de celebración anime sin recibir una recompensa');
+   demo.addEventListener('click',()=>window.sbPreviewAutoTagCelebration?.());
+   header.append(refresh,demo);
    const list=make('div','sb-exclusive-goal-list');
    panel.append(heading,intro,header,status,list);
    const grid=root.querySelector('.profile-grid');
