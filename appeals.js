@@ -29,6 +29,54 @@
   const opts=(tag,values)=>{for(const [value,label] of values)tag.add(new Option(label,value));};
   const reasonInput=()=>{const textarea=el("textarea");textarea.required=true;textarea.minLength=15;textarea.maxLength=1500;textarea.rows=4;textarea.placeholder="Explica por qué debería revisarse la decisión. Evita incluir contraseñas o datos privados.";return textarea;};
 
+  // Progreso por hechos registrados: enviada, asignada al equipo y resuelta.
+  // Es un indicador de etapas, no una estimación del tiempo restante.
+  function appealTracking(appeal){
+    const decided=["accepted","rejected"].includes(appeal?.status);
+    const assigned=Boolean(appeal?.assigned_at);
+    const stage=decided?3:assigned?2:1;
+    const wrapper=el("section","sb-appeal-tracking");
+    wrapper.setAttribute("aria-label","Seguimiento de la apelación");
+    wrapper.dataset.stage=String(stage);
+    const title=el("div","sb-appeal-tracking-heading");
+    const state=decided?(appeal.status==="accepted"?"✅ Resuelta: aceptada":"❌ Resuelta: rechazada"):
+      assigned?"🔎 En revisión por el equipo":"📨 Enviada, pendiente de asignación";
+    title.append(el("strong","", "📍 Seguimiento de la apelación"),
+      el("span","sb-appeal-tracking-current",state));
+    const track=el("div","sb-appeal-tracking-track");
+    track.setAttribute("role","progressbar");
+    track.setAttribute("aria-label","Etapas de la apelación");
+    track.setAttribute("aria-valuemin","0");
+    track.setAttribute("aria-valuemax","3");
+    track.setAttribute("aria-valuenow",String(stage));
+    track.setAttribute("aria-valuetext","Etapa "+stage+" de 3: "+(stage===1?"Enviada":stage===2?"En revisión":"Resuelta"));
+    const fill=el("div","sb-appeal-tracking-fill");
+    fill.style.width=(stage/3*100)+"%";
+    fill.setAttribute("aria-hidden","true");
+    track.append(fill);
+    const steps=el("ol","sb-appeal-tracking-steps");
+    const info=[
+      ["Enviada","Recibida: "+date(appeal?.created_at)],
+      ["En revisión",assigned?"Asignada al equipo: "+date(appeal.assigned_at):
+        decided?"Etapa completada (sin fecha de asignación)":"Aún no asignada al equipo"],
+      ["Resuelta",decided?(appeal.status==="accepted"?"Aceptada":"Rechazada")+
+        " · "+(appeal.reviewed_at?date(appeal.reviewed_at):"Fecha no disponible"):
+        "Pendiente de decisión"]
+    ];
+    info.forEach(([label,detail],index)=>{
+      const item=el("li","sb-appeal-tracking-step "+
+        (index+1<stage?"is-complete":index+1===stage?"is-current":"is-upcoming"));
+      const dot=el("span","sb-appeal-tracking-dot",index+1<stage?"✓":String(index+1));
+      dot.setAttribute("aria-hidden","true");
+      const words=el("span","sb-appeal-tracking-copy");
+      words.append(el("strong","",label),el("small","",detail));
+      item.append(dot,words);
+      steps.append(item);
+    });
+    wrapper.append(title,track,steps);
+    return wrapper;
+  }
+
   // Historial inmutable del caso: solicitud, conversación y resolución.
   function threadPanel(appealId, accessToken=""){
     const details=el("details","sb-appeal-thread");
@@ -75,6 +123,7 @@
         if(!details.isConnected)return;
         if(!before){
           notes.replaceChildren();
+          if(accessToken && data.appeal)notes.append(appealTracking(data.appeal));
           notes.append(el("p","","📌 Sanción: "+(kinds[data.sanction?.action]||"Sanción")+" · "+date(data.sanction?.created_at)),
             el("p","","Motivo original: "+(data.sanction?.reason||"No disponible")),
             el("p","","📝 Solicitud: "+date(data.appeal?.created_at)+" · "+data.appeal?.reason));
@@ -311,7 +360,9 @@
     label.append(filter);
     const all=el("button","outline-btn mini","Ver todas");
     all.type="button";all.hidden=true;
-    controls.append(label,all);
+    const refreshTracking=el("button","outline-btn mini sb-appeal-tracking-refresh","🔄 Actualizar seguimiento");
+    refreshTracking.type="button";
+    controls.append(label,all,refreshTracking);
     const summary=el("p","sb-appeals-history-summary","Cargando historial…");
     summary.setAttribute("role","status");
     const list=el("div","sb-appeals-history-list");
@@ -465,6 +516,7 @@
     };
     const load=async()=>{
       const seq=++requestSeq;
+      refreshTracking.disabled=true;
       summary.textContent="Cargando historial…";
       prev.disabled=next.disabled=true;
       try{
@@ -493,7 +545,7 @@
           const kind=el("strong","",kinds[sanction?.action]||"Sanción");
           const state=el("span","sb-appeals-history-state",outcomes[record.status]||record.status);
           top.append(kind,state);
-          card.append(top,
+          card.append(top,appealTracking(record),
             el("p","","📅 Solicitud enviada: "+date(record.created_at)),
             el("p","","📝 Tu explicación: "+record.reason));
           if(sanction){
@@ -530,8 +582,11 @@
         if(!history.isConnected||seq!==requestSeq)return;
         summary.textContent="No se pudo cargar el historial: "+error.message;
         paging.hidden=true;
+      }finally{
+        if(history.isConnected&&seq===requestSeq)refreshTracking.disabled=false;
       }
     };
+    refreshTracking.onclick=()=>{void load();};
     filter.onchange=()=>{focused="";currentPage=0;markSelected();void load();};
     all.onclick=()=>{focused="";currentPage=0;filter.value="all";markSelected();void load();};
     for(const [key,{button}] of statCards)
