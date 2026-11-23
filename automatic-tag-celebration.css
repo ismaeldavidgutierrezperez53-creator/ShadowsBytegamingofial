@@ -1,0 +1,23 @@
+/* Celebración de etiquetas exclusivas: accesible, responsive y respetuosa con el movimiento reducido. */
+.sb-auto-tag-celebration{border:0;border-radius:20px;padding:0;color:#fff;background:transparent;max-width:min(94vw,530px);width:100%;max-height:90dvh;overflow:visible;box-shadow:0 16px 70px rgba(4,3,18,.75)}
+.sb-auto-tag-celebration::backdrop{background:rgba(8,5,24,.84);backdrop-filter:blur(6px)}
+.sb-auto-tag-celebration-fallback{display:block;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1000001}
+.sb-auto-tag-celebration-panel{position:relative;isolation:isolate;display:grid;gap:.85rem;text-align:center;overflow:hidden;min-width:0;max-height:88dvh;overflow-y:auto;padding:2rem 1.25rem;background:linear-gradient(145deg,#301852,#17132f 60%,#193953);border:2px solid rgba(226,177,255,.8);border-radius:20px;box-shadow:inset 0 1px 3px rgba(255,255,255,.2);animation:sb-auto-tag-enter .42s ease-out both}
+.sb-auto-tag-celebration-panel>*:not(.sb-auto-tag-celebration-particles){position:relative;z-index:1}
+.sb-auto-tag-celebration-hero{font-size:clamp(2.1rem,7vw,3.2rem);line-height:1.2;filter:drop-shadow(0 0 11px rgba(244,196,255,.6))}
+.sb-auto-tag-celebration h2{font:800 clamp(1.3rem,4vw,1.9rem)/1.2 Orbitron,Arial,sans-serif;margin:0;color:#fff0b9;text-wrap:balance}
+.sb-auto-tag-celebration p{margin:0;line-height:1.5;color:#f2e7ff}
+.sb-auto-tag-celebration small{color:#e1d6ff;line-height:1.4}
+.sb-auto-tag-celebration-rewards{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.6rem;padding:.8rem}
+.sb-auto-tag-celebration-reward{padding:.35rem;border-radius:15px;background:rgba(255,255,255,.08)}
+.sb-auto-tag-celebration-reward .sb-exclusive-tag{font-size:clamp(.95rem,3vw,1.2rem);padding:.35rem .75rem;box-shadow:0 0 12px rgba(243,209,154,.3)}
+.sb-auto-tag-celebration-actions{display:flex;justify-content:center;align-items:center;gap:.75rem;flex-wrap:wrap}
+.sb-auto-tag-celebration-actions a,.sb-auto-tag-celebration-actions button{min-height:42px;display:inline-flex;align-items:center;justify-content:center}
+.sb-auto-tag-celebration-particles{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.sb-auto-tag-celebration-particles span{position:absolute;top:-10%;color:#ffdf84;opacity:0;font-size:1.2rem;text-shadow:0 0 7px rgba(255,241,170,.9);animation:sb-auto-tag-fall 2.8s linear infinite}
+.sb-auto-tag-celebration-particles span:nth-child(3n){color:#dfabff}
+.sb-auto-tag-celebration-particles span:nth-child(4n){color:#7ce7ff}
+@keyframes sb-auto-tag-enter{from{transform:scale(.88) translateY(10px);opacity:.3}to{transform:scale(1) translateY(0);opacity:1}}
+@keyframes sb-auto-tag-fall{0%{transform:translateY(-20px) rotate(0deg);opacity:0}16%{opacity:.95}85%{opacity:.75}100%{transform:translateY(110vh) rotate(390deg);opacity:0}}
+@media(max-width:550px){.sb-auto-tag-celebration-panel{padding:1.35rem .8rem}.sb-auto-tag-celebration-actions{display:grid;grid-template-columns:1fr}.sb-auto-tag-celebration-actions>*{width:100%}}
+@media(prefers-reduced-motion:reduce){.sb-auto-tag-celebration-panel,.sb-auto-tag-celebration-particles span,.sb-auto-tag-celebration .sb-exclusive-tag{animation:none!important;transition:none!important}.sb-auto-tag-celebration-particles{display:none!important}}
