@@ -1,0 +1,17 @@
+/* Reacciones a Info: botones compactos, grandes y accesibles para móvil */
+.sb-info-reactions{border-top:1px solid rgba(186,143,249,.27);margin-top:15px;padding-top:14px;color:#f6edff}
+.sb-info-reactions-title{font-size:.98rem!important;margin:0 0 9px!important;color:#f4dfff!important;font-weight:700}
+.sb-info-reactions-bar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.sb-info-reaction-button{display:inline-flex;gap:8px;align-items:center;justify-content:center;min-width:65px;min-height:42px;padding:7px 12px;color:#fff;cursor:pointer;border:1px solid rgba(171,111,234,.58);background:rgba(79,36,125,.55);border-radius:14px;transition:background-color .2s,transform .2s,border-color .2s}
+.sb-info-reaction-button:hover:not(:disabled){border-color:#d9a4ff;background:rgba(130,57,186,.65);transform:translateY(-2px)}
+.sb-info-reaction-button:focus-visible{outline:3px solid #f0c3ff;outline-offset:3px}
+.sb-info-reaction-button[aria-pressed="true"]{background:rgba(154,68,218,.74);border-color:#efd0ff;box-shadow:0 0 0 1px #ca88ff}
+.sb-info-reaction-button:disabled{cursor:default;opacity:.84}
+.sb-info-reaction-emoji{font-size:1.18rem}
+.sb-info-reaction-count{font-size:.92rem;font-weight:700;font-variant-numeric:tabular-nums}
+.sb-info-reactions-note{font-size:.84rem;margin:9px 0 0;color:#dbc5ef;min-height:1.2em;line-height:1.45}
+.sb-info-reactions-note a{color:#f0c3ff;text-decoration:underline}
+.sb-info-react-link{display:inline-flex;align-items:center;margin:0 0 10px;padding:5px 8px;border-radius:8px;color:#f2d5ff;text-decoration:underline;font-weight:700;font-size:.85rem}
+.sb-info-react-link:focus-visible{outline:2px solid #f0c3ff;outline-offset:3px}
+@media(max-width:560px){.sb-info-reactions-bar{gap:7px}.sb-info-reaction-button{min-width:60px;min-height:44px;padding:7px 10px}}
+@media(prefers-reduced-motion:reduce){.sb-info-reaction-button{transition:none}.sb-info-reaction-button:hover:not(:disabled){transform:none}}
