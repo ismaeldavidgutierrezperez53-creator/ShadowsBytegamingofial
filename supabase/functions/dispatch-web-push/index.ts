@@ -348,19 +348,33 @@ Deno.serve(async(req:Request)=>{
       const delivered=await dispatch(body.type,String(body.id||''),body.meta && typeof body.meta==='object' && !Array.isArray(body.meta)?body.meta:{});
       return reply({ok:true,delivered});
     }
-    if(body.type==='test' || body.type==='test_appeal'){
+    if(body.type==='test' || body.type==='test_appeal' || body.type==='test_info_reaction'){
       const auth=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
       const {data:{user},error}=await admin.auth.getUser(auth);
       if(error || !user)return reply({error:'Unauthorized'},401);
       const endpoint=typeof body.endpoint==='string'&&trustedPushEndpoint(body.endpoint)?body.endpoint:null;
       if(!endpoint)return reply({error:'Invalid push endpoint'},400);
       const isAppealTest=body.type==='test_appeal';
+      const isInfoReactionTest=body.type==='test_info_reaction';
       const decision=body.decision;
       if(isAppealTest && !['accepted','rejected'].includes(decision))
         return reply({error:'Invalid test decision'},400);
       // Las pruebas solo se envían a la suscripción autenticada del propio usuario.
       // Nunca crean sanciones, apelaciones ni notificaciones persistentes.
-      const notice:Notice=isAppealTest
+      // La simulación de reacción siempre va al dispositivo registrado de quien la solicita.
+      if(isInfoReactionTest) {
+        const {data:registered,error:deviceError}=await admin.from('member_web_push_subscriptions')
+          .select('endpoint').eq('user_id',user.id).eq('endpoint',endpoint).maybeSingle();
+        if(deviceError || !registered)return reply({error:'Device not registered for this user'},403);
+      }
+      const notice:Notice=isInfoReactionTest
+        ? {
+          title:'🧪 ❤️ Prueba de reacción a Mi Info',
+          body:'Simulación: un miembro reaccionó ❤️ a tu Info. No se ha creado una reacción real.',
+          path:'#/cuenta',
+          tag:'push-info-test-'+crypto.randomUUID()
+        }
+        : isAppealTest
         ? {
           title:decision==='accepted'?'🧪 SIMULACIÓN: apelación aceptada':'🧪 SIMULACIÓN: apelación rechazada',
           body:'Esto es solo una prueba. No hay ninguna decisión real sobre tu cuenta.',
@@ -374,7 +388,7 @@ Deno.serve(async(req:Request)=>{
           tag:'push-test-'+Math.floor(Date.now()/60000)
         };
       const delivered=await notifyUser(user.id,notice,undefined,endpoint);
-      return reply({ok:true,delivered,simulation:isAppealTest});
+      return reply({ok:true,delivered,simulation:isAppealTest||isInfoReactionTest});
     }
     if(body.type==='test_delayed'){
       const auth=(req.headers.get('authorization')||'').replace(/^Bearer\s+/i,'');
