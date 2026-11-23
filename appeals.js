@@ -686,6 +686,57 @@
       feedback(status,error.message,true);
     }
   }
+  // The assignment becomes due 24 hours after it was saved. The cron
+  // checks at minute 15 of each UTC hour, so its first possible run may
+  // be up to 59m59s later. This UI is indicative, not proof of delivery.
+  const appealReminderWindow=timestamp=>{
+    const assignedAt=Date.parse(timestamp||"");
+    if(!Number.isFinite(assignedAt))return null;
+    const eligibleAt=assignedAt+24*60*60*1000;
+    const hour=60*60*1000,minute15=15*60*1000;
+    const scheduledAt=Math.ceil((eligibleAt-minute15)/hour)*hour+minute15;
+    return {eligibleAt,scheduledAt};
+  };
+  const formatAppealCountdown=remaining=>{
+    const seconds=Math.max(0,Math.ceil(remaining/1000));
+    const hours=Math.floor(seconds/3600);
+    const mins=Math.floor((seconds%3600)/60);
+    const secs=seconds%60;
+    return String(hours).padStart(2,"0")+":"+
+      String(mins).padStart(2,"0")+":"+
+      String(secs).padStart(2,"0");
+  };
+  function updateAppealReminderCountdowns(panel){
+    if(!panel?.isConnected)return;
+    const now=Date.now();
+    for(const node of panel.querySelectorAll(".sb-appeal-reminder-countdown[data-scheduled-at]")){
+      const scheduled=Number(node.dataset.scheduledAt);
+      const eligible=Number(node.dataset.eligibleAt);
+      const output=node.querySelector(".sb-appeal-reminder-clock");
+      if(!output || !Number.isFinite(scheduled) || !Number.isFinite(eligible))continue;
+      node.dataset.state=now>=scheduled?"elapsed":now>=eligible?"eligible":"waiting";
+      if(now>=scheduled){
+        output.textContent="⏰ Plazo alcanzado · comprueba el aviso 🔔";
+      }else{
+        output.textContent=(now>=eligible
+          ?"⏰ Próxima revisión automática en "
+          :"⏳ Recordatorio estimado en ")+formatAppealCountdown(scheduled-now);
+      }
+    }
+  }
+  let reminderCountdownInterval=null;
+  function startAppealCountdowns(panel){
+    if(reminderCountdownInterval!==null)clearInterval(reminderCountdownInterval);
+    reminderCountdownInterval=setInterval(()=>{
+      if(!panel.isConnected){
+        clearInterval(reminderCountdownInterval);
+        reminderCountdownInterval=null;
+        return;
+      }
+      if(!document.hidden)updateAppealReminderCountdowns(panel);
+    },1000);
+    updateAppealReminderCountdowns(panel);
+  }
   function drawStaff(panel){
     const host=panel.querySelector("#sb-appeals-staff-list");
     if(!host||!staffCache)return;
@@ -760,6 +811,34 @@
           "Los responsables los asigna un administrador."));
       }
       card.append(assignment);
+      if(record.status==="pending"){
+        const reminder=el("div","sb-appeal-reminder-countdown");
+        if(record.assigned_to && record.assigned_at){
+          const windowTimes=appealReminderWindow(record.assigned_at);
+          if(windowTimes){
+            reminder.dataset.scheduledAt=String(windowTimes.scheduledAt);
+            reminder.dataset.eligibleAt=String(windowTimes.eligibleAt);
+            reminder.append(
+              el("strong","sb-appeal-reminder-heading","🔔 Recordatorio al responsable"),
+              el("span","sb-appeal-reminder-clock","Calculando tiempo restante…"),
+              el("small","sb-appeal-reminder-description",
+                "Plazo de 24 h: "+date(new Date(windowTimes.eligibleAt).toISOString())+
+                ". Revisión automática prevista: "+
+                date(new Date(windowTimes.scheduledAt).toISOString())+
+                ". Horario estimado; la recepción depende del servicio de notificaciones.")
+            );
+          }
+        }else{
+          reminder.append(
+            el("strong","sb-appeal-reminder-heading","🔔 Recordatorio al responsable"),
+            el("span","sb-appeal-reminder-clock","Sin responsable asignado"),
+            el("small","sb-appeal-reminder-description",
+              "Asigna la apelación a un administrador o moderador para iniciar el contador de 24 horas.")
+          );
+          reminder.dataset.state="unassigned";
+        }
+        card.append(reminder);
+      }
       const assignmentHistory=el("details","sb-appeal-transfer-log");
       const historyToggle=el("summary","",
         "🔄 Historial de asignaciones y transferencias");
@@ -860,6 +939,7 @@
       card.append(threadPanel(record.id));
       host.append(card);
     }
+    updateAppealReminderCountdowns(panel);
   }
   async function mountStaff(){
     const dashboard=document.querySelector("#admin-root .admin-dashboard");
@@ -980,6 +1060,7 @@
     filter("#sb-appeals-reload").addEventListener("click",()=>{
       loadStaff(panel,staffCache?.page||0);
     });
+    startAppealCountdowns(panel);
     await loadStaff(panel);
     const focus=new URLSearchParams(location.hash.split("?")[1]||"").get("focus");
     if(focus==="appeals"&&panel.isConnected)panel.scrollIntoView({block:"start",behavior:"smooth"});
