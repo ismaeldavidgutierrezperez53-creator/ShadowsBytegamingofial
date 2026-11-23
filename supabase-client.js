@@ -3081,10 +3081,54 @@ async function loadMemberNotifications(){
    item.title=competitionNotificationText(item);item.category='tournaments';item.href=notificationDestination(item);
   }
  }
+
+ const marksQuery=await sb.from('member_notification_history_actions')
+  .select('source_table,record_id,is_pinned,priority_override')
+  .eq('user_id',user.id)
+  .in('source_table',['member_notifications','member_report_notifications','member_appeal_notifications'])
+  .limit(1500);
+ const marks=new Map((marksQuery.data||[]).map(a=>[a.source_table+':'+a.record_id,a]));
+ if(marksQuery.error)console.warn('No se pudieron cargar los avisos fijados:',marksQuery.error.message);
+ const importantKinds=new Set([
+   'moderation_warning','moderation_suspend','moderation_ban','moderation_lift',
+   'tournament_match','competition_start','competition_medal','poll_season_prize','poll_museum_prize'
+ ]);
+ const automaticImportant=n=>importantKinds.has(n.kind)
+  ||(n.category==='appeals'&&['assigned','assigned_reminder','overdue','accepted','rejected','message_to_member'].includes(n.kind));
+ const syncMark=n=>{
+  const value=marks.get(n.table+':'+n.id);
+  n.is_pinned=Boolean(value?.is_pinned);
+  n.priority_override=value?.priority_override||null;
+  n.is_priority=n.priority_override==='high'
+   ||(n.priority_override!=='normal'&&automaticImportant(n));
+ };
+ for(const n of items)if(n.table&&n.id)syncMark(n);
+ async function saveMark(n,changes){
+  const key=n.table+':'+n.id;
+  const {data:stored,error:readError}=await sb.from('member_notification_history_actions')
+   .select('is_read,archived_at,is_pinned,priority_override')
+   .eq('user_id',user.id).eq('source_table',n.table).eq('record_id',String(n.id)).maybeSingle();
+  if(readError)throw readError;
+  const next={
+   user_id:user.id,source_table:n.table,record_id:String(n.id),
+   is_read:stored?.is_read??(n.is_read!==false),
+   archived_at:stored?.archived_at??(n.dismissed_at||null),
+   is_pinned:Object.prototype.hasOwnProperty.call(changes,'is_pinned')
+    ?changes.is_pinned:Boolean(stored?.is_pinned),
+   priority_override:Object.prototype.hasOwnProperty.call(changes,'priority_override')
+    ?changes.priority_override:(stored?.priority_override??null),
+   updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from('member_notification_history_actions')
+   .upsert(next,{onConflict:'user_id,source_table,record_id'});
+  if(error)throw error;
+  marks.set(key,next);syncMark(n);
+ }
+
  const heading=document.createElement('h2');heading.textContent='🔔 Centro de notificaciones';root.append(heading);
  const controls=document.createElement('div');controls.className='notification-center-controls';
  const filter=document.createElement('select');filter.setAttribute('aria-label','Filtrar notificaciones');
- for(const [value,label] of [['all','Todas'],['community','Comunidad'],['followers','👥 Seguidores'],['tournaments','🏆 Torneos'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['appeals','⚖️ Apelaciones'],['moderation','🛡️ Moderación'],['news','📰 Noticias'],['rewards','🎁 Premios y medallas'],['mentions','🏷️ Menciones'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
+ for(const [value,label] of [['all','Todas'],['community','Comunidad'],['followers','👥 Seguidores'],['tournaments','🏆 Torneos'],['polls','📊 Encuestas'],['visits','👁️ Visitas al perfil'],['messages','Mensajes privados'],['reports','Denuncias'],['appeals','⚖️ Apelaciones'],['moderation','🛡️ Moderación'],['news','📰 Noticias'],['rewards','🎁 Premios y medallas'],['mentions','🏷️ Menciones'],['priority','⭐ Prioritarias'],['pinned','📌 Fijadas'],['unread','Sin leer'],['archived','Archivadas']]){const option=document.createElement('option');option.value=value;option.textContent=label;filter.append(option);}
  const search=document.createElement('input');search.type='search';search.placeholder='Buscar notificaciones';search.setAttribute('aria-label','Buscar notificaciones');
  const dateFilter=document.createElement('select');dateFilter.setAttribute('aria-label','Filtrar por fecha');for(const [value,label] of [['all','Cualquier fecha'],['today','Hoy'],['week','Últimos 7 días'],['month','Últimos 30 días']]){const option=document.createElement('option');option.value=value;option.textContent=label;dateFilter.append(option);}
  const counters=document.createElement('p');counters.className='notification-center-counts';
@@ -3098,6 +3142,8 @@ async function loadMemberNotifications(){
   if(selected==='mentions')return n.kind==='mention';
   if(selected==='rewards')return ['gift','poll_season_prize','poll_museum_prize','competition_medal'].includes(n.kind);
   if(selected==='followers')return n.kind==='follow';
+  if(selected==='priority')return Boolean(n.is_priority);
+  if(selected==='pinned')return Boolean(n.is_pinned);
   return n.category===selected;
  };
  const getVisible=()=>{
@@ -3111,8 +3157,10 @@ async function loadMemberNotifications(){
  };
  const draw=()=>{
   list.replaceChildren();
-  const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Seguidores: '+unread.filter(n=>n.kind==='follow').length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Torneos: '+unread.filter(n=>n.category==='tournaments').length+' · Encuestas: '+unread.filter(n=>n.category==='polls').length+' · Visitas: '+unread.filter(n=>n.category==='visits').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length+' · Apelaciones: '+unread.filter(n=>n.category==='appeals').length+' · Moderación: '+unread.filter(n=>n.category==='moderation').length;
-  const visible=getVisible();
+  const active=items.filter(n=>!n.dismissed_at);const unread=active.filter(n=>!n.is_read);counters.textContent='Sin leer: '+unread.length+' · Seguidores: '+unread.filter(n=>n.kind==='follow').length+' · Comunidad: '+unread.filter(n=>n.category==='community').length+' · Torneos: '+unread.filter(n=>n.category==='tournaments').length+' · Encuestas: '+unread.filter(n=>n.category==='polls').length+' · Visitas: '+unread.filter(n=>n.category==='visits').length+' · Mensajes: '+unread.filter(n=>n.category==='messages').length+' · Denuncias: '+unread.filter(n=>n.category==='reports').length+' · Apelaciones: '+unread.filter(n=>n.category==='appeals').length+' · Moderación: '+unread.filter(n=>n.category==='moderation').length+' · 📌 Fijadas: '+active.filter(n=>n.is_pinned).length+' · ⭐ Prioritarias: '+active.filter(n=>n.is_priority).length;
+  const visible=getVisible().sort((a,b)=>Number(Boolean(b.is_pinned))-Number(Boolean(a.is_pinned))
+   ||Number(Boolean(b.is_priority))-Number(Boolean(a.is_priority))
+   ||new Date(b.created_at)-new Date(a.created_at));
   summary.textContent=visible.length+' notificaciones';
   markAll.disabled=!items.some(n=>!n.is_read&&n.table&&!n.dismissed_at);
   markVisible.disabled=!visible.some(n=>!n.is_read&&n.table&&!n.dismissed_at);
