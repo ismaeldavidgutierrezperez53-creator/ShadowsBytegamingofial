@@ -307,6 +307,21 @@ Deno.serve(async req => {
     if(eventError||appealError)return reply({error:"No se pudieron cargar tus apelaciones"},500);
     return reply({events:events||[],appeals:appeals||[]});
   }
+  if(action==="my_stats"){
+    // Los contadores siempre pertenecen al usuario verificado mediante su sesión.
+    // Contar en el servidor evita truncar el historial y exponer expedientes ajenos.
+    const statuses=["pending","accepted","rejected"] as const;
+    const queries=[
+      db.from("member_sanction_appeals").select("id",{count:"exact",head:true}).eq("member_id",viewer.id),
+      ...statuses.map(status=>db.from("member_sanction_appeals")
+        .select("id",{count:"exact",head:true}).eq("member_id",viewer.id).eq("status",status))
+    ];
+    const results=await Promise.all(queries);
+    if(results.some(result=>result.error))
+      return reply({error:"No se pudieron cargar tus estadísticas de apelaciones"},500);
+    const [total,pending,accepted,rejected]=results.map(result=>result.count||0);
+    return reply({stats:{total,pending,accepted,rejected}});
+  }
   if(action==="my_history"){
     // Historial privado y paginado. El miembro se obtiene exclusivamente del JWT verificado.
     const filter=String(body.status||"all");
