@@ -198,6 +198,7 @@
     const cards = [...document.querySelectorAll('#members-list .member-card')]
       .filter(card => card.querySelector('.sb-member-info-card')
         && !card.querySelector('.sb-info-reactions')
+        && !card.querySelector('.sb-info-react-link')
         && !card.dataset.sbInfoReactionsLoading);
     if (!cards.length) return;
     const rows = [];
