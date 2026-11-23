@@ -35,11 +35,13 @@
     if (error) throw error;
     return data || [];
   }
-  function createWidget(infoUserId, owner = false) {
+  function createWidget(infoUserId, owner = false, options = {}) {
     const root = create('div','sb-info-reactions');
     root.dataset.owner = owner ? 'true' : 'false';
+    if (options.compact) root.classList.add('sb-info-reactions-compact');
     root.setAttribute('aria-label',owner?'Reacciones recibidas en mi Info':'Reacciones a esta Info');
     root.append(create('h3','sb-info-reactions-title',
+      options.compact ? (owner ? '💝 Reacciones recibidas' : '💜 Reacciona aquí') :
       owner ? '💝 Reacciones que ha recibido mi Info' : '💝 ¿Qué te parece esta Info?'));
     const bar = create('div','sb-info-reactions-bar');
     bar.setAttribute('role','group');
@@ -65,10 +67,10 @@
     let currentReaction = '';
     let busy = false;
     let loaded = false;
-    const refresh = async () => {
+    const refresh = async (providedRecords = null) => {
       if (!root.isConnected || !client()) return;
       try {
-        const records = await readReactions(infoUserId);
+        const records = providedRecords ?? await readReactions(infoUserId);
         if (!root.isConnected) return;
         const totals = Object.fromEntries(BUTTONS.map(item => [item.key,0]));
         currentReaction = '';
@@ -84,13 +86,20 @@
           button.setAttribute('aria-pressed', String(selected));
           button.setAttribute('aria-label', info.label+': '+total+' reacciones'+(selected?', tu reacción':''));
           button.classList.toggle('sb-info-reaction-selected',selected);
-          button.disabled = busy || owner || viewerId === infoUserId || !viewerId;
+          button.disabled = busy || owner || viewerId === infoUserId;
         }
-        if (!busy) note.textContent = owner || viewerId === infoUserId
-          ? 'Aquí verás cómo reaccionan los demás miembros a tu Info.'
-          : viewerId
-            ? 'Puedes cambiar tu reacción o quitarla tocando el mismo emoji.'
-            : 'Inicia sesión para reaccionar. Las cantidades son públicas.';
+        if (!busy) {
+          if (owner || viewerId === infoUserId) {
+            note.textContent = options.compact ? 'Esta es tu Info.' : 'Aquí verás cómo reaccionan los demás miembros a tu Info.';
+          } else if (viewerId) {
+            note.textContent = options.compact ? (currentReaction ? 'Tu reacción está marcada ✓' : 'Toca un emoji para reaccionar') : 'Puedes cambiar tu reacción o quitarla tocando el mismo emoji.';
+          } else {
+            note.replaceChildren(document.createTextNode('Para reaccionar, '));
+            const login = create('a',null,'inicia sesión');
+            login.href = '#/auth';
+            note.append(login,document.createTextNode('.'));
+          }
+        }
       } catch (error) {
         console.warn('No se pudieron leer las reacciones de Info:',error);
         if (root.isConnected) note.textContent = 'No se pudieron cargar las reacciones. Vuelve a abrir el perfil.';
@@ -132,7 +141,7 @@
         busy = false;
         await refresh();
         if (root.isConnected) note.textContent = currentReaction
-          ? '✅ Reacción guardada. Toca el mismo emoji para quitarla.'
+          ? (options.compact ? '✅ ¡Reacción guardada!' : '✅ Reacción guardada. Toca el mismo emoji para quitarla.')
           : '✅ Reacción eliminada.';
       } catch (error) {
         console.warn('No se pudo guardar reacción a Info:',error);
@@ -147,9 +156,9 @@
       button.addEventListener('click',() => { void react(info.key); });
     }
     (async () => {
-      try { viewerId = await getCurrentUserId(); }
+      try { viewerId = options.hasOwnProperty('viewerId') ? options.viewerId : await getCurrentUserId(); }
       catch (error) { console.warn('Reacciones de Info: sesión',error); }
-      if (root.isConnected) await refresh();
+      if (root.isConnected) await refresh(options.preloaded ?? null);
     })();
     return {root,refresh};
   }
@@ -183,18 +192,58 @@
       delete own.dataset.sbReactionsLoading;
     }
   }
-  function mountCards() {
-    if (location.hash.split('?')[0] !== '#/miembros') return;
-    const cards = document.querySelectorAll('#members-list .member-card');
+  // Una sola consulta para las tarjetas visibles, con botones táctiles en cada una.
+  async function mountCards() {
+    if (location.hash.split('?')[0] !== '#/miembros' || !client()) return;
+    const cards = [...document.querySelectorAll('#members-list .member-card')]
+      .filter(card => card.querySelector('.sb-member-info-card')
+        && !card.querySelector('.sb-info-reactions')
+        && !card.dataset.sbInfoReactionsLoading);
+    if (!cards.length) return;
+    const rows = [];
     for (const card of cards) {
       const info = card.querySelector('.sb-member-info-card');
-      if (!info || card.querySelector('.sb-info-react-link')) continue;
-      const href = card.querySelector('a.member-view-link')?.getAttribute('href');
-      if (!href) continue;
-      const link = create('a','sb-info-react-link','❤️ 😂 🔥 👍  Reaccionar');
-      link.href = href;
-      link.setAttribute('aria-label','Ir al perfil y reaccionar a la Info');
-      info.after(link);
+      const href = card.querySelector('a.member-view-link')?.getAttribute('href') || '';
+      const id = new URLSearchParams(href.split('?')[1] || '').get('id') || '';
+      if (!VALID_ID.test(id)) continue;
+      card.dataset.sbInfoReactionsLoading = '1';
+      rows.push({card,info,id,href});
+    }
+    if (!rows.length) return;
+    let viewerId = null;
+    try {
+      viewerId = await getCurrentUserId();
+    } catch (error) {
+      console.warn('Reacciones de Miembros: sesión',error);
+    }
+    for (let start=0; start<rows.length; start+=35) {
+      const chunk=rows.slice(start,start+35);
+      try {
+        const ids=[...new Set(chunk.map(row=>row.id))];
+        const {data,error}=await client().from(TABLE)
+          .select('info_user_id,reactor_id,reaction').in('info_user_id',ids);
+        if (error) throw error;
+        const byId=new Map(ids.map(id=>[id,[]]));
+        for (const record of data || []) byId.get(record.info_user_id)?.push(record);
+        for (const row of chunk) {
+          if (!row.card.isConnected || !row.info.isConnected) continue;
+          if (row.card.querySelector('.sb-info-reactions')) continue;
+          row.card.querySelector('.sb-info-react-link')?.remove();
+          const widget=createWidget(row.id,row.id===viewerId,
+            {compact:true, viewerId, preloaded:byId.get(row.id)||[]});
+          row.info.after(widget.root);
+        }
+      } catch(error) {
+        console.warn('Reacciones directas en Miembros:',error);
+        for(const row of chunk) {
+          if (!row.card.isConnected || row.card.querySelector('.sb-info-react-link')) continue;
+          const link=create('a','sb-info-react-link','Ver perfil para reaccionar');
+          link.href=row.href;
+          row.info.after(link);
+        }
+      } finally {
+        for(const row of chunk) delete row.card.dataset.sbInfoReactionsLoading;
+      }
     }
   }
   let pending = false;
