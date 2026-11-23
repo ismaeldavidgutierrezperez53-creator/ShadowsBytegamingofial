@@ -1,0 +1,24 @@
+/* Historial privado de etiquetas desbloqueadas y concesiones administrativas. */
+.sb-member-tag-history{display:grid;gap:.7rem;min-width:0;margin:1rem 0;padding:1rem;border:1px solid rgba(192,162,247,.38);border-radius:14px;background:rgba(30,20,55,.3);scroll-margin-top:90px}
+.sb-member-tag-history h3{margin:0;color:#f3e4ff}
+.sb-member-tag-history-intro{margin:.1rem 0;font-size:.9rem;line-height:1.5}
+.sb-member-tag-history-toolbar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center}
+.sb-member-tag-history-toolbar select,.sb-member-tag-history-toolbar input{min-height:42px;border:1px solid rgba(188,162,240,.55);border-radius:10px;background:#1a1330;color:#fff;padding:.5rem .65rem;min-width:0}
+.sb-member-tag-history-toolbar select{flex:1 1 210px}
+.sb-member-tag-history-toolbar input{flex:1 1 175px}
+.sb-member-tag-history-summary,.sb-member-tag-history-footnote{margin:.1rem 0;font-size:.83rem;opacity:.88;line-height:1.5}
+.sb-member-tag-history-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr));gap:.6rem}
+.sb-member-tag-history-item{display:grid;align-content:start;gap:.42rem;padding:.75rem .85rem;border:1px solid rgba(193,153,244,.36);border-radius:12px;background:rgba(91,55,145,.19);min-width:0}
+.sb-member-tag-history-item.is-revoked{border-color:rgba(211,153,153,.34);background:rgba(71,50,64,.21)}
+.sb-member-tag-history-item.is-revoked .sb-exclusive-tag{opacity:.67;animation:none!important}
+.sb-member-tag-history-item.is-revoked .sb-exclusive-tag::after{display:none!important}
+.sb-member-tag-history-item-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.35rem}
+.sb-member-tag-history-kind{font-size:.75rem;opacity:.84}
+.sb-member-tag-history-state{font-size:.8rem;color:#bdf5d9}
+.sb-member-tag-history-item.is-revoked .sb-member-tag-history-state{color:#ffd2d2}
+.sb-member-tag-history-date,.sb-member-tag-history-revocation{margin:0!important;font-size:.8rem;line-height:1.5;overflow-wrap:anywhere}
+.sb-member-tag-history-revocation{color:#ffcece}
+.sb-member-tag-history-pagination{display:flex;justify-content:center;gap:.6rem}
+.sb-member-tag-history-empty{grid-column:1/-1;opacity:.84;padding:.65rem}
+@media(max-width:600px){.sb-member-tag-history{padding:.75rem}.sb-member-tag-history-list{grid-template-columns:1fr}.sb-member-tag-history-toolbar{display:grid;grid-template-columns:1fr}.sb-member-tag-history-toolbar>*{width:100%}}
+@media(prefers-reduced-motion:reduce){.sb-member-tag-history .sb-exclusive-tag{animation:none!important}}
