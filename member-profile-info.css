@@ -20,3 +20,8 @@
 .sb-member-info-card{margin:6px 0 12px;padding:10px 12px;border-radius:11px;background:rgba(133,79,194,.18);border:1px solid rgba(166,111,255,.28);color:#f1e5ff;line-height:1.4;overflow-wrap:anywhere}
 .sb-member-info-card strong{color:#e3baff}
 @media(max-width:600px){.sb-member-info-own{padding:15px;margin:14px 0}.sb-member-info-public{padding:13px}.sb-member-info-actions>*{flex:1 1 130px}}
+
+/* Prueba voluntaria de push para las reacciones de Mi Info. */
+.sb-info-push-test{display:grid;gap:8px;margin:12px 0 5px;padding:13px;border:1px dashed rgba(189,137,250,.64);border-radius:12px;background:rgba(113,64,174,.14)}
+.sb-info-push-test-button{width:100%;min-height:44px;touch-action:manipulation}
+.sb-info-push-test-status{margin:0;font-size:.86rem;line-height:1.5;color:#e9d6ff}
