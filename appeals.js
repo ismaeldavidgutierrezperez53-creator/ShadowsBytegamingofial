@@ -346,8 +346,11 @@
     }
     const refreshStats=el("button","outline-btn mini sb-appeals-refresh-stats","🔄 Actualizar estadísticas");
     refreshStats.type="button";
+    const downloadStats=el("button","outline-btn mini sb-appeals-download-stats","📄 Descargar estadísticas en PDF");
+    downloadStats.type="button";
+    downloadStats.setAttribute("aria-label","Descargar informe privado de estadísticas de apelaciones en PDF");
     const statsActions=el("div","sb-appeals-stats-actions");
-    statsActions.append(statsNote,refreshStats);
+    statsActions.append(statsNote,refreshStats,downloadStats);
     const charts=el("div","sb-appeals-charts");
     const distribution=el("section","sb-appeals-chart-panel");
     distribution.setAttribute("aria-label","Distribución de apelaciones por estado");
@@ -534,6 +537,31 @@
     for(const [key,{button}] of statCards)
       button.onclick=()=>{focused="";filter.value=key;currentPage=0;markSelected();void load();};
     refreshStats.onclick=()=>{void loadStats();};
+    downloadStats.onclick=async()=>{
+      if(downloadStats.disabled)return;
+      downloadStats.disabled=true;
+      const oldLabel=downloadStats.textContent;
+      downloadStats.textContent="Preparando PDF…";
+      statsNote.textContent="Consultando tus estadísticas para generar el informe…";
+      try{
+        // Se vuelven a consultar los datos privados: nunca exportar solo la página visible.
+        const data=await invoke({action:"my_stats"});
+        if(!history.isConnected)return;
+        const exporter=window.SBAppealStatsPDF;
+        if(!exporter||typeof exporter.download!=="function")
+          throw new Error("El módulo de PDF no está disponible. Actualiza la página.");
+        exporter.download(data);
+        statsNote.textContent="✅ Informe PDF preparado. Comprueba las descargas del navegador.";
+      }catch(error){
+        if(history.isConnected)
+          statsNote.textContent="No se pudo generar el PDF: "+(error?.message||"error desconocido");
+      }finally{
+        if(downloadStats.isConnected){
+          downloadStats.disabled=false;
+          downloadStats.textContent=oldLabel;
+        }
+      }
+    };
     prev.onclick=()=>{if(currentPage>0){currentPage--;void load();}};
     next.onclick=()=>{currentPage++;void load();};
     markSelected();
