@@ -220,7 +220,7 @@ Deno.serve(async req => {
     const appealId=String(body.appeal_id||"");
     if(!idPattern.test(appealId))return reply({error:"Apelación inválida"},400);
     const {data:appeal,error:appealError}=await db.from("member_sanction_appeals")
-      .select("id,member_id,reason,status,review_note,reviewer_id,reviewed_at,created_at,sanction_event_id")
+      .select("id,member_id,reason,status,review_note,reviewer_id,reviewed_at,created_at,sanction_event_id,assigned_at")
       .eq("id",appealId).maybeSingle();
     if(appealError||!appeal)return reply({error:"Apelación no encontrada"},404);
     const viewer=await current();
@@ -365,7 +365,7 @@ Deno.serve(async req => {
     const page=Number.isSafeInteger(body.page) && Number(body.page)>=0
       ?Math.min(Number(body.page),9999):0;
     let query=db.from("member_sanction_appeals")
-      .select("id,sanction_event_id,reason,status,review_note,created_at,reviewed_at",{count:"exact"})
+      .select("id,sanction_event_id,reason,status,review_note,created_at,reviewed_at,assigned_at",{count:"exact"})
       .eq("member_id",viewer.id)
       .order("created_at",{ascending:false}).order("id",{ascending:false});
     if(focusAppeal)query=query.eq("id",focusAppeal);
