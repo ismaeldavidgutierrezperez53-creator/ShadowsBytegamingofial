@@ -322,11 +322,57 @@
     prev.type=next.type="button";
     const pages=el("span","","");
     paging.append(prev,pages,next);
-    history.append(title,intro,controls,summary,list,paging);
+    // Tarjetas privadas: los totales exactos vienen del servidor, no de la página actual.
+    const statsGrid=el("div","sb-appeals-stats");
+    statsGrid.setAttribute("role","group");
+    statsGrid.setAttribute("aria-label","Estadísticas personales de apelaciones");
+    const statsNote=el("p","sb-appeals-stats-note","Cargando estadísticas…");
+    statsNote.setAttribute("role","status");
+    const statCards=new Map();
+    for(const [key,label,field] of [
+      ["all","📂 Total de apelaciones","total"],
+      ["pending","🕒 Pendientes","pending"],
+      ["accepted","✅ Aceptadas","accepted"],
+      ["rejected","❌ Rechazadas","rejected"]
+    ]){
+      const button=el("button","sb-appeals-stat-card");
+      button.type="button";
+      button.dataset.status=key;
+      button.setAttribute("aria-pressed",String(key==="all"));
+      const count=el("strong","sb-appeals-stat-number","—");
+      button.append(el("span","sb-appeals-stat-label",label),count);
+      statsGrid.append(button);
+      statCards.set(key,{button,count,field});
+    }
+    const refreshStats=el("button","outline-btn mini sb-appeals-refresh-stats","🔄 Actualizar estadísticas");
+    refreshStats.type="button";
+    const statsActions=el("div","sb-appeals-stats-actions");
+    statsActions.append(statsNote,refreshStats);
+    history.append(title,intro,statsGrid,statsActions,controls,summary,list,paging);
     panel.insertBefore(history,panel.querySelector(".sb-appeals-eligible-heading")||panel.querySelector(".sb-appeals-stack"));
     const hashParams=new URLSearchParams(location.hash.split("?")[1]||"");
     let focused=hashParams.get("focus")==="appeals" ? hashParams.get("appeal")||"" : "";
     let currentPage=0,requestSeq=0;
+    const markSelected=()=>{
+      for(const [key,{button}] of statCards)
+        button.setAttribute("aria-pressed",String(!focused&&filter.value===key));
+    };
+    const loadStats=async()=>{
+      refreshStats.disabled=true;
+      statsNote.textContent="Actualizando estadísticas…";
+      try{
+        const data=await invoke({action:"my_stats"});
+        if(!history.isConnected)return;
+        for(const {count,field} of statCards.values())
+          count.textContent=String(data.stats?.[field]??"—");
+        statsNote.textContent="Datos privados de tu cuenta, actualizados.";
+      }catch(error){
+        if(history.isConnected)
+          statsNote.textContent="No se pudieron cargar las estadísticas: "+error.message;
+      }finally{
+        if(refreshStats.isConnected)refreshStats.disabled=false;
+      }
+    };
     const load=async()=>{
       const seq=++requestSeq;
       summary.textContent="Cargando historial…";
@@ -396,11 +442,15 @@
         paging.hidden=true;
       }
     };
-    filter.onchange=()=>{focused="";currentPage=0;void load();};
-    all.onclick=()=>{focused="";currentPage=0;filter.value="all";void load();};
+    filter.onchange=()=>{focused="";currentPage=0;markSelected();void load();};
+    all.onclick=()=>{focused="";currentPage=0;filter.value="all";markSelected();void load();};
+    for(const [key,{button}] of statCards)
+      button.onclick=()=>{focused="";filter.value=key;currentPage=0;markSelected();void load();};
+    refreshStats.onclick=()=>{void loadStats();};
     prev.onclick=()=>{if(currentPage>0){currentPage--;void load();}};
     next.onclick=()=>{currentPage++;void load();};
-    await load();
+    markSelected();
+    await Promise.all([load(),loadStats()]);
   }
 
   async function mountAccount(){
