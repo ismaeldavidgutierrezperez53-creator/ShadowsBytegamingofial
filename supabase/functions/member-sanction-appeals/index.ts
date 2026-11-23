@@ -316,11 +316,29 @@ Deno.serve(async req => {
       ...statuses.map(status=>db.from("member_sanction_appeals")
         .select("id",{count:"exact",head:true}).eq("member_id",viewer.id).eq("status",status))
     ];
-    const results=await Promise.all(queries);
+    // Serie de 12 meses por fecha de presentación, agrupada en UTC.
+    // Son recuentos exactos en PostgREST: no truncar a los primeros 1.000 registros.
+    const now=new Date();
+    const firstMonth=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-11,1));
+    const months=Array.from({length:12},(_,index)=>{
+      const from=new Date(Date.UTC(firstMonth.getUTCFullYear(),firstMonth.getUTCMonth()+index,1));
+      const to=new Date(Date.UTC(firstMonth.getUTCFullYear(),firstMonth.getUTCMonth()+index+1,1));
+      return {month:from.toISOString().slice(0,7),from:from.toISOString(),to:to.toISOString()};
+    });
+    const monthlyQueries=months.map(({from,to})=>
+      db.from("member_sanction_appeals")
+        .select("id",{count:"exact",head:true})
+        .eq("member_id",viewer.id)
+        .gte("created_at",from).lt("created_at",to)
+    );
+    const results=await Promise.all([...queries,...monthlyQueries]);
     if(results.some(result=>result.error))
       return reply({error:"No se pudieron cargar tus estadísticas de apelaciones"},500);
-    const [total,pending,accepted,rejected]=results.map(result=>result.count||0);
-    return reply({stats:{total,pending,accepted,rejected}});
+    const [total,pending,accepted,rejected]=results.slice(0,4).map(result=>result.count||0);
+    const monthly=months.map((month,index)=>({
+      month:month.month,total:results[4+index].count||0
+    }));
+    return reply({stats:{total,pending,accepted,rejected},monthly,monthly_timezone:"UTC"});
   }
   if(action==="my_history"){
     // Historial privado y paginado. El miembro se obtiene exclusivamente del JWT verificado.

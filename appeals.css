@@ -425,3 +425,96 @@
   #sb-appeals-history .sb-appeals-stat-card {transition:none;}
   #sb-appeals-history .sb-appeals-stat-card:hover {transform:none;}
 }
+
+
+/* Gráficos privados de apelaciones */
+#sb-appeals-history .sb-appeals-charts {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:14px;
+  min-width:0;
+}
+#sb-appeals-history .sb-appeals-chart-panel {
+  display:grid;gap:12px;min-width:0;
+  padding:clamp(13px,2vw,19px);
+  border:1px solid rgba(176,139,226,.45);
+  border-radius:15px;
+  background:rgba(26,19,49,.74);
+}
+#sb-appeals-history .sb-appeals-chart-panel h4 {
+  margin:0;color:#f9edff;font-size:clamp(15px,1.8vw,19px);
+}
+#sb-appeals-history .sb-appeals-chart-description {
+  margin:0;color:#e0d5ef;font-size:.9rem;line-height:1.5;
+}
+#sb-appeals-history .sb-appeals-share-bar {
+  display:flex;overflow:hidden;
+  min-width:0;height:33px;
+  border-radius:9px;
+  background:rgba(149,124,177,.22);
+  border:1px solid rgba(190,163,216,.44);
+}
+#sb-appeals-history .sb-appeals-share-segment {
+  display:block;height:100%;flex-shrink:0;
+  transition:width .2s ease;
+}
+#sb-appeals-history .sb-appeals-share-no-data {
+  width:100%;display:grid;place-items:center;
+  font-size:.84rem;color:#eee4fa;
+}
+#sb-appeals-history .sb-appeals-share-pending {background:#dcac57;}
+#sb-appeals-history .sb-appeals-share-accepted {background:#61c6a0;}
+#sb-appeals-history .sb-appeals-share-rejected {background:#ee829c;}
+#sb-appeals-history .sb-appeals-chart-legend {
+  display:flex;flex-wrap:wrap;gap:8px 20px;
+  list-style:none;padding:0;margin:0;
+  color:#eee5f5;
+}
+#sb-appeals-history .sb-appeals-legend-item {
+  display:flex;align-items:center;gap:7px;font-size:.87rem;
+}
+#sb-appeals-history .sb-appeals-legend-dot {
+  display:inline-block;width:12px;height:12px;flex:0 0 12px;border-radius:4px;
+}
+#sb-appeals-history .sb-appeals-month-scroll {
+  max-width:100%;overflow-x:auto;
+  padding:0 2px 8px;overscroll-behavior-inline:contain;
+}
+#sb-appeals-history .sb-appeals-month-scroll:focus-visible {
+  outline:2px solid #9ce0ff;outline-offset:2px;
+}
+#sb-appeals-history .sb-appeals-month-chart {
+  display:grid;grid-template-columns:repeat(12,minmax(45px,1fr));
+  min-width:650px;gap:8px;align-items:end;
+}
+#sb-appeals-history .sb-appeals-month-column {
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-end;min-width:0;gap:7px;
+  color:#ede2fb;
+}
+#sb-appeals-history .sb-appeals-month-value {
+  font-size:.82rem;line-height:1.2;font-variant-numeric:tabular-nums;
+}
+#sb-appeals-history .sb-appeals-month-track {
+  display:flex;align-items:flex-end;justify-content:center;
+  width:100%;height:144px;
+  border-bottom:1px solid rgba(205,181,233,.65);
+  background:linear-gradient(180deg,transparent,rgba(138,94,188,.08));
+}
+#sb-appeals-history .sb-appeals-month-bar {
+  display:block;width:min(72%,32px);
+  min-height:0;
+  border-radius:6px 6px 0 0;
+  background:linear-gradient(180deg,#c385fc,#7968db);
+}
+#sb-appeals-history .sb-appeals-month-label {
+  text-align:center;white-space:nowrap;font-size:.75rem;
+}
+@media (min-width:1060px){
+  #sb-appeals-history .sb-appeals-charts {
+    grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  #sb-appeals-history .sb-appeals-share-segment {transition:none;}
+}
