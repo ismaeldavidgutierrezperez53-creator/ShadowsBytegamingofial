@@ -331,14 +331,28 @@ Deno.serve(async req => {
         .eq("member_id",viewer.id)
         .gte("created_at",from).lt("created_at",to)
     );
-    const results=await Promise.all([...queries,...monthlyQueries]);
+    // Datos mínimos para fechar el informe. Todas las consultas se limitan al usuario autenticado.
+    const activityQueries=[
+      db.from("member_sanction_appeals").select("created_at")
+        .eq("member_id",viewer.id).order("created_at",{ascending:false}).limit(1).maybeSingle(),
+      db.from("member_sanction_appeals").select("reviewed_at")
+        .eq("member_id",viewer.id).not("reviewed_at","is",null)
+        .order("reviewed_at",{ascending:false}).limit(1).maybeSingle()
+    ];
+    const results=await Promise.all([...queries,...monthlyQueries,...activityQueries]);
     if(results.some(result=>result.error))
       return reply({error:"No se pudieron cargar tus estadísticas de apelaciones"},500);
     const [total,pending,accepted,rejected]=results.slice(0,4).map(result=>result.count||0);
     const monthly=months.map((month,index)=>({
       month:month.month,total:results[4+index].count||0
     }));
-    return reply({stats:{total,pending,accepted,rejected},monthly,monthly_timezone:"UTC"});
+    const lastSubmitted=results[4+months.length].data?.created_at||null;
+    const lastReviewed=results[5+months.length].data?.reviewed_at||null;
+    return reply({
+      stats:{total,pending,accepted,rejected},monthly,monthly_timezone:"UTC",
+      generated_at:new Date().toISOString(),
+      last_submitted_at:lastSubmitted,last_reviewed_at:lastReviewed
+    });
   }
   if(action==="my_history"){
     // Historial privado y paginado. El miembro se obtiene exclusivamente del JWT verificado.
