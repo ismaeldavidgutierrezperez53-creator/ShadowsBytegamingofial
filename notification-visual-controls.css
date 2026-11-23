@@ -1,0 +1,180 @@
+/* Colores de notificaciones controlados por cada usuario, sin cambiar el texto.
+   Respetar preferencias de movimiento reducido y modo sin animaciones. */
+#member-notifications .sb-visual-controls{
+ box-sizing:border-box;display:block;width:100%;min-width:0;
+ padding:15px 17px;margin:14px 0 20px;
+ border:1px solid rgba(158,142,224,.58);
+ border-radius:16px;
+ background:linear-gradient(140deg,rgba(31,22,60,.94),rgba(18,23,45,.94));
+ color:#f2eaff;
+}
+#member-notifications .sb-visual-controls h3{
+ margin:0 0 8px;font-size:clamp(18px,2vw,22px);
+ color:#efdbff;
+}
+#member-notifications .sb-visual-help{margin:0 0 13px;line-height:1.55;color:#d5cce7}
+#member-notifications .sb-only-pinned-button,
+#member-notifications .sb-visual-controls button,
+#member-notifications .sb-visual-pinned-actions a{
+ box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+ min-height:44px;max-width:100%;
+ border:1px solid rgba(201,178,246,.59);
+ border-radius:10px;padding:9px 12px;
+ color:#f7f0ff;background:rgba(86,55,147,.76);
+ font:700 15px/1.35 Rajdhani,Arial,sans-serif;
+ text-align:center;text-decoration:none;cursor:pointer;
+}
+#member-notifications .sb-visual-controls button:disabled{opacity:.55;cursor:wait}
+#member-notifications .sb-only-pinned-button{
+ background:linear-gradient(120deg,rgba(100,63,143,.91),rgba(124,81,52,.9));
+ border-color:rgba(239,202,133,.68);
+}
+#member-notifications .sb-only-pinned-button[aria-pressed="true"]{
+ color:#fff2c8;background:rgba(111,74,44,.96);border-color:var(--sb-notify-pinned,#e7ba70);
+}
+#member-notifications .sb-visual-palette{
+ margin-top:14px;border:1px solid rgba(180,154,221,.35);
+ border-radius:12px;padding:11px 13px;background:rgba(15,14,34,.62);
+}
+#member-notifications .sb-visual-palette>summary{
+ color:#f1deff;font-size:17px;font-weight:800;
+ cursor:pointer;padding:4px;list-style-position:inside;
+}
+#member-notifications .sb-visual-color-grid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:10px;margin:14px 0;
+}
+#member-notifications .sb-visual-color-item{
+ box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
+ min-width:0;min-height:58px;gap:10px;padding:10px;
+ border:1px solid rgba(166,135,206,.3);border-radius:10px;
+ background:rgba(46,32,68,.58);cursor:pointer;
+ font-size:14px;font-weight:700;line-height:1.35;
+}
+#member-notifications .sb-visual-color-item span{min-width:0;overflow-wrap:anywhere}
+#member-notifications .sb-visual-color-item input[type="color"]{
+ box-sizing:border-box;flex:0 0 47px;width:47px;height:38px;
+ border:1px solid rgba(243,223,255,.65);padding:2px;
+ background:#211b31;border-radius:9px;cursor:pointer;
+}
+#member-notifications .sb-visual-color-item input[type="color"]:disabled{cursor:wait}
+#member-notifications .sb-visual-motion{
+ display:flex;align-items:center;gap:11px;cursor:pointer;
+ margin:13px 0;padding:9px;line-height:1.4;
+}
+#member-notifications .sb-visual-motion input{
+ flex:0 0 22px;width:22px;height:22px;
+ accent-color:var(--sb-notify-priority,#f19d79);
+}
+#member-notifications .sb-visual-status{
+ margin:12px 0 7px;min-height:18px;
+ color:#e3d3f8;font-size:14px;line-height:1.45;
+ overflow-wrap:anywhere;
+}
+#member-notifications .sb-visual-pinned-list{
+ margin:14px 0 0;padding:13px;border-radius:13px;
+ border:1px solid var(--sb-notify-pinned,#e7ba70);
+ background:rgba(17,13,34,.69);
+}
+#member-notifications .sb-visual-pinned-list[hidden]{display:none!important}
+#member-notifications .sb-visual-pinned-header{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+#member-notifications .sb-visual-pinned-header h4{margin:0;font-size:17px;color:#f6dfb7}
+#member-notifications .sb-visual-pinned-cards{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px;
+}
+#member-notifications .sb-visual-pinned-card{
+ display:flex;flex-direction:column;gap:9px;
+ min-width:0;padding:13px;border-radius:11px;
+ border:1px solid rgba(203,175,241,.42);
+ border-left:4px solid var(--sb-card-accent,var(--sb-notify-pinned,#e7ba70));
+ background:rgba(43,26,66,.73);
+ overflow-wrap:anywhere;
+}
+#member-notifications .sb-visual-pinned-card strong{font-size:15px;line-height:1.4;color:#fff0dc}
+#member-notifications .sb-visual-pinned-card small{font-size:12px;color:#d6c3e1}
+#member-notifications .sb-visual-pinned-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+#member-notifications .sb-visual-pinned-actions button,
+#member-notifications .sb-visual-pinned-actions a{flex:1 1 100px}
+#member-notifications.sb-show-only-pinned > :not(h2):not(.sb-visual-controls){
+ display:none!important;
+}
+#member-notifications .notification-center-item,
+#member-notifications .sb-pin-priority-card,
+#member-notifications .sb-visual-pinned-card,
+.sb-notification-history .sb-history-item{
+ --sb-card-accent:var(--sb-notify-community,#ad8df3);
+}
+#member-notifications [data-sb-category="followers"],
+.sb-notification-history [data-sb-category="followers"]{
+ --sb-card-accent:var(--sb-notify-followers,#78bde4);
+}
+#member-notifications [data-sb-category="tournaments"],
+.sb-notification-history [data-sb-category="tournaments"]{
+ --sb-card-accent:var(--sb-notify-tournaments,#70cbd5);
+}
+#member-notifications [data-sb-category="polls"],
+.sb-notification-history [data-sb-category="polls"]{
+ --sb-card-accent:var(--sb-notify-polls,#9ccb8e);
+}
+#member-notifications [data-sb-category="rewards"],
+.sb-notification-history [data-sb-category="rewards"]{
+ --sb-card-accent:var(--sb-notify-rewards,#f1c477);
+}
+#member-notifications [data-sb-category="messages"],
+.sb-notification-history [data-sb-category="messages"]{
+ --sb-card-accent:var(--sb-notify-messages,#82a6f3);
+}
+#member-notifications [data-sb-category="news"],
+.sb-notification-history [data-sb-category="news"]{
+ --sb-card-accent:var(--sb-notify-news,#e6a7d6);
+}
+#member-notifications .notification-center-item{
+ border-left:4px solid var(--sb-card-accent);
+}
+#member-notifications .sb-pin-priority-card,
+.sb-notification-history .sb-history-item{
+ border-left:4px solid var(--sb-card-accent);
+}
+#member-notifications .sb-center-pinned,
+#member-notifications .sb-pin-priority-card.is-pinned,
+.sb-notification-history .sb-history-item.sb-history-pinned{
+ border-left-color:var(--sb-notify-pinned,#e7ba70)!important;
+}
+#member-notifications .sb-center-priority:not(.sb-center-pinned),
+#member-notifications .sb-pin-priority-card.is-priority:not(.is-pinned),
+.sb-notification-history .sb-history-priority:not(.sb-history-pinned){
+ border-left-color:var(--sb-notify-priority,#f19d79)!important;
+}
+@keyframes sb-notification-important-glow {
+ 0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--sb-notify-priority,#f19d79) 40%,transparent)}
+ 60%{box-shadow:0 0 0 7px color-mix(in srgb,var(--sb-notify-priority,#f19d79) 0%,transparent)}
+ 100%{box-shadow:0 0 0 0 transparent}
+}
+#app:not(.sb-notify-animation-disabled) #member-notifications .sb-center-priority,
+#app:not(.sb-notify-animation-disabled) #member-notifications .sb-pin-priority-card.is-priority,
+#app:not(.sb-notify-animation-disabled) #member-notifications .sb-visual-pinned-card.is-priority,
+#app:not(.sb-notify-animation-disabled) .sb-notification-history .sb-history-priority{
+ animation:sb-notification-important-glow 2.5s ease-out 1;
+}
+@media(prefers-reduced-motion:reduce){
+ #app #member-notifications .sb-center-priority,
+ #app #member-notifications .sb-pin-priority-card.is-priority,
+ #app #member-notifications .sb-visual-pinned-card.is-priority,
+ #app .sb-notification-history .sb-history-priority{
+  animation:none!important;transition:none!important;
+ }
+}
+#member-notifications .sb-visual-controls :is(button,input,summary,a):focus-visible{
+ outline:3px solid #bde7ff;outline-offset:3px;
+}
+@media(max-width:820px){
+ #member-notifications .sb-visual-color-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:530px){
+ #member-notifications .sb-visual-controls{padding:13px}
+ #member-notifications .sb-visual-color-grid{grid-template-columns:minmax(0,1fr)}
+ #member-notifications .sb-visual-pinned-header button{width:100%}
+ #member-notifications .sb-only-pinned-button{width:100%}
+}
