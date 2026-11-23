@@ -1571,6 +1571,15 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
  const refresh=create('button','sb-surprise-stats__refresh','↻ Actualizar');
  refresh.type='button';
  filters.append(refresh);
+ const exportToolbar=create('div','sb-surprise-stats__export-toolbar');
+ const csvButton=create('button','sb-surprise-stats__export sb-surprise-stats__export--csv','📥 Exportar CSV');
+ csvButton.type='button';
+ const excelButton=create('button','sb-surprise-stats__export sb-surprise-stats__export--excel','📊 Exportar Excel');
+ excelButton.type='button';
+ const exportStatus=create('p','sb-surprise-stats__export-status','');
+ exportStatus.setAttribute('role','status');
+ exportStatus.setAttribute('aria-live','polite');
+ exportToolbar.append(csvButton,excelButton,exportStatus);
  const note=create('p','sb-surprise-stats__note',
   'El periodo se calcula desde el envío de cada caja. Los totales incluyen abiertas y pendientes; el filtro de estado se aplica al historial. Un premio cuenta como revelado al abrirse el regalo.');
  const feedback=create('p','sb-surprise-stats__feedback','Cargando estadísticas…');
@@ -1609,7 +1618,7 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
  next.type='button';
  pager.append(prev,pageLabel,next);
  history.append(historyTitle,historyHint,tableWrap,pager);
- section.append(heading,filters,note,feedback,kpis,rankings,history);
+ section.append(heading,filters,exportToolbar,note,feedback,kpis,rankings,history);
  root.querySelector('.sb-surprise-admin__configuration').after(section);
 
  const number=v=>Number(v||0).toLocaleString('es-ES');
@@ -1691,6 +1700,165 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
   next.disabled=(page+1)*pageSize>=total;
   pager.hidden=total<=pageSize;
  };
+ const csvColumns=['Fecha de envío','Caja','Premio','De','Para','Estado','Fecha de apertura','Puntos'];
+ const cleanExcelText=value=>{
+  const s=String(value??'');
+  return /^[\s\u200b-\u200d\ufeff]*[=+\-@]/u.test(s)?"'"+s:s;
+ };
+ const reportRows=history=>history.map(item=>{
+  const opened=Boolean(item.opened_at);
+  return [
+   formatDate(item.created_at),
+   cleanExcelText(item.box_name||item.tier||'Caja'),
+   opened?cleanExcelText(item.item_name||'Recompensa'):'🔒 Sin revelar',
+   cleanExcelText(item.sender_name||'Miembro'),
+   cleanExcelText(item.recipient_name||'Miembro'),
+   opened?'Abierta':'Pendiente',
+   opened?formatDate(item.opened_at):'',
+   Number(item.price_paid||0)
+  ];
+ });
+ const asCsvCell=value=>{
+  const sanitized=typeof value==='number'?String(value):cleanExcelText(value);
+  return '"'+String(sanitized).replace(/"/g,'""')+'"';
+ };
+ const saveDownload=(blob,filename)=>{
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.append(a);a.click();a.remove();
+  window.setTimeout(()=>URL.revokeObjectURL(url),1500);
+ };
+ const ensureExcelJS=()=>{
+  if(window.ExcelJS?.Workbook)return Promise.resolve(window.ExcelJS);
+  if(window.sbMysteryBoxExcelJsPromise)return window.sbMysteryBoxExcelJsPromise;
+  window.sbMysteryBoxExcelJsPromise=new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+   script.async=true;script.crossOrigin='anonymous';
+   script.onload=()=>{
+    if(window.ExcelJS?.Workbook)resolve(window.ExcelJS);
+    else reject(new Error('La librería de Excel no está disponible.'));
+   };
+   script.onerror=()=>reject(new Error('No se pudo cargar el generador Excel. Comprueba tu conexión.'));
+   document.head.append(script);
+  }).catch(error=>{
+   window.sbMysteryBoxExcelJsPromise=null;
+   throw error;
+  });
+  return window.sbMysteryBoxExcelJsPromise;
+ };
+ const exportExcel=async(data,rows)=>{
+  const ExcelJS=await ensureExcelJS();
+  const wb=new ExcelJS.Workbook();
+  wb.creator='Shadows Byte Gaming Official V2';
+  wb.created=new Date();
+  const filterDescription=[
+   'Caja: '+(tierSelect.options[tierSelect.selectedIndex]?.textContent||'Todas'),
+   'Periodo: '+(periodSelect.options[periodSelect.selectedIndex]?.textContent||'Todo'),
+   'Estado: '+(statusSelect.options[statusSelect.selectedIndex]?.textContent||'Todas')
+  ];
+  const summary=data.summary||{};
+  const sum=wb.addWorksheet('Resumen',{views:[{state:'frozen',ySplit:3}]});
+  sum.columns=[{width:31},{width:24}];
+  sum.mergeCells('A1:B1');sum.getCell('A1').value='🎁 Estadísticas de cajas misteriosas';
+  sum.getRow(1).font={bold:true,size:15,color:{argb:'FFFFFFFF'}};
+  sum.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF533078'}};
+  sum.addRow([]);
+  sum.addRow(['Métrica','Valor']);
+  for(const [name,key] of [
+   ['Cajas enviadas','sent'],['Cajas abiertas','opened'],['Cajas pendientes','pending'],
+   ['Puntos utilizados','points'],['Destinatarios distintos','recipients']
+  ])sum.addRow([name,Number(summary[key]||0)]);
+  sum.addRow([]);sum.addRow(['Filtros aplicados',filterDescription.join(' · ')]);
+  sum.getColumn(2).width=72;
+  const addSheet=(title,headers,entries,widths)=>{
+   const ws=wb.addWorksheet(title,{views:[{state:'frozen',ySplit:1}]});
+   ws.addRow(headers);
+   for(const row of entries)ws.addRow(row);
+   for(let i=0;i<headers.length;i++)ws.getColumn(i+1).width=widths[i]||20;
+   ws.getRow(1).height=27;
+   ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};
+   ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF493167'}};
+   ws.getRow(1).alignment={vertical:'middle'};
+   ws.autoFilter={from:{row:1,column:1},to:{row:Math.max(2,entries.length+1),column:headers.length}};
+   for(let i=2;i<=entries.length+1;i++){
+    if(i%2===0)ws.getRow(i).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0EDF7'}};
+    ws.getRow(i).alignment={vertical:'top',wrapText:true};
+   }
+   return ws;
+  };
+  addSheet('Por caja',['Caja','Enviadas','Abiertas','Pendientes'],
+   (data.by_box||[]).map(box=>[
+    cleanExcelText(box.name||box.tier),Number(box.sent||0),
+    Number(box.opened||0),Number(box.pending||0)
+   ]),[38,17,17,17]);
+  addSheet('Premios',['Premio revelado','Aperturas'],
+   (data.top_prizes||[]).map(prize=>[
+    cleanExcelText(prize.name||'Recompensa'),Number(prize.opens||0)
+   ]),[48,19]);
+  addSheet('Historial',csvColumns,rows,[21,35,39,28,28,17,21,14]);
+  const bytes=await wb.xlsx.writeBuffer();
+  saveDownload(new Blob([bytes],{
+   type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  }),makeFileName('xlsx'));
+ };
+ const makeFileName=extension=>{
+  const d=new Date();
+  const stamp=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+  return 'shadows-byte-cajas-misteriosas-'+stamp+'.'+extension;
+ };
+ const exportAll=async(format)=>{
+  if(csvButton.disabled||excelButton.disabled)return;
+  csvButton.disabled=true;excelButton.disabled=true;
+  exportStatus.dataset.type='info';
+  exportStatus.textContent='Preparando exportación…';
+  try{
+   const filters={
+    p_tier:tierSelect.value||null,
+    p_days:periodSelect.value?Number(periodSelect.value):null,
+    p_status:statusSelect.value
+   };
+   const limit=100;
+   const first=await sb.rpc('admin_surprise_box_analytics',{
+    ...filters,p_limit:limit,p_offset:0
+   });
+   if(first.error)throw first.error;
+   const data=first.data;
+   if(!data||!Array.isArray(data.history))throw new Error('Respuesta de historial inválida.');
+   const total=Number(data.history_total||0);
+   if(!Number.isInteger(total)||total<0)throw new Error('El total del historial no es válido.');
+   if(total>100000)throw new Error('Hay más de 100.000 filas. Acota el periodo antes de exportar.');
+   const all=[...data.history];
+   for(let offset=limit;offset<total;offset+=limit){
+    exportStatus.textContent='Recopilando historial: '+Math.min(offset,total)+' de '+total+' registros…';
+    const response=await sb.rpc('admin_surprise_box_analytics',{
+     ...filters,p_limit:limit,p_offset:offset
+    });
+    if(response.error)throw response.error;
+    if(!Array.isArray(response.data?.history))throw new Error('No se pudo leer una página del historial.');
+    all.push(...response.data.history);
+   }
+   if(all.length!==total)throw new Error('El historial cambió durante la descarga. Repite la exportación.');
+   // El servidor puede devolver el premio asignado antes de la apertura: nunca exportarlo en ese caso.
+   const rows=reportRows(all);
+   exportStatus.textContent='Generando '+(format==='xlsx'?'Excel':'CSV')+' con '+total+' registros…';
+   if(format==='csv'){
+    const records=[csvColumns,...rows].map(row=>row.map(asCsvCell).join(','));
+    const blob=new Blob(['\ufeff',records.join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8'});
+    saveDownload(blob,makeFileName('csv'));
+   }else await exportExcel(data,rows);
+   exportStatus.dataset.type='success';
+   exportStatus.textContent='✓ '+(format==='xlsx'?'Excel':'CSV')+' descargado: '+total+' registros.';
+  }catch(error){
+   exportStatus.dataset.type='error';
+   exportStatus.textContent='No se pudo exportar: '+(error.message||'Error desconocido');
+  }finally{
+   csvButton.disabled=false;excelButton.disabled=false;
+  }
+ };
+ csvButton.addEventListener('click',()=>exportAll('csv'));
+ excelButton.addEventListener('click',()=>exportAll('xlsx'));
  const load=async()=>{
   const request=++requestNumber;
   refresh.disabled=true;
