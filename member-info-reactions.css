@@ -15,3 +15,38 @@
 .sb-info-react-link:focus-visible{outline:2px solid #f0c3ff;outline-offset:3px}
 @media(max-width:560px){.sb-info-reactions-bar{gap:7px}.sb-info-reaction-button{min-width:60px;min-height:44px;padding:7px 10px}}
 @media(prefers-reduced-motion:reduce){.sb-info-reaction-button{transition:none}.sb-info-reaction-button:hover:not(:disabled){transform:none}}
+
+/* V2: reacción inmediata en la lista de miembros, sin navegar a otro perfil. */
+.member-card .sb-info-reactions-compact{
+  width:100%;min-width:0;box-sizing:border-box;align-self:stretch;
+  margin:9px 0 13px;padding:13px 12px 12px;
+  border:1px solid rgba(190,135,255,.5);border-radius:15px;
+  background:linear-gradient(145deg,rgba(111,60,155,.34),rgba(55,31,98,.52));
+  box-shadow:0 4px 16px rgba(14,3,41,.14);
+}
+.member-card .sb-info-reactions-compact .sb-info-reactions-title{
+  text-align:center;font-size:.96rem!important;line-height:1.4;margin:0 0 10px!important;
+}
+.member-card .sb-info-reactions-compact .sb-info-reactions-bar{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;
+}
+.member-card .sb-info-reactions-compact .sb-info-reaction-button{
+  width:100%;min-width:0;min-height:51px;
+  gap:10px;padding:9px 8px;border-radius:13px;
+  border:1px solid rgba(207,167,255,.5);
+  background:rgba(41,20,78,.85);
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.member-card .sb-info-reactions-compact .sb-info-reaction-emoji{font-size:1.45rem;line-height:1.1}
+.member-card .sb-info-reactions-compact .sb-info-reaction-count{font-size:1rem}
+.member-card .sb-info-reactions-compact .sb-info-reaction-button[aria-pressed="true"]{
+  border:2px solid #edc9ff;background:#7c3cba;box-shadow:0 0 0 2px rgba(211,145,255,.22);
+}
+.member-card .sb-info-reactions-compact .sb-info-reactions-note{
+  text-align:center;font-size:.85rem;line-height:1.45;margin-top:10px;color:#f0ddff;
+}
+.sb-info-reactions:not(.sb-info-reactions-compact) .sb-info-reaction-button{min-height:48px;min-width:70px;touch-action:manipulation}
+@media(max-width:560px){
+  .member-card .sb-info-reactions-compact{padding:12px 10px}
+  .member-card .sb-info-reactions-compact .sb-info-reactions-bar{gap:9px}
+}
