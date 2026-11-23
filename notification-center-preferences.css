@@ -59,3 +59,40 @@
  #member-notifications .notification-center-controls button{width:100%}
  #member-notifications .sb-notification-category-item{min-height:74px;padding:10px}
 }
+
+/* Centro: prioridad y avisos fijados */
+#member-notifications .notification-center-item.sb-center-pinned{
+ border:1px solid rgba(240,194,112,.78);
+ background:linear-gradient(120deg,rgba(93,62,48,.53),rgba(32,21,54,.8));
+ box-shadow:0 0 0 1px rgba(221,178,86,.18),0 7px 24px rgba(12,8,27,.22);
+}
+#member-notifications .notification-center-item.sb-center-priority:not(.sb-center-pinned){
+ border-left:4px solid rgba(239,181,91,.95);
+}
+#member-notifications .sb-center-highlight-badges{
+ order:1;display:flex;flex-wrap:wrap;gap:7px;flex:1 1 100%;
+}
+#member-notifications .sb-center-highlight-badges span{
+ display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;
+ background:rgba(142,98,43,.27);border:1px solid rgba(248,207,129,.55);
+ color:#f7deb0;font-size:13px;font-weight:800;
+}
+#member-notifications .notification-center-item .notification-jump{order:0}
+#member-notifications .notification-center-item button[aria-pressed="true"]{
+ background:rgba(122,87,44,.72);border-color:rgba(255,205,131,.72);color:#fff1ca;
+}
+#member-notifications .notification-center-item button{
+ min-height:42px;max-width:100%;overflow-wrap:anywhere;
+}
+#member-notifications .notification-center-controls option{
+ color:#f6edff;background:#211631;
+}
+#member-notifications .notification-center-counts{
+ overflow-wrap:anywhere;line-height:1.75;
+}
+@media(max-width:560px){
+ #member-notifications .sb-center-highlight-badges{flex-basis:100%}
+ #member-notifications .notification-center-item .outline-btn{
+  flex:1 1 130px;
+ }
+}
