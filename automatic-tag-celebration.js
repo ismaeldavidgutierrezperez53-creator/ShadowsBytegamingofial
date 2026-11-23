@@ -15,7 +15,7 @@
  const isValidUuid = value => typeof value === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
- function celebrate(rows) {
+ function celebrate(rows, preview = false) {
   if (!rows?.length) return;
   showing = true;
   const previousFocus = document.activeElement;
@@ -24,9 +24,10 @@
   const panel = make('div','sb-auto-tag-celebration-panel');
   const hero = make('div','sb-auto-tag-celebration-hero','🎊 🏆 ✨');
   hero.setAttribute('aria-hidden','true');
-  const title = make('h2','',rows.length===1?'¡Nueva etiqueta desbloqueada!':'¡Nuevas etiquetas desbloqueadas!');
-  const description = make('p','',
-   '¡Enhorabuena! Tu actividad, tus retos y tus logros te han hecho ganar '+(rows.length===1?'este distintivo exclusivo.':'estos distintivos exclusivos.'));
+  const title = make('h2','',preview?'✨ Vista previa de celebración':rows.length===1?'¡Nueva etiqueta desbloqueada!':'¡Nuevas etiquetas desbloqueadas!');
+  const description = make('p','',preview
+   ?'Esta es una demostración visual. No has recibido una etiqueta ni una notificación real.'
+   :'¡Enhorabuena! Tu actividad, tus retos y tus logros te han hecho ganar '+(rows.length===1?'este distintivo exclusivo.':'estos distintivos exclusivos.'));
   const rewards = make('div','sb-auto-tag-celebration-rewards');
   for(const row of rows){
    const item = make('div','sb-auto-tag-celebration-reward');
@@ -35,7 +36,7 @@
    item.append(badge);
    rewards.append(item);
   }
-  const hint = make('small','','Ya aparecen en tus perfiles y chats. El premio es visual y no cambia tus permisos.');
+  const hint = make('small','',preview?'Demostración: no modifica tus puntos, etiquetas ni permisos.':'Ya aparecen en tus perfiles y chats. El premio es visual y no cambia tus permisos.');
   const actions = make('div','sb-auto-tag-celebration-actions');
   const link = make('a','gradient-btn mini','🏅 Ver mis etiquetas');
   link.href = '#/cuenta?focus=unlock-tags';
@@ -61,7 +62,7 @@
    dialog.remove();
    showing=false;
    if(previousFocus?.isConnected && typeof previousFocus.focus==='function')previousFocus.focus();
-   queueMicrotask(() => {void takePending();});
+   if(!preview)queueMicrotask(() => {void takePending();});
   };
   if(typeof dialog.showModal==='function'){
    dialog.addEventListener('close',finish,{once:true});
@@ -114,6 +115,10 @@
   }catch(error){console.warn('No se pudo iniciar el monitor de etiquetas:',error.message);}
   finally{syncBusy=false;}
  }
+ window.sbPreviewAutoTagCelebration=()=>{
+  if(showing)return;
+  celebrate([{tag_id:null,label:'Explorador Otaku',emoji:'🌸',color:'green',animation:'sparkle'}],true);
+ };
  window.addEventListener('hashchange',()=>{void refreshSession();});
  window.addEventListener('focus',()=>{void refreshSession();});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshSession();});
