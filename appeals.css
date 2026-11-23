@@ -518,3 +518,35 @@
 @media (prefers-reduced-motion:reduce){
   #sb-appeals-history .sb-appeals-share-segment {transition:none;}
 }
+
+
+/* Cuenta atrás a la siguiente comprobación automática de apelaciones asignadas. */
+.sb-appeal-reminder-countdown {
+  display:flex;flex-direction:column;gap:7px;
+  min-width:0;padding:13px 15px;margin:12px 0;
+  border-radius:12px;
+  border:1px solid rgba(193,160,242,.56);
+  background:rgba(89,56,140,.24);
+}
+.sb-appeal-reminder-heading {
+  font-weight:700;color:#f5eaff;
+}
+.sb-appeal-reminder-clock {
+  display:block;font-size:clamp(1rem,2vw,1.23rem);font-weight:800;
+  font-variant-numeric:tabular-nums;color:#f4e3ff;
+  overflow-wrap:anywhere;
+}
+.sb-appeal-reminder-description {
+  line-height:1.5;color:#e5d9f0;font-size:.85rem;
+}
+.sb-appeal-reminder-countdown[data-state="eligible"] {
+  border-color:rgba(246,199,112,.7);
+  background:rgba(116,84,39,.25);
+}
+.sb-appeal-reminder-countdown[data-state="elapsed"] {
+  border-color:rgba(247,153,137,.6);
+  background:rgba(117,57,62,.24);
+}
+.sb-appeal-reminder-countdown[data-state="unassigned"] {
+  border-style:dashed;background:rgba(73,65,91,.21);
+}
