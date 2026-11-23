@@ -36,6 +36,7 @@
   if(!center||!center.isConnected||typeof sb==='undefined'||!sb.auth
      ||center.querySelector('#'+ROOT_ID))return;
 
+  center.classList.remove('sb-show-only-pinned');
   const section=element('section','sb-visual-controls');
   section.id=ROOT_ID;
   const title=element('h3','','🎨 Personalización y avisos fijados');
