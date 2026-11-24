@@ -1,0 +1,146 @@
+/* V4: conversación en reseñas, medallas de retos semanales y ranking mensual.
+   Hereda el diseño de sb-anime-gaming-community-v3.css. */
+#sb-shared-anime-reviews .sb-v4-review-discussion{
+ margin-top:13px;padding:11px 12px;border:1px solid rgba(162,131,211,.58);
+ border-radius:11px;background:rgba(19,16,36,.72);min-width:0;
+}
+#sb-shared-anime-reviews .sb-v4-review-discussion>summary{
+ color:#d1edff;font-weight:800;cursor:pointer;min-height:38px;line-height:1.5;
+}
+#sb-shared-anime-reviews .sb-v4-review-thread{
+ display:grid;gap:10px;margin:9px 0 14px;max-height:540px;overflow:auto;
+ overscroll-behavior:contain;padding-right:3px;
+}
+#sb-shared-anime-reviews .sb-v4-comment{
+ min-width:0;display:flex;flex-direction:column;gap:5px;padding:10px;
+ border:1px solid rgba(154,125,186,.62);border-radius:10px;
+ background:rgba(45,33,67,.82);
+}
+#sb-shared-anime-reviews .sb-v4-comment-reply{
+ margin-left:clamp(10px,4vw,33px);
+ background:rgba(28,48,64,.72);border-color:#789bb4;
+}
+#sb-shared-anime-reviews .sb-v4-comment strong{font-size:14px;color:#e9dbff}
+#sb-shared-anime-reviews .sb-v4-comment small{font-size:12px;color:#c8b8d5}
+#sb-shared-anime-reviews .sb-v4-comment p{
+ margin:4px 0;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;
+ color:#f0e7fc;
+}
+#sb-shared-anime-reviews .sb-v4-comment-actions{
+ display:flex;gap:8px;flex-wrap:wrap;
+}
+#sb-shared-anime-reviews .sb-v4-comment-actions button{
+ min-height:39px;max-width:100%;
+}
+#sb-shared-anime-reviews .sb-v4-comment-form[hidden]{display:none!important}
+#sb-shared-anime-reviews .sb-v4-comment-form{
+ display:flex;flex-wrap:wrap;gap:9px;margin:9px 0 0;min-width:0;
+}
+#sb-shared-anime-reviews .sb-v4-comment-form label{
+ flex:1 1 100%;display:flex;flex-direction:column;gap:7px;
+ color:#e4d5f4;font-weight:800;min-width:0;
+}
+#sb-shared-anime-reviews .sb-v4-comment-form textarea{
+ box-sizing:border-box;display:block;width:100%;max-width:100%;
+ min-height:76px;resize:vertical;background:#1d1630;border:1px solid #a28cba;
+ border-radius:9px;color:#fff;padding:9px 10px;font:inherit;
+}
+#sb-shared-anime-reviews .sb-v4-comment-form textarea::placeholder{
+ color:#c1b6d2;opacity:1;
+}
+#sb-shared-anime-reviews .sb-v4-comment-form button{
+ min-height:42px;max-width:100%;border-radius:10px;
+}
+#sb-shared-anime-reviews .sb-v4-comment-message{
+ flex:1 1 100%;font-size:13px;color:#ccebdc;margin:0;
+}
+#sb-weekly-friend-ranking .sb-v4-medals-heading{
+ font-size:18px;color:#ffdfb0;margin:20px 0 10px;
+}
+#sb-weekly-friend-ranking .sb-v4-medals-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+ margin-top:12px;
+}
+#sb-weekly-friend-ranking .sb-v4-medal-card{
+ display:flex;flex-direction:column;gap:7px;min-width:0;padding:13px;
+ border:1px solid rgba(250,205,123,.7);border-radius:12px;
+ background:linear-gradient(125deg,rgba(75,52,44,.87),rgba(27,22,46,.9));
+}
+#sb-weekly-friend-ranking .sb-v4-medal-card strong{
+ color:#ffdfa9;font-size:17px;
+}
+#sb-weekly-friend-ranking .sb-v4-medal-card p{
+ margin:0;color:#f2e3fd;overflow-wrap:anywhere;line-height:1.5;
+}
+#sb-weekly-friend-ranking .sb-v4-medal-card small{
+ color:#ddcde8;line-height:1.4;
+}
+#sb-community-monthly-top{
+ box-sizing:border-box;min-width:0;margin:18px 0 22px;padding:18px;
+ border:1px solid rgba(226,169,108,.65);border-radius:16px;
+ background:linear-gradient(130deg,rgba(51,34,56,.95),rgba(22,30,49,.95));
+ color:#f5edff;overflow-wrap:anywhere;
+}
+#sb-community-monthly-top h2{
+ margin:0 0 9px;color:#ffdda9;font-size:clamp(19px,2.5vw,25px);
+}
+#sb-community-monthly-top>p{color:#ebdce9;line-height:1.5}
+#sb-community-monthly-top .sb-v4-monthly-toolbar{
+ display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin:14px 0;
+}
+#sb-community-monthly-top .sb-v4-monthly-toolbar label{
+ display:flex;flex:1 1 180px;flex-direction:column;gap:7px;
+ font-weight:800;color:#f6e5fb;
+}
+#sb-community-monthly-top .sb-v4-monthly-toolbar select{
+ min-height:44px;padding:10px;width:100%;max-width:100%;
+ box-sizing:border-box;border:1px solid #c99dbb;border-radius:10px;
+ background:#201630;color:#fff;font:inherit;
+}
+#sb-community-monthly-top .sb-v4-monthly-toolbar button{
+ min-height:44px;max-width:100%;border-radius:10px;flex:1 1 160px;
+}
+#sb-community-monthly-top .sb-v4-monthly-status{
+ color:#d8e8f6;line-height:1.5;margin:11px 0;
+}
+#sb-community-monthly-top .sb-v4-monthly-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+#sb-community-monthly-top .sb-v4-monthly-card{
+ display:flex;flex-direction:column;gap:8px;min-width:0;
+ padding:13px;border:1px solid rgba(179,148,193,.59);
+ border-radius:12px;background:rgba(25,22,47,.94);
+}
+#sb-community-monthly-top .sb-v4-monthly-rank{
+ width:max-content;max-width:100%;font-size:15px;font-weight:900;
+ padding:5px 9px;border-radius:8px;background:rgba(143,101,46,.7);
+ color:#fff0ca;
+}
+#sb-community-monthly-top .sb-v4-monthly-card strong{color:#fbe6ff;font-size:18px}
+#sb-community-monthly-top .sb-v4-monthly-card small{color:#d5c4e4;line-height:1.5}
+#sb-community-monthly-top .sb-v4-monthly-card b{color:#d1ffe7;font-size:19px}
+#sb-community-monthly-top .sb-v4-monthly-card span:not(.sb-v4-monthly-rank){
+ color:#e9d7f2;
+}
+#sb-community-monthly-top .sb-v4-monthly-card a{
+ box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;
+ width:max-content;max-width:100%;min-height:42px;padding:9px 12px;
+ border:1px solid #bb93db;border-radius:9px;background:#513670;
+ color:#fff;text-decoration:none;font-weight:800;
+}
+#sb-community-monthly-top .sb-v4-monthly-empty{
+ grid-column:1/-1;color:#d8cbe6;margin:0;padding:15px;
+ border:1px dashed #95759a;border-radius:12px;
+}
+#sb-shared-anime-reviews :is(summary,textarea,button):focus-visible,
+#sb-weekly-friend-ranking button:focus-visible,
+#sb-community-monthly-top :is(select,button,a):focus-visible{
+ outline:3px solid #a1e6ff;outline-offset:3px;
+}
+@media(max-width:730px){
+ #sb-weekly-friend-ranking .sb-v4-medals-list,
+ #sb-community-monthly-top .sb-v4-monthly-list{
+  grid-template-columns:minmax(0,1fr);
+ }
+ #sb-community-monthly-top{padding:13px}
+}
