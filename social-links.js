@@ -3,7 +3,7 @@ const SOCIAL_PLATFORMS=['YouTube','Discord','Instagram','TikTok','Facebook','Twi
 async function loadSiteSocialLinks(){
  const host=document.querySelector('.social-links');if(!host||typeof sb==='undefined')return;
  const {data,error}=await sb.from('site_social_links').select('platform,url');
- if(error){host.textContent='Redes sociales temporalmente no disponibles.';return;}
+ if(error||!host.isConnected)return;
  host.replaceChildren();
  for(const platform of SOCIAL_PLATFORMS){
   const item=data?.find(row=>row.platform===platform);
@@ -47,7 +47,7 @@ async function initSocialAdmin(){
  };
 }
 const previousSocialRender=render;
-render=function(...args){const result=previousSocialRender.apply(this,args);loadSiteSocialLinks();return result;};
+render=async function(...args){const result=await previousSocialRender.apply(this,args);await loadSiteSocialLinks();return result;};
 const previousSocialInitAdmin=initAdmin;
 initAdmin=async function(...args){const result=await previousSocialInitAdmin.apply(this,args);await initSocialAdmin();return result;};
 
