@@ -2813,7 +2813,7 @@ async function loadCommunityFeed(){
  loadCommunityCompetitions(competitionPanel).catch(e=>console.warn('Retos y torneos:',e));
  const [{data:{user},error:authError},{data:posts,error:postsError}]=await Promise.all([
   sb.auth.getUser(),
-  sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at').order('created_at',{ascending:false}).limit(50)
+  sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at,gallery_category').order('created_at',{ascending:false}).limit(50)
  ]);
  if(!root.isConnected)return;
  root.replaceChildren();
@@ -2830,7 +2830,7 @@ async function loadCommunityFeed(){
   .filter(id=>!feedPosts.some(post=>post.id===id));
  if(missingIds.length){
   const {data:older,error:olderError}=await sb.from('member_posts')
-   .select('id,author_id,content,image_path,created_at,edited_at')
+   .select('id,author_id,content,image_path,created_at,edited_at,gallery_category')
    .in('id',missingIds).limit(40);
   if(olderError)console.warn('No se pudieron cargar publicaciones destacadas:',olderError.message);
   else feedPosts.push(...(older||[]));
@@ -2934,7 +2934,7 @@ async function loadCommunityFeed(){
   if(mode==='saved'){
    const ids=[...bookmarked].slice(0,150);
    if(!ids.length){content.textContent='Todavía no tienes publicaciones guardadas.';return;}
-   const {data,error}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at').in('id',ids).order('created_at',{ascending:false}).limit(150);
+   const {data,error}=await sb.from('member_posts').select('id,author_id,content,image_path,created_at,edited_at,gallery_category').in('id',ids).order('created_at',{ascending:false}).limit(150);
    if(request!==requestId)return;
    if(error){content.textContent='No se pudieron cargar los guardados: '+error.message;return;}
    visible=data||[];
@@ -2948,6 +2948,7 @@ async function loadCommunityFeed(){
   for(const post of visible){
    if(!names.has(post.author_id))continue;
    const article=document.createElement('article');article.className='social-post';article.dataset.postId=post.id;
+   article.dataset.sbDiscoveryCategory=post.gallery_category||'Otros';
    const author=document.createElement('a');author.href='#/perfil?id='+encodeURIComponent(post.author_id);author.className='feed-author';author.textContent=names.get(post.author_id);
    const date=document.createElement('small');date.textContent=new Date(post.created_at).toLocaleString('es-ES');
    
