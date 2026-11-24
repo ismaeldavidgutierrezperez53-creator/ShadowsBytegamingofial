@@ -1,0 +1,133 @@
+/* Shadows Byte V2 — reseñas anime, ranking gamer y popularidad por publicación. */
+#sb-anime-gaming-hub .sb-v3-review-panel,
+#sb-anime-gaming-hub .sb-v3-week-panel,
+#sb-post-popularity{box-sizing:border-box;min-width:0;overflow-wrap:anywhere}
+#sb-anime-gaming-hub .sb-v3-review-form{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:13px 0;
+}
+#sb-anime-gaming-hub .sb-v3-review-form label{
+ display:flex;flex-direction:column;gap:7px;min-width:0;font-weight:800;color:#f2defb;
+}
+#sb-anime-gaming-hub .sb-v3-review-form label:has(textarea),
+#sb-anime-gaming-hub .sb-v3-review-form .sb-v3-inline-actions{grid-column:1/-1}
+#sb-anime-gaming-hub .sb-v3-review-form :is(input,select,textarea),
+#sb-anime-gaming-hub .sb-v3-review-tools :is(input,select){
+ box-sizing:border-box;display:block;min-width:0;width:100%;max-width:100%;
+ min-height:44px;border:1px solid #ac8ad5;border-radius:10px;
+ padding:10px;background:#190f2b;color:#fff;font:600 1rem Rajdhani,Arial,sans-serif;
+}
+#sb-anime-gaming-hub .sb-v3-review-form textarea{min-height:105px;resize:vertical}
+#sb-anime-gaming-hub .sb-v3-review-form input::placeholder,
+#sb-anime-gaming-hub .sb-v3-review-form textarea::placeholder,
+#sb-anime-gaming-hub .sb-v3-review-tools input::placeholder{color:#bbaacb;opacity:1}
+#sb-anime-gaming-hub .sb-v3-review-tools{
+ display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:13px 0;
+}
+#sb-anime-gaming-hub .sb-v3-review-tools input{flex:2 1 170px}
+#sb-anime-gaming-hub .sb-v3-review-tools select{flex:1 1 140px}
+#sb-anime-gaming-hub .sb-v3-review-tools button{flex:1 1 150px}
+#sb-anime-gaming-hub .sb-v3-inline-actions{
+ display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:9px 0 2px;
+}
+#sb-anime-gaming-hub .sb-v3-inline-actions button,
+#sb-anime-gaming-hub .sb-v3-review-tools button,
+#sb-anime-gaming-hub .sb-v3-week-panel>button{
+ box-sizing:border-box;min-height:44px;max-width:100%;flex:1 1 130px;
+}
+#sb-anime-gaming-hub .sb-v3-inline-actions button[hidden]{display:none!important}
+#sb-anime-gaming-hub .sb-v3-feedback,
+#sb-post-popularity .sb-v3-feedback{
+ display:block;margin:10px 0;color:#d9f4ef;line-height:1.5;
+}
+#sb-anime-gaming-hub .sb-v3-review-list,
+#sb-anime-gaming-hub .sb-v3-week-list{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;
+}
+#sb-anime-gaming-hub .sb-v3-review-card,
+#sb-anime-gaming-hub .sb-v3-week-card{
+ box-sizing:border-box;display:flex;flex-direction:column;gap:8px;
+ min-width:0;padding:14px;border:1px solid rgba(195,152,227,.6);
+ border-radius:13px;background:rgba(25,16,45,.92);
+}
+#sb-anime-gaming-hub .sb-v3-review-card strong,
+#sb-anime-gaming-hub .sb-v3-week-card strong{
+ font-size:17px;color:#ffe1fb;line-height:1.4;
+}
+#sb-anime-gaming-hub .sb-v3-review-card small,
+#sb-anime-gaming-hub .sb-v3-week-card small,
+#sb-anime-gaming-hub .sb-v3-muted{
+ color:#d2c1e4;line-height:1.5;
+}
+#sb-anime-gaming-hub .sb-v3-stars{color:#ffda7a;letter-spacing:.07em;font-size:19px}
+#sb-anime-gaming-hub .sb-v3-review-details{border-top:1px solid #6c4a89;padding-top:8px}
+#sb-anime-gaming-hub .sb-v3-review-details summary{
+ cursor:pointer;color:#bbeaff;font-weight:800;min-height:30px;
+}
+#sb-anime-gaming-hub .sb-v3-review-details p{
+ white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;color:#f4e8ff;
+}
+#sb-anime-gaming-hub .sb-v3-week-panel .sb-v3-week-dates{
+ font-weight:800;color:#baeaff;font-size:16px;
+}
+#sb-anime-gaming-hub .sb-v3-week-card.sb-v3-me{
+ border-color:#a9e4dc;background:rgba(27,62,67,.7);
+}
+#sb-anime-gaming-hub .sb-v3-week-card b{
+ font-size:22px;color:#b7ffe4;
+}
+#sb-anime-gaming-hub .sb-v3-week-card progress{
+ display:block;width:100%;height:13px;accent-color:#70d4ca;
+}
+#sb-anime-gaming-hub .sb-v3-empty{
+ grid-column:1/-1;line-height:1.5;color:#dccae8;
+ border:1px dashed #795b8f;border-radius:11px;padding:13px;
+}
+#sb-post-popularity{
+ margin:16px 0 22px;padding:17px;border:1px solid rgba(180,128,224,.63);
+ border-radius:16px;color:#f6ebff;background:rgba(31,20,53,.92);
+}
+#sb-post-popularity h2{font-size:clamp(18px,2.7vw,23px);color:#efd4ff;margin:0 0 10px}
+#sb-post-popularity>p{line-height:1.5;color:#ddcde9}
+#sb-post-popularity .sb-v3-popularity-examples,
+#community-feed .sb-v3-post-badge-line{
+ display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0;
+}
+#sb-post-popularity .sb-v3-popularity-controls{
+ display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:13px 0 0;
+}
+#sb-post-popularity .sb-v3-popularity-controls button{
+ min-height:44px;max-width:100%;border-radius:9px;
+}
+#sb-post-popularity .sb-v3-popularity-controls p{flex:1 1 170px}
+#sb-post-popularity .sb-v3-pop-badge,
+#community-feed .sb-v3-pop-badge{
+ display:inline-flex;align-items:center;border-radius:999px;
+ padding:7px 11px;font-weight:800;font-size:13px;
+ border:1px solid #a5a5d9;color:#f5f1ff;background:#403c73;
+}
+#sb-post-popularity .sb-v3-pop-badge.first,
+#community-feed .sb-v3-pop-badge.first{background:#344c6b;border-color:#9dcbed}
+#sb-post-popularity .sb-v3-pop-badge.hot,
+#community-feed .sb-v3-pop-badge.hot{background:#7b4534;border-color:#ffbf8d}
+#sb-post-popularity .sb-v3-pop-badge.popular,
+#community-feed .sb-v3-pop-badge.popular{background:#775d2c;border-color:#f7d588}
+#sb-post-popularity .sb-v3-pop-badge.viral,
+#community-feed .sb-v3-pop-badge.viral{background:#74427b;border-color:#ecc1fb}
+#community-feed .sb-v3-post-badge-line{
+ padding:8px 9px;border:1px dashed rgba(178,149,224,.5);
+ border-radius:9px;background:rgba(36,25,52,.54);max-width:100%;
+}
+#community-feed .sb-v3-post-badge-line small{color:#e4d2ed;font-size:13px}
+#sb-post-popularity :is(button,a):focus-visible,
+#sb-anime-gaming-hub .sb-v3-review-panel :is(input,select,textarea,button,summary):focus-visible,
+#sb-anime-gaming-hub .sb-v3-week-panel button:focus-visible{
+ outline:3px solid #a9e8ff;outline-offset:3px;
+}
+@media(max-width:700px){
+ #sb-anime-gaming-hub .sb-v3-review-form,
+ #sb-anime-gaming-hub .sb-v3-review-list,
+ #sb-anime-gaming-hub .sb-v3-week-list{grid-template-columns:minmax(0,1fr)}
+ #sb-anime-gaming-hub .sb-v3-review-form label:has(textarea),
+ #sb-anime-gaming-hub .sb-v3-review-form .sb-v3-inline-actions{grid-column:1}
+ #sb-post-popularity{padding:13px}
+}
