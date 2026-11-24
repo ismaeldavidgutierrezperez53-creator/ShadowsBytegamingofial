@@ -42,7 +42,8 @@
    preview.setAttribute('aria-label','Vista previa del efecto en el nombre');
    const title=document.querySelector('#account-profile .profile-identity-copy h2');
    const textNode=Array.from(title?.childNodes||[]).find(node=>node.nodeType===3&&node.textContent.trim());
-   const name=(textNode?.textContent||'Tu nombre anime').trim().slice(0,60);
+   const activeName=title?.querySelector(':scope > .sb-primary-name-aura')?.textContent;
+   const name=(activeName||textNode?.textContent||'Tu nombre anime').trim().slice(0,60);
    const sample=make('strong','sb-primary-name-aura',name);
    sample.dataset.effect='classic';sample.dataset.color='purple';
    preview.append(sample);
