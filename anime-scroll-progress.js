@@ -139,6 +139,21 @@
     #sb-progress-preview { margin:12px 0; background:#30233e; border-radius:8px; overflow:hidden; }
     #sb-progress-preview span { display:block; width:70%; border-radius:8px; }
     #sb-progress-preview-caption { display:block; text-align:right; }
+    /* Efectos exclusivos, activos únicamente durante el desplazamiento. */
+    #sb-anime-scroll-progress .sb-style-fx { position:absolute; left:var(--sb-fx-x,0%); top:50%; width:0; height:0; pointer-events:none; z-index:2; }
+    .sb-style-fx i { position:absolute; display:block; opacity:0; pointer-events:none; }
+    #sb-anime-scroll-progress.is-scrolling:not(.is-complete)[data-style="anime"] .sb-style-fx i { width:7px; height:5px; background:#ffb4e5; border-radius:80% 10% 80% 30%; box-shadow:0 0 4px #ff83c6; animation:sb-sakura-drift 1.25s ease-out infinite; animation-delay:var(--delay); }
+    #sb-anime-scroll-progress.is-scrolling:not(.is-complete)[data-style="fire"] .sb-style-fx i { width:7px; height:13px; background:linear-gradient(#ff4826,#ffc748,#fff6a1); border-radius:70% 30% 65% 35%; box-shadow:0 0 5px #ff872d; animation:sb-fire-rise .75s ease-out infinite; animation-delay:var(--delay); }
+    #sb-anime-scroll-progress.is-scrolling:not(.is-complete)[data-style="gaming"] .sb-style-fx i { width:19px; height:13px; background:#9dfcff; clip-path:polygon(0 56%,42% 0,36% 43%,100% 23%,51% 100%,60% 57%); animation:sb-electric-trail .65s ease-out infinite; animation-delay:var(--delay); }
+    #sb-anime-scroll-progress.is-scrolling:not(.is-complete)[data-style="rainbow"] #sb-anime-scroll-progress-fill { background-size:200% 100% !important; animation:sb-rainbow-flow 1.8s linear infinite alternate; }
+    #sb-anime-scroll-progress.is-scrolling:not(.is-complete)[data-style="rainbow"] #sb-anime-scroll-progress-fill::after { background:linear-gradient(90deg,transparent,#fff9,transparent); }
+    @keyframes sb-sakura-drift { 0%{opacity:0;transform:translate(-5px,0) rotate(0)} 20%{opacity:.9} 100%{opacity:0;transform:translate(var(--drift),calc(var(--direction,1)*30px)) rotate(220deg)} }
+    @keyframes sb-fire-rise { 0%{opacity:0;transform:translate(-3px,0) scale(.5)} 25%{opacity:.95} 100%{opacity:0;transform:translate(var(--drift),calc(var(--direction,1)*18px)) scale(.2)} }
+    @keyframes sb-electric-trail { 0%{opacity:0;transform:translate(-8px,0) scale(.5)} 25%{opacity:.85} 100%{opacity:0;transform:translate(var(--drift),calc(var(--direction,1)*12px)) scale(.8)} }
+    @keyframes sb-rainbow-flow { from{background-position:0% 50%} to{background-position:100% 50%} }
+    @media(prefers-reduced-motion:reduce){#sb-anime-scroll-progress .sb-style-fx{display:none!important}#sb-anime-scroll-progress #sb-anime-scroll-progress-fill{animation:none!important}#sb-anime-scroll-progress .sb-progress-spark{display:none!important}}
+    html[data-sb-motion="off"] #sb-anime-scroll-progress .sb-style-fx,html[data-sb-motion="off"] #sb-anime-scroll-progress .sb-progress-spark{display:none!important}
+    html[data-sb-motion="off"] #sb-anime-scroll-progress #sb-anime-scroll-progress-fill{animation:none!important}
   `;
   document.head.appendChild(style);
 
@@ -157,6 +172,16 @@
   percentage.setAttribute('aria-hidden', 'true');
   percentage.textContent = '0 %';
   track.appendChild(percentage);
+  const styleFx=document.createElement('span');
+  styleFx.className='sb-style-fx';
+  styleFx.setAttribute('aria-hidden','true');
+  for(let i=0;i<5;i++){
+    const particle=document.createElement('i');
+    particle.style.setProperty('--delay',(-i*.19)+'s');
+    particle.style.setProperty('--drift',(-8-i*7)+'px');
+    styleFx.append(particle);
+  }
+  track.append(styleFx);
   document.body.appendChild(track);
 
   // Hide the entire progress widget whenever the customization panel is visible.
@@ -206,6 +231,7 @@
   }
   function applyAppearance(){
     track.dataset.style=prefs.style;
+    styleFx.style.setProperty('--direction',prefs.position==='bottom'?'-1':'1');
     track.classList.toggle('sb-progress-bottom',prefs.position==='bottom');
     track.classList.toggle('sb-progress-no-percent',!prefs.showPercent);
     track.style.setProperty('--sb-progress-height',heights[prefs.thickness]+'px');
@@ -253,6 +279,8 @@
     const current = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
     const progress = scrollable > 0 ? Math.max(0, Math.min(1, current / scrollable)) : 0;
     fill.style.transform = 'scaleX(' + progress + ')';
+    styleFx.style.setProperty('--sb-fx-x',Math.max(0,Math.min(98,progress*100))+'%');
+    styleFx.hidden=progress<=0;
     const percent = scrollable > 0 && scrollable - current <= 1 ? 100 : Math.min(99, Math.floor(progress * 100));
     const colors=palette(progress);
     track.style.setProperty('--sb-progress-a',colors[0]);
@@ -312,7 +340,7 @@
   window.addEventListener('scroll', () => {
     track.classList.add('is-scrolling');
     clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => track.classList.remove('is-scrolling'), 180);
+    scrollTimer = setTimeout(() => track.classList.remove('is-scrolling'), 650);
     scheduleUpdate();
   }, { passive: true });
   window.addEventListener('resize', scheduleUpdate, { passive: true });
