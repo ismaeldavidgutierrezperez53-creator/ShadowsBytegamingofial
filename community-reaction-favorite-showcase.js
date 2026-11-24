@@ -511,6 +511,9 @@
       if(active() && loaded && (!isAccount||ui.panel.open)
           && Date.now()-lastLoaded>30000)void load();
     });
+    window.addEventListener('sb-community-reaction-frame-gallery-applied',()=>{
+      if(active() && (!isAccount||ui.panel.open))void load();
+    });
   }
 
   function mountStrip(route){
