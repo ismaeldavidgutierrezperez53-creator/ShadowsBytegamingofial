@@ -34,6 +34,7 @@
  };
  const permittedColors=new Set(['purple','blue','pink','green','orange','gold','slate']);
  const permittedAnimations=new Set(['none','shine','neon','pulse','float','sparkle']);
+ const permittedNameEffects=new Set(['classic','none','fire','lightning','stars','hearts','legendary']);
  // Envuelve únicamente el texto del nombre, conservando su enlace y nombre accesible.
  const updateNameAura=(node,badge)=>{
   let aura=node.querySelector(':scope > .sb-primary-name-aura');
@@ -55,6 +56,7 @@
   if(!aura)return;
   aura.dataset.color=permittedColors.has(badge.color)?badge.color:'purple';
   aura.dataset.animation=permittedAnimations.has(badge.animation)?badge.animation:'none';
+  aura.dataset.effect=permittedNameEffects.has(badge.nameEffect)?badge.nameEffect:'classic';
   node.classList.add('sb-primary-name-active');
  };
  const renderOne=(node,badge)=>{
@@ -106,9 +108,16 @@
    }
    if(!needed.size)return;
    const ids=[...needed].slice(0,100);
-   const {data,error}=await sb.rpc('sb_get_member_primary_featured_tags',{p_members:ids});
-   if(error)throw error;
-   const found=new Map((data||[]).map(x=>[x.member_id,x]));
+   const [primaryResult,effectsResult]=await Promise.all([
+    sb.rpc('sb_get_member_primary_featured_tags',{p_members:ids}),
+    sb.from('sb_member_name_effects').select('user_id,effect').in('user_id',ids)
+   ]);
+   if(primaryResult.error)throw primaryResult.error;
+   if(effectsResult.error)console.warn('Preferencias de efectos de nombre:',effectsResult.error.message);
+   const effects=new Map((effectsResult.data||[]).map(x=>[x.user_id,x.effect]));
+   const found=new Map((primaryResult.data||[]).map(x=>[x.member_id,{
+    ...x,nameEffect:effects.get(x.member_id)||'classic'
+   }]));
    for(const id of ids)cache.set(id,{badge:found.get(id)||null,at:Date.now()});
    for(const [node,id] of candidateNodes()){
     if(!ids.includes(id))continue;
@@ -236,6 +245,11 @@
  new MutationObserver(schedule).observe(app,{subtree:true,childList:true});
  window.addEventListener('hashchange',()=>{void identifyOwnUser();cache.clear();schedule()});
  window.addEventListener('focus',()=>{cache.clear();void identifyOwnUser()});
+ window.addEventListener('sb-name-effect-changed',event=>{
+  const id=event.detail?.userId;
+  if(id)cache.delete(id);else cache.clear();
+  schedule();
+ });
  window.addEventListener('sb-featured-tags-saved',event=>{
   const id=event.detail?.userId;
   if(id)cache.delete(id);else cache.clear();
