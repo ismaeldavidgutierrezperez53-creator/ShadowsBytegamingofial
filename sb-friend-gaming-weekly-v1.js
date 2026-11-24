@@ -34,11 +34,78 @@
   const list=node('div','sb-v3-week-list');
   const note=node('small','sb-v3-muted',
    'Puntos: hasta 100 por participante y reto, según minutos jugados esta semana respecto de la meta. No se muestran partidas ni notas privadas. Si un amigo aún no actualiza, su total puede ser antiguo.');
-  panel.append(title,info,week,refresh,feedback,list,note);
+  const medalsHeading=node('h3','sb-v4-medals-heading','🥇 Medallas de ganadores semanales');
+  const medalsInfo=node('p','sb-v3-muted',
+   'Al terminar una semana, el reto entrega medalla al ganador cuando los dos amigos han actualizado sus horas. Si hay empate con actividad, ambos aparecen como empatados. No se comparten partidas privadas.');
+  const medalsStatus=node('p','sb-v3-feedback','Consultando medallas…');
+  medalsStatus.setAttribute('role','status');
+  const medalsList=node('div','sb-v4-medals-list');
+  panel.append(title,info,week,refresh,feedback,list,note,
+   medalsHeading,medalsInfo,medalsStatus,medalsList);
   const existing=root.querySelector('#sb-social-friend-challenges');
   if(existing)existing.after(panel);else holder.append(panel);
-  let me=null,loading=false;
+  let me=null,loading=false,medalsLoading=false;
   const isCurrent=()=>panel.isConnected&&root.isConnected;
+
+  const loadMedals=async()=>{
+   if(medalsLoading||!me||!isCurrent())return;
+   medalsLoading=true;
+   medalsStatus.textContent='Actualizando las medallas de retos finalizados…';
+   try{
+    const currentMonday=currentWeek().monday;
+    const previousMonday=new Date(currentMonday+'T12:00:00');
+    previousMonday.setDate(previousMonday.getDate()-7);
+    const previousSunday=new Date(previousMonday);
+    previousSunday.setDate(previousSunday.getDate()+6);
+    const {data:lastChallenges,error:challengeError}=await sb.from('sb_friend_gaming_challenges')
+     .select('id').eq('status','accepted')
+     .or('creator_id.eq.'+me.id+',invited_id.eq.'+me.id)
+     .lte('starts_on',localISO(previousSunday)).gte('ends_on',localISO(previousMonday))
+     .limit(40);
+    if(challengeError)throw challengeError;
+    if(lastChallenges?.length){
+     await Promise.all(lastChallenges.map(ch=>
+      sb.rpc('sb_sync_friend_previous_week_progress',{challenge_key:ch.id})
+       .catch(()=>null)
+     ));
+    }
+    if(!isCurrent())return;
+    const {data:medals,error}=await sb.from('sb_friend_weekly_challenge_medals')
+     .select('challenge_id,week_start,game_title,creator_id,invited_id,creator_minutes,invited_minutes,winner_id,is_tie')
+     .or('creator_id.eq.'+me.id+',invited_id.eq.'+me.id)
+     .order('week_start',{ascending:false}).limit(70);
+    if(error)throw error;
+    if(!isCurrent())return;
+    medalsList.replaceChildren();
+    const awarded=(medals||[]).filter(x=>x.winner_id||x.is_tie).slice(0,18);
+    if(!awarded.length){
+     medalsStatus.textContent='Aún no hay medallas confirmadas. Debe terminar la semana y ambos jugadores deben sincronizar su progreso.';
+     return;
+    }
+    const ids=[...new Set(awarded.flatMap(x=>[x.creator_id,x.invited_id]))];
+    const {data:profiles,error:profileError}=await sb.from('profiles')
+     .select('id,display_name,username').in('id',ids).eq('is_public',true);
+    if(profileError)throw profileError;
+    const names=new Map((profiles||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));
+    names.set(me.id,'Tú');
+    medalsStatus.textContent=awarded.length+' medallas o empates confirmados en tus retos compartidos.';
+    for(const medal of awarded){
+     const card=node('article','sb-v4-medal-card');
+     const headline=node('strong','',medal.is_tie?'🤝 Empate semanal':'🥇 Medalla de campeón');
+     const winner=medal.is_tie
+      ?(names.get(medal.creator_id)||'Miembro')+' y '+(names.get(medal.invited_id)||'Miembro')
+      :(names.get(medal.winner_id)||'Miembro');
+     const who=node('p','',winner+' · '+medal.game_title);
+     const date=node('small','','Semana que comenzó el '+medal.week_start);
+     const totals=node('small','',
+      (names.get(medal.creator_id)||'Miembro')+': '+(Number(medal.creator_minutes)/60).toFixed(1)+' h · '+
+      (names.get(medal.invited_id)||'Miembro')+': '+(Number(medal.invited_minutes)/60).toFixed(1)+' h');
+     card.append(headline,who,date,totals);medalsList.append(card);
+    }
+   }catch(err){
+    if(isCurrent())medalsStatus.textContent='No se pudieron cargar las medallas: '+errorMessage(err);
+   }finally{medalsLoading=false;}
+  };
   const load=async()=>{
    if(loading||!me||!isCurrent())return;
    loading=true;refresh.disabled=true;feedback.textContent='Calculando la clasificación de esta semana…';
@@ -115,7 +182,7 @@
     }
    }catch(err){
     if(isCurrent())feedback.textContent='No se pudo cargar la clasificación: '+errorMessage(err);
-   }finally{loading=false;refresh.disabled=false;}
+   }finally{loading=false;refresh.disabled=false;void loadMedals();}
   };
   refresh.onclick=()=>void load();
   (async()=>{
