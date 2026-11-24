@@ -4,6 +4,42 @@
   const MAX=5;
   const FRAMES=[['anime','🌸 Anime'],['neon','💜 Neón'],['gold','👑 Dorado']];
   const frame=value=>FRAMES.some(([key])=>key===value)?value:'anime';
+  const DEFAULT_COLORS={
+    anime:{primary:'#f6a4dd',glow:'#ff82c5'},
+    neon:{primary:'#61dfff',glow:'#bc52fa'},
+    gold:{primary:'#ffda83',glow:'#ffc048'}
+  };
+  const isHex=value=>typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);
+  const defaultColors=style=>DEFAULT_COLORS[frame(style)];
+  const readColors=(row)=>{
+    if(!row)return null;
+    const main=isHex(row.frame_primary_color)?row.frame_primary_color:null;
+    const glow=isHex(row.frame_glow_color)?row.frame_glow_color:null;
+    return main||glow?{primary:main,glow:glow}:null;
+  };
+  function paintColors(node,chosen,style,force=false){
+    const palette=defaultColors(style);
+    const custom=Boolean(chosen||force);
+    node.classList.toggle('sb-community-fav-custom-colors',custom);
+    if(custom){
+      const primary=isHex(chosen?.primary)?chosen.primary:palette.primary;
+      const glow=isHex(chosen?.glow)?chosen.glow:palette.glow;
+      node.style.setProperty('--sb-fav-main',primary);
+      node.style.setProperty('--sb-fav-glow',glow);
+    }else{
+      node.style.removeProperty('--sb-fav-main');
+      node.style.removeProperty('--sb-fav-glow');
+    }
+  }
+  function newColorField(label,value){
+    const wrap=el('label','sb-community-fav-color-field');
+    wrap.append(el('span','sb-community-fav-color-caption',label));
+    const input=el('input','sb-community-fav-color-input');
+    input.type='color';input.value=value;
+    input.setAttribute('aria-label',label);
+    wrap.append(input);
+    return {wrap,input};
+  }
   async function allowsAnimation(viewerId){
     if(!viewerId)return true;
     try{
@@ -34,7 +70,7 @@
     return data?.session?.user?.id===id;
   };
 
-  function drawStrip(strip,selected,catalog,own,styles,animationsEnabled=true){
+  function drawStrip(strip,selected,catalog,own,styles,colors,animationsEnabled=true){
     strip.replaceChildren();
     strip.classList.toggle('sb-community-fav-animations-off',!animationsEnabled);
     const badges=selected.map(key=>({key,info:catalog.get(key)}))
@@ -56,6 +92,7 @@
         badge.emoji+' '+badge.title);
       chip.setAttribute('role','listitem');
       chip.title=badge.title+' · Marco '+(FRAMES.find(([value])=>value===frameStyle)?.[1]||'Anime');
+      paintColors(chip,colors.get(key),frameStyle);
       tray.append(chip);
     }
     strip.append(tray);
@@ -74,7 +111,7 @@
         '🎖️ Escaparate de insignias favoritas'));
     }
     const intro=el('p','sb-community-fav-editor-intro',
-      'Elige hasta 5 insignias de la comunidad. Personaliza el marco de cada una con estilos anime, neón o dorado y ordénalas para mostrarlas en tu perfil público. Quitarlas no elimina tus logros.');
+      'Elige hasta 5 insignias de la comunidad. Personaliza el marco y los colores principal y de brillo de cada una; ordénalas para mostrarlas en tu perfil público. Quitarlas no elimina tus logros.');
     const status=el('p','sb-community-fav-editor-status',
       own==='cuenta'?'Abre el apartado para gestionar tus insignias.':'Cargando insignias…');
     status.setAttribute('role','status');
@@ -96,15 +133,29 @@
     previewControl.append(previewSelect);
     const previewSwatch=el('span','sb-community-fav-strip-chip sb-community-fav-style-anime','🌸 Marco Anime');
     previewSwatch.setAttribute('aria-live','polite');
-    previewSelect.addEventListener('change',()=>{
+    const previewPalette=el('div','sb-community-fav-color-controls');
+    const previewMain=newColorField('🎨 Color principal',DEFAULT_COLORS.anime.primary);
+    const previewGlow=newColorField('✨ Color de brillo',DEFAULT_COLORS.anime.glow);
+    previewPalette.append(previewMain.wrap,previewGlow.wrap);
+    function refreshPreview(resetPalette=false){
       const style=frame(previewSelect.value);
       const item=FRAMES.find(([key])=>key===style);
+      const defaults=defaultColors(style);
+      if(resetPalette){
+        previewMain.input.value=defaults.primary;
+        previewGlow.input.value=defaults.glow;
+      }
       previewSwatch.className='sb-community-fav-strip-chip sb-community-fav-style-'+style;
       previewSwatch.textContent=(item?.[1]||'🌸 Anime')+' · Vista previa';
-    });
+      paintColors(previewSwatch,{primary:previewMain.input.value,glow:previewGlow.input.value},style,true);
+    }
+    previewSelect.addEventListener('change',()=>refreshPreview(true));
+    previewMain.input.addEventListener('input',()=>refreshPreview());
+    previewGlow.input.addEventListener('input',()=>refreshPreview());
+    refreshPreview();
     const previewHint=el('p','sb-community-fav-preview-hint',
-      'Esta es una prueba visual. Para guardar un marco, elige una insignia desbloqueada y pulsa «+ Destacar».');
-    preview.append(previewHeading,previewControl,previewSwatch,previewHint);
+      'Prueba los colores aquí sin guardar cambios. Para conservarlos, selecciona los colores de una insignia desbloqueada y pulsa «+ Destacar».');
+    preview.append(previewHeading,previewControl,previewPalette,previewSwatch,previewHint);
     const selectedTitle=el('h3','sb-community-fav-subtitle','Mis insignias destacadas');
     const selectedBox=el('div','sb-community-fav-selected');
     const availableTitle=el('h3','sb-community-fav-subtitle','Insignias desbloqueadas disponibles');
@@ -138,7 +189,7 @@
     anchor.after(ui.panel);
     let busy=false,loaded=false,ownerId='',lastLoaded=0;
     let catalog=new Map(),unlocked=[],selected=[],seq=0;
-    let frames=new Map(),animationsEnabled=true;
+    let frames=new Map(),colors=new Map(),animationsEnabled=true;
     const active=()=>ui.panel.isConnected && visible(route);
     const selection=()=>new Set(selected);
 
@@ -159,6 +210,7 @@
         const row=el('div','sb-community-fav-row');
         const icon=el('span','sb-community-fav-row-emoji sb-community-fav-style-'+frame(frames.get(key)),item.emoji);
         icon.setAttribute('aria-hidden','true');
+        paintColors(icon,colors.get(key),frame(frames.get(key)));
         const text=el('strong','sb-community-fav-row-title',item.title);
         const rank=el('span','sb-community-fav-row-rank',String(index+1)+'/'+MAX);
         const controls=el('div','sb-community-fav-row-controls');
@@ -198,8 +250,33 @@
         select.value=frame(frames.get(key));
         select.addEventListener('change',()=>void saveFrame(key,select.value));
         frameLabel.append(select);
+        const palette=el('div','sb-community-fav-color-controls');
+        const current=colors.get(key);
+        const base=defaultColors(frame(frames.get(key)));
+        const main=newColorField('🎨 Principal',current?.primary||base.primary);
+        const glow=newColorField('✨ Brillo',current?.glow||base.glow);
+        const apply=el('button','outline-btn mini sb-community-fav-save-colors','Guardar colores');
+        apply.type='button';
+        apply.disabled=busy;
+        const reset=el('button','outline-btn mini sb-community-fav-reset-colors','Restablecer');
+        reset.type='button';
+        reset.disabled=busy;
+        palette.append(main.wrap,glow.wrap,apply,reset);
+        const repaint=()=>paintColors(icon,{primary:main.input.value,glow:glow.input.value},frame(select.value),true);
+        main.input.addEventListener('input',repaint);
+        glow.input.addEventListener('input',repaint);
+        select.addEventListener('change',()=>{
+          const baseColors=defaultColors(frame(select.value));
+          if(!colors.get(key)){
+            main.input.value=baseColors.primary;
+            glow.input.value=baseColors.glow;
+          }
+          repaint();
+        });
+        apply.addEventListener('click',()=>void saveColors(key,main.input.value,glow.input.value));
+        reset.addEventListener('click',()=>void saveColors(key,null,null));
         controls.append(up,down,remove);
-        row.append(rank,icon,text,frameLabel,controls);
+        row.append(rank,icon,text,frameLabel,palette,controls);
         ui.selectedBox.append(row);
       });
 
@@ -226,9 +303,23 @@
           option.value=value;
           frameSelect.append(option);
         }
+        const palette=el('div','sb-community-fav-color-controls');
+        const main=newColorField('🎨 Principal',DEFAULT_COLORS.anime.primary);
+        const glow=newColorField('✨ Brillo',DEFAULT_COLORS.anime.glow);
+        palette.append(main.wrap,glow.wrap);
+        const repaint=()=>{
+          const style=frame(frameSelect.value);
+          icon.className='sb-community-fav-row-emoji sb-community-fav-style-'+style;
+          paintColors(icon,{primary:main.input.value,glow:glow.input.value},style,true);
+        };
         frameSelect.addEventListener('change',()=>{
-          icon.className='sb-community-fav-row-emoji sb-community-fav-style-'+frame(frameSelect.value);
+          const defaults=defaultColors(frame(frameSelect.value));
+          main.input.value=defaults.primary;
+          glow.input.value=defaults.glow;
+          repaint();
         });
+        main.input.addEventListener('input',repaint);
+        glow.input.addEventListener('input',repaint);
         frameLabel.append(frameSelect);
         const add=el('button','gradient-btn mini','+ Destacar');
         add.type='button';
@@ -236,10 +327,10 @@
         add.setAttribute('aria-label','Destacar '+item.title);
         add.addEventListener('click',()=>{
           void save([...selected,key],'Insignia destacada correctamente.',{
-            key,style:frame(frameSelect.value)
+            key,style:frame(frameSelect.value),primary:main.input.value,glow:glow.input.value
           });
         });
-        row.append(icon,text,frameLabel,add);
+        row.append(icon,text,frameLabel,palette,add);
         ui.availableBox.append(row);
       }
     }
@@ -256,7 +347,7 @@
         const [catRes,ownedRes,selectedRes,motion]=await Promise.all([
           api().from(CATALOG).select('badge_key,emoji,title,target_posts').order('sort_order'),
           api().from(BADGES).select('badge_key').eq('user_id',uid),
-          api().from(TABLE).select('badge_key,position,frame_style').eq('user_id',uid).order('position'),
+          api().from(TABLE).select('badge_key,position,frame_style,frame_primary_color,frame_glow_color').eq('user_id',uid).order('position'),
           allowsAnimation(uid)
         ]);
         if([catRes,ownedRes,selectedRes].some(r=>r.error))
@@ -270,6 +361,7 @@
         selected=(selectedRes.data||[]).map(item=>item.badge_key)
           .filter(k=>valid.has(k)).slice(0,MAX);
         frames=new Map((selectedRes.data||[]).map(item=>[item.badge_key,frame(item.frame_style)]));
+        colors=new Map((selectedRes.data||[]).map(item=>[item.badge_key,readColors(item)]));
         animationsEnabled=motion;
         loaded=true;
         lastLoaded=Date.now();
@@ -305,6 +397,7 @@
         if(!active())return;
         selected=next.slice();
         frames=new Map([...frames].filter(([key])=>selected.includes(key)));
+        colors=new Map([...colors].filter(([key])=>selected.includes(key)));
         for(const key of selected)if(!frames.has(key))frames.set(key,'anime');
         let styleWarning='';
         if(newFrame && selected.includes(newFrame.key)){
@@ -317,6 +410,19 @@
           }else{
             frames.set(newFrame.key,frame(newFrame.style));
           }
+          if(isHex(newFrame.primary)&&isHex(newFrame.glow)){
+            const {data:colorSaved,error:colorError}=await api().rpc(
+              'set_my_community_reaction_badge_colors',{
+                p_badge_key:newFrame.key,
+                p_primary_color:newFrame.primary,
+                p_glow_color:newFrame.glow
+              });
+            if(colorError||colorSaved!==true){
+              styleWarning+=' Los colores no se guardaron; puedes volver a intentarlo.';
+            }else{
+              colors.set(newFrame.key,{primary:newFrame.primary,glow:newFrame.glow});
+            }
+          }
         }
         if(!active())return;
         ui.status.textContent=message+styleWarning;
@@ -324,6 +430,35 @@
       }catch(error){
         console.warn('Guardado de escaparate comunitario:',error);
         if(active())ui.status.textContent='No se pudieron guardar los cambios: '+
+          String(error?.message||'Error desconocido');
+      }finally{
+        busy=false;
+        if(active()){ui.reload.disabled=false;draw();}
+      }
+    }
+
+    async function saveColors(key,primary,glow){
+      if(!active()||!loaded||busy||!ownerId||!selected.includes(key))return;
+      if((primary!==null&&!isHex(primary))||(glow!==null&&!isHex(glow)))return;
+      busy=true;
+      ui.reload.disabled=true;
+      ui.status.textContent='Guardando colores del marco…';
+      draw();
+      try{
+        const {data:auth,error:authError}=await api().auth.getUser();
+        if(authError||auth?.user?.id!==ownerId)throw Error('Sesión cambiada. Recarga tu perfil.');
+        const {data,error}=await api().rpc('set_my_community_reaction_badge_colors',{
+          p_badge_key:key,p_primary_color:primary,p_glow_color:glow
+        });
+        if(error)throw error;
+        if(data!==true)throw Error('No se confirmó el cambio de colores.');
+        if(!active())return;
+        colors.set(key,primary||glow?{primary,glow}:null);
+        ui.status.textContent=primary||glow?'🎨 Colores guardados correctamente.':'🎨 Colores originales restaurados.';
+        window.dispatchEvent(new Event('sb-community-reaction-showcase-updated'));
+      }catch(error){
+        console.warn('Colores del marco de insignia:',error);
+        if(active())ui.status.textContent='No se pudieron guardar los colores: '+
           String(error?.message||'Error desconocido');
       }finally{
         busy=false;
@@ -412,7 +547,7 @@
         if(!UUID.test(String(resultId||'')))return;
         const [catalogResult,showcaseResult,viewerResult]=await Promise.all([
           api().from(CATALOG).select('badge_key,title,emoji'),
-          api().from(TABLE).select('badge_key,position,frame_style').eq('user_id',resultId).order('position'),
+          api().from(TABLE).select('badge_key,position,frame_style,frame_primary_color,frame_glow_color').eq('user_id',resultId).order('position'),
           api().auth.getUser()
         ]);
         if(catalogResult.error||showcaseResult.error)
@@ -422,9 +557,10 @@
         const catalog=new Map((catalogResult.data||[]).map(item=>[item.badge_key,item]));
         const selected=(showcaseResult.data||[]).map(item=>item.badge_key);
         const styles=new Map((showcaseResult.data||[]).map(item=>[item.badge_key,frame(item.frame_style)]));
+        const customColors=new Map((showcaseResult.data||[]).map(item=>[item.badge_key,readColors(item)]));
         const motion=await allowsAnimation(viewerResult.data?.user?.id);
         if(!active()||ticket!==seq)return;
-        drawStrip(strip,selected,catalog,own,styles,motion);
+        drawStrip(strip,selected,catalog,own,styles,customColors,motion);
       }catch(error){
         console.warn('Insignias favoritas en perfil:',error);
         if(active())strip.hidden=!own;
