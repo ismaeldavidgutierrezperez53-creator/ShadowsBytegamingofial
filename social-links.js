@@ -24,9 +24,10 @@ async function loadSocialStats(section){
  SOCIAL_PLATFORMS.forEach((platform,i)=>{const row=document.createElement('div');row.className='social-stat-row';const label=document.createElement('span');label.textContent=platform;const number=document.createElement('strong');number.textContent=counts[i];row.append(label,number);host.append(row);});
 }
 async function loadSiteSocialLinks(){
- const host=document.querySelector('.social-links');if(!host)return;decorateSocialLinks(host);if(typeof sb==='undefined')return;
+ const hosts=[...document.querySelectorAll('.social-links')];if(!hosts.length)return;hosts.forEach(decorateSocialLinks);if(typeof sb==='undefined')return;
  const {data,error}=await sb.from('site_social_links').select('platform,url');
- if(error||!host.isConnected)return;
+ if(error){for(const host of hosts)if(host.id==='sb-social-directory')host.textContent='No se pudieron cargar las redes sociales. Vuelve a intentarlo.';return;}
+ for(const host of hosts){if(!host.isConnected)continue;
  host.replaceChildren();
  for(const platform of SOCIAL_PLATFORMS){
   const item=data?.find(row=>row.platform===platform);
@@ -35,6 +36,7 @@ async function loadSiteSocialLinks(){
  }
  decorateSocialLinks(host);
  if(!host.children.length)host.textContent='Próximamente publicaremos nuestras redes sociales.';
+ }
 }
 async function initSocialAdmin(){
  const dashboard=document.querySelector('#admin-root .admin-dashboard');
@@ -71,6 +73,7 @@ async function initSocialAdmin(){
   finally{button.disabled=false}
  };
 }
+pages['/redes-sociales']=()=>`<section class="page"><div class="page-hero"><div class="eyebrow">COMUNIDAD</div><h1>🌐 Redes sociales</h1><p>Sigue a Shadows Byte Gaming Official en nuestras redes oficiales.</p></div><section class="section"><div id="sb-social-directory" class="social-links" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px" aria-live="polite">Cargando redes sociales…</div><p>Los enlaces se abren en una nueva pestaña.</p></section></section>`;
 const previousSocialRender=render;
 render=async function(...args){const result=await previousSocialRender.apply(this,args);await loadSiteSocialLinks();return result;};
 const previousSocialInitAdmin=initAdmin;
