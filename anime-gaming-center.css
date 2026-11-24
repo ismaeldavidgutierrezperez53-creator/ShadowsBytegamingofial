@@ -140,3 +140,62 @@
  #sb-anime-gaming-hub .sb-ag-goal-edit label{flex:1 1 100%}
  #sb-anime-gaming-hub .sb-ag-goal-edit button{flex:1 1 140px}
 }
+
+
+/* Estadísticas anime y logros gaming por horas: solo datos propios, diseño adaptable. */
+#sb-anime-gaming-hub .sb-ag-analytics-numbers{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0;
+}
+#sb-anime-gaming-hub .sb-ag-analytics-number{
+ display:flex;flex-direction:column;gap:5px;min-width:0;min-height:83px;
+ padding:12px;border:1px solid rgba(190,140,241,.5);border-radius:12px;
+ background:rgba(44,23,66,.8);overflow-wrap:anywhere;
+}
+#sb-anime-gaming-hub .sb-ag-analytics-number strong{
+ font-size:clamp(19px,3vw,25px);color:#f2c7ff;line-height:1.25;
+}
+#sb-anime-gaming-hub .sb-ag-analytics-number span{
+ color:#d6bfea;font-size:14px;line-height:1.4;
+}
+#sb-anime-gaming-hub .sb-ag-stat-note{
+ display:block;color:#c9b4df;line-height:1.4;
+ font-size:13px;margin:8px 0;
+}
+#sb-anime-gaming-hub .sb-ag-status-chart{
+ display:grid;gap:12px;margin:15px 0 3px;
+}
+#sb-anime-gaming-hub .sb-ag-status-label{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ color:#ebd7ff;font-weight:700;font-size:14px;
+}
+#sb-anime-gaming-hub .sb-ag-status-label strong{color:#fff;white-space:nowrap}
+#sb-anime-gaming-hub .sb-ag-status-progress{
+ display:block;width:100%;height:13px;accent-color:#ca87ff;
+}
+#sb-anime-gaming-hub .sb-ag-hours-total{
+ margin:13px 0;color:#beefff;font-size:19px;font-weight:800;
+}
+#sb-anime-gaming-hub .sb-ag-hour-badges{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;margin:13px 0;
+}
+#sb-anime-gaming-hub .sb-ag-hour-badge{
+ display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0;
+ padding:12px;min-height:75px;border:1px dashed #6384a6;border-radius:12px;
+ color:#d1d6e6;background:#142038;overflow-wrap:anywhere;
+}
+#sb-anime-gaming-hub .sb-ag-hour-badge.unlocked{
+ background:linear-gradient(125deg,rgba(46,79,110,.85),rgba(56,30,86,.9));
+ border:1px solid #85d6f1;color:#fff;
+}
+#sb-anime-gaming-hub .sb-ag-hour-badge strong{font-size:15px;line-height:1.35}
+#sb-anime-gaming-hub .sb-ag-hour-badge small{color:#cdddee;font-size:13px;line-height:1.4}
+#sb-anime-gaming-hub .sb-ag-hours-next{
+ margin:13px 0 0;padding:10px 12px;
+ border:1px solid rgba(122,201,225,.42);border-radius:10px;
+ background:rgba(18,40,61,.6);color:#d9f3ff;line-height:1.45;
+}
+@media(max-width:560px){
+ #sb-anime-gaming-hub .sb-ag-analytics-numbers,
+ #sb-anime-gaming-hub .sb-ag-hour-badges{grid-template-columns:minmax(0,1fr)}
+}
