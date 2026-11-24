@@ -56,11 +56,13 @@
    for(const [name,count] of topTags){
     const link=create('a','sb-trends-tag','#'+name+' · '+count);
     link.href='#/comunidad';link.title='Etiqueta usada en '+count+' publicaciones';
-    link.onclick=()=>{
+    link.onclick=event=>{
      const category=document.querySelector('#sb-community-discovery select[aria-label="Filtrar publicaciones por etiqueta"]');
      if(category){
+      event.preventDefault();
       category.value=name;
       category.dispatchEvent(new Event('change',{bubbles:true}));
+      category.scrollIntoView({behavior:'smooth',block:'center'});
      }
     };
     tags.append(link);
