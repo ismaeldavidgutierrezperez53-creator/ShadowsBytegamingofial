@@ -196,7 +196,7 @@
       setStatus('Primero activa las notificaciones de este dispositivo.','error');
       return;
     }
-    if(!['accepted','rejected'].includes(decision))return;
+    if(!['accepted','rejected','in_review'].includes(decision))return;
     busy(true);
     try{
       const reg=await registration();
@@ -212,7 +212,7 @@
         body:{type:'test_appeal',decision,endpoint:sub.endpoint}
       });
       if(error || data?.error)throw new Error(data?.error || error?.message || 'No se pudo enviar.');
-      const name=decision==='accepted'?'aceptada':'rechazada';
+      const name=decision==='in_review'?'en revisión':decision==='accepted'?'aceptada':'rechazada';
       setStatus(data?.delivered>0
         ? '✅ SIMULACIÓN enviada: apelación '+name+'. Comprueba el aviso del sistema. No se ha creado ninguna sanción ni apelación.'
         : 'No se ha entregado la simulación. Comprueba No molestar y los permisos del navegador.',
@@ -355,7 +355,7 @@
       +'<button type="button" class="sb-webpush-disable" data-push="disable">Desactivar</button></div>'
       +'<details class="sb-webpush-appeal-demo"><summary>⚖️ Probar avisos de apelación (simulación)</summary>'
       +'<p>Son avisos de demostración enviados solo a este dispositivo. No crean ni modifican sanciones, apelaciones o decisiones reales.</p>'
-      +'<div class="sb-webpush-actions"><button type="button" data-push="appeal-accepted">🧪 Simular apelación aceptada</button>'
+      +'<div class="sb-webpush-actions"><button type="button" data-push="appeal-in-review">🧪 Simular apelación en revisión</button><button type="button" data-push="appeal-accepted">🧪 Simular apelación aceptada</button>'
       +'<button type="button" data-push="appeal-rejected">🧪 Simular apelación rechazada</button></div></details>'
       +'<details class="sb-webpush-devices"><summary>📱💻 Mis dispositivos con notificaciones</summary>'
       +'<p>Consulta los equipos conectados a tu cuenta. Puedes quitar los antiguos sin desactivar el que estás usando.</p>'
@@ -367,6 +367,7 @@
     }
     root.querySelector('[data-push="enable"]').addEventListener('click',enable);
     root.querySelector('[data-push="test"]').addEventListener('click',test);
+    root.querySelector('[data-push="appeal-in-review"]').addEventListener('click',()=>testAppealDecision('in_review'));
     root.querySelector('[data-push="appeal-accepted"]').addEventListener('click',()=>testAppealDecision('accepted'));
     root.querySelector('[data-push="appeal-rejected"]').addEventListener('click',()=>testAppealDecision('rejected'));
     root.querySelector('[data-push="delayed"]').addEventListener('click',delayedTest);
