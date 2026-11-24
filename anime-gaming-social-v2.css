@@ -70,3 +70,17 @@
  #sb-anime-gaming-hub .sb-social-form>label:has(textarea),
  #sb-anime-gaming-hub .sb-social-form>button{grid-column:1}
 }
+
+#sb-anime-gaming-hub .sb-social-quick-nav{
+ display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 19px;
+}
+#sb-anime-gaming-hub .sb-social-quick-nav button{
+ flex:1 1 150px;min-height:44px;border-radius:11px;
+ font-weight:800;
+ border:1px solid rgba(185,135,236,.7);
+ background:linear-gradient(110deg,rgba(88,45,125,.82),rgba(38,72,105,.8));
+ color:#f9efff;cursor:pointer;
+}
+#sb-anime-gaming-hub .sb-social-quick-nav button:focus-visible{
+ outline:3px solid #b3e7ff;outline-offset:3px;
+}
