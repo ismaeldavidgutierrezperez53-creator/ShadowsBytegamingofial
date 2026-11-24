@@ -2,6 +2,20 @@
 (() => {
   'use strict';
   const MAX=5;
+  const FRAMES=[['anime','🌸 Anime'],['neon','💜 Neón'],['gold','👑 Dorado']];
+  const frame=value=>FRAMES.some(([key])=>key===value)?value:'anime';
+  async function allowsAnimation(viewerId){
+    if(!viewerId)return true;
+    try{
+      const {data,error}=await api().from('member_notification_preferences')
+        .select('notification_animations_enabled').eq('user_id',viewerId).maybeSingle();
+      if(error)throw error;
+      return data?.notification_animations_enabled!==false;
+    }catch(error){
+      console.warn('Preferencia de animaciones para insignias:',error);
+      return true;
+    }
+  }
   const TABLE='member_community_reaction_badge_showcase';
   const BADGES='member_community_reaction_badges';
   const CATALOG='member_community_reaction_badge_catalog';
@@ -20,9 +34,11 @@
     return data?.session?.user?.id===id;
   };
 
-  function drawStrip(strip,selected,catalog,own){
+  function drawStrip(strip,selected,catalog,own,styles,animationsEnabled=true){
     strip.replaceChildren();
-    const badges=selected.map(key=>catalog.get(key)).filter(Boolean).slice(0,MAX);
+    strip.classList.toggle('sb-community-fav-animations-off',!animationsEnabled);
+    const badges=selected.map(key=>({key,info:catalog.get(key)}))
+      .filter(item=>Boolean(item.info)).slice(0,MAX);
     if(!badges.length){
       strip.hidden=!own;
       if(own)strip.append(el('small','sb-community-fav-strip-empty',
@@ -34,10 +50,12 @@
       '🎖️ Insignias favoritas de la comunidad'));
     const tray=el('div','sb-community-fav-strip-tray');
     tray.setAttribute('role','list');
-    for(const badge of badges){
-      const chip=el('span','sb-community-fav-strip-chip',badge.emoji+' '+badge.title);
+    for(const {key,info:badge} of badges){
+      const frameStyle=frame(styles.get(key));
+      const chip=el('span','sb-community-fav-strip-chip sb-community-fav-style-'+frameStyle,
+        badge.emoji+' '+badge.title);
       chip.setAttribute('role','listitem');
-      chip.title=badge.title;
+      chip.title=badge.title+' · Marco '+(FRAMES.find(([value])=>value===frameStyle)?.[1]||'Anime');
       tray.append(chip);
     }
     strip.append(tray);
@@ -56,7 +74,7 @@
         '🎖️ Escaparate de insignias favoritas'));
     }
     const intro=el('p','sb-community-fav-editor-intro',
-      'Elige hasta 5 insignias de la comunidad que ya hayas conseguido. Ordénalas para mostrarlas junto a tu nombre en el perfil público. Quitarlas del escaparate no elimina tus logros.');
+      'Elige hasta 5 insignias de la comunidad. Personaliza el marco de cada una con estilos anime, neón o dorado y ordénalas para mostrarlas en tu perfil público. Quitarlas no elimina tus logros.');
     const status=el('p','sb-community-fav-editor-status',
       own==='cuenta'?'Abre el apartado para gestionar tus insignias.':'Cargando insignias…');
     status.setAttribute('role','status');
@@ -94,6 +112,7 @@
     anchor.after(ui.panel);
     let busy=false,loaded=false,ownerId='',lastLoaded=0;
     let catalog=new Map(),unlocked=[],selected=[],seq=0;
+    let frames=new Map(),animationsEnabled=true;
     const active=()=>ui.panel.isConnected && visible(route);
     const selection=()=>new Set(selected);
 
@@ -101,6 +120,7 @@
       if(!active())return;
       const selectedSet=selection();
       const disabled=busy;
+      ui.panel.classList.toggle('sb-community-fav-animations-off',!animationsEnabled);
       ui.selectedTitle.textContent='Mis insignias destacadas ('+selected.length+'/'+MAX+')';
       ui.selectedBox.replaceChildren();
       ui.availableBox.replaceChildren();
@@ -111,7 +131,7 @@
         const item=catalog.get(key);
         if(!item)return;
         const row=el('div','sb-community-fav-row');
-        const icon=el('span','sb-community-fav-row-emoji',item.emoji);
+        const icon=el('span','sb-community-fav-row-emoji sb-community-fav-style-'+frame(frames.get(key)),item.emoji);
         icon.setAttribute('aria-hidden','true');
         const text=el('strong','sb-community-fav-row-title',item.title);
         const rank=el('span','sb-community-fav-row-rank',String(index+1)+'/'+MAX);
@@ -139,8 +159,21 @@
         remove.addEventListener('click',()=>{
           void save(selected.filter(k=>k!==key),'Insignia quitada. El logro sigue desbloqueado.');
         });
+        const frameLabel=el('label','sb-community-fav-frame-label');
+        frameLabel.append(el('span',null,'✨ Marco'));
+        const select=el('select','sb-community-fav-frame-select');
+        select.setAttribute('aria-label','Marco animado de '+item.title);
+        select.disabled=busy;
+        for(const [value,label] of FRAMES){
+          const option=el('option',null,label);
+          option.value=value;
+          select.append(option);
+        }
+        select.value=frame(frames.get(key));
+        select.addEventListener('change',()=>void saveFrame(key,select.value));
+        frameLabel.append(select);
         controls.append(up,down,remove);
-        row.append(rank,icon,text,controls);
+        row.append(rank,icon,text,frameLabel,controls);
         ui.selectedBox.append(row);
       });
 
@@ -178,10 +211,11 @@
         const {data:auth,error:authError}=await api().auth.getUser();
         if(authError||!auth?.user?.id)throw Error('Inicia sesión para gestionar tus insignias.');
         const uid=auth.user.id;
-        const [catRes,ownedRes,selectedRes]=await Promise.all([
+        const [catRes,ownedRes,selectedRes,motion]=await Promise.all([
           api().from(CATALOG).select('badge_key,emoji,title,target_posts').order('sort_order'),
           api().from(BADGES).select('badge_key').eq('user_id',uid),
-          api().from(TABLE).select('badge_key,position').eq('user_id',uid).order('position')
+          api().from(TABLE).select('badge_key,position,frame_style').eq('user_id',uid).order('position'),
+          allowsAnimation(uid)
         ]);
         if([catRes,ownedRes,selectedRes].some(r=>r.error))
           throw [catRes,ownedRes,selectedRes].find(r=>r.error).error;
@@ -193,6 +227,8 @@
         const valid=new Set(unlocked);
         selected=(selectedRes.data||[]).map(item=>item.badge_key)
           .filter(k=>valid.has(k)).slice(0,MAX);
+        frames=new Map((selectedRes.data||[]).map(item=>[item.badge_key,frame(item.frame_style)]));
+        animationsEnabled=motion;
         loaded=true;
         lastLoaded=Date.now();
         draw();
@@ -226,11 +262,44 @@
         if(data!==true)throw Error('Supabase no confirmó el guardado.');
         if(!active())return;
         selected=next.slice();
+        frames=new Map([...frames].filter(([key])=>selected.includes(key)));
+        for(const key of selected)if(!frames.has(key))frames.set(key,'anime');
         ui.status.textContent=message;
         window.dispatchEvent(new Event('sb-community-reaction-showcase-updated'));
       }catch(error){
         console.warn('Guardado de escaparate comunitario:',error);
         if(active())ui.status.textContent='No se pudieron guardar los cambios: '+
+          String(error?.message||'Error desconocido');
+      }finally{
+        busy=false;
+        if(active()){ui.reload.disabled=false;draw();}
+      }
+    }
+
+    async function saveFrame(key,chosen){
+      const style=frame(chosen);
+      if(!active()||!loaded||busy||!ownerId||!selected.includes(key))return;
+      busy=true;
+      ui.reload.disabled=true;
+      ui.status.textContent='Guardando marco de insignia…';
+      draw();
+      try{
+        const {data:auth,error:authError}=await api().auth.getUser();
+        if(authError||auth?.user?.id!==ownerId)
+          throw Error('Sesión cambiada. Recarga el perfil.');
+        const {data,error}=await api().rpc('set_my_community_reaction_badge_frame',{
+          p_badge_key:key,p_frame_style:style
+        });
+        if(error)throw error;
+        if(data!==true)throw Error('No se confirmó el cambio de marco.');
+        if(!active())return;
+        frames.set(key,style);
+        ui.status.textContent='✨ Marco '+(FRAMES.find(([value])=>value===style)?.[1]||'Anime')+
+          ' aplicado a '+(catalog.get(key)?.title||'insignia')+'.';
+        window.dispatchEvent(new Event('sb-community-reaction-showcase-updated'));
+      }catch(error){
+        console.warn('Marco de insignia:',error);
+        if(active())ui.status.textContent='No se pudo guardar el marco: '+
           String(error?.message||'Error desconocido');
       }finally{
         busy=false;
@@ -286,9 +355,10 @@
           ?(await api().auth.getUser()).data?.user?.id
           :id;
         if(!UUID.test(String(resultId||'')))return;
-        const [catalogResult,showcaseResult]=await Promise.all([
+        const [catalogResult,showcaseResult,viewerResult]=await Promise.all([
           api().from(CATALOG).select('badge_key,title,emoji'),
-          api().from(TABLE).select('badge_key,position').eq('user_id',resultId).order('position')
+          api().from(TABLE).select('badge_key,position,frame_style').eq('user_id',resultId).order('position'),
+          api().auth.getUser()
         ]);
         if(catalogResult.error||showcaseResult.error)
           throw catalogResult.error||showcaseResult.error;
@@ -296,7 +366,10 @@
         if(own && !(await sameSession(resultId)))return;
         const catalog=new Map((catalogResult.data||[]).map(item=>[item.badge_key,item]));
         const selected=(showcaseResult.data||[]).map(item=>item.badge_key);
-        drawStrip(strip,selected,catalog,own);
+        const styles=new Map((showcaseResult.data||[]).map(item=>[item.badge_key,frame(item.frame_style)]));
+        const motion=await allowsAnimation(viewerResult.data?.user?.id);
+        if(!active()||ticket!==seq)return;
+        drawStrip(strip,selected,catalog,own,styles,motion);
       }catch(error){
         console.warn('Insignias favoritas en perfil:',error);
         if(active())strip.hidden=!own;
