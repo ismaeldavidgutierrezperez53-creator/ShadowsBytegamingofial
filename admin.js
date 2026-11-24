@@ -1601,6 +1601,7 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
    page=0;
    rankings.hidden=false;
    load();
+   memberStats.reloadFilters();
   }
  });
  const rankings=create('div','sb-surprise-stats__rankings');
@@ -1640,6 +1641,8 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
   const date=new Date(value);
   return Number.isNaN(date.getTime())?'—':date.toLocaleString('es-ES',{dateStyle:'short',timeStyle:'short'});
  };
+ const memberStats=window.SBSurpriseBoxMembers.mount({sb,tierSelect,periodSelect,formatDate});
+ charts.element.after(memberStats.element);
  const empty=(target,message)=>{target.replaceChildren(create('p','sb-surprise-stats__empty',message));};
  let page=0,requestNumber=0;
  const pageSize=25;
@@ -1922,12 +1925,15 @@ async function adminInitSurpriseBoxAnalytics(root,tiers){
   }
  };
  for(const select of [tierSelect,periodSelect,statusSelect]){
-  select.addEventListener('change',()=>{page=0;rankings.hidden=false;load()});
+  select.addEventListener('change',()=>{
+   page=0;rankings.hidden=false;load();
+   if(select!==statusSelect)memberStats.reloadFilters();
+  });
  }
- refresh.addEventListener('click',()=>{rankings.hidden=false;load()});
+ refresh.addEventListener('click',()=>{rankings.hidden=false;load();memberStats.reloadFilters()});
  prev.addEventListener('click',()=>{if(page>0){page--;load()}});
  next.addEventListener('click',()=>{page++;load()});
- await load();
+ await Promise.all([load(),memberStats.load()]);
 }
 
 const previousAdminInitRewardShop=adminInitRewardShop;
