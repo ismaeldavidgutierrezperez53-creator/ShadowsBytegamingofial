@@ -60,7 +60,9 @@
    clear.type='button';
    const refresh=make('button','outline-btn mini','↻ Actualizar etiquetas');
    refresh.type='button';
-   actions.append(save,clear,refresh);
+   const viewPublic=make('a','outline-btn mini','👁️ Ver mi perfil público');
+   viewPublic.href='#/perfil?id='+encodeURIComponent(id);
+   actions.append(save,clear,refresh,viewPublic);
    section.append(status,count,previewTitle,preview,orderTitle,ordered,
     availableTitle,availableList,actions,
     make('small','sb-featured-note',
