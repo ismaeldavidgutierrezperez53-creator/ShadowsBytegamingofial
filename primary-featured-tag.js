@@ -7,7 +7,7 @@
  const TTL=50000;
  const cache=new Map();
  let scheduled=false,scanning=false,editorBusy=false;
- let ownId='',ownFetch=0;
+ let ownId='';
  const make=(tag,cls='',text)=>{
   const node=document.createElement(tag);
   if(cls)node.className=cls;
@@ -108,7 +108,7 @@
   }catch(_){}
   schedule();
  }
- let pendingEditorLoad=null;
+
  async function mountEditor(){
   if(location.hash.split('?')[0]!=='#/cuenta'||editorBusy)return;
   const editor=document.getElementById('sb-featured-tags-editor');
@@ -191,7 +191,9 @@
      say('No se pudo guardar: '+(error?.message||'Error de conexión'),true);
     }finally{
      loading=false;refresh.disabled=false;
-     [...list.querySelectorAll('button')].forEach(button=>button.disabled=false);
+     [...list.querySelectorAll('button')].forEach(button=>{
+      button.disabled=button.textContent==='👑 Principal';
+     });
      none.disabled=!currentId;
     }
    }
@@ -199,7 +201,6 @@
    refresh.addEventListener('click',()=>void load());
    const handler=()=>{if(picker.isConnected)void load();else window.removeEventListener('sb-featured-tags-saved',handler)};
    window.addEventListener('sb-featured-tags-saved',handler);
-   pendingEditorLoad=load;
    void load();
   }catch(error){console.warn('Selector de etiqueta principal:',error?.message||error)}
   finally{editorBusy=false;}
