@@ -19,6 +19,17 @@
   const description=make('p',null,'Consulta las cajas que ha recibido y abierto cada miembro, las pendientes y los premios revelados.');
   intro.append(title,description);
   const help=make('p','sb-box-members__note','Se aplican los filtros de caja y periodo del panel superior (según la fecha de envío). Se incluyen los miembros con cero aperturas. El filtro «Estado» solo afecta al historial general.');
+  const ranking=make('section','sb-box-members__ranking');
+  ranking.setAttribute('aria-labelledby','sb-box-members-ranking-heading');
+  const rankingHeading=make('h4',null,'🏆 Ranking de miembros');
+  rankingHeading.id='sb-box-members-ranking-heading';
+  const rankingIntro=make('p','sb-box-members__rank-help','Top 10 por cajas abiertas. Los tres primeros reciben 🥇🥈🥉. En caso de empate, se ordena por cajas recibidas y después por nombre.');
+  const rankingStatus=make('p','sb-box-members__rank-status','Cargando ranking…');
+  rankingStatus.setAttribute('role','status');
+  rankingStatus.setAttribute('aria-live','polite');
+  const rankingList=make('ol','sb-box-members__rank-list');
+  rankingList.setAttribute('aria-label','Miembros destacados por aperturas');
+  ranking.append(rankingHeading,rankingIntro,rankingStatus,rankingList);
   const searchForm=document.createElement('form');
   searchForm.className='sb-box-members__search';
   searchForm.setAttribute('role','search');
@@ -103,10 +114,10 @@
   detailNext.type='button';
   detailPager.append(detailPrev,detailPageLabel,detailNext);
   detail.append(detailHead,detailMessage,cards,statsGrid,historyHeading,historyNote,detailWrap,detailPager);
-  panel.append(intro,help,searchForm,status,tableTitle,tableWrap,pager,detail);
+  panel.append(intro,help,ranking,searchForm,status,tableTitle,tableWrap,pager,detail);
 
   let listPage=0,detailPage=0,query='',selectedId=null;
-  let listRequest=0,detailRequest=0;
+  let listRequest=0,detailRequest=0,rankingRequest=0;
   let loadingList=false,loadingDetail=false;
   const state={
    tier:()=>tierSelect.value||null,
@@ -127,6 +138,65 @@
    block.append(make('span',null,caption),make('strong',null,fmt(value)));
    return block;
   };
+  const openMember=memberId=>{
+   if(!memberId)return;
+   selectedId=memberId;detailPage=0;loadDetail();
+  };
+  const renderRanking=result=>{
+   const top=pad(result?.members).filter(member=>Number(member.opened)>0).slice(0,10);
+   rankingList.replaceChildren();
+   if(top.length===0){
+    rankingStatus.textContent='Todavía no hay miembros con cajas abiertas.';
+    rankingList.append(make('li','sb-box-members__rank-empty',
+     'El ranking comenzará cuando un miembro abra su primera caja misteriosa.'));
+    return;
+   }
+   rankingStatus.textContent='Primeros '+fmt(top.length)+' puestos. Pulsa un miembro para ver sus premios.';
+   const max=Math.max(1,...top.map(member=>Number(member.opened)||0));
+   const medals=['🥇','🥈','🥉'];
+   top.forEach((member,index)=>{
+    const row=make('li','sb-box-members__rank-row');
+    if(index<3)row.classList.add('sb-box-members__rank-row--'+(index+1));
+    const button=make('button','sb-box-members__rank-button');
+    button.type='button';
+    button.setAttribute('aria-label','Puesto '+(index+1)+': '+(member.name||'Miembro')+
+     ', '+fmt(member.opened)+' cajas abiertas. Ver premios.');
+    const symbol=make('span','sb-box-members__rank-icon',index<3?medals[index]:String(index+1)+'.');
+    symbol.setAttribute('aria-hidden','true');
+    const identity=make('span','sb-box-members__rank-identity');
+    identity.append(make('strong',null,member.name||'Miembro'));
+    if(member.username)identity.append(make('small',null,'@'+String(member.username).replace(/^@/,'').slice(0,120)));
+    const counts=make('span','sb-box-members__rank-count');
+    counts.append(make('strong',null,fmt(member.opened)+' abiertas'));
+    counts.append(make('small',null,fmt(member.received)+' recibidas'));
+    const bar=make('span','sb-box-members__rank-progress');
+    const fill=make('span','sb-box-members__rank-fill');
+    fill.style.width=(Math.min(100,100*Math.max(0,Number(member.opened)||0)/max))+'%';
+    bar.append(fill);
+    button.append(symbol,identity,counts,bar);
+    button.addEventListener('click',()=>openMember(member.member_id));
+    row.append(button);rankingList.append(row);
+   });
+  };
+  async function loadRanking(){
+   const request=++rankingRequest;
+   rankingStatus.textContent='Actualizando ranking…';
+   delete rankingStatus.dataset.type;
+   try{
+    const {data,error}=await sb.rpc('admin_surprise_box_member_stats',{
+     p_tier:state.tier(),p_days:state.days(),p_search:'',p_limit:10,p_offset:0
+    });
+    if(request!==rankingRequest||!panel.isConnected)return;
+    if(error)throw error;
+    if(!data||!Array.isArray(data.members))throw new Error('Respuesta del ranking inválida.');
+    renderRanking(data);rankingStatus.dataset.type='success';
+   }catch(error){
+    if(request!==rankingRequest||!panel.isConnected)return;
+    rankingList.replaceChildren();
+    rankingStatus.dataset.type='error';
+    rankingStatus.textContent='No se pudo cargar el ranking: '+(error.message||'Error desconocido');
+   }
+  }
   const renderList=result=>{
    const people=pad(result?.members);
    const total=Math.max(0,Number(result?.members_total||0));
@@ -143,11 +213,7 @@
     const button=make('button','sb-box-members__open','👁️ Ver premios');
     button.type='button';
     button.setAttribute('aria-label','Ver estadísticas de '+(member.name||'Miembro'));
-    button.addEventListener('click',()=>{
-     selectedId=member.member_id;
-     detailPage=0;
-     loadDetail();
-    });
+    button.addEventListener('click',()=>openMember(member.member_id));
     actionCell.append(button);
     tr.append(who,td(fmt(member.received)),td(fmt(member.opened)),
       td(fmt(member.pending)),td(fmt(member.points)),actionCell);
@@ -281,7 +347,7 @@
   }
   async function reloadFilters(){
    listPage=0;detailPage=0;
-   const requests=[loadList()];
+   const requests=[loadList(),loadRanking()];
    if(selectedId)requests.push(loadDetail());
    return Promise.all(requests);
   }
@@ -302,7 +368,7 @@
   next.addEventListener('click',()=>{if(!next.disabled&&!loadingList){listPage++;loadList()}});
   detailPrev.addEventListener('click',()=>{if(detailPage>0&&!loadingDetail){detailPage--;loadDetail()}});
   detailNext.addEventListener('click',()=>{if(!detailNext.disabled&&!loadingDetail){detailPage++;loadDetail()}});
-  return {element:panel,load:loadList,reloadFilters};
+  return {element:panel,load:()=>Promise.all([loadList(),loadRanking()]),reloadFilters};
  }
  window.SBSurpriseBoxMembers={mount};
 })();
