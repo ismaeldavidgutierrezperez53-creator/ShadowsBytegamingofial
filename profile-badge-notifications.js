@@ -8,6 +8,13 @@
     link_star_100:{icon:'🥇',name:'Estrella Gamer',tier:'gold'},
     link_legend_500:{icon:'💎',name:'Leyenda de la Comunidad',tier:'diamond'}
   };
+  const boxBadges={
+    box_first:{icon:'🎁',name:'Primer misterio',goal:1,tier:'bronze'},
+    box_explorer:{icon:'🥉',name:'Explorador de cajas',goal:5,tier:'bronze'},
+    box_collector:{icon:'🥇',name:'Coleccionista de sorpresas',goal:10,tier:'gold'},
+    box_master:{icon:'🏆',name:'Maestro de cajas',goal:25,tier:'gold'},
+    box_legend:{icon:'🌌',name:'Leyenda de las cajas',goal:50,tier:'diamond'}
+  };
   const el=(tag,cls,value)=>{
     const node=document.createElement(tag);
     if(cls)node.className=cls;
@@ -52,18 +59,26 @@
   goalToast.hidden=true;
   goalToast.setAttribute('role','status');
   goalToast.setAttribute('aria-live','polite');
-  root.append(trigger,panel,toast,goalToast);
+  const boxToast=el('section','sbb-unlock-celebration');
+  boxToast.hidden=true;
+  boxToast.setAttribute('role','status');
+  boxToast.setAttribute('aria-live','polite');
+  boxToast.setAttribute('aria-label','Nueva insignia de cajas misteriosas desbloqueada');
+  root.append(trigger,panel,toast,goalToast,boxToast);
 
   let userId=null;
   let data=[];
   let goalData=[];
+  let boxData=[];
   let loading=false;
   let opBusy=false;
   let generation=0;
   let toastKey=null;
   let goalToastKey=null;
+  let boxToastKey=null,boxBusy=false,boxReadBusy=false,boxTimer=null;
   const announced=new Set();
   const goalAnnounced=new Set();
+  const boxAnnounced=new Set();
   const goalKey=record=>String(record.goal_id)+':'+String(record.milestone);
   const validGoal=record=>record&&Number.isSafeInteger(Number(record.goal_id))&&
     [25,50,75,100].includes(Number(record.milestone))&&
@@ -112,6 +127,25 @@
     setTimeout(()=>observer.disconnect(),8000);
   }
 
+  function navigateBoxBadges(){
+    panel.hidden=true;
+    trigger.setAttribute('aria-expanded','false');
+    const app=document.getElementById('app');
+    let observer=null;
+    const attempt=()=>{
+      const section=document.querySelector('#account-profile .sbb-awards');
+      if(!section)return false;
+      section.scrollIntoView({behavior:'smooth',block:'center'});
+      if(observer)observer.disconnect();
+      return true;
+    };
+    if(location.hash.split('?')[0]!=='#/cuenta')location.hash='#/cuenta';
+    if(attempt()||!app)return;
+    observer=new MutationObserver(attempt);
+    observer.observe(app,{childList:true,subtree:true});
+    setTimeout(()=>observer.disconnect(),8000);
+  }
+
   function navigateShowcase(){
     panel.hidden=true;
     trigger.setAttribute('aria-expanded','false');
@@ -131,7 +165,12 @@
     userId=null;
     data=[];
     goalData=[];
+    boxData=[];
     announced.clear();
+    boxAnnounced.clear();
+    if(boxTimer!==null){clearTimeout(boxTimer);boxTimer=null;}
+    boxToastKey=null;boxBusy=false;boxReadBusy=false;
+    boxToast.hidden=true;boxToast.replaceChildren();
     goalAnnounced.clear();
     toastKey=null;
     goalToastKey=null;
@@ -216,6 +255,143 @@
     goalToast.append(controls);
   }
 
+  function hideBoxToast(){
+    if(boxTimer!==null){clearTimeout(boxTimer);boxTimer=null;}
+    boxToast.hidden=true;boxToast.replaceChildren();
+    boxToastKey=null;
+  }
+
+  function drawBoxToast(record){
+    const badge=boxBadges[record.key];
+    if(!badge)return;
+    boxToastKey=record.key;
+    boxToast.hidden=false;
+    boxToast.className='sbb-unlock-celebration sbb-unlock-celebration--'+badge.tier;
+    boxToast.replaceChildren();
+    const sparkleLayer=el('div','sbb-unlock-celebration__particles');
+    sparkleLayer.setAttribute('aria-hidden','true');
+    for(let i=0;i<14;i++){
+      const particle=el('span',null,i%3===0?'✦':'✧');
+      const angle=2*Math.PI*i/14;
+      particle.style.setProperty('--sbb-x',Math.round(Math.cos(angle)*(85+i%3*15))+'px');
+      particle.style.setProperty('--sbb-y',Math.round(Math.sin(angle)*(52+i%4*9))+'px');
+      particle.style.setProperty('--sbb-delay',(i%5*0.07)+'s');
+      sparkleLayer.append(particle);
+    }
+    const trophy=el('div','sbb-unlock-celebration__icon',badge.icon);
+    trophy.setAttribute('aria-hidden','true');
+    const heading=el('strong','sbb-unlock-celebration__title','🎉 ¡Insignia desbloqueada!');
+    const name=el('p','sbb-unlock-celebration__name',badge.name);
+    const description=el('p','sbb-unlock-celebration__description',
+      'Has abierto '+number(badge.goal)+' '+(badge.goal===1?'caja misteriosa.':'cajas misteriosas.')+
+      ' ¡El logro es tuyo para siempre!');
+    const actions=el('div','sbb-unlock-celebration__actions');
+    const view=el('button','sbb-unlock-celebration__view','🏅 Ver mi insignia');
+    view.type='button';
+    view.addEventListener('click',()=>markBoxRead(record.key,true));
+    const dismiss=el('button','sbb-unlock-celebration__dismiss','Entendido');
+    dismiss.type='button';
+    dismiss.addEventListener('click',()=>markBoxRead(record.key,false));
+    actions.append(view,dismiss);
+    boxToast.append(sparkleLayer,trophy,heading,name,description,actions);
+    if(boxTimer!==null)clearTimeout(boxTimer);
+    boxTimer=setTimeout(()=>{
+      if(boxToastKey===record.key){
+        hideBoxToast();
+        maybeCelebrateBoxBadge();
+      }
+    },12000);
+  }
+
+  async function maybeCelebrateBoxBadge(){
+    if(boxToastKey||boxBusy||!loggedIn()||!validClient())return;
+    const badge=boxData.find(record=>boxBadges[record?.key]&&
+      !record.celebrated_at&&!boxAnnounced.has(record.key));
+    if(!badge)return;
+    const nextUser=userId;
+    boxBusy=true;boxAnnounced.add(badge.key);
+    try{
+      const {data:ok,error}=await sb.rpc('ack_my_surprise_box_badge_notification',{
+        p_badge_key:badge.key,p_action:'celebrate'
+      });
+      if(error||ok!==true)throw error||Error('No se pudo confirmar la celebración');
+      if(nextUser!==userId)return;
+      badge.celebrated_at=new Date().toISOString();
+      drawBoxToast(badge);
+    }catch(error){
+      if(nextUser===userId){
+        boxAnnounced.delete(badge.key);
+        console.debug('Celebración de insignia de cajas:',error);
+      }
+    }finally{
+      boxBusy=false;
+    }
+  }
+
+  async function markBoxRead(key,openProfile){
+    if(boxReadBusy||!loggedIn()||!boxBadges[key]||!validClient())return;
+    const currentUser=userId;
+    boxReadBusy=true;
+    try{
+      const {data:ok,error}=await sb.rpc('ack_my_surprise_box_badge_notification',{
+        p_badge_key:key,p_action:'read'
+      });
+      if(error||ok!==true)throw error||Error('No se pudo marcar como leído');
+      if(currentUser!==userId)return;
+      const badge=boxData.find(item=>item.key===key);
+      if(badge){badge.read_at=new Date().toISOString();badge.celebrated_at=badge.celebrated_at||badge.read_at;}
+      if(boxToastKey===key)hideBoxToast();
+      drawList();
+      if(openProfile)navigateBoxBadges();
+      await refresh();
+      maybeCelebrateBoxBadge();
+    }catch(error){
+      console.debug('Marcar logro de cajas como leído:',error);
+      if(boxToastKey===key){
+        const note=boxToast.querySelector('.sbb-unlock-celebration__description');
+        if(note)note.textContent='No se pudo guardar la lectura. Revisa tu conexión y vuelve a intentarlo.';
+      }
+    }finally{
+      boxReadBusy=false;
+    }
+  }
+
+  function drawBoxEntries(){
+    if(!boxData.length)return;
+    list.append(el('h3','sb-goal-notify-heading','🎁 Insignias de cajas misteriosas'));
+    for(const record of boxData.slice(0,30)){
+      const badge=boxBadges[record.key];
+      if(!badge)continue;
+      const row=el('article','sb-badge-notify-item sbb-badge-notify-item'+
+        (record.read_at?' is-read':' is-unread'));
+      const head=el('div','sb-badge-notify-item-head');
+      head.append(el('span','sb-badge-notify-item-icon',badge.icon));
+      const copy=el('div','sb-badge-notify-item-copy');
+      copy.append(el('strong','',badge.name),
+        el('span','','Abre '+number(badge.goal)+' '+
+          (badge.goal===1?'caja misteriosa':'cajas misteriosas')));
+      if(record.created_at){
+        const date=new Date(record.created_at);
+        if(Number.isFinite(date.getTime()))
+          copy.append(el('small','',date.toLocaleDateString('es-ES',{
+            day:'numeric',month:'short',year:'numeric'
+          })));
+      }
+      head.append(copy);
+      if(!record.read_at)head.append(el('span','sb-badge-notify-new','Nuevo'));
+      const controls=el('div','sb-badge-notify-item-actions');
+      const go=el('button','sb-badge-notify-action','🏅 Ver insignia');
+      go.type='button';go.addEventListener('click',navigateBoxBadges);
+      controls.append(go);
+      if(!record.read_at){
+        const mark=el('button','sb-badge-notify-secondary','Marcar como leído');
+        mark.type='button';mark.addEventListener('click',()=>markBoxRead(record.key,false));
+        controls.append(mark);
+      }
+      row.append(head,controls);list.append(row);
+    }
+  }
+
   function drawGoalEntries(){
     if(!goalData.length)return;
     list.append(el('h3','sb-goal-notify-heading','🎯 Progreso de mis metas'));
@@ -275,18 +451,20 @@
   }
 
   function drawList(){
-    const unread=data.filter(x=>!x.read_at).length+goalData.filter(x=>!x.read_at).length;
+    const unread=data.filter(x=>!x.read_at).length+
+      goalData.filter(x=>!x.read_at).length+boxData.filter(x=>!x.read_at).length;
     count.textContent=number(unread);
     count.hidden=unread===0;
     trigger.setAttribute('aria-label',unread
       ?'Logros y metas: '+number(unread)+' notificaciones sin leer'
       :'Notificaciones de logros y metas');
     list.replaceChildren();
-    if(!data.length&&!goalData.length){
+    if(!data.length&&!goalData.length&&!boxData.length){
       list.append(el('p','sb-badge-notify-empty',
         'Todavía no tienes avisos. Recibirás uno al desbloquear una insignia o alcanzar el 25 %, 50 %, 75 % o 100 % de una meta.'));
       return;
     }
+    drawBoxEntries();
     drawGoalEntries();
     if(data.length)list.append(el('h3','sb-goal-notify-heading','🏅 Insignias desbloqueadas'));
     for(const record of data.slice(0,20)){
@@ -404,9 +582,10 @@
         reset();
       }
       userId=nextUser;
-      const [badgesResponse,goalsResponse]=await Promise.all([
+      const [badgesResponse,goalsResponse,boxesResponse]=await Promise.all([
         sb.rpc('get_my_gamer_badge_notifications'),
-        sb.rpc('get_my_point_goal_notifications')
+        sb.rpc('get_my_point_goal_notifications'),
+        sb.rpc('get_my_surprise_box_badge_notifications')
       ]);
       if(ticket!==generation&&userId!==nextUser)return;
       if(badgesResponse.error)throw badgesResponse.error;
@@ -420,8 +599,15 @@
         if(!Array.isArray(goalsResponse.data))throw Error('Lista de metas no válida');
         goalData=goalsResponse.data.filter(validGoal).slice(0,60);
       }
+      if(boxesResponse.error){
+        boxData=[];
+        console.debug('Avisos de insignias de cajas:',boxesResponse.error);
+      }else{
+        if(!Array.isArray(boxesResponse.data))throw Error('Lista de logros de cajas inválida');
+        boxData=boxesResponse.data.filter(x=>x&&boxBadges[x.key]).slice(0,50);
+      }
       root.hidden=false;
-      const total=data.length+goalData.length;
+      const total=data.length+goalData.length+boxData.length;
       feedback.textContent=goalsResponse.error
         ?'Los avisos de metas no están disponibles. Pulsa ↻ Actualizar.'
         :total?'Tienes '+number(total)+' avisos de logros y metas.'
@@ -435,6 +621,7 @@
         const latestGoal=goalData.find(x=>!x.read_at&&!goalAnnounced.has(goalKey(x)));
         if(latestGoal)drawGoalToast(latestGoal);
       }
+      maybeCelebrateBoxBadge();
     }catch(error){
       root.hidden=false;
       feedback.textContent='No se pudieron cargar los avisos. Comprueba tu conexión y pulsa ↻ Actualizar.';
@@ -472,6 +659,8 @@
     window.addEventListener('hashchange',refresh);
     window.addEventListener('sb:badge-showcase-updated',refresh);
     window.addEventListener('sb:point-goal-updated',refresh);
+    window.addEventListener('sb:surprise-box-opened',refresh);
+    window.addEventListener('sb:surprise-box-badges-updated',refresh);
     const authClient=typeof sb!=='undefined'&&sb.auth;
     if(authClient?.onAuthStateChange){
       sb.auth.onAuthStateChange((event,session)=>{
