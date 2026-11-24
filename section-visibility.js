@@ -1,0 +1,36 @@
+/* Section visibility, not a replacement for server authorization. */
+window.SBVisibility=(()=>{
+ const keys=['news','anime_gaming','community','shop','moderation','reports','shop_admin','roles'];
+ const labels=['Noticias','Anime y Gaming','Comunidad','Tienda de recompensas','Panel de moderación','Gestionar denuncias','Administrar tienda','Gestionar roles'];
+ const routes={'/noticias':'news','/anime':'anime_gaming','/manga':'anime_gaming','/manhwa':'anime_gaming','/gaming':'anime_gaming','/anime-gaming':'anime_gaming','/waifu-husbando':'anime_gaming','/pokedex':'anime_gaming','/one-piece':'anime_gaming','/comunidad':'community','/tienda':'shop'};
+ let row=null,role='guest',rows=[],generation=0;
+ async function refresh(){
+  const n=++generation;
+  const {data:{session}}=await sb.auth.getSession();
+  let r='guest';
+  if(session?.user){r='member';const {data}=await sb.from('site_staff_roles').select('role').eq('user_id',session.user.id).maybeSingle();if(['owner','admin'].includes(data?.role)&&session.user.app_metadata?.role==='admin')r='admin';else if(data?.role==='moderator'&&session.user.app_metadata?.role==='moderator')r='moderator';}
+  const {data,error}=await sb.from('site_section_visibility').select('*');
+  if(n!==generation)return;
+  role=r;rows=error?[]:data||[];row=rows.find(x=>x.role===r)||null;
+  sync();
+ }
+ function allowed(path){return !routes[path]||role==='guest'||(row&&row[routes[path]]===true)}
+ function sync(){
+  document.querySelectorAll('a[href^="#/"]').forEach(a=>{const p=a.getAttribute('href').slice(1).split('?')[0];if(routes[p])a.toggleAttribute('data-sb-visibility-hidden',!allowed(p));});
+  if(role!=='guest'&&row){for(const [id,key] of [['admin-shop-root','shop_admin'],['sb-staff-panel','roles'],['admin-reports-list','reports'],['admin-moderation-list','moderation']]){const el=document.getElementById(id);if(el)el.toggleAttribute('data-sb-visibility-hidden',!row[key]);}}
+ }
+ async function mount(){
+  const root=document.querySelector('#admin-root .admin-dashboard');if(!root||document.getElementById('sb-visibility-panel'))return;
+  await refresh();if(role!=='admin'||!root.isConnected)return;
+  const panel=document.createElement('section');panel.id='sb-visibility-panel';panel.className='admin-panel';panel.style.padding='20px';
+  panel.innerHTML='<h2>🛡️ Control de permisos y visibilidad</h2><p>Selecciona qué apartados se muestran por cargo. No concede privilegios administrativos ni cambia los permisos de datos.</p><div style="overflow:auto"><table style="width:100%;min-width:390px;text-align:left"><thead><tr><th>Apartado</th><th>Miembro</th><th>Moderador</th><th>Admin</th></tr></thead><tbody></tbody></table></div><p role="status" aria-live="polite"></p><button type="button" class="gradient-btn mini">Guardar permisos</button>';
+  const tbody=panel.querySelector('tbody'),status=panel.querySelector('[role=status]'),button=panel.querySelector('button');
+  keys.forEach((key,i)=>{const tr=document.createElement('tr');const td=document.createElement('td');td.textContent=labels[i];tr.append(td);for(const r of ['member','moderator','admin']){const cell=document.createElement('td'),input=document.createElement('input');input.type='checkbox';input.dataset.role=r;input.dataset.key=key;input.checked=rows.find(x=>x.role===r)?.[key]===true;input.setAttribute('aria-label',labels[i]+' '+r);cell.append(input);tr.append(cell)}tbody.append(tr)});
+  root.prepend(panel);
+  if(rows.length!==3){status.textContent='No se pudieron cargar los permisos.';button.disabled=true;return;}
+  button.onclick=async()=>{button.disabled=true;status.textContent='Guardando…';try{for(const r of ['member','moderator','admin']){const values={};panel.querySelectorAll('input[data-role="'+r+'"]').forEach(el=>values[el.dataset.key]=el.checked);const {data,error}=await sb.from('site_section_visibility').update(values).eq('role',r).select('role').single();if(error||!data)throw error||new Error('Sin permiso');}await refresh();status.textContent='✅ Permisos guardados.';}catch(e){status.textContent='No se guardaron todos los cambios. Recarga para comprobarlos.';}finally{button.disabled=false;}};
+ }
+ const style=document.createElement('style');style.textContent='[data-sb-visibility-hidden]{display:none!important}';document.head.append(style);
+ let queued=false;new MutationObserver(()=>{if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;sync()})}}).observe(document.body,{childList:true,subtree:true});
+ return {refresh,allowed,mount,sync};
+})();
