@@ -291,7 +291,7 @@
     if(authError||user?.id!==myUser.id)throw new Error('La sesión ha cambiado.');
     const {error}=await sb.from('sb_friend_gaming_challenges').insert({
      creator_id:myUser.id,invited_id:recipient,game_title:title,
-     target_minutes:target,starts_on:localDate(),ends_on:localDate(days)
+     target_minutes:target,starts_on:localDate(),ends_on:localDate(days-1)
     });
     if(error)throw error;
     gameName.value='';gameStatus.textContent='✅ Invitación creada. El otro miembro podrá aceptarla desde este centro.';
