@@ -698,12 +698,22 @@
 }
 .sb-appeal-reminder-progress-fill{
   display:block;width:0%;height:100%;border-radius:inherit;
-  background:linear-gradient(90deg,#8679ee,#63d7ca);
-  transition:width .4s linear;
+  background:linear-gradient(90deg,#178d61,#34d399);
+  transition:width .4s linear,background-color .2s ease;
 }
-.sb-appeal-reminder-countdown[data-state="elapsed"] .sb-appeal-reminder-progress-fill{
-  background:linear-gradient(90deg,#63c7ac,#9ff6d6);
+/* 0–49 % verde, 50–79 % amarillo y 80–100 % rojo. */
+.sb-appeal-reminder-countdown[data-progress-level="safe"] .sb-appeal-reminder-progress-fill{
+  background:linear-gradient(90deg,#178d61,#34d399);
 }
+.sb-appeal-reminder-countdown[data-progress-level="warning"] .sb-appeal-reminder-progress-fill{
+  background:linear-gradient(90deg,#ca8a04,#facc15);
+}
+.sb-appeal-reminder-countdown[data-progress-level="danger"] .sb-appeal-reminder-progress-fill{
+  background:linear-gradient(90deg,#be123c,#fb7185);
+}
+.sb-appeal-reminder-countdown[data-progress-level="safe"] .sb-appeal-reminder-percent{color:#79f5be;}
+.sb-appeal-reminder-countdown[data-progress-level="warning"] .sb-appeal-reminder-percent{color:#ffe178;}
+.sb-appeal-reminder-countdown[data-progress-level="danger"] .sb-appeal-reminder-percent{color:#ffa2b2;}
 @media(prefers-reduced-motion:reduce){
   .sb-appeal-reminder-progress-fill{transition:none;}
 }
