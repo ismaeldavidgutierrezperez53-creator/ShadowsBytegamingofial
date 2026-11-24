@@ -192,7 +192,7 @@
   }
   if(isOwn){
    refresh.addEventListener('click',()=>{if(!busy)load()});
-   visibility.addEventListener('click',()=>{if(current&&!busy)save(null,!current.show_on_profile)});
+   visibility.addEventListener('click',()=>{if(current&&!busy)save(current.selected_key||null,!current.show_on_profile)});
    automatic.addEventListener('click',()=>{if(current&&!busy)save(null,current.show_on_profile)});
    const sync=()=>{if(!busy&&active())load()};
    window.addEventListener('sb:surprise-box-opened',sync);
