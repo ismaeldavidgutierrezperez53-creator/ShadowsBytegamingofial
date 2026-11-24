@@ -64,7 +64,7 @@
       root.innerHTML = '<section class="sb-ag-panel"><h2>Tu aventura empieza con tu cuenta</h2><p>Inicia sesión con tu cuenta actual para consultar tus animes y tus sesiones gaming. No hace falta registrarse otra vez.</p><a class="gradient-btn mini" href="#/auth">Iniciar sesión</a></section>';
       return;
     }
-    const state = {root,user,anime:[],games:[],library:[],filter:'todas',busy:false,challengeGoal:3,rankVisible:false,rankRegistered:false,leaderboard:[]};
+    const state = {root,user,anime:[],games:[],library:[],filter:'todas',animeQuery:'',animeSort:'recent',gameQuery:'',gamePeriod:'all',weeklyGoal:300,busy:false,challengeGoal:3,rankVisible:false,rankRegistered:false,leaderboard:[]};
     drawShell(state);
     await loadData(state,active);
   }
@@ -84,7 +84,7 @@
       '<div><label for="sb-ag-anime-rating">Valoración (opcional)</label><select id="sb-ag-anime-rating"><option value="">Sin valorar</option><option value="1">★ 1</option><option value="2">★★ 2</option><option value="3">★★★ 3</option><option value="4">★★★★ 4</option><option value="5">★★★★★ 5</option></select></div></div>',
       '<label for="sb-ag-anime-notes">Notas (opcional)</label><textarea id="sb-ag-anime-notes" maxlength="500" rows="2" placeholder="¿Por qué quieres verlo?"></textarea>',
       '<button type="submit" class="gradient-btn">➕ Añadir anime</button><p id="sb-ag-anime-message" class="sb-ag-feedback" role="status"></p></form>',
-      '<div class="sb-ag-list-tools"><label for="sb-ag-anime-filter">Mostrar:</label><select id="sb-ag-anime-filter"><option value="todas">Todas</option><option value="pendiente">Pendientes</option><option value="viendo">Viendo</option><option value="completado">Completadas</option><option value="pausado">Pausadas</option></select></div>',
+      '<div class="sb-ag-list-tools sb-ag-extra-tools"><label for="sb-ag-anime-filter">Mostrar:</label><select id="sb-ag-anime-filter"><option value="todas">Todas</option><option value="pendiente">Pendientes</option><option value="viendo">Viendo</option><option value="completado">Completadas</option><option value="pausado">Pausadas</option></select><label for="sb-ag-anime-search">Buscar anime:</label><input id="sb-ag-anime-search" type="search" maxlength="120" autocomplete="off" placeholder="Buscar en mi lista"><label for="sb-ag-anime-sort">Orden:</label><select id="sb-ag-anime-sort"><option value="recent">Modificados recientemente</option><option value="title">Título A-Z</option><option value="progress">Más episodios completados</option></select><span id="sb-ag-anime-match-count" role="status"></span></div>',
       '<div id="sb-ag-anime-list" class="sb-ag-list"></div></section>',
       '<section class="sb-ag-panel"><h3>🎮 Diario gaming</h3><p>Apunta cuánto has jugado y conserva un historial de tus sesiones.</p>',
       '<form id="sb-ag-game-form" class="sb-ag-form">',
@@ -93,7 +93,7 @@
       '<div><label for="sb-ag-game-minutes">Minutos jugados</label><input id="sb-ag-game-minutes" type="number" min="1" max="1440" step="1" required placeholder="60"></div></div>',
       '<label for="sb-ag-game-notes">Notas (opcional)</label><textarea id="sb-ag-game-notes" maxlength="500" rows="2" placeholder="Partida, misión, logro…"></textarea>',
       '<button type="submit" class="gradient-btn">➕ Guardar sesión</button><p id="sb-ag-game-message" class="sb-ag-feedback" role="status"></p></form>',
-      '<div id="sb-ag-game-list" class="sb-ag-list"></div></section></div>',
+      '<div class="sb-ag-weekly-goal"><h4>🏁 Mi meta gaming de esta semana</h4><div class="sb-ag-goal-edit"><label for="sb-ag-weekly-hours">Horas que quiero jugar (0,5–40)</label><input id="sb-ag-weekly-hours" type="number" min="0.5" max="40" step="0.5" value="5"><button type="button" id="sb-ag-weekly-save" class="outline-btn mini">Guardar meta</button></div><progress id="sb-ag-weekly-progress" max="300" value="0"></progress><p id="sb-ag-weekly-result" class="sb-ag-feedback" role="status" aria-live="polite">Preparando tu semana…</p><small>Solo cuentan las sesiones guardadas de lunes a domingo. Tu meta es privada.</small></div><div class="sb-ag-list-tools sb-ag-extra-tools"><label for="sb-ag-game-search">Buscar videojuego:</label><input id="sb-ag-game-search" type="search" maxlength="120" autocomplete="off" placeholder="Buscar sesiones por título"><label for="sb-ag-game-period">Fecha:</label><select id="sb-ag-game-period"><option value="all">Todas las sesiones</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option></select><span id="sb-ag-game-match-count" role="status"></span></div><div id="sb-ag-game-list" class="sb-ag-list"></div></section></div>',
       '<div class="sb-ag-extras">',
       '<section class="sb-ag-panel" aria-labelledby="sb-ag-challenge-heading"><h3 id="sb-ag-challenge-heading">🏁 Retos anime</h3><p>Elige cuántos animes quieres completar. El progreso se calcula desde tu lista personal.</p><div class="sb-ag-challenge-controls"><label for="sb-ag-challenge-goal">Mi meta de animes completados</label><input id="sb-ag-challenge-goal" type="number" min="1" max="50" step="1" value="3"><button type="button" class="outline-btn mini" id="sb-ag-challenge-save">Guardar reto</button></div><progress id="sb-ag-challenge-progress" max="3" value="0"></progress><p id="sb-ag-challenge-result" class="sb-ag-feedback" role="status" aria-live="polite">Preparando tu reto…</p></section>',
       '<section class="sb-ag-panel" aria-labelledby="sb-ag-achievements-heading"><h3 id="sb-ag-achievements-heading">🏅 Logros por completar series</h3><p>Desbloquea insignias de colección al marcar animes como completados. No se suman puntos ni se modifican tus recompensas actuales.</p><div id="sb-ag-badges" class="sb-ag-badges" aria-live="polite"></div></section>',
@@ -106,6 +106,11 @@
     byId(root,'sb-ag-anime-form').addEventListener('submit',event => addAnime(state,event));
     byId(root,'sb-ag-game-form').addEventListener('submit',event => addGame(state,event));
     byId(root,'sb-ag-anime-filter').addEventListener('change',event => {state.filter=event.target.value;paintAnime(state);});
+    byId(root,'sb-ag-anime-search').addEventListener('input',event => {state.animeQuery=event.target.value.trim().toLocaleLowerCase('es');paintAnime(state);});
+    byId(root,'sb-ag-anime-sort').addEventListener('change',event => {state.animeSort=event.target.value;paintAnime(state);});
+    byId(root,'sb-ag-game-search').addEventListener('input',event => {state.gameQuery=event.target.value.trim().toLocaleLowerCase('es');paintGames(state);});
+    byId(root,'sb-ag-game-period').addEventListener('change',event => {state.gamePeriod=event.target.value;paintGames(state);});
+    byId(root,'sb-ag-weekly-save').addEventListener('click',()=>saveWeeklyGamingGoal(state));
     byId(root,'sb-ag-suggest-anime').addEventListener('click',() => {byId(root,'sb-ag-tip').textContent = recommendation(state,'anime');});
     byId(root,'sb-ag-suggest-game').addEventListener('click',() => {byId(root,'sb-ag-tip').textContent = recommendation(state,'gaming');});
     byId(root,'sb-ag-challenge-save').addEventListener('click',() => saveChallenge(state));
@@ -132,7 +137,7 @@
       byId(root,'sb-ag-anime-form').querySelector('button[type="submit"]').disabled=false;
       byId(root,'sb-ag-game-form').querySelector('button[type="submit"]').disabled=false;
       paintAll(state);
-      void Promise.all([loadChallenge(state,active),loadRanking(state,active)]);
+      void Promise.all([loadChallenge(state,active),loadRanking(state,active),loadWeeklyGamingGoal(state,active)]);
     } catch(error) {
       if(!active()) return;
       message.textContent='No se pudieron cargar las listas: '+friendlyError(error)+' ';
@@ -150,7 +155,7 @@
     const titles=[...new Set(state.library.map(g=>g.title).concat(state.games.map(g=>g.game_title)).filter(Boolean))].slice(0,100);
     for(const t of titles){const option=document.createElement('option');option.value=t;list.append(option);}
   }
-  function paintAll(state){paintStats(state);paintAnime(state);paintGames(state);paintChallenge(state);paintAchievements(state);paintRecommendations(state);}
+  function paintAll(state){paintStats(state);paintAnime(state);paintGames(state);paintWeeklyGamingGoal(state);paintChallenge(state);paintAchievements(state);paintRecommendations(state);}
   function paintStats(state){
     const stats=byId(state.root,'sb-ag-stats');
     const minutes=state.games.reduce((sum,g)=>sum+g.minutes_played,0);
@@ -170,13 +175,31 @@
   function paintAnime(state){
     const host=byId(state.root,'sb-ag-anime-list');
     host.replaceChildren();
-    const data=state.anime.filter(x=>state.filter==='todas'||x.status===state.filter);
-    if(!data.length){host.append(node('p','sb-ag-empty','No hay animes en este estado. Añade uno para empezar.'));return;}
+    const data=state.anime
+      .filter(x=>(state.filter==='todas'||x.status===state.filter)
+        &&x.title.toLocaleLowerCase('es').includes(state.animeQuery))
+      .sort((a,b)=>state.animeSort==='title'?
+        a.title.localeCompare(b.title,'es'):
+        state.animeSort==='progress'?
+        ((b.episodes_total?b.episodes_watched/b.episodes_total:-1)-
+         (a.episodes_total?a.episodes_watched/a.episodes_total:-1)):
+        new Date(b.updated_at)-new Date(a.updated_at));
+    byId(state.root,'sb-ag-anime-match-count').textContent=data.length+' de '+state.anime.length+' animes';
+    if(!data.length){host.append(node('p','sb-ag-empty','No hay animes con estos filtros. Prueba otra búsqueda o añade uno.'));return;}
     for(const anime of data){
       const card=node('article','sb-ag-item');
       const heading=node('h4','',anime.title);
       card.append(heading);
       appendMeta(card,[labels[anime.status]||anime.status, anime.episodes_watched+' / '+(anime.episodes_total??'—')+' episodios',anime.rating?'★ '+anime.rating+'/5':'']);
+      if(anime.episodes_total){
+        const progress=node('progress','sb-ag-episode-progress');
+        progress.max=anime.episodes_total;
+        progress.value=Math.min(anime.episodes_watched,anime.episodes_total);
+        progress.setAttribute('aria-label','Progreso de '+anime.title+': '+anime.episodes_watched+' de '+anime.episodes_total+' episodios');
+        card.append(progress);
+        const percentage=Math.round(100*Math.min(anime.episodes_watched/anime.episodes_total,1));
+        card.append(node('small','sb-ag-progress-caption',percentage+' % de los episodios vistos'));
+      }
       if(anime.notes)card.append(node('p','sb-ag-note',anime.notes));
       const tools=node('div','sb-ag-item-actions');
       const select=node('select','');
@@ -236,11 +259,74 @@
     }catch(error){message.textContent='No se pudo guardar: '+friendlyError(error);}
     finally{state.busy=false;submit.disabled=false;}
   }
+
+  function weekStartLocal(){
+    const date=new Date();date.setHours(0,0,0,0);
+    date.setDate(date.getDate()-((date.getDay()+6)%7));
+    return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+  }
+  function paintWeeklyGamingGoal(state){
+    const progress=byId(state.root,'sb-ag-weekly-progress');
+    if(!progress)return;
+    const start=weekStartLocal();
+    const minutes=state.games.filter(x=>x.played_on>=start&&x.played_on<=today())
+      .reduce((sum,g)=>sum+Number(g.minutes_played||0),0);
+    const target=state.weeklyGoal;
+    progress.max=target;progress.value=Math.min(minutes,target);
+    progress.setAttribute('aria-label','Progreso semanal gaming: '+minutes+' de '+target+' minutos');
+    byId(state.root,'sb-ag-weekly-result').textContent=minutes>=target
+      ?'🎉 ¡Meta de la semana cumplida! '+(minutes/60).toFixed(1)+' de '+(target/60).toFixed(1)+' horas.'
+      :'🎮 '+(minutes/60).toFixed(1)+' de '+(target/60).toFixed(1)+' horas · faltan '+((target-minutes)/60).toFixed(1)+' h.';
+  }
+  async function loadWeeklyGamingGoal(state,active){
+    try{
+      const {data,error}=await timeout(sb.from('member_gaming_weekly_goals')
+       .select('target_minutes').eq('user_id',state.user.id).maybeSingle(),10000);
+      if(!active())return;
+      if(error)throw error;
+      state.weeklyGoal=Number(data?.target_minutes)||300;
+      byId(state.root,'sb-ag-weekly-hours').value=String(state.weeklyGoal/60);
+      paintWeeklyGamingGoal(state);
+    }catch(error){
+      if(active())byId(state.root,'sb-ag-weekly-result').textContent='No se pudo cargar tu meta: '+friendlyError(error);
+    }
+  }
+  async function saveWeeklyGamingGoal(state){
+    if(state.busy)return;
+    const root=state.root;
+    const hours=Number(byId(root,'sb-ag-weekly-hours').value);
+    const minutes=hours*60;
+    const result=byId(root,'sb-ag-weekly-result');
+    if(!Number.isInteger(minutes)||minutes<30||minutes>2400||minutes%30!==0){
+      result.textContent='Selecciona entre 0,5 y 40 horas, en pasos de media hora.';return;
+    }
+    const button=byId(root,'sb-ag-weekly-save');
+    button.disabled=true;result.textContent='Guardando tu meta…';
+    try{
+      const {data:{user},error:authError}=await sb.auth.getUser();
+      if(authError||user?.id!==state.user.id)throw new Error('La sesión ha cambiado.');
+      const {data,error}=await sb.from('member_gaming_weekly_goals')
+        .upsert({user_id:state.user.id,target_minutes:minutes,updated_at:new Date().toISOString()},
+          {onConflict:'user_id'}).select('target_minutes').single();
+      if(error)throw error;
+      if(Number(data?.target_minutes)!==minutes)throw new Error('La meta guardada no coincide.');
+      state.weeklyGoal=minutes;paintWeeklyGamingGoal(state);
+    }catch(error){result.textContent='No se pudo guardar la meta: '+friendlyError(error);}
+    finally{button.disabled=false;}
+  }
+
   function paintGames(state){
     const host=byId(state.root,'sb-ag-game-list');
     host.replaceChildren();
-    if(!state.games.length){host.append(node('p','sb-ag-empty','Todavía no hay sesiones. Guarda tu primera partida.'));return;}
-    for(const game of state.games){
+    const cutoff=state.gamePeriod==='all'?null:(()=>{
+      const date=new Date();date.setHours(0,0,0,0);date.setDate(date.getDate()-(Number(state.gamePeriod)-1));
+      return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+    })();
+    const visible=state.games.filter(g=>
+      g.game_title.toLocaleLowerCase('es').includes(state.gameQuery) &&(!cutoff||g.played_on>=cutoff));
+    byId(state.root,'sb-ag-game-match-count').textContent=visible.length+' de '+state.games.length+' sesiones';
+    if(!visible.length){host.append(node('p','sb-ag-empty','No hay sesiones con estos filtros. Guarda una partida o cambia tu búsqueda.'));return;}
+    for(const game of visible){
       const card=node('article','sb-ag-item');
       card.append(node('h4','',game.game_title));
       const hours=Math.floor(game.minutes_played/60);
