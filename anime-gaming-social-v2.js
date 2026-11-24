@@ -73,6 +73,18 @@
   gameForm.append(gameFriendLabel,gameNameLabel,gameGrid,invite);
   gamePanel.append(gameTitle,gameInfo,gameForm,gameRefresh,gameStatus,gameList);
   host.append(recPanel,gamePanel);
+  const shortcuts=el('nav','sb-social-quick-nav');
+  shortcuts.setAttribute('aria-label','Accesos rápidos de anime y retos');
+  for(const [text,target] of [['🌸 Recomendar anime',recPanel],['🎮 Retos con amigos',gamePanel]]){
+   const jump=el('button','outline-btn mini',text);
+   jump.type='button';
+   jump.onclick=()=>target.scrollIntoView({
+    behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth',
+    block:'start'
+   });
+   shortcuts.append(jump);
+  }
+  root.querySelector('.sb-ag-suggest')?.after(shortcuts);
 
   let myUser=null,friends=[],names=new Map(),recLoading=false,gameLoading=false;
   const current=()=>myUser&&ownHub(root);
