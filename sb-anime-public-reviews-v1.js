@@ -53,6 +53,9 @@
   const recommendation=root.querySelector('#sb-social-anime-recs');
   if(recommendation)recommendation.after(panel);else holder.append(panel);
   let me=null,records=[],comments=[],names=new Map(),editId=null,loading=false,busy=false,openReviews=new Set();
+  const linkedReview=new URLSearchParams(location.hash.split('?')[1]||'').get('review');
+  let deepLinkFocused=false;
+  if(linkedReview)openReviews.add(linkedReview);
   const live=()=>panel.isConnected&&root.isConnected;
   const reset=()=>{
    editId=null;form.reset();title.value='';review.value='';rating.value='';
@@ -174,6 +177,8 @@
    for(const item of filtered){
     const mine=item.author_id===me?.id;
     const card=make('article','sb-v3-review-card');
+    card.dataset.reviewId=item.id;
+    if(item.id===linkedReview)card.classList.add('sb-v5-linked-review');
     card.append(make('strong','',item.anime_title));
     card.append(make('div','sb-v3-stars','★'.repeat(item.rating)+'☆'.repeat(5-item.rating)+' · '+item.rating+'/5'));
     card.append(make('small','',mine?'Tu reseña':(names.get(item.author_id)||'Miembro')));
@@ -210,6 +215,12 @@
     }
     appendDiscussion(item,card);
     list.append(card);
+    if(item.id===linkedReview&&!deepLinkFocused){
+     deepLinkFocused=true;
+     requestAnimationFrame(()=>{
+      if(card.isConnected)card.scrollIntoView({behavior:'smooth',block:'center'});
+     });
+    }
    }
   };
   const load=async()=>{
