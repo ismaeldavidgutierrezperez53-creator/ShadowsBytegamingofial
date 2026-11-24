@@ -14,7 +14,6 @@
   const client=()=>typeof sb!=='undefined'?sb:null;
   const route=()=>location.hash.split('?')[0];
   const isValid=x=>x && STYLES.has(x.frame_style)&&HEX.test(x.primary_color||'')&&HEX.test(x.glow_color||'');
-  const ownOnly=id=>typeof id==='string' && /^[0-9a-f-]{36}$/i.test(id);
   function decorate(node,item){
     node.className='sb-community-fav-strip-chip sb-community-fav-style-'+
       item.frame_style+' sb-community-fav-custom-colors';
@@ -190,7 +189,7 @@
         if(myId && id!==myId)throw Error('Sesión cambiada. Recarga la página.');
         const {data,error}=await action();
         if(error)throw error;
-        if(data===false||data==null&&applied)throw Error('Supabase no confirmó el guardado.');
+        if(data==null||(applied&&data!==true))throw Error('Supabase no confirmó el guardado.');
         if(!available())return;
         if(applied){
           window.dispatchEvent(new Event('sb-community-reaction-frame-gallery-applied'));
