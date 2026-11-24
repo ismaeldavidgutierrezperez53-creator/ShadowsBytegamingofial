@@ -116,6 +116,20 @@
     }
     html[data-sb-motion="off"] #sb-anime-scroll-progress-fill,
     html[data-sb-motion="off"] #sb-anime-scroll-progress-fill::after { animation: none !important; transition: none !important; }
+    #sb-anime-scroll-progress.sb-progress-disabled { display:none !important; }
+    #sb-anime-scroll-progress .sb-progress-spark {
+      position:absolute; width:5px; height:5px; border-radius:50%;
+      background:var(--spark-color,#fff1a0); box-shadow:0 0 8px currentColor;
+      top:0; pointer-events:none; animation:sb-progress-spark .75s ease-out forwards;
+    }
+    @keyframes sb-progress-spark {
+      from { transform:translate(0,0) scale(1); opacity:1; }
+      to { transform:translate(var(--dx),var(--dy)) scale(.2); opacity:0; }
+    }
+    #sb-progress-settings { border:1px solid #9254ff66; border-radius:10px; padding:10px; margin:10px 0; }
+    #sb-progress-settings legend { font-weight:700; }
+    #sb-progress-settings input[type=color] { width:100%; height:32px; }
+    #sb-progress-settings label { display:block; margin-top:6px; }
   `;
   document.head.appendChild(style);
 
@@ -157,7 +171,36 @@
     syncProgressVisibility();
   }
 
+  const prefKey = 'sb-scroll-progress-prefs-v1';
+  const defaults = { enabled:true, mode:'auto', a:'#9254ff', b:'#00d9ff' };
+  let prefs = {...defaults};
+  try {
+    const saved = JSON.parse(localStorage.getItem(prefKey)||'{}') || {};
+    if(typeof saved.enabled === 'boolean') prefs.enabled = saved.enabled;
+    if(['auto','custom'].includes(saved.mode)) prefs.mode = saved.mode;
+    for(const k of ['a','b']) if(/^#[0-9a-f]{6}$/i.test(saved[k])) prefs[k]=saved[k];
+  } catch (_) {}
+  track.classList.toggle('sb-progress-disabled', !prefs.enabled);
+  let previous = null;
   let scheduled = false;
+  function burst(percent) {
+    if(!prefs.enabled || track.hidden || document.documentElement.classList.contains('sb-customize-open') ||
+       document.documentElement.classList.contains('sb-menu-open') ||
+       document.body.classList.contains('sb-menu-open') ||
+       document.documentElement.dataset.sbMotion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const count = percent === 100 ? 16 : 8;
+    for(let i=0;i<count;i++){
+      const spark=document.createElement('span');
+      spark.className='sb-progress-spark';
+      spark.setAttribute('aria-hidden','true');
+      spark.style.left=(percent===100 ? 8+i*84/(count-1) : 50)+'%';
+      spark.style.setProperty('--dx',((i%2?1:-1)*(8+i%5*7))+'px');
+      spark.style.setProperty('--dy',(12+i%6*7)+'px');
+      spark.style.setProperty('--spark-color',percent===100?'#fff1a0':'#7df9ff');
+      track.append(spark);
+      setTimeout(()=>spark.remove(),800);
+    }
+  }
   const update = () => {
     scheduled = false;
     // Situar la barra debajo de la cabecera fija, también en móvil.
@@ -176,11 +219,16 @@
     fill.style.transform = 'scaleX(' + progress + ')';
     const percent = scrollable > 0 && scrollable - current <= 1 ? 100 : Math.min(99, Math.floor(progress * 100));
     const hue = 270 - progress * 130;
-    track.style.setProperty('--sb-progress-a', 'hsl(' + hue + ' 90% 62%)');
-    track.style.setProperty('--sb-progress-b', 'hsl(' + (hue - 35) + ' 95% 57%)');
+    track.style.setProperty('--sb-progress-a', prefs.mode==='custom'?prefs.a:'hsl(' + hue + ' 90% 62%)');
+    track.style.setProperty('--sb-progress-b', prefs.mode==='custom'?prefs.b:'hsl(' + (hue - 35) + ' 95% 57%)');
     percentage.textContent = percent + ' %';
     track.setAttribute('aria-valuenow', String(percent));
     track.classList.toggle('is-complete', percent === 100);
+    if(previous!==null && track.classList.contains('is-scrolling')) {
+      if(percent===100 && previous<100) burst(100);
+      else if(percent>=50 && previous<50) burst(50);
+    }
+    previous=percent;
   };
   const scheduleUpdate = () => {
     if (scheduled) return;
@@ -188,6 +236,31 @@
     window.requestAnimationFrame(update);
   };
 
+  if(customizerPanel && !document.getElementById('sb-progress-settings')) {
+    const settings=document.createElement('fieldset');
+    settings.id='sb-progress-settings';
+    settings.innerHTML='<legend>Barra de progreso</legend><label for="sb-progress-enabled">Mostrar barra</label><select id="sb-progress-enabled"><option value="on">Activada</option><option value="off">Desactivada</option></select><label for="sb-progress-mode">Colores de la barra</label><select id="sb-progress-mode"><option value="auto">Automático según progreso</option><option value="custom">Personalizado</option></select><label for="sb-progress-color-a">Color inicial</label><input id="sb-progress-color-a" type="color"><label for="sb-progress-color-b">Color final</label><input id="sb-progress-color-b" type="color"><button type="button" id="sb-progress-reset">Restablecer barra</button><small>Preferencias guardadas en este dispositivo.</small>';
+    const q=id=>settings.querySelector('#sb-progress-'+id);
+    function syncControls(){
+      q('enabled').value=prefs.enabled?'on':'off';
+      q('mode').value=prefs.mode;
+      q('color-a').value=prefs.a;
+      q('color-b').value=prefs.b;
+      q('color-a').disabled=q('color-b').disabled=prefs.mode!=='custom';
+    }
+    function savePrefs(){
+      track.classList.toggle('sb-progress-disabled',!prefs.enabled);
+      try{localStorage.setItem(prefKey,JSON.stringify(prefs));}catch(_){}
+      syncControls(); scheduleUpdate();
+    }
+    q('enabled').addEventListener('change',()=>{prefs.enabled=q('enabled').value==='on';savePrefs()});
+    q('mode').addEventListener('change',()=>{prefs.mode=q('mode').value;savePrefs()});
+    for(const k of ['a','b']) q('color-'+k).addEventListener('input',()=>{prefs[k]=q('color-'+k).value;savePrefs()});
+    q('reset').addEventListener('click',()=>{prefs={...defaults};savePrefs()});
+    syncControls();
+    const reset=[...customizerPanel.querySelectorAll('button')].find(b=>b.textContent==='Restablecer diseño');
+    if(reset){reset.before(settings);reset.addEventListener('click',()=>{prefs={...defaults};savePrefs()});}else customizerPanel.append(settings);
+  }
   let scrollTimer;
   window.addEventListener('scroll', () => {
     track.classList.add('is-scrolling');
