@@ -1,0 +1,19 @@
+/* Ranking privado de reacciones a Mi Info: escritorio, móvil y perfiles públicos. */
+.sb-info-reaction-ranking{margin:16px 0 0;padding:12px;border:1px solid rgba(213,167,255,.37);border-radius:14px;background:rgba(48,25,94,.36);color:#faf0ff}
+.sb-info-rank-summary{min-height:34px;line-height:1.5;cursor:pointer;font-size:1rem;font-weight:750;color:#f9e8ff}
+.sb-info-rank-summary:focus-visible{outline:2px solid #e7b5ff;outline-offset:3px}
+.sb-info-rank-help{font-size:.85rem;line-height:1.5;color:#e3cdf8;margin:10px 0 12px}
+.sb-info-rank-status{font-size:.84rem;line-height:1.4;color:#e9d9ff;margin:10px 0}
+.sb-info-rank-list{list-style:none;display:grid;gap:8px;margin:10px 0 12px;padding:0}
+.sb-info-rank-item{display:flex;align-items:center;gap:11px;min-width:0;padding:11px 12px;border:1px solid rgba(228,196,255,.22);border-radius:12px;background:rgba(26,14,60,.5)}
+.sb-info-rank-place{flex:0 0 29px;font-size:1.18rem;text-align:center;font-weight:800;color:#ffe8b4}
+.sb-info-rank-avatar{position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 45px;width:45px;height:45px;overflow:hidden;border-radius:50%;border:2px solid rgba(223,182,255,.6);background:#6b449c;color:#fff;font-weight:800}
+.sb-info-rank-avatar-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.sb-info-rank-member{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1;overflow-wrap:anywhere}
+.sb-info-rank-name{font-size:.94rem;color:#fff;font-weight:750;line-height:1.35}
+a.sb-info-rank-name{text-decoration:underline;text-underline-offset:3px}
+a.sb-info-rank-name:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.sb-info-rank-last{font-size:.74rem;line-height:1.35;color:#d8c0f0}
+.sb-info-rank-count{flex:0 0 auto;font-size:.84rem;font-weight:700;color:#f7defe;padding:5px 8px;background:rgba(164,109,223,.19);border-radius:999px;font-variant-numeric:tabular-nums}
+.sb-info-rank-refresh{min-height:42px}
+@media(max-width:560px){.sb-info-reaction-ranking{padding:11px}.sb-info-rank-item{gap:8px;padding:9px 8px;flex-wrap:wrap}.sb-info-rank-place{flex-basis:23px}.sb-info-rank-avatar{flex-basis:38px;width:38px;height:38px}.sb-info-rank-count{margin-left:auto;font-size:.77rem}.sb-info-rank-name{font-size:.86rem}.sb-info-rank-last{font-size:.7rem}}
