@@ -32,7 +32,7 @@
     root.setAttribute('aria-label','Galería de diseños de marcos');
     root.append(el('h3','sb-community-frame-gallery-heading','🎨 Mi galería de diseños'));
     root.append(el('p','sb-community-frame-gallery-intro',
-      'Guarda tus combinaciones con nombre y aplícalas a cualquier insignia que tengas destacada. Puedes guardar hasta 20 diseños privados.'));
+      'Guarda tus combinaciones con nombre y aplícalas a cualquier insignia que tengas destacada. Puedes guardar hasta 20 diseños; solo se publican los que tú elijas.'));
     const form=el('div','sb-community-frame-gallery-form');
     const label=el('label','sb-community-frame-gallery-name');
     label.append(el('span',null,'Nombre del diseño'));
@@ -88,6 +88,20 @@
         top.append(chip,info);
         card.append(top);
         const controls=el('div','sb-community-frame-gallery-controls');
+        const published=Boolean(row.shared_at);
+        const share=el('button','outline-btn mini sb-community-frame-gallery-share',
+          published?'🔒 Retirar de la comunidad':'🌟 Publicar en comunidad');
+        share.type='button';
+        share.disabled=busy;
+        share.setAttribute('aria-label',(published?'Retirar':'Compartir')+' el diseño '+row.design_name);
+        share.addEventListener('click',()=>{
+          if(published && !window.confirm('¿Dejar de compartir «'+row.design_name+'»? Ya no aparecerá en la galería pública.'))return;
+          void runMutation(
+            ()=>api().rpc('set_my_community_frame_design_shared',{
+              p_design_id:row.design_id,p_shared:!published
+            }),
+            published?'Diseño retirado de la comunidad.':'🌟 Diseño publicado en la galería de la comunidad.',false);
+        });
         const see=el('button','outline-btn mini','👀 Vista previa');
         see.type='button';see.disabled=busy;
         see.addEventListener('click',()=>previewDesign(row));
@@ -124,7 +138,7 @@
             ()=>api().rpc('delete_my_community_frame_design',{p_design_id:row.design_id}),
             'Diseño «'+row.design_name+'» eliminado de la galería.',false);
         });
-        controls.append(see,target,apply,remove);
+        controls.append(see,target,apply,share,remove);
         card.append(controls);
         list.append(card);
       }
@@ -150,7 +164,7 @@
         const uid=await getOwner();
         const [saved,highlighted,catalog]=await Promise.all([
           api().from(TABLE)
-            .select('design_id,design_name,frame_style,primary_color,glow_color,updated_at')
+            .select('design_id,design_name,frame_style,primary_color,glow_color,updated_at,shared_at')
             .eq('user_id',uid).order('updated_at',{ascending:false}).limit(20),
           api().from(SHOWCASE).select('badge_key,position').eq('user_id',uid).order('position'),
           api().from(CATALOG).select('badge_key,title,emoji')
@@ -209,6 +223,7 @@
           window.dispatchEvent(new Event('sb-community-reaction-frame-gallery-applied'));
           window.dispatchEvent(new Event('sb-community-reaction-showcase-updated'));
         }
+        window.dispatchEvent(new Event('sb-community-frame-designs-changed'));
         busy=false;
         await load();
         announce(success);
@@ -246,6 +261,9 @@
       panel.addEventListener('toggle',()=>{if(panel.open)void load();});
     }else void load();
     window.addEventListener('sb-community-reaction-showcase-updated',()=>{
+      if(available()&&!busy)void load();
+    });
+    window.addEventListener('sb-community-frame-designs-imported',()=>{
       if(available()&&!busy)void load();
     });
     window.addEventListener('focus',()=>{
