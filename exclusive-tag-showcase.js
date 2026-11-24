@@ -172,6 +172,7 @@
      const {error}=await sb.rpc('sb_set_my_featured_tags',{p_tag_ids:selected});
      if(error)throw error;
      dirty=false;
+     window.dispatchEvent(new CustomEvent('sb-featured-tags-saved',{detail:{userId:id}}));
      statusText('✅ Vitrina guardada. Ya se puede ver en tu perfil público.');
      statusText('✅ Vitrina guardada. Tus favoritas se muestran en tu perfil público.');
     }catch(error){statusText('No se pudo guardar: '+(error.message||'Error inesperado'),true)}
