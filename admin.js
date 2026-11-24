@@ -683,7 +683,7 @@ async function initAdmin(){
  document.getElementById('admin-new').onclick=()=>adminForm();
  document.getElementById('admin-library-new').onclick=()=>adminForm();
  document.getElementById('admin-search').oninput=adminRenderList;
- adminSetActiveTab();window.SBRoleManagement?.mountAdminPanel();window.SBMemberModeration?.mountPanel();await adminLoad();adminInitExtended();adminInitCompetitions();adminInitSurpriseBoxes();adminInitRewardShop();
+ adminSetActiveTab();window.SBVisibility?.mount();window.SBRoleManagement?.mountAdminPanel();window.SBMemberModeration?.mountPanel();await adminLoad();adminInitExtended();adminInitCompetitions();adminInitSurpriseBoxes();adminInitRewardShop();
 }
 
 async function adminInitRewardShop(){
