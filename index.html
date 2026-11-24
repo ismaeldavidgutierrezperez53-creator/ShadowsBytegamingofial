@@ -179,6 +179,18 @@
   <link rel="stylesheet" href="member-tag-history.css?v=20261123-history-v1" />
   <link rel="stylesheet" href="automatic-tag-celebration.css?v=20261123-v1" />
   <!-- Personalización de etiquetas en los perfiles -->
+<style id="sb-menu-emoji-enhancements">
+.topbar #nav .menu-column a:not([hidden]){display:flex!important;align-items:center;gap:9px;min-width:0;min-height:44px;transition:background .18s,box-shadow .18s,border-color .18s}
+.topbar #nav .menu-column a .sb-menu-emoji{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;border-radius:9px;background:color-mix(in srgb,var(--sb-menu-accent) 19%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sb-menu-accent) 40%,transparent);font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;font-size:17px;line-height:1;transition:transform .18s}
+.topbar #nav .menu-column a .sb-menu-label{flex:1;min-width:0;overflow-wrap:anywhere}
+.topbar #nav .menu-column a[aria-current="page"]:not([hidden]){background:color-mix(in srgb,var(--sb-menu-accent) 20%,#28183c);box-shadow:inset 3px 0 var(--sb-menu-accent),0 0 12px color-mix(in srgb,var(--sb-menu-accent) 30%,transparent)}
+.topbar #nav .sb-menu-count:not([hidden]){display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:22px;padding:3px 5px;border-radius:999px;background:#be185d;color:#fff;font:700 12px/1.2 Arial,sans-serif}
+.topbar #nav .sb-menu-count[hidden]{display:none!important}
+@media(hover:hover) and (pointer:fine){.topbar #nav .menu-column a:hover .sb-menu-emoji{transform:scale(1.13) rotate(-6deg)}}
+@media(max-width:800px){.topbar #nav .menu-column a:not([hidden]){gap:7px;padding:8px!important}.topbar #nav .menu-column a .sb-menu-emoji{flex-basis:28px;width:28px;height:28px}}
+@media(max-width:380px){.topbar #nav .menu-column{grid-template-columns:1fr!important}}
+@media(prefers-reduced-motion:reduce){.topbar #nav .menu-column a,.topbar #nav .menu-column a .sb-menu-emoji{transition:none!important;transform:none!important}}
+</style>
 </head>
 <body>
   <!-- Pantalla de inicio de Shadows Byte (web y PWA instalada). -->
@@ -210,15 +222,15 @@
       <div class="menu-links-grid">
         <section class="menu-column" aria-label="Explorar">
           <strong>🌸 Explorar</strong>
-          <a href="#/"><span aria-hidden="true">🏠</span> Inicio</a><a href="#/anime"><span aria-hidden="true">🍥</span> Anime</a><a href="#/manga"><span aria-hidden="true">📚</span> Manga</a><a href="#/manhwa"><span aria-hidden="true">📖</span> Manhwa</a><a href="#/gaming"><span aria-hidden="true">🎮</span> Gaming</a><a href="#/anime-gaming">🌸 Centro Anime y Gaming</a><a href="#/noticias"><span aria-hidden="true">📰</span> Noticias</a><a href="#/waifu-husbando"><span aria-hidden="true">💖</span> Waifu / Husbando</a><a href="#/pokedex"><span aria-hidden="true">🔴</span> Pokédex</a><a href="#/one-piece"><span aria-hidden="true">🏴‍☠️</span> One Piece</a>
+          <a href="#/" style="--sb-menu-accent:#fbbf24"><span class="sb-menu-emoji" aria-hidden="true">🏠</span><span class="sb-menu-label">Inicio</span></a><a href="#/anime" style="--sb-menu-accent:#fb7185"><span class="sb-menu-emoji" aria-hidden="true">🍥</span><span class="sb-menu-label">Anime</span></a><a href="#/manga" style="--sb-menu-accent:#60a5fa"><span class="sb-menu-emoji" aria-hidden="true">📚</span><span class="sb-menu-label">Manga</span></a><a href="#/manhwa" style="--sb-menu-accent:#a78bfa"><span class="sb-menu-emoji" aria-hidden="true">📖</span><span class="sb-menu-label">Manhwa</span></a><a href="#/gaming" style="--sb-menu-accent:#34d399"><span class="sb-menu-emoji" aria-hidden="true">🎮</span><span class="sb-menu-label">Gaming</span></a><a href="#/anime-gaming" style="--sb-menu-accent:#f472b6"><span class="sb-menu-emoji" aria-hidden="true">🌸</span><span class="sb-menu-label">Centro Anime y Gaming</span></a><a href="#/noticias" style="--sb-menu-accent:#38bdf8"><span class="sb-menu-emoji" aria-hidden="true">📰</span><span class="sb-menu-label">Noticias</span></a><a href="#/waifu-husbando" style="--sb-menu-accent:#f9a8d4"><span class="sb-menu-emoji" aria-hidden="true">💖</span><span class="sb-menu-label">Waifu / Husbando</span></a><a href="#/pokedex" style="--sb-menu-accent:#f87171"><span class="sb-menu-emoji" aria-hidden="true">🔴</span><span class="sb-menu-label">Pokédex</span></a><a href="#/one-piece" style="--sb-menu-accent:#fbbf24"><span class="sb-menu-emoji" aria-hidden="true">🏴‍☠️</span><span class="sb-menu-label">One Piece</span></a>
         </section>
         <section class="menu-column" aria-label="Comunidad y actividades">
           <strong>🎮 Comunidad</strong>
-          <a href="#/comunidad"><span aria-hidden="true">👥</span> Comunidad</a><a href="#/miembros"><span aria-hidden="true">🧑‍🤝‍🧑</span> Miembros</a><a href="#/cartelera"><span aria-hidden="true">📌</span> Cartelera</a><a href="#/eventos"><span aria-hidden="true">📅</span> Eventos</a><a href="#/encuestas"><span aria-hidden="true">📊</span> Encuestas</a><a href="#/tienda">🏪 Tienda de recompensas</a><a href="#/favoritos"><span aria-hidden="true">⭐</span> Favoritos</a><a href="#/logros"><span aria-hidden="true">🏆</span> Logros y niveles</a>
+          <a href="#/comunidad" style="--sb-menu-accent:#818cf8"><span class="sb-menu-emoji" aria-hidden="true">👥</span><span class="sb-menu-label">Comunidad</span></a><a href="#/miembros" style="--sb-menu-accent:#2dd4bf"><span class="sb-menu-emoji" aria-hidden="true">🧑‍🤝‍🧑</span><span class="sb-menu-label">Miembros</span></a><a href="#/cartelera" style="--sb-menu-accent:#fbbf24"><span class="sb-menu-emoji" aria-hidden="true">📌</span><span class="sb-menu-label">Cartelera</span></a><a href="#/eventos" style="--sb-menu-accent:#38bdf8"><span class="sb-menu-emoji" aria-hidden="true">📅</span><span class="sb-menu-label">Eventos</span></a><a href="#/encuestas" style="--sb-menu-accent:#c084fc"><span class="sb-menu-emoji" aria-hidden="true">📊</span><span class="sb-menu-label">Encuestas</span></a><a href="#/tienda" style="--sb-menu-accent:#34d399"><span class="sb-menu-emoji" aria-hidden="true">🏪</span><span class="sb-menu-label">Tienda de recompensas</span></a><a href="#/favoritos" style="--sb-menu-accent:#facc15"><span class="sb-menu-emoji" aria-hidden="true">⭐</span><span class="sb-menu-label">Favoritos</span></a><a href="#/logros" style="--sb-menu-accent:#f59e0b"><span class="sb-menu-emoji" aria-hidden="true">🏆</span><span class="sb-menu-label">Logros y niveles</span></a>
         </section>
         <section class="menu-column" aria-label="Tu espacio">
           <strong>✨ Tu espacio</strong>
-          <a href="#/cuenta"><span aria-hidden="true">👤</span> Mi cuenta</a><a href="#/mensajes"><span aria-hidden="true">💬</span> Mensajes</a><a href="#/notificaciones"><span aria-hidden="true">🔔</span> Notificaciones</a><a href="#/sonidos">🎵 Sonidos anime</a><a href="#/no-molestar"><span aria-hidden="true">🌙</span> No molestar</a><a href="#/contacto"><span aria-hidden="true">📩</span> Contacto</a><a id="menu-admin-link" href="#/admin" hidden><span aria-hidden="true">🛡️</span> Administración</a>
+          <a href="#/cuenta" style="--sb-menu-accent:#a78bfa"><span class="sb-menu-emoji" aria-hidden="true">👤</span><span class="sb-menu-label">Mi cuenta</span></a><a href="#/mensajes" style="--sb-menu-accent:#38bdf8"><span class="sb-menu-emoji" aria-hidden="true">💬</span><span class="sb-menu-label">Mensajes</span><span class="sb-menu-count" data-count-source="message-unread-count" hidden></span></a><a href="#/notificaciones" style="--sb-menu-accent:#fbbf24"><span class="sb-menu-emoji" aria-hidden="true">🔔</span><span class="sb-menu-label">Notificaciones</span><span class="sb-menu-count" data-count-source="notification-count" hidden></span></a><a href="#/sonidos" style="--sb-menu-accent:#c084fc"><span class="sb-menu-emoji" aria-hidden="true">🎵</span><span class="sb-menu-label">Sonidos anime</span></a><a href="#/no-molestar" style="--sb-menu-accent:#818cf8"><span class="sb-menu-emoji" aria-hidden="true">🌙</span><span class="sb-menu-label">No molestar</span></a><a href="#/contacto" style="--sb-menu-accent:#2dd4bf"><span class="sb-menu-emoji" aria-hidden="true">📩</span><span class="sb-menu-label">Contacto</span></a><a id="menu-admin-link" href="#/admin" hidden style="--sb-menu-accent:#f87171"><span class="sb-menu-emoji" aria-hidden="true">🛡️</span><span class="sb-menu-label">Administración</span></a>
         </section>
       </div>
       <div class="menu-account">
@@ -469,5 +481,25 @@
   <script defer src="app-updates.js?v=20261121-verify-install-v5"></script>
   <script defer src="splash-screen.js?v=20261121-splash-v1"></script>
   <script defer src="mobile-app-v3.js?v=20261121-navigation-v2"></script>
+<script>
+(function(){
+ const root=document.getElementById('account-actions');
+ const targets=document.querySelectorAll('#nav .sb-menu-count');
+ if(!root||!targets.length)return;
+ const sync=()=>{
+  targets.forEach(target=>{
+   const source=document.getElementById(target.dataset.countSource);
+   const value=source?.textContent.trim()||'';
+   const visible=!!source&&!source.hidden&&/^[1-9]\\d*\\+?$/.test(value);
+   target.hidden=!visible;
+   target.textContent=visible?value:'';
+   if(visible)target.setAttribute('aria-label',value+' sin leer');
+   else target.removeAttribute('aria-label');
+  });
+ };
+ new MutationObserver(sync).observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
+ sync();
+})();
+</script>
 </body>
 </html>
