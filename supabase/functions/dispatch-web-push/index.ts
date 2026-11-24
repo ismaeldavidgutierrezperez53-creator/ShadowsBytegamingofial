@@ -258,6 +258,10 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
   // Premios y hitos sin ID UUID propio: se verifican con sus claves compuestas
   // antes de enviar el aviso al usuario. Los campos admitidos son una lista fija.
   const awards:Record<string,{keys:string[],title:string,body:string,path:string}> = {
+    member_community_reaction_badge_notifications:{
+      keys:['badge_key'],title:'🏅 Insignia de la comunidad',
+      body:'Has desbloqueado una insignia por reaccionar a publicaciones.',path:'#/logros'
+    },
     member_gamer_badge_notifications:{
       keys:['badge_key'],title:'🏅 Nueva insignia gamer',
       body:'Has desbloqueado una insignia en tu perfil.',path:'#/cuenta'
@@ -297,11 +301,18 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
     }
     const {data:row,error}=await query.maybeSingle();
     if(error || !row)return 0;
+    const isCommunityReactionBadge=type==='member_community_reaction_badge_notifications';
+    const reactionBadge=isCommunityReactionBadge
+      ? await admin.from('member_community_reaction_badge_catalog')
+          .select('emoji,title').eq('badge_key',String(extra.badge_key||'')).maybeSingle()
+      : null;
+    const reactionBadgeName=String(reactionBadge?.data?.title||'Insignia de la comunidad').slice(0,75);
+    const reactionBadgeEmoji=String(reactionBadge?.data?.emoji||'🏅').slice(0,8);
     const medalPlace=Number(extra.place);
     const medalTitle=medalPlace===1?'🥇 ¡Medalla de oro ganada!':medalPlace===2?'🥈 ¡Medalla de plata ganada!':medalPlace===3?'🥉 ¡Medalla de bronce ganada!':'🏅 Premio de competición';
     return notifyUser(row.user_id,{
-      title:type==='community_competition_awards'?medalTitle:award.title,
-      body:type==='community_competition_awards'?'Has conseguido una medalla oficial. Consulta tu podio y tus trofeos.':award.body,
+      title:type==='community_competition_awards'?medalTitle:isCommunityReactionBadge?reactionBadgeEmoji+' '+reactionBadgeName:award.title,
+      body:type==='community_competition_awards'?'Has conseguido una medalla oficial. Consulta tu podio y tus trofeos.':isCommunityReactionBadge?'¡Enhorabuena! Has desbloqueado '+reactionBadgeName+'. Visita tus logros.':award.body,
       path:award.path,
       tag:'award-'+type+'-'+id+'-'+award.keys.map(key=>String(extra[key])).join('-').slice(0,90)
     },undefined,undefined,'alert_rewards_enabled');
@@ -345,7 +356,7 @@ Deno.serve(async(req:Request)=>{
     const config=await getConfig();
     webpush.setVapidDetails(allowedOrigin,config.public_key,config.private_key);
     if(req.headers.get('x-sb-push-secret') === config.hook_secret) {
-      if(!['member_notifications','member_direct_messages','member_chat_group_messages','news','member_report_notifications','member_appeal_notifications','member_private_calls','member_group_calls','member_group_video_invites','member_gamer_badge_notifications','member_point_goal_notifications','member_milestone_awards','member_poll_milestone_awards','community_competition_awards','mystery_box_monthly_awards','shop_season_podium_awards'].includes(body.type))
+      if(!['member_notifications','member_direct_messages','member_chat_group_messages','news','member_report_notifications','member_appeal_notifications','member_private_calls','member_group_calls','member_group_video_invites','member_community_reaction_badge_notifications','member_gamer_badge_notifications','member_point_goal_notifications','member_milestone_awards','member_poll_milestone_awards','community_competition_awards','mystery_box_monthly_awards','shop_season_podium_awards'].includes(body.type))
         return reply({error:'Unknown event'},400);
       const delivered=await dispatch(body.type,String(body.id||''),body.meta && typeof body.meta==='object' && !Array.isArray(body.meta)?body.meta:{});
       return reply({ok:true,delivered});
