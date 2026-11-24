@@ -1,0 +1,20 @@
+/* Historial personal de insignias de reacciones comunitarias. */
+.sb-community-badge-history{color:#f9edff;min-width:0;margin:17px 0;padding:16px;border:1px solid rgba(209,165,255,.42);border-radius:15px;background:linear-gradient(150deg,rgba(79,40,130,.29),rgba(21,14,54,.42))}
+.sb-community-badge-history-heading{font-size:1.08rem!important;color:#fceaff!important;line-height:1.45;font-weight:780;margin:0 0 10px!important}
+summary.sb-community-badge-history-heading{cursor:pointer;min-height:30px;margin-bottom:0!important}
+summary.sb-community-badge-history-heading:focus-visible{outline:2px solid #e5b9ff;outline-offset:4px}
+.sb-community-badge-history-account[open] summary.sb-community-badge-history-heading{margin-bottom:13px!important}
+.sb-community-badge-history-intro{font-size:.87rem;color:#e7d5f7;line-height:1.52;margin:0 0 12px}
+.sb-community-badge-history-status{font-size:.84rem;line-height:1.45;color:#f0ddff;margin:0 0 12px;min-height:1em}
+.sb-community-badge-history-list{display:grid;gap:10px;list-style:none;margin:0 0 13px;padding:0}
+.sb-community-badge-history-entry{display:flex;align-items:flex-start;gap:12px;min-width:0;border-radius:13px;border:1px solid rgba(225,182,255,.3);background:rgba(32,19,66,.56);padding:13px}
+.sb-community-badge-history-emoji{font-size:2rem;flex:0 0 44px;line-height:1.2;text-align:center}
+.sb-community-badge-history-details{min-width:0;flex:1;overflow-wrap:anywhere}
+.sb-community-badge-history-name{display:block;font-size:1rem;color:#ffe4b7;margin-bottom:6px}
+.sb-community-badge-history-date{display:block;font-size:.82rem;color:#dbcaef;line-height:1.5}
+.sb-community-badge-history-reward,.sb-community-badge-history-milestone{font-size:.84rem;line-height:1.45;margin:7px 0 0;color:#f8e9ff}
+.sb-community-badge-history-milestone{color:#dbcaf3}
+.sb-community-badge-history-footer{display:flex;gap:9px;flex-wrap:wrap}
+.sb-community-badge-history-footer button,.sb-community-badge-history-footer a{min-height:42px;display:inline-flex;justify-content:center;align-items:center}
+.sb-community-badge-history-account{padding:12px}
+@media(max-width:560px){.sb-community-badge-history{padding:12px}.sb-community-badge-history-entry{gap:9px;padding:11px}.sb-community-badge-history-emoji{flex-basis:35px;font-size:1.7rem}.sb-community-badge-history-footer button,.sb-community-badge-history-footer a{flex:1 1 145px}}
