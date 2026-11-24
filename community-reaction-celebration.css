@@ -1,0 +1,21 @@
+/* Celebraciones anime respetuosas con reducción de movimiento y accesibilidad. */
+.sb-community-badge-celebration-backdrop{position:fixed;inset:0;z-index:2147483000;background:rgba(8,5,23,.81);display:grid;place-items:center;padding:18px;isolation:isolate;overflow:hidden}
+.sb-community-badge-celebration-open{overflow:hidden}
+.sb-community-badge-celebration{position:relative;z-index:2;max-width:460px;width:min(100%,460px);text-align:center;border:2px solid #d6a0fa;border-radius:23px;background:linear-gradient(150deg,#35185f,#17132e 70%,#302253);box-shadow:0 25px 85px rgba(0,0,0,.6),0 0 45px rgba(190,114,250,.31);padding:37px 23px 26px;color:#fff;animation:sb-community-badge-popup .48s cubic-bezier(.18,.8,.22,1) both}
+.sb-community-badge-celebration-close{position:absolute;right:10px;top:10px;border:1px solid rgba(235,209,255,.45);background:rgba(255,255,255,.12);color:#fff;border-radius:50%;width:39px;height:39px;font-size:1.05rem;cursor:pointer}
+.sb-community-badge-celebration-close:focus-visible,.sb-community-badge-celebration-actions :focus-visible,.sb-community-badge-celebration-preview:focus-visible{outline:3px solid #fbd48b;outline-offset:3px}
+.sb-community-badge-celebration-medal{font-size:4.6rem;line-height:1.2;margin:5px auto 13px;filter:drop-shadow(0 0 17px rgba(255,210,111,.65));animation:sb-community-medal-pulse 2.1s ease-in-out infinite}
+.sb-community-badge-celebration h2{font-size:1.5rem!important;line-height:1.3;color:#fff!important;margin:5px 0 12px!important}
+.sb-community-badge-celebration-name{display:block;font-size:1.24rem;color:#ffe2a2;margin:0 0 8px;overflow-wrap:anywhere}
+.sb-community-badge-celebration p{font-size:.95rem;line-height:1.6;color:#e8d9f7;margin:0 auto 19px}
+.sb-community-badge-celebration-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:11px}
+.sb-community-badge-celebration-actions a,.sb-community-badge-celebration-actions button{min-height:43px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.sb-community-badge-confetti{pointer-events:none;position:absolute;inset:0;z-index:1}
+.sb-community-badge-confetti-piece{position:absolute;top:-18px;width:8px;height:16px;border-radius:2px;opacity:0;animation:sb-community-confetti-fall 2.2s linear infinite}
+.sb-community-badge-celebration-preview{margin:10px 0 0 10px;min-height:42px}
+@keyframes sb-community-badge-popup{from{opacity:0;transform:translateY(25px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes sb-community-medal-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+@keyframes sb-community-confetti-fall{0%{transform:translate3d(0,-20px,0) rotate(0);opacity:0}12%{opacity:1}90%{opacity:1}100%{transform:translate3d(65px,105vh,0) rotate(700deg);opacity:0}}
+.sb-community-badge-celebration-static .sb-community-badge-celebration,.sb-community-badge-celebration-static .sb-community-badge-celebration-medal{animation:none!important}
+@media(max-width:560px){.sb-community-badge-celebration{padding:32px 17px 24px}.sb-community-badge-celebration-medal{font-size:4rem}.sb-community-badge-celebration h2{font-size:1.27rem!important}.sb-community-badge-celebration-preview{margin-left:0}}
+@media(prefers-reduced-motion:reduce){.sb-community-badge-celebration,.sb-community-badge-celebration-medal,.sb-community-badge-confetti-piece{animation:none!important}.sb-community-badge-confetti{display:none!important}}
