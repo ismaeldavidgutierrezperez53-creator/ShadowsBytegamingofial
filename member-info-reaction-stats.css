@@ -1,0 +1,25 @@
+/* Panel de estadísticas privadas de las reacciones a Mi Info. */
+.sb-info-stats{margin:17px 0 0;padding:16px;border:1px solid rgba(196,145,248,.48);border-radius:16px;background:linear-gradient(155deg,rgba(88,42,140,.29),rgba(34,21,73,.46));color:#f9efff}
+.sb-info-stats-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.sb-info-stats-title{color:#f8e9ff!important;font-size:1.05rem!important;line-height:1.4;margin:0!important}
+.sb-info-stats-reload{min-height:40px;touch-action:manipulation}
+.sb-info-stats-help{color:#ddc8f4;font-size:.86rem;line-height:1.55;margin:10px 0 13px}
+.sb-info-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sb-info-stat-card{display:flex;flex-direction:column;justify-content:center;gap:8px;padding:13px 11px;min-height:90px;min-width:0;border-radius:13px;border:1px solid rgba(208,167,255,.38);background:rgba(38,18,80,.7)}
+.sb-info-stat-label{font-size:.87rem;line-height:1.3;color:#e8d2fd;overflow-wrap:anywhere}
+.sb-info-stat-value{font-size:1.65rem;line-height:1.15;color:#fff;font-weight:800;font-variant-numeric:tabular-nums}
+.sb-info-stats-active{margin:14px 0 12px;color:#e8d2fa;font-size:.85rem;line-height:1.5}
+.sb-info-stats-subtitle{font-size:.93rem!important;color:#f6e9ff!important;margin:13px 0 10px!important}
+.sb-info-stats-breakdown{display:grid;gap:12px}
+.sb-info-stat-emoji-row{display:grid;grid-template-columns:minmax(98px,145px) minmax(0,1fr) auto;align-items:center;gap:10px}
+.sb-info-stat-emoji-name{color:#f8edff;font-size:.86rem}
+.sb-info-stat-track{height:12px;overflow:hidden;border-radius:20px;background:rgba(225,204,252,.16);border:1px solid rgba(224,205,251,.19)}
+.sb-info-stat-fill{display:block;height:100%;width:0;transition:width .3s ease;border-radius:20px;background:#c48bff}
+.sb-info-stat-fill-heart{background:#ff86b1}
+.sb-info-stat-fill-laugh{background:#f6c261}
+.sb-info-stat-fill-fire{background:#ff986b}
+.sb-info-stat-fill-like{background:#89b8ff}
+.sb-info-stat-emoji-count{color:#fff;font-size:.91rem;font-variant-numeric:tabular-nums;min-width:19px;text-align:right}
+.sb-info-stats-status{margin:14px 0 0;min-height:1.2em;color:#eddbff;font-size:.83rem;line-height:1.5}
+@media(max-width:560px){.sb-info-stats{padding:12px}.sb-info-stats-grid{gap:8px}.sb-info-stat-card{padding:11px 9px;min-height:80px}.sb-info-stat-value{font-size:1.45rem}.sb-info-stat-emoji-row{grid-template-columns:102px minmax(0,1fr) auto;gap:7px}.sb-info-stat-emoji-name{font-size:.78rem}}
+@media(prefers-reduced-motion:reduce){.sb-info-stat-fill{transition:none}}
