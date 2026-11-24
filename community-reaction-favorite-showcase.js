@@ -79,6 +79,32 @@
       own==='cuenta'?'Abre el apartado para gestionar tus insignias.':'Cargando insignias…');
     status.setAttribute('role','status');
     status.setAttribute('aria-live','polite');
+
+    // Vista previa siempre disponible: antes no había selector si no se destacaban insignias.
+    const preview=el('div','sb-community-fav-style-preview');
+    const previewHeading=el('strong','sb-community-fav-preview-heading',
+      '✨ Prueba los tres marcos antes de destacar');
+    const previewControl=el('label','sb-community-fav-frame-label sb-community-fav-preview-label');
+    previewControl.append(el('span',null,'✨ Marco'));
+    const previewSelect=el('select','sb-community-fav-frame-select sb-community-fav-preview-select');
+    previewSelect.setAttribute('aria-label','Probar estilos de marcos para insignias');
+    for(const [value,label] of FRAMES){
+      const option=el('option',null,label);
+      option.value=value;
+      previewSelect.append(option);
+    }
+    previewControl.append(previewSelect);
+    const previewSwatch=el('span','sb-community-fav-strip-chip sb-community-fav-style-anime','🌸 Marco Anime');
+    previewSwatch.setAttribute('aria-live','polite');
+    previewSelect.addEventListener('change',()=>{
+      const style=frame(previewSelect.value);
+      const item=FRAMES.find(([key])=>key===style);
+      previewSwatch.className='sb-community-fav-strip-chip sb-community-fav-style-'+style;
+      previewSwatch.textContent=(item?.[1]||'🌸 Anime')+' · Vista previa';
+    });
+    const previewHint=el('p','sb-community-fav-preview-hint',
+      'Esta es una prueba visual. Para guardar un marco, elige una insignia desbloqueada y pulsa «+ Destacar».');
+    preview.append(previewHeading,previewControl,previewSwatch,previewHint);
     const selectedTitle=el('h3','sb-community-fav-subtitle','Mis insignias destacadas');
     const selectedBox=el('div','sb-community-fav-selected');
     const availableTitle=el('h3','sb-community-fav-subtitle','Insignias desbloqueadas disponibles');
@@ -89,7 +115,7 @@
     const publicLink=el('a','outline-btn mini','👤 Ver mi perfil público');
     publicLink.href='#/cuenta';
     buttons.append(reload,publicLink);
-    panel.append(intro,status,selectedTitle,selectedBox,availableTitle,availableBox,buttons);
+    panel.append(intro,preview,status,selectedTitle,selectedBox,availableTitle,availableBox,buttons);
     return {panel,status,selectedBox,availableBox,reload,selectedTitle,availableTitle,publicLink};
   }
 
@@ -126,7 +152,7 @@
       ui.availableBox.replaceChildren();
 
       if(!selected.length)ui.selectedBox.append(el('p','sb-community-fav-empty',
-        'Aún no has destacado insignias. Selecciona alguna de las disponibles.'));
+        'Aún no has destacado insignias. Prueba los marcos de arriba y después destaca una de las disponibles.'));
       selected.forEach((key,index)=>{
         const item=catalog.get(key);
         if(!item)return;
@@ -187,17 +213,33 @@
       for(const key of options){
         const item=catalog.get(key);
         const row=el('div','sb-community-fav-row');
-        const icon=el('span','sb-community-fav-row-emoji',item.emoji);
+        const icon=el('span','sb-community-fav-row-emoji sb-community-fav-style-anime',item.emoji);
         icon.setAttribute('aria-hidden','true');
         const text=el('span','sb-community-fav-row-title',item.title);
+        const frameLabel=el('label','sb-community-fav-frame-label sb-community-fav-available-frame');
+        frameLabel.append(el('span',null,'✨ Marco'));
+        const frameSelect=el('select','sb-community-fav-frame-select');
+        frameSelect.setAttribute('aria-label','Elegir marco antes de destacar '+item.title);
+        frameSelect.disabled=busy||selected.length>=MAX;
+        for(const [value,label] of FRAMES){
+          const option=el('option',null,label);
+          option.value=value;
+          frameSelect.append(option);
+        }
+        frameSelect.addEventListener('change',()=>{
+          icon.className='sb-community-fav-row-emoji sb-community-fav-style-'+frame(frameSelect.value);
+        });
+        frameLabel.append(frameSelect);
         const add=el('button','gradient-btn mini','+ Destacar');
         add.type='button';
         add.disabled=busy||selected.length>=MAX;
         add.setAttribute('aria-label','Destacar '+item.title);
         add.addEventListener('click',()=>{
-          void save([...selected,key],'Insignia destacada correctamente.');
+          void save([...selected,key],'Insignia destacada correctamente.',{
+            key,style:frame(frameSelect.value)
+          });
         });
-        row.append(icon,text,add);
+        row.append(icon,text,frameLabel,add);
         ui.availableBox.append(row);
       }
     }
@@ -244,7 +286,7 @@
       }
     }
 
-    async function save(next,message){
+    async function save(next,message,newFrame){
       if(!active()||!loaded||busy||!ownerId)return;
       if(next.length>MAX||new Set(next).size!==next.length
           ||next.some(key=>!unlocked.includes(key)))return;
@@ -264,7 +306,20 @@
         selected=next.slice();
         frames=new Map([...frames].filter(([key])=>selected.includes(key)));
         for(const key of selected)if(!frames.has(key))frames.set(key,'anime');
-        ui.status.textContent=message;
+        let styleWarning='';
+        if(newFrame && selected.includes(newFrame.key)){
+          const {data:savedStyle,error:styleError}=await api().rpc(
+            'set_my_community_reaction_badge_frame',{
+              p_badge_key:newFrame.key,p_frame_style:frame(newFrame.style)
+            });
+          if(styleError || savedStyle!==true){
+            styleWarning=' La insignia se destacó, pero el marco no se guardó. Puedes elegirlo desde «Mis insignias destacadas».';
+          }else{
+            frames.set(newFrame.key,frame(newFrame.style));
+          }
+        }
+        if(!active())return;
+        ui.status.textContent=message+styleWarning;
         window.dispatchEvent(new Event('sb-community-reaction-showcase-updated'));
       }catch(error){
         console.warn('Guardado de escaparate comunitario:',error);
