@@ -789,6 +789,21 @@
       String(mins).padStart(2,"0")+":"+
       String(secs).padStart(2,"0");
   };
+  function createAppealReminderProgress(){
+    const wrap=el("div","sb-appeal-reminder-progress");
+    const heading=el("div","sb-appeal-reminder-progress-heading");
+    heading.append(el("span","","Progreso hasta el recordatorio"),
+      el("strong","sb-appeal-reminder-percent","0 %"));
+    const track=el("div","sb-appeal-reminder-progress-track");
+    track.setAttribute("role","progressbar");
+    track.setAttribute("aria-label","Avance hasta el recordatorio automático");
+    track.setAttribute("aria-valuemin","0");
+    track.setAttribute("aria-valuemax","100");
+    track.setAttribute("aria-valuenow","0");
+    track.append(el("div","sb-appeal-reminder-progress-fill"));
+    wrap.append(heading,track);
+    return wrap;
+  }
   function updateAppealReminderCountdowns(panel){
     if(!panel?.isConnected)return;
     const now=Date.now();
@@ -797,6 +812,19 @@
       const eligible=Number(node.dataset.eligibleAt);
       const output=node.querySelector(".sb-appeal-reminder-clock");
       if(!output || !Number.isFinite(scheduled) || !Number.isFinite(eligible))continue;
+      const start=Number(node.dataset.startAt);
+      const validStart=Number.isFinite(start)&&start>0&&scheduled>start;
+      const ratio=validStart?Math.max(0,Math.min(1,(now-start)/(scheduled-start))):0;
+      const percent=Math.floor(ratio*100);
+      const label=node.querySelector(".sb-appeal-reminder-percent");
+      const progress=node.querySelector(".sb-appeal-reminder-progress-track");
+      const fill=node.querySelector(".sb-appeal-reminder-progress-fill");
+      if(label)label.textContent=percent+" %";
+      if(fill)fill.style.width=percent+"%";
+      if(progress){
+        progress.setAttribute("aria-valuenow",String(percent));
+        progress.setAttribute("aria-valuetext",percent+" por ciento del tiempo hasta el recordatorio");
+      }
       // Prueba aislada de 10 segundos: funciona sin apelaciones ni acceso a datos.
       if(node.dataset.demo==="true"){
         const complete=now>=scheduled;
@@ -921,9 +949,11 @@
           if(windowTimes){
             reminder.dataset.scheduledAt=String(windowTimes.scheduledAt);
             reminder.dataset.eligibleAt=String(windowTimes.eligibleAt);
+            reminder.dataset.startAt=String(Date.parse(record.assigned_at));
             reminder.append(
               el("strong","sb-appeal-reminder-heading","🔔 Recordatorio al responsable"),
               el("span","sb-appeal-reminder-clock","Calculando tiempo restante…"),
+              createAppealReminderProgress(),
               el("small","sb-appeal-reminder-description",
                 "Plazo de 24 h: "+date(new Date(windowTimes.eligibleAt).toISOString())+
                 ". Revisión automática prevista: "+
@@ -1128,6 +1158,7 @@
     else dashboard.prepend(panel);
     const filter=selector=>panel.querySelector(selector);
     const loadFirst=()=>loadStaff(panel,0);
+    filter("#sb-appeals-demo-clock").append(createAppealReminderProgress());
     filter("#sb-appeals-demo-start").addEventListener("click",()=>{
       const testNode=filter("#sb-appeals-demo-clock");
       const testButton=filter("#sb-appeals-demo-start");
@@ -1135,6 +1166,7 @@
       testNode.hidden=false;
       testNode.dataset.scheduledAt=String(now+10000);
       testNode.dataset.eligibleAt=String(now);
+      testNode.dataset.startAt=String(now);
       testNode.dataset.state="waiting";
       testButton.disabled=true;
       testButton.textContent="⏳ Prueba en curso…";
