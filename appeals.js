@@ -816,6 +816,8 @@
       const validStart=Number.isFinite(start)&&start>0&&scheduled>start;
       const ratio=validStart?Math.max(0,Math.min(1,(now-start)/(scheduled-start))):0;
       const percent=Math.floor(ratio*100);
+      // Mismos umbrales para casos reales y prueba de 10 segundos.
+      node.dataset.progressLevel=percent>=80?"danger":percent>=50?"warning":"safe";
       const label=node.querySelector(".sb-appeal-reminder-percent");
       const progress=node.querySelector(".sb-appeal-reminder-progress-track");
       const fill=node.querySelector(".sb-appeal-reminder-progress-fill");
