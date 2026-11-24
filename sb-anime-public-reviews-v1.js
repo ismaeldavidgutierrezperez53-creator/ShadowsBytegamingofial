@@ -114,6 +114,7 @@
    const parents=related.filter(c=>!c.parent_id);
    const addComment=(comment,reply=false)=>{
     const article=make('div','sb-v4-comment'+(reply?' sb-v4-comment-reply':''));
+    article.dataset.commentId=comment.id;
     article.append(make('strong','',comment.author_id===me?.id?'Tú':names.get(comment.author_id)||'Miembro'));
     article.append(make('small','',new Date(comment.created_at).toLocaleString('es-ES')));
     const text=make('p','',comment.content);article.append(text);
