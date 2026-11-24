@@ -45,14 +45,36 @@ function decorateSocialLinks(host){
 }
 async function loadSocialStats(section){
  const host=section.querySelector('.social-click-stats');if(!host)return;
+ const request=String(Number(host.dataset.request||0)+1);host.dataset.request=request;
+ const period=section.querySelector('#sb-social-period')?.value||'all';
  host.textContent='Cargando estadísticas…';
+ try{
  const {data:{user},error:authError}=await sb.auth.getUser();
+ if(host.dataset.request!==request)return;
  if(authError||user?.app_metadata?.role!=='admin'){host.textContent='Estadísticas disponibles solo para administradores.';return;}
- const results=await Promise.all(SOCIAL_PLATFORMS.map(platform=>sb.from('site_social_clicks').select('id',{count:'exact',head:true}).eq('platform',platform)));
- if(results.some(x=>x.error)){host.textContent='No se pudieron cargar las estadísticas.';return;}
- const counts=results.map(x=>x.count||0);host.replaceChildren();
- const total=document.createElement('strong');total.textContent='Total de clics: '+counts.reduce((a,b)=>a+b,0);host.append(total);
- SOCIAL_PLATFORMS.forEach((platform,i)=>{const row=document.createElement('div');row.className='social-stat-row';const label=document.createElement('span');label.textContent=platform;const number=document.createElement('strong');number.textContent=counts[i];row.append(label,number);host.append(row);});
+ const days={day:1,week:7,month:30}[period];
+ const since=days?new Date(Date.now()-days*86400000).toISOString():null;
+ const results=await Promise.all(SOCIAL_PLATFORMS.map(platform=>{
+ let query=sb.from('site_social_clicks').select('id',{count:'exact',head:true}).eq('platform',platform);
+ if(since)query=query.gte('created_at',since);
+ return query;
+ }));
+ if(host.dataset.request!==request)return;
+ if(results.some(x=>x.error))throw Error('No se pudieron consultar los clics.');
+ const ranking=SOCIAL_PLATFORMS.map((platform,i)=>({platform,count:results[i].count||0})).sort((a,b)=>b.count-a.count);
+ const sum=ranking.reduce((a,b)=>a+b.count,0);
+ host.replaceChildren();
+ const total=document.createElement('strong');total.textContent='Total de clics: '+sum.toLocaleString('es-ES');host.append(total);
+ const leader=document.createElement('p');leader.textContent=sum?'🏆 Más visitadas: '+ranking.filter(x=>x.count===ranking[0].count).map(x=>x.platform).join(', '):'Todavía no hay clics en este periodo.';host.append(leader);
+ ranking.forEach(({platform,count},i)=>{
+ const row=document.createElement('div');row.style.cssText='padding:10px 0;border-bottom:1px solid #ffffff20';
+ const line=document.createElement('div');line.className='social-stat-row';
+ const label=document.createElement('span');label.textContent=(count?ranking.findIndex(x=>x.count===count)+1+'. ':'— ')+platform;
+ const number=document.createElement('strong');number.textContent=count.toLocaleString('es-ES')+' · '+(sum?Math.round(count/sum*100):0)+'%';line.append(label,number);
+ const track=document.createElement('div');track.style.cssText='height:7px;background:#ffffff18;border-radius:8px;overflow:hidden;margin-top:6px';
+ const bar=document.createElement('div');bar.style.cssText='height:100%;border-radius:8px';bar.style.width=(sum?count/sum*100:0)+'%';bar.style.background=SOCIAL_COLORS[platform];track.append(bar);row.append(line,track);host.append(row);
+ });
+ }catch(e){if(host.dataset.request===request)host.textContent='No se pudieron cargar las estadísticas. Pulsa Actualizar estadísticas.';}
 }
 async function loadSiteSocialLinks(){
  const hosts=[...document.querySelectorAll('.social-links')];if(!hosts.length)return;hosts.forEach(decorateSocialLinks);if(typeof sb==='undefined'){for(const host of hosts)if(host.id==='sb-social-directory')host.textContent='Conexión no disponible. Recarga la página.';return;}
@@ -75,7 +97,7 @@ async function initSocialAdmin(){
  const section=document.createElement('section');section.className='admin-panel';section.id='social-admin-panel';
  section.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">CONFIGURACIÓN</span><h2>Redes sociales</h2><p>Pega manualmente los enlaces. Deja un campo vacío para ocultar esa red en la web.</p></div></div><form id="social-admin-form"><div class="admin-fields" id="social-admin-fields"></div><div class="admin-form-actions"><button class="gradient-btn" type="submit">Guardar redes sociales</button></div><p id="social-admin-message" role="status" aria-live="polite"></p></form>';
  dashboard.append(section);
- const stats=document.createElement('div');stats.className='social-stats-panel';stats.innerHTML='<h3>Estadísticas de redes sociales</h3><p>Contador de clics por red social (incluye el nuevo directorio). No representa seguidores ni visitas confirmadas.</p><div class="social-click-stats" aria-live="polite"></div><button type="button" class="gradient-btn">Actualizar estadísticas</button>';section.append(stats);stats.querySelector('button').onclick=()=>loadSocialStats(section);loadSocialStats(section);
+ const stats=document.createElement('div');stats.className='social-stats-panel';stats.innerHTML='<h3>Estadísticas de redes sociales</h3><p>Contador de clics por red social (incluye el nuevo directorio). No representa seguidores ni visitas confirmadas.</p><label for="sb-social-period">Periodo de estadísticas</label><select id="sb-social-period" style="display:block;max-width:100%;margin:8px 0 16px"><option value="all">Historial completo</option><option value="day">Últimas 24 horas</option><option value="week">Últimos 7 días</option><option value="month">Últimos 30 días</option></select><div class="social-click-stats" aria-live="polite"></div><button type="button" class="gradient-btn">Actualizar estadísticas</button>';section.append(stats);stats.querySelector('button').onclick=()=>loadSocialStats(section);stats.querySelector('#sb-social-period').onchange=()=>loadSocialStats(section);loadSocialStats(section);
  const fields=section.querySelector('#social-admin-fields');
  for(const platform of SOCIAL_PLATFORMS){
   const wrap=document.createElement('div');wrap.className='admin-field';
