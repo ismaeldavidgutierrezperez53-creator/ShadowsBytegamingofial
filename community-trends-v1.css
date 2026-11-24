@@ -1,0 +1,78 @@
+/* Tendencias: tarjetas accesibles, sin texto de spoilers. */
+#sb-community-trends{
+ box-sizing:border-box;min-width:0;margin:15px 0 24px;padding:18px;
+ border:1px solid rgba(232,159,110,.49);border-radius:16px;
+ background:linear-gradient(135deg,rgba(55,34,57,.95),rgba(26,20,44,.95));
+ color:#f9ecff;
+}
+#sb-community-trends h2{
+ margin:0 0 8px;color:#ffdbad;font-size:clamp(19px,2.6vw,24px);
+}
+#sb-community-trends h3{margin:15px 0 10px;font-size:17px;color:#f3d0ff}
+#sb-community-trends .sb-trends-description{margin:0 0 13px;color:#e5d4e5;line-height:1.5}
+#sb-community-trends .sb-trends-toolbar{
+ display:flex;align-items:end;gap:12px;flex-wrap:wrap;
+}
+#sb-community-trends .sb-trends-toolbar label{
+ display:flex;flex-direction:column;gap:7px;
+ flex:1 1 145px;color:#f0ddf3;font-weight:700;
+}
+#sb-community-trends .sb-trends-toolbar select{
+ box-sizing:border-box;width:100%;min-height:44px;padding:9px 11px;
+ border:1px solid #ac739d;border-radius:10px;
+ background:#1b112a;color:#fff;font:inherit;
+}
+#sb-community-trends .sb-trends-toolbar button,
+#sb-community-trends .sb-trends-post a{
+ display:inline-flex;align-items:center;justify-content:center;
+ box-sizing:border-box;min-height:44px;max-width:100%;
+ padding:9px 13px;border:1px solid #ce95d8;border-radius:10px;
+ background:#60346b;color:#fff;
+ font:700 15px Rajdhani,Arial,sans-serif;text-decoration:none;cursor:pointer;
+}
+#sb-community-trends button:disabled{opacity:.58}
+#sb-community-trends .sb-trends-status{
+ margin:12px 0;line-height:1.45;color:#e0d3ed;
+}
+#sb-community-trends .sb-trends-tags{
+ display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+}
+#sb-community-trends .sb-trends-tag{
+ display:inline-flex;align-items:center;min-height:34px;
+ padding:7px 11px;border-radius:999px;
+ border:1px solid rgba(253,202,157,.6);
+ background:rgba(128,70,89,.6);color:#ffe7c4;
+ font-weight:800;font-size:13px;text-decoration:none;
+}
+#sb-community-trends .sb-trends-posts{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+#sb-community-trends .sb-trends-post{
+ box-sizing:border-box;display:grid;gap:8px;min-width:0;
+ padding:13px;border:1px solid rgba(193,148,195,.47);
+ border-radius:12px;background:rgba(26,20,45,.86);
+ overflow-wrap:anywhere;
+}
+#sb-community-trends .sb-trends-rank{
+ width:max-content;border-radius:8px;padding:4px 8px;
+ background:rgba(169,107,53,.48);color:#ffefcf;font-weight:900;
+}
+#sb-community-trends .sb-trends-post strong{
+ color:#ffdfc4;font-size:17px;
+}
+#sb-community-trends .sb-trends-post small{color:#d5c4e0;line-height:1.4}
+#sb-community-trends .sb-trends-counts{font-weight:800;color:#f4d7ef}
+#sb-community-trends .sb-trends-post a{width:max-content;max-width:100%}
+#sb-community-trends .sb-trends-empty{
+ grid-column:1/-1;padding:13px;margin:0;
+ border:1px dashed rgba(228,169,199,.52);border-radius:10px;
+ color:#e7d7e8;
+}
+#sb-community-trends :is(button,select,a):focus-visible{
+ outline:3px solid #b9e9ff;outline-offset:3px;
+}
+@media(max-width:720px){
+ #sb-community-trends{padding:13px}
+ #sb-community-trends .sb-trends-posts{grid-template-columns:minmax(0,1fr)}
+ #sb-community-trends .sb-trends-toolbar>button{flex:1 1 140px}
+}
