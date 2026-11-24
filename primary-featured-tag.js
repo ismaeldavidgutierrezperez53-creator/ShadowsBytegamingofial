@@ -32,10 +32,36 @@
   const id=new URLSearchParams(href.split('?')[1]||'').get('id');
   return UUID.test(id||'')?id:null;
  };
+ const permittedColors=new Set(['purple','blue','pink','green','orange','gold','slate']);
+ const permittedAnimations=new Set(['none','shine','neon','pulse','float','sparkle']);
+ // Envuelve únicamente el texto del nombre, conservando su enlace y nombre accesible.
+ const updateNameAura=(node,badge)=>{
+  let aura=node.querySelector(':scope > .sb-primary-name-aura');
+  if(!badge){
+   if(aura)aura.replaceWith(...Array.from(aura.childNodes));
+   node.classList.remove('sb-primary-name-active');
+   return;
+  }
+  if(!aura){
+   const nameNode=Array.from(node.childNodes).find(child=>
+    child.nodeType===3 && child.textContent.trim()
+   );
+   if(nameNode){
+    aura=make('span','sb-primary-name-aura');
+    nameNode.before(aura);
+    aura.append(nameNode);
+   }
+  }
+  if(!aura)return;
+  aura.dataset.color=permittedColors.has(badge.color)?badge.color:'purple';
+  aura.dataset.animation=permittedAnimations.has(badge.animation)?badge.animation:'none';
+  node.classList.add('sb-primary-name-active');
+ };
  const renderOne=(node,badge)=>{
   if(!node.isConnected)return;
   const prior=node.querySelector(':scope > .sb-primary-tag-inline');
-  if(!badge){prior?.remove();return;}
+  if(!badge){prior?.remove();updateNameAura(node,null);return;}
+  updateNameAura(node,badge);
   if(prior?.dataset.tagId===badge.tag_id)return;
   prior?.remove();
   const wrapper=make('span','sb-primary-tag-inline');
@@ -210,6 +236,11 @@
  new MutationObserver(schedule).observe(app,{subtree:true,childList:true});
  window.addEventListener('hashchange',()=>{void identifyOwnUser();cache.clear();schedule()});
  window.addEventListener('focus',()=>{cache.clear();void identifyOwnUser()});
+ window.addEventListener('sb-featured-tags-saved',event=>{
+  const id=event.detail?.userId;
+  if(id)cache.delete(id);else cache.clear();
+  schedule();
+ });
  window.addEventListener('sb-primary-tag-changed',event=>{
   const id=event.detail?.userId;
   if(id)cache.delete(id);else cache.clear();
