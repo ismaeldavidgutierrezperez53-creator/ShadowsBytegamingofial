@@ -89,6 +89,33 @@
     }
     html[data-sb-motion="off"] #sb-anime-scroll-progress-fill { will-change: auto; }
     html[data-sb-motion="off"] #sb-anime-scroll-progress-percentage { animation: none !important; }
+    #sb-anime-scroll-progress-fill {
+      background: linear-gradient(90deg, var(--sb-progress-a, #9254ff), var(--sb-progress-b, #00d9ff)) !important;
+      box-shadow: 0 0 9px var(--sb-progress-b, #00d9ff);
+      overflow: hidden;
+      transition: background-color .2s, box-shadow .2s;
+    }
+    #sb-anime-scroll-progress-percentage { border-color: var(--sb-progress-b, #00d9ff); }
+    #sb-anime-scroll-progress-fill::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 35%, #ffffffbb 50%, transparent 65%);
+      transform: translateX(-100%); opacity: 0;
+    }
+    #sb-anime-scroll-progress.is-scrolling:not(.is-complete) #sb-anime-scroll-progress-fill::after {
+      opacity: 1; animation: sb-progress-shimmer .85s linear infinite;
+    }
+    @keyframes sb-progress-shimmer { to { transform: translateX(100%); } }
+    #sb-anime-scroll-progress.is-complete #sb-anime-scroll-progress-fill {
+      background: linear-gradient(90deg,#ffae35,#fff1a0) !important;
+      box-shadow: 0 0 14px #ffda78;
+      animation: sb-progress-finish .8s ease-out 1;
+    }
+    @keyframes sb-progress-finish { 50% { box-shadow: 0 0 24px 3px #ffe5a2; } }
+    @media (prefers-reduced-motion: reduce) {
+      #sb-anime-scroll-progress-fill, #sb-anime-scroll-progress-fill::after { animation: none !important; transition: none !important; }
+    }
+    html[data-sb-motion="off"] #sb-anime-scroll-progress-fill,
+    html[data-sb-motion="off"] #sb-anime-scroll-progress-fill::after { animation: none !important; transition: none !important; }
   `;
   document.head.appendChild(style);
 
@@ -147,10 +174,13 @@
     const current = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
     const progress = scrollable > 0 ? Math.max(0, Math.min(1, current / scrollable)) : 0;
     fill.style.transform = 'scaleX(' + progress + ')';
-    const percent = Math.round(progress * 100);
+    const percent = scrollable > 0 && scrollable - current <= 1 ? 100 : Math.min(99, Math.floor(progress * 100));
+    const hue = 270 - progress * 130;
+    track.style.setProperty('--sb-progress-a', 'hsl(' + hue + ' 90% 62%)');
+    track.style.setProperty('--sb-progress-b', 'hsl(' + (hue - 35) + ' 95% 57%)');
     percentage.textContent = percent + ' %';
     track.setAttribute('aria-valuenow', String(percent));
-    track.classList.toggle('is-complete', scrollable > 0 && progress >= 0.999);
+    track.classList.toggle('is-complete', percent === 100);
   };
   const scheduleUpdate = () => {
     if (scheduled) return;
@@ -158,7 +188,13 @@
     window.requestAnimationFrame(update);
   };
 
-  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  let scrollTimer;
+  window.addEventListener('scroll', () => {
+    track.classList.add('is-scrolling');
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => track.classList.remove('is-scrolling'), 180);
+    scheduleUpdate();
+  }, { passive: true });
   window.addEventListener('resize', scheduleUpdate, { passive: true });
   window.addEventListener('hashchange', scheduleUpdate);
   window.addEventListener('load', scheduleUpdate);
