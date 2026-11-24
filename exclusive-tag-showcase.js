@@ -24,6 +24,8 @@
   return display;
  };
  let ownBusy=false,publicBusy=false,queued=false;
+ const publicVisited=new WeakMap();
+ let lastPublicAnchor=null;
 
  async function mountAccount(){
   if(location.hash.split('?')[0]!=='#/cuenta')return;
@@ -169,7 +171,6 @@
      if(error)throw error;
      dirty=false;
      statusText('✅ Vitrina guardada. Ya se puede ver en tu perfil público.');
-     await load();
      statusText('✅ Vitrina guardada. Tus favoritas se muestran en tu perfil público.');
     }catch(error){statusText('No se pudo guardar: '+(error.message||'Error inesperado'),true)}
     finally{loading=false;refresh.disabled=false;draw()}
@@ -187,6 +188,7 @@
   const anchor=document.querySelector('#public-member-profile .public-member-body');
   if(!anchor||!UUID.test(userId||'')||publicBusy)return;
   const prior=anchor.querySelector('#sb-featured-tags-public');
+  if(publicVisited.get(anchor)===userId && !prior)return;
   if(prior){
    if(prior.dataset.userId===userId)return;
    prior.remove();
@@ -195,7 +197,9 @@
   try{
    const {data,error}=await sb.rpc('sb_get_member_featured_tags',{p_user:userId});
    if(error)throw error;
-   if(!anchor.isConnected||!validRoute(userId,false)||!data?.length)return;
+   if(!anchor.isConnected||!validRoute(userId,false))return;
+   publicVisited.set(anchor,userId);lastPublicAnchor=anchor;
+   if(!data?.length)return;
    if(anchor.querySelector('#sb-featured-tags-public'))return;
    const panel=make('section','sb-featured-public');
    panel.id='sb-featured-tags-public';panel.dataset.userId=userId;
@@ -222,7 +226,10 @@
  const app=document.getElementById('app');
  if(app){
   new MutationObserver(schedule).observe(app,{childList:true,subtree:true});
-  window.addEventListener('hashchange',schedule);
+  window.addEventListener('hashchange',()=>{
+   if(lastPublicAnchor)publicVisited.delete(lastPublicAnchor);
+   schedule();
+  });
   schedule();
  }
 })();
