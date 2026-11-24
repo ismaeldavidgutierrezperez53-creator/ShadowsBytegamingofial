@@ -1,0 +1,72 @@
+/* Anime entre miembros + retos gaming privados, integrado con el Centro actual. */
+#sb-anime-gaming-hub .sb-social-member-panel{min-width:0;overflow-wrap:anywhere}
+#sb-anime-gaming-hub .sb-social-form{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 12px;
+}
+#sb-anime-gaming-hub .sb-social-form>label,
+#sb-anime-gaming-hub .sb-social-form-grid>label{
+ display:flex;flex-direction:column;gap:7px;min-width:0;
+ color:#eedbfa;font-weight:800;line-height:1.35;
+}
+#sb-anime-gaming-hub .sb-social-form :is(input,select,textarea){
+ box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-height:44px;
+ border-radius:10px;border:1px solid rgba(177,139,221,.75);
+ background:#150e27;color:#fff;padding:10px;
+ font:600 1rem Rajdhani,Arial,sans-serif;
+}
+#sb-anime-gaming-hub .sb-social-form :is(input,textarea)::placeholder{color:#b9aacb;opacity:1}
+#sb-anime-gaming-hub .sb-social-form textarea{min-height:74px;resize:vertical}
+#sb-anime-gaming-hub .sb-social-form-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;grid-column:1/-1;
+}
+#sb-anime-gaming-hub .sb-social-form>label:has(textarea),
+#sb-anime-gaming-hub .sb-social-form>button{
+ grid-column:1/-1;
+}
+#sb-anime-gaming-hub .sb-social-form button,
+#sb-anime-gaming-hub .sb-social-member-panel>button{
+ min-height:44px;max-width:100%;border-radius:10px;
+}
+#sb-anime-gaming-hub .sb-social-form button:disabled,
+#sb-anime-gaming-hub .sb-social-card button:disabled{opacity:.58;cursor:wait}
+#sb-anime-gaming-hub .sb-social-feedback{
+ margin:12px 0;min-height:22px;color:#d7f2df;line-height:1.45;
+}
+#sb-anime-gaming-hub .sb-social-inbox{display:grid;gap:11px;margin-top:12px}
+#sb-anime-gaming-hub .sb-social-card{
+ box-sizing:border-box;display:flex;flex-direction:column;gap:9px;
+ min-width:0;padding:14px;border:1px solid rgba(158,130,205,.55);
+ border-radius:13px;background:rgba(21,14,37,.9);
+ color:#e8dcf1;
+}
+#sb-anime-gaming-hub .sb-social-card strong{
+ font-size:17px;line-height:1.4;color:#f4d3ff;
+}
+#sb-anime-gaming-hub .sb-social-card small{
+ color:#cfc0df;font-size:13px;line-height:1.4;
+}
+#sb-anime-gaming-hub .sb-social-card p{
+ margin:0;white-space:pre-wrap;overflow-wrap:anywhere;
+ line-height:1.5;color:#ebdffa;
+}
+#sb-anime-gaming-hub .sb-social-card-actions{display:flex;flex-wrap:wrap;gap:8px}
+#sb-anime-gaming-hub .sb-social-card-actions button{
+ flex:1 1 138px;min-height:42px;max-width:100%;
+}
+#sb-anime-gaming-hub .sb-social-progress-row{
+ display:grid;gap:6px;padding:8px 0;
+}
+#sb-anime-gaming-hub .sb-social-progress-row span{font-size:14px;color:#e4d4f0}
+#sb-anime-gaming-hub .sb-social-progress-row progress{
+ display:block;width:100%;height:13px;accent-color:#71d5e7;
+}
+#sb-anime-gaming-hub .sb-social-member-panel :is(button,input,select,textarea):focus-visible{
+ outline:3px solid #a5e4fa;outline-offset:3px;
+}
+@media(max-width:660px){
+ #sb-anime-gaming-hub .sb-social-form,
+ #sb-anime-gaming-hub .sb-social-form-grid{grid-template-columns:minmax(0,1fr)}
+ #sb-anime-gaming-hub .sb-social-form-grid{grid-column:1}
+ #sb-anime-gaming-hub .sb-social-form>label:has(textarea),
+ #sb-anime-gaming-hub .sb-social-form>button{grid-column:1}
+}
