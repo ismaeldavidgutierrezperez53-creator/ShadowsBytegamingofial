@@ -52,13 +52,111 @@
   panel.append(heading,explain,form,feedback,tools,list);
   const recommendation=root.querySelector('#sb-social-anime-recs');
   if(recommendation)recommendation.after(panel);else holder.append(panel);
-  let me=null,records=[],names=new Map(),editId=null,loading=false,busy=false;
+  let me=null,records=[],comments=[],names=new Map(),editId=null,loading=false,busy=false,openReviews=new Set();
   const live=()=>panel.isConnected&&root.isConnected;
   const reset=()=>{
    editId=null;form.reset();title.value='';review.value='';rating.value='';
    submit.textContent='📣 Publicar reseña';cancel.hidden=true;
   };
   cancel.onclick=()=>{reset();feedback.textContent='Edición cancelada.';};
+
+  const makeCommentForm=(item,parentId=null)=>{
+   const commentForm=make('form','sb-v4-comment-form');
+   const commentLabel=make('label','',parentId?'Responder al comentario':'Escribir un comentario');
+   const textarea=make('textarea');
+   textarea.rows=2;textarea.required=true;textarea.maxLength=800;
+   textarea.placeholder=parentId?'Tu respuesta (máximo 800 caracteres)':'Comenta sobre esta reseña (máximo 800 caracteres)';
+   commentLabel.append(textarea);
+   const send=make('button','outline-btn mini',parentId?'↩️ Enviar respuesta':'💬 Publicar comentario');
+   send.type='submit';
+   const message=make('p','sb-v4-comment-message','');
+   message.setAttribute('role','status');
+   commentForm.append(commentLabel,send,message);
+   commentForm.onsubmit=async e=>{
+    e.preventDefault();
+    if(busy||!me)return;
+    const content=textarea.value.trim();
+    if(content.length<1||content.length>800){
+     message.textContent='Escribe entre 1 y 800 caracteres.';return;
+    }
+    busy=true;send.disabled=true;message.textContent='Guardando comentario…';
+    try{
+     const {data:{user},error:authError}=await sb.auth.getUser();
+     if(authError||user?.id!==me.id)throw new Error('La sesión ha cambiado.');
+     const {error}=await sb.from('sb_member_anime_review_comments').insert({
+      review_id:item.id,author_id:me.id,parent_id:parentId,content
+     });
+     if(error)throw error;
+     openReviews.add(item.id);
+     await load();
+     feedback.textContent='✅ Comentario publicado.';
+    }catch(err){
+     message.textContent='No se pudo publicar: '+errText(err);
+    }finally{busy=false;send.disabled=false;}
+   };
+   return commentForm;
+  };
+  const appendDiscussion=(item,card)=>{
+   const related=comments.filter(c=>c.review_id===item.id);
+   const details=make('details','sb-v4-review-discussion');
+   if(openReviews.has(item.id))details.open=true;
+   const summary=make('summary','','💬 Comentarios y respuestas ('+related.length+')');
+   details.append(summary);
+   details.addEventListener('toggle',()=>{
+    if(details.open)openReviews.add(item.id);
+    else openReviews.delete(item.id);
+   });
+   const thread=make('div','sb-v4-review-thread');
+   if(!related.length)thread.append(make('p','sb-v3-empty','Todavía no hay comentarios. ¡Participa!'));
+   const parents=related.filter(c=>!c.parent_id);
+   const addComment=(comment,reply=false)=>{
+    const article=make('div','sb-v4-comment'+(reply?' sb-v4-comment-reply':''));
+    article.append(make('strong','',comment.author_id===me?.id?'Tú':names.get(comment.author_id)||'Miembro'));
+    article.append(make('small','',new Date(comment.created_at).toLocaleString('es-ES')));
+    const text=make('p','',comment.content);article.append(text);
+    const buttons=make('div','sb-v4-comment-actions');
+    if(!reply){
+     const replyButton=make('button','outline-btn mini','↩️ Responder');
+     replyButton.type='button';
+     const replyForm=makeCommentForm(item,comment.id);
+     replyForm.hidden=true;
+     replyButton.onclick=()=>{
+      replyForm.hidden=!replyForm.hidden;
+      if(!replyForm.hidden)replyForm.querySelector('textarea')?.focus();
+     };
+     buttons.append(replyButton);
+     article.append(buttons,replyForm);
+    }
+    if(comment.author_id===me?.id){
+     const del=make('button','outline-btn mini','Eliminar');del.type='button';
+     del.onclick=async()=>{
+      if(busy||!confirm('¿Eliminar este comentario? Sus respuestas también desaparecerán.'))return;
+      busy=true;del.disabled=true;
+      try{
+       const {data:{user},error:authError}=await sb.auth.getUser();
+       if(authError||user?.id!==me.id)throw new Error('La sesión ha cambiado.');
+       const {error}=await sb.from('sb_member_anime_review_comments')
+        .delete().eq('id',comment.id).eq('author_id',me.id);
+       if(error)throw error;
+       openReviews.add(item.id);
+       await load();feedback.textContent='✅ Comentario eliminado.';
+      }catch(err){feedback.textContent='No se pudo eliminar: '+errText(err);}
+      finally{busy=false;del.disabled=false;}
+     };
+     buttons.append(del);
+     if(reply)article.append(buttons);
+    }
+    return article;
+   };
+   for(const parent of parents){
+    const top=addComment(parent);
+    thread.append(top);
+    for(const answer of related.filter(c=>c.parent_id===parent.id))
+     thread.append(addComment(answer,true));
+   }
+   details.append(thread,makeCommentForm(item));
+   card.append(details);
+  };
   const paint=()=>{
    if(!live())return;
    const term=search.value.trim().toLocaleLowerCase('es');
@@ -110,6 +208,7 @@
      };
      row.append(edit,remove);card.append(row);
     }
+    appendDiscussion(item,card);
     list.append(card);
    }
   };
@@ -123,7 +222,18 @@
     if(error)throw error;
     if(!live())return;
     records=data||[];
-    const ids=[...new Set(records.map(x=>x.author_id))];
+    comments=[];
+    if(records.length){
+     const reviewIds=records.map(x=>x.id);
+     const {data:answers,error:commentsError}=await sb.from('sb_member_anime_review_comments')
+      .select('id,review_id,author_id,parent_id,content,created_at')
+      .in('review_id',reviewIds)
+      .order('created_at',{ascending:false}).limit(400);
+     if(commentsError)throw commentsError;
+     comments=(answers||[]).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    }
+    if(!live())return;
+    const ids=[...new Set([...records.map(x=>x.author_id),...comments.map(x=>x.author_id)])];
     if(ids.length){
      const {data:profiles,error:profileError}=await sb.from('profiles')
       .select('id,display_name,username').in('id',ids);
