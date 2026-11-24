@@ -1,0 +1,29 @@
+/* Gráficas diarias y mensuales de Mi Info, accesibles y adaptadas a móvil. */
+.sb-info-trends{margin-top:18px;padding-top:16px;border-top:1px solid rgba(225,196,255,.22);display:grid;gap:14px}
+.sb-info-trends-title{font-size:1rem!important;margin:0!important;color:#ffeaff!important}
+.sb-info-trends-explanation{font-size:.85rem;color:#e4d3f6;margin:0;line-height:1.5}
+.sb-info-trend-panel{min-width:0;background:rgba(27,14,62,.45);border:1px solid rgba(210,170,255,.22);border-radius:14px;padding:12px}
+.sb-info-trend-heading{font-size:.92rem!important;margin:0 0 12px!important;color:#f8eafa!important}
+.sb-info-trend-scroll{overflow-x:auto;overscroll-behavior-inline:contain;padding-bottom:5px;scrollbar-width:thin;border-radius:8px}
+.sb-info-trend-scroll:focus-visible{outline:2px solid #e3b2ff;outline-offset:2px}
+.sb-info-trend-daily{min-width:690px;display:grid;grid-template-columns:repeat(30,minmax(18px,1fr));gap:4px;align-items:end;height:175px;padding:8px 8px 0;border-bottom:1px solid rgba(236,203,255,.25)}
+.sb-info-trend-day{display:flex;flex-direction:column;min-width:0;align-items:center}
+.sb-info-trend-day-column{width:100%;display:flex;height:130px;align-items:flex-end;justify-content:center}
+.sb-info-trend-day-bar{width:78%;background:linear-gradient(180deg,#d7a3ff,#9065dc);border-radius:5px 5px 0 0;min-height:3px;max-height:125px}
+.sb-info-trend-day-bar.sb-info-trend-empty{opacity:.34}
+.sb-info-trend-day-label{display:block;font-size:.66rem;color:#e2c7f6;height:25px;padding-top:7px;white-space:nowrap}
+.sb-info-trend-monthly{min-width:610px}
+.sb-info-trend-monthly svg{width:100%;height:auto;display:block;color:#e3c8f7}
+.sb-info-trend-caption{margin:10px 0 0;color:#e3d0f6;line-height:1.5;font-size:.81rem}
+.sb-info-trend-values{border-radius:10px;border:1px solid rgba(213,171,252,.22);padding:8px 12px;color:#f7eaff}
+.sb-info-trend-values>summary{cursor:pointer;font-weight:650;font-size:.86rem;min-height:25px}
+.sb-info-trend-values>summary:focus-visible{outline:2px solid #e3b2ff}
+.sb-info-trend-value-columns{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:12px}
+.sb-info-trend-values-section{min-width:0}
+.sb-info-trend-values-section h6{font-size:.85rem;margin:0 0 8px;color:#fff}
+.sb-info-trend-values-list{list-style:none;margin:0;padding:0;max-height:250px;overflow-y:auto;font-size:.79rem}
+.sb-info-trend-values-list li{display:flex;justify-content:space-between;gap:10px;padding:5px 3px;border-bottom:1px solid rgba(220,192,248,.14)}
+.sb-info-trend-values-list strong{font-variant-numeric:tabular-nums}
+.sb-info-trends-status{margin:0;color:#eddaff;font-size:.84rem;line-height:1.5}
+@media(max-width:560px){.sb-info-trend-panel{padding:10px}.sb-info-trend-value-columns{grid-template-columns:1fr}.sb-info-trend-values-list{max-height:155px}}
+@media(prefers-reduced-motion:reduce){.sb-info-trend-day-bar{transition:none}}
