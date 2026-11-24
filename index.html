@@ -194,6 +194,18 @@
 @media(max-width:380px){.topbar #nav .menu-column{grid-template-columns:1fr!important}}
 @media(prefers-reduced-motion:reduce){.topbar #nav .menu-column a,.topbar #nav .menu-column a .sb-menu-emoji{transition:none!important;transform:none!important}}
 </style>
+<style>
+#nav .sb-personal-menu{order:2;padding:12px;border:1px solid #7651a0;border-radius:12px;background:#241334;color:#f5e8ff}
+#nav .sb-personal-menu[hidden]{display:none!important}
+#nav .sb-personal-menu h3,#nav .sb-personal-menu h4{margin:8px 0;color:#e1b6ff}
+#nav .sb-personal-menu [data-favorites],#nav .sb-personal-menu [data-recent]{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+#nav .sb-personal-menu a,#nav .sb-personal-menu button{padding:7px 10px;border:1px solid #7651a0;border-radius:8px;background:#38234e;color:#fff;cursor:pointer}
+#nav .sb-personal-menu summary{cursor:pointer;padding:8px 0}
+#nav .sb-menu-edit-row{display:flex;align-items:center;gap:6px;padding:4px 0}
+#nav .sb-menu-edit-row label{flex:1;min-width:0}
+#nav .sb-menu-edit-row button:disabled{opacity:.35;cursor:default}
+#nav .sb-menu-new{font:700 10px Arial,sans-serif;background:#166534;color:#fff;border-radius:6px;padding:3px;flex:none}
+</style>
 </head>
 <body>
   <!-- Pantalla de inicio de Shadows Byte (web y PWA instalada). -->
@@ -505,6 +517,41 @@
  };
  new MutationObserver(sync).observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
  sync();
+})();
+</script>
+<script>
+(function(){
+'use strict';
+const nav=document.getElementById('nav'), grid=nav?.querySelector('.menu-links-grid');
+if(!grid||typeof sb==='undefined')return;
+const groups=[...grid.querySelectorAll('.menu-column')].map(g=>({g,links:[...g.querySelectorAll('a[href]')]}));
+const links=new Map(groups.flatMap(g=>g.links.map(a=>[a.getAttribute('href').slice(1),a])));
+const panel=document.createElement('section');panel.className='sb-personal-menu';panel.hidden=true;
+panel.innerHTML='<h3>⭐ Mis accesos favoritos</h3><div data-favorites></div><h3>🕒 Apartados recientes</h3><div data-recent></div><details><summary>⚙️ Personalizar menú</summary><p>Marca favoritos y cambia el orden dentro de cada grupo.</p><div data-editor></div><button type="button" data-reset>Restablecer orden</button></details><p data-status role="status"></p>';
+grid.before(panel);
+const status=panel.querySelector('[data-status]'), editor=panel.querySelector('[data-editor]');
+let uid=null, generation=0, ready=false, state={favorites:[],menu_order:[],recent:[],seen:{}}, latest={}, writes=Promise.resolve();
+const sources={'/noticias':['news','published_at','published'],'/comunidad':['member_posts','created_at',null],'/encuestas':['community_polls','published_at','published'],'/eventos':['events','created_at','published']};
+const path=()=> (location.hash.slice(1)||'/').split('?')[0];
+const permitted=p=>{const a=links.get(p);return !!a&&!a.hidden&&!a.hasAttribute('data-sb-visibility-hidden')&&(!window.SBVisibility||window.SBVisibility.allowed(p));};
+const label=p=>{const a=links.get(p);return [a?.querySelector('.sb-menu-emoji')?.textContent,a?.querySelector('.sb-menu-label')?.textContent].filter(Boolean).join(' ')||p;};
+const clean=(a,max)=>[...new Set(Array.isArray(a)?a.filter(p=>links.has(p)):[])].slice(0,max);
+function save(){if(!uid||!ready)return;const id=uid,n=generation;const snapshot={user_id:id,favorites:[...state.favorites],menu_order:[...state.menu_order],recent:[...state.recent],seen:{...state.seen}};writes=writes.catch(()=>{}).then(async()=>{if(n!==generation)return;const {error}=await sb.from('member_menu_preferences').upsert(snapshot);if(n===generation)status.textContent=error?'No se pudieron guardar los cambios.':'Guardado en tu cuenta.';}).catch(()=>{if(n===generation)status.textContent='Error al guardar.';});}
+function shortcut(p){const a=document.createElement('a');a.href='#'+p;a.textContent=label(p);return a;}
+function render(){if(!ready)return;for(const [key,sel] of [['favorites','[data-favorites]'],['recent','[data-recent]']]){const root=panel.querySelector(sel);root.replaceChildren();const paths=state[key].filter(permitted);if(!paths.length)root.textContent=key==='favorites'?'Marca tus apartados favoritos.':'Todavía no hay visitas.';else paths.forEach(p=>root.append(shortcut(p)));}
+ editor.replaceChildren();
+ for(const {g,links:original} of groups){const ordered=[...original].sort((a,b)=>{const rank=x=>{const i=state.menu_order.indexOf(x.getAttribute('href').slice(1));return i<0?100+original.indexOf(x):i;};return rank(a)-rank(b);});ordered.forEach(a=>g.append(a));const visible=ordered.map(a=>a.getAttribute('href').slice(1)).filter(permitted);if(!visible.length)continue;const title=document.createElement('h4');title.textContent=g.querySelector('strong').textContent;editor.append(title);visible.forEach((p,i)=>{const row=document.createElement('div');row.className='sb-menu-edit-row';const check=document.createElement('input');check.type='checkbox';check.checked=state.favorites.includes(p);const lab=document.createElement('label');lab.append(check,document.createTextNode(' '+label(p)));check.onchange=()=>{state.favorites=check.checked?clean([...state.favorites,p],25):state.favorites.filter(x=>x!==p);save();render();};row.append(lab);for(const [delta,caption] of [[-1,'↑'],[1,'↓']]){const b=document.createElement('button');b.type='button';b.textContent=caption;b.setAttribute('aria-label',(delta<0?'Subir ':'Bajar ')+label(p));b.disabled=i+delta<0||i+delta>=visible.length;b.onclick=()=>{const full=ordered.map(a=>a.getAttribute('href').slice(1));const j=full.indexOf(p),k=full.indexOf(visible[i+delta]);[full[j],full[k]]=[full[k],full[j]];state.menu_order=[...state.menu_order.filter(x=>!full.includes(x)),...full];save();render();};row.append(b);}editor.append(row);});}
+ for(const [p,a] of links){let mark=a.querySelector('.sb-menu-new');const fresh=permitted(p)&&latest[p]&&latest[p]>(state.seen[p]||'');if(fresh&&!mark){mark=document.createElement('span');mark.className='sb-menu-new';mark.textContent='Nuevo';a.append(mark);}else if(!fresh&&mark)mark.remove();}
+}
+function visit(){if(!ready)return;const p=path();if(!permitted(p))return;state.recent=clean([p,...state.recent],8);if(latest[p])state.seen[p]=latest[p];save();render();}
+async function news(n){const entries=await Promise.all(Object.entries(sources).map(async([p,[table,col,published]])=>{if(!permitted(p))return [p,null];let q=sb.from(table).select(col).not(col,'is',null).order(col,{ascending:false}).limit(1);if(published)q=q.eq('status',published);const {data,error}=await q;return [p,error?null:data?.[0]?.[col]||null];}));if(n!==generation)return;latest=Object.fromEntries(entries.map(([p,v])=>[p,v?new Date(v).toISOString():null]));if(latest[path()]&&permitted(path())){state.seen[path()]=latest[path()];save();}render();}
+async function load(id){const n=++generation;uid=id;ready=false;panel.hidden=true;latest={};state={favorites:[],menu_order:[],recent:[],seen:{}};groups.forEach(({g,links})=>links.forEach(a=>{a.querySelector('.sb-menu-new')?.remove();g.append(a);}));if(!id)return;const {data,error}=await sb.from('member_menu_preferences').select('favorites,menu_order,recent,seen').eq('user_id',id).maybeSingle();if(n!==generation)return;panel.hidden=false;if(error){status.textContent='No se pudo cargar la configuración.';return;}state={favorites:clean(data?.favorites,25),menu_order:clean(data?.menu_order,25),recent:clean(data?.recent,8),seen:data?.seen||{}};ready=true;status.textContent='';visit();news(n).catch(()=>{});}
+ panel.querySelector('[data-reset]').onclick=()=>{state.menu_order=[];save();render();};
+ window.addEventListener('hashchange',visit);
+ let pending=false;new MutationObserver(()=>{if(!ready||pending)return;pending=true;requestAnimationFrame(()=>{pending=false;render();});}).observe(grid,{subtree:true,attributes:true,attributeFilter:['hidden','data-sb-visibility-hidden']});
+ sb.auth.onAuthStateChange((event,session)=>{const id=session?.user?.id||null;if(id!==uid)setTimeout(()=>load(id).catch(()=>{}),0);});
+ sb.auth.getSession().then(({data})=>{const id=data.session?.user?.id||null;if(id!==uid)load(id).catch(()=>{});});
+ document.getElementById('menuToggle')?.addEventListener('click',()=>{if(ready){render();news(generation).catch(()=>{});}});
 })();
 </script>
 </body>
