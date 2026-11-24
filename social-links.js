@@ -43,6 +43,54 @@ function decorateSocialLinks(host){
   a.addEventListener('click',record);a.addEventListener('auxclick',e=>{if(e.button===1)record();});
  }
 }
+async function appendSocialHistory(host,request,ranking,period){
+ const panel=document.createElement('section');panel.style.cssText='margin-top:24px;min-width:0';host.append(panel);
+ const heading=document.createElement('h3');heading.textContent='📈 Evolución de clics';panel.append(heading);
+ const note=document.createElement('p');note.textContent='Clics por fecha UTC. Últimos 30 días como máximo; el día actual está incompleto.';panel.append(note);
+ const status=document.createElement('p');status.textContent='Cargando historial…';panel.append(status);
+ const exportButton=document.createElement('button');exportButton.type='button';exportButton.className='gradient-btn';exportButton.textContent='📥 Exportar ranking CSV';panel.append(exportButton);
+ function downloadCsv(name,rows){
+  const csv='\uFEFF'+rows.map(row=>row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }
+ exportButton.onclick=()=>downloadCsv('ranking-redes-'+period+'.csv',[['Red social','Clics','Periodo'],...ranking.map(x=>[x.platform,x.count,period])]);
+ try{
+ const now=new Date(),today=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate());
+ const length=period==='day'?2:period==='week'?8:30;
+ const cutoff=({day:1,week:7,month:30}[period]||30)*86400000;
+ const dates=Array.from({length},(_,i)=>today-(length-1-i)*86400000);
+ const rows=[];
+ for(let i=0;i<dates.length;i+=5){
+  if(host.dataset.request!==request||!host.isConnected)return;
+  const part=await Promise.all(dates.slice(i,i+5).map(async start=>{
+   const lower=Math.max(start,now.getTime()-cutoff);
+   const upper=Math.min(start+86400000,now.getTime());
+   if(upper<=lower)return {date:new Date(start).toISOString().slice(0,10),count:0};
+   const result=await sb.from('site_social_clicks').select('id',{count:'exact',head:true}).in('platform',SOCIAL_PLATFORMS).gte('created_at',new Date(lower).toISOString()).lt('created_at',new Date(upper).toISOString());
+   if(result.error)throw result.error;
+   return {date:new Date(start).toISOString().slice(0,10),count:result.count||0};
+  }));rows.push(...part);
+ }
+ if(host.dataset.request!==request||!host.isConnected)return;
+ status.remove();
+ const max=Math.max(1,...rows.map(x=>x.count));
+ const chart=document.createElement('div');chart.setAttribute('role','img');chart.setAttribute('aria-label','Gráfico de clics diarios. Valores disponibles en el historial inferior.');chart.style.cssText='display:flex;align-items:flex-end;gap:4px;height:140px;padding:10px 0;border-bottom:1px solid #ffffff40';
+ rows.forEach(x=>{const bar=document.createElement('div');bar.style.cssText='flex:1;min-width:0;border-radius:5px 5px 0 0;background:#a78bfa';bar.style.height=(x.count?Math.max(3,x.count/max*100):0)+'%';bar.title=x.date+': '+x.count+' clics';chart.append(bar);});
+ panel.append(chart);const axis=document.createElement('p');axis.style.cssText='display:flex;justify-content:space-between;font-size:.8rem';axis.textContent=rows[0].date+' — '+rows[rows.length-1].date;panel.append(axis);
+ const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='📅 Ver historial por fechas';details.append(summary);
+ [...rows].reverse().forEach(x=>{const row=document.createElement('div');row.className='social-stat-row';const label=document.createElement('span');label.textContent=x.date;const value=document.createElement('strong');value.textContent=x.count+' clics';row.append(label,value);details.append(row);});panel.append(details);
+ const daily=document.createElement('button');daily.type='button';daily.className='outline-btn';daily.textContent='📥 Exportar historial CSV';daily.onclick=()=>downloadCsv('historial-redes-'+period+'.csv',[['Fecha UTC','Clics'],...rows.map(x=>[x.date,x.count])]);panel.append(daily);
+ }catch(e){if(host.dataset.request===request)status.textContent='No se pudo cargar el historial. Actualiza las estadísticas.';}
+}
+async function shareSocialDirectory(button){
+ const url=new URL(location.href);url.hash='/redes-sociales';url.search='';
+ const data={title:'Shadows Byte Gaming Official',text:'Descubre nuestras redes sociales oficiales',url:url.href};
+ try{if(navigator.share){await navigator.share(data);return;}if(navigator.clipboard){await navigator.clipboard.writeText(url.href);button.textContent='✓ Enlace copiado';return;}}catch(e){if(e.name==='AbortError')return;}
+ const field=document.createElement('input');field.readOnly=true;field.value=url.href;field.setAttribute('aria-label','Enlace para compartir');button.after(field);field.select();
+}
+document.addEventListener('click',e=>{const button=e.target.closest('#sb-share-social-directory');if(button)void shareSocialDirectory(button);});
+
 async function loadSocialStats(section){
  const host=section.querySelector('.social-click-stats');if(!host)return;
  const request=String(Number(host.dataset.request||0)+1);host.dataset.request=request;
@@ -70,10 +118,11 @@ async function loadSocialStats(section){
  const row=document.createElement('div');row.style.cssText='padding:10px 0;border-bottom:1px solid #ffffff20';
  const line=document.createElement('div');line.className='social-stat-row';
  const label=document.createElement('span');label.textContent=(count?ranking.findIndex(x=>x.count===count)+1+'. ':'— ')+platform;
- const number=document.createElement('strong');number.textContent=count.toLocaleString('es-ES')+' · '+(sum?Math.round(count/sum*100):0)+'%';line.append(label,number);
+ const number=document.createElement('strong');number.textContent=count.toLocaleString('es-ES')+' · '+(sum?Math.round(count/sum*100):0)+'%';if(count>0&&count===ranking[0].count){const badge=document.createElement('span');badge.textContent=' 🏆 Red más popular';badge.style.cssText='font-size:.75rem;color:#fbbf24';label.append(badge);}line.append(label,number);
  const track=document.createElement('div');track.style.cssText='height:7px;background:#ffffff18;border-radius:8px;overflow:hidden;margin-top:6px';
  const bar=document.createElement('div');bar.style.cssText='height:100%;border-radius:8px';bar.style.width=(sum?count/sum*100:0)+'%';bar.style.background=SOCIAL_COLORS[platform];track.append(bar);row.append(line,track);host.append(row);
  });
+ void appendSocialHistory(host,request,ranking,period);
  }catch(e){if(host.dataset.request===request)host.textContent='No se pudieron cargar las estadísticas. Pulsa Actualizar estadísticas.';}
 }
 async function loadSiteSocialLinks(){
@@ -126,7 +175,7 @@ async function initSocialAdmin(){
   finally{button.disabled=false}
  };
 }
-pages['/redes-sociales']=()=>`<section class="page"><div class="page-hero"><div class="eyebrow">COMUNIDAD</div><h1>🌐 Redes sociales</h1><p>Sigue a Shadows Byte Gaming Official en nuestras redes oficiales.</p></div><section class="section"><div id="sb-social-directory" class="social-links" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px" aria-live="polite">Cargando redes sociales…</div><p>Los enlaces se abren en una nueva pestaña.</p></section></section>`;
+pages['/redes-sociales']=()=>`<section class="page"><div class="page-hero"><div class="eyebrow">COMUNIDAD</div><h1>🌐 Redes sociales</h1><p>Sigue a Shadows Byte Gaming Official en nuestras redes oficiales.</p><button id="sb-share-social-directory" class="outline-btn" type="button">📲 Compartir redes sociales</button></div><section class="section"><div id="sb-social-directory" class="social-links" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px" aria-live="polite">Cargando redes sociales…</div><p>Los enlaces se abren en una nueva pestaña.</p></section></section>`;
 const previousSocialRender=render;
 render=async function(...args){const result=await previousSocialRender.apply(this,args);await loadSiteSocialLinks();return result;};
 const previousSocialInitAdmin=initAdmin;
