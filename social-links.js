@@ -24,8 +24,8 @@ async function loadSocialStats(section){
  SOCIAL_PLATFORMS.forEach((platform,i)=>{const row=document.createElement('div');row.className='social-stat-row';const label=document.createElement('span');label.textContent=platform;const number=document.createElement('strong');number.textContent=counts[i];row.append(label,number);host.append(row);});
 }
 async function loadSiteSocialLinks(){
- const hosts=[...document.querySelectorAll('.social-links')];if(!hosts.length)return;hosts.forEach(decorateSocialLinks);if(typeof sb==='undefined')return;
- const {data,error}=await sb.from('site_social_links').select('platform,url');
+ const hosts=[...document.querySelectorAll('.social-links')];if(!hosts.length)return;hosts.forEach(decorateSocialLinks);if(typeof sb==='undefined'){for(const host of hosts)if(host.id==='sb-social-directory')host.textContent='Conexión no disponible. Recarga la página.';return;}
+ let data,error;try{({data,error}=await sb.from('site_social_links').select('platform,url').abortSignal(AbortSignal.timeout(10000)));}catch(e){error=e;}
  if(error){for(const host of hosts)if(host.id==='sb-social-directory')host.textContent='No se pudieron cargar las redes sociales. Vuelve a intentarlo.';return;}
  for(const host of hosts){if(!host.isConnected)continue;
  host.replaceChildren();
@@ -79,5 +79,11 @@ render=async function(...args){const result=await previousSocialRender.apply(thi
 const previousSocialInitAdmin=initAdmin;
 initAdmin=async function(...args){const result=await previousSocialInitAdmin.apply(this,args);await initSocialAdmin();return result;};
 
+// El router original conserva su listener de hashchange; observar el montaje real.
+const socialDirectoryObserver=new MutationObserver(()=>{
+ const host=document.getElementById('sb-social-directory');
+ if(host&&!host.dataset.socialLoaded){host.dataset.socialLoaded='1';void loadSiteSocialLinks();}
+});
+socialDirectoryObserver.observe(app,{childList:true,subtree:true});
 // Refrescar la vista inicial tras registrar las extensiones.
 render();
