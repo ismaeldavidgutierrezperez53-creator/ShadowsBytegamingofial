@@ -126,14 +126,14 @@
       if(badgeResult.error)throw badgeResult.error;
       if(!ui.panel.isConnected || ui.panel.dataset.owner!==userId)return;
       const owned=new Map((badgeResult.data||[]).map(row=>[row.badge_key,row.unlocked_at]));
-      if(!owned.size) {ui.panel.remove();return;}
+      if(!owned.size) {ui.panel.hidden=true;return;}
       ui.list.replaceChildren();
       for(const item of catalogResult)
         if(owned.has(item.badge_key))ui.list.append(card(item,owned.get(item.badge_key),false));
       ui.status.textContent=number(owned.size)+' insignias conseguidas.';
     } catch(error) {
       console.warn('Insignias en perfil público:',error);
-      if(ui.panel.isConnected)ui.panel.remove();
+      if(ui.panel.isConnected)ui.panel.hidden=true;
     }
   }
   function mountOwn() {
