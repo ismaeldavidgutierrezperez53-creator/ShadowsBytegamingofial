@@ -30,6 +30,13 @@
    category.append(option);
   }
   categoryLabel.append(category);
+  const tagLabel=make('label','','Etiqueta');
+  const tag=make('select');tag.setAttribute('aria-label','Filtrar publicaciones por etiqueta');
+  const allTag=make('option','','Todas las etiquetas');allTag.value='all';tag.append(allTag);
+  for(const name of ['Anime','Gaming','Manga','Manhwa','Fanart','Pokémon','Preguntas','Spoiler','Torneos','Noticias']){
+   const option=make('option','','#'+name);option.value=name;tag.append(option);
+  }
+  tagLabel.append(tag);
   const imageLabel=make('label','sb-discovery-images');
   const onlyImages=make('input');onlyImages.type='checkbox';
   const imageCopy=make('span','','🖼️ Solo publicaciones con imagen');
@@ -38,7 +45,7 @@
   reset.type='button';
   const status=make('p','sb-discovery-status','Esperando publicaciones…');
   status.setAttribute('role','status');status.setAttribute('aria-live','polite');
-  controls.append(searchLabel,categoryLabel,imageLabel,reset);
+  controls.append(searchLabel,categoryLabel,tagLabel,imageLabel,reset);
   panel.append(heading,info,controls,status);
   feed.before(panel);
   let queued=false;
@@ -47,15 +54,18 @@
    const posts=[...feed.querySelectorAll('.community-bookmark-feed .social-post')];
    const term=search.value.trim().toLocaleLowerCase('es');
    const categoryValue=category.value;
+   const tagValue=tag.value;
    let shown=0;
    for(const post of posts){
     const content=post.querySelector('.social-post-body')?.textContent||'';
     const author=post.querySelector('.feed-author')?.textContent||'';
     const album=post.dataset.sbDiscoveryCategory||'Otros';
+    const tags=(post.dataset.sbPostTags||'').split('|').filter(Boolean);
     const hasImage=Boolean(post.querySelector('.social-post-image'));
     const matches=(categoryValue==='all'||album===categoryValue)
+     &&(tagValue==='all'||tags.includes(tagValue))
      &&(!onlyImages.checked||hasImage)
-     &&(!term||(content+' '+author+' '+album).toLocaleLowerCase('es').includes(term));
+     &&(!term||(content+' '+author+' '+album+' '+tags.join(' ')).toLocaleLowerCase('es').includes(term));
     post.hidden=!matches;if(matches)shown++;
    }
    const mode=feed.querySelector('.community-bookmark-toolbar [aria-pressed="true"]')?.textContent||'publicaciones';
@@ -77,9 +87,9 @@
    }
   });
   lifecycle.observe(document.getElementById('app'),{childList:true});
-  search.oninput=schedule;category.onchange=schedule;onlyImages.onchange=schedule;
+  search.oninput=schedule;category.onchange=schedule;tag.onchange=schedule;onlyImages.onchange=schedule;
   reset.onclick=()=>{
-   search.value='';category.value='all';onlyImages.checked=false;apply();
+   search.value='';category.value='all';tag.value='all';onlyImages.checked=false;apply();
    search.focus();
   };
   apply();
