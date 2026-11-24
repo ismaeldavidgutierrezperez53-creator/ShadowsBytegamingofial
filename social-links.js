@@ -1,7 +1,30 @@
 // Redes sociales administradas manualmente desde Supabase.
 const SOCIAL_PLATFORMS=['YouTube','Discord','Instagram','TikTok','Facebook','Twitch','X (Twitter)'];
+const SOCIAL_ICONS={Discord:'M19.7 5.4a18 18 0 0 0-4.4-1.4l-.5 1a16 16 0 0 0-5.6 0l-.5-1a18 18 0 0 0-4.4 1.4C1.5 9.5.7 13.5 1.1 17.5a18 18 0 0 0 5.4 2.7l1.2-1.9-1.7-.8.4-.3a15 15 0 0 0 11.2 0l.4.3-1.7.8 1.2 1.9a18 18 0 0 0 5.4-2.7c.5-4.6-.8-8.5-3.2-12.1zM8.5 15.2c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2zm7 0c-1.1 0-2-1-2-2.2s.9-2.2 2-2.2 2 1 2 2.2-.9 2.2-2 2.2z',Instagram:'M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm5.5-3a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z',TikTok:'M14 2h4c0 3 2 5 5 5v4a9 9 0 0 1-5-1.5V16a7 7 0 1 1-7-7v4a3 3 0 1 0 3 3z',YouTube:'M23 7a3 3 0 0 0-2-2c-2-.5-16-.5-18 0a3 3 0 0 0-2 2c-.5 2-.5 8 0 10a3 3 0 0 0 2 2c2 .5 16 .5 18 0a3 3 0 0 0 2-2c.5-2 .5-8 0-10zM10 8l6 4-6 4z'};
+const SOCIAL_COLORS={Discord:'#8b91ff',Instagram:'#ff82bf',TikTok:'#70eee4',YouTube:'#ff7373',Twitch:'#c3a0ff','X (Twitter)':'#e2e8f0',Facebook:'#82b6ff'};
+function decorateSocialLinks(host){
+ for(const a of host.querySelectorAll('a')){
+  const platform=a.textContent.trim();if(!SOCIAL_PLATFORMS.includes(platform)||a.dataset.socialPlatform)continue;
+  a.dataset.socialPlatform=platform;a.style.setProperty('--social-accent',SOCIAL_COLORS[platform]||'#eabf49');
+  const path=SOCIAL_ICONS[platform];
+  if(path){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');const p=document.createElementNS(svg.namespaceURI,'path');p.setAttribute('d',path);p.setAttribute('fill','currentColor');p.setAttribute('fill-rule','evenodd');svg.append(p);a.prepend(svg);}
+  const record=()=>{if(typeof sb!=='undefined')sb.from('site_social_clicks').insert({platform}).then(({error})=>{if(error)console.warn('Social click:',error.message);},()=>{});};
+  a.addEventListener('click',record);a.addEventListener('auxclick',e=>{if(e.button===1)record();});
+ }
+}
+async function loadSocialStats(section){
+ const host=section.querySelector('.social-click-stats');if(!host)return;
+ host.textContent='Cargando estadísticas…';
+ const {data:{user},error:authError}=await sb.auth.getUser();
+ if(authError||user?.app_metadata?.role!=='admin'){host.textContent='Estadísticas disponibles solo para administradores.';return;}
+ const results=await Promise.all(SOCIAL_PLATFORMS.map(platform=>sb.from('site_social_clicks').select('id',{count:'exact',head:true}).eq('platform',platform)));
+ if(results.some(x=>x.error)){host.textContent='No se pudieron cargar las estadísticas.';return;}
+ const counts=results.map(x=>x.count||0);host.replaceChildren();
+ const total=document.createElement('strong');total.textContent='Total de clics: '+counts.reduce((a,b)=>a+b,0);host.append(total);
+ SOCIAL_PLATFORMS.forEach((platform,i)=>{const row=document.createElement('div');row.className='social-stat-row';const label=document.createElement('span');label.textContent=platform;const number=document.createElement('strong');number.textContent=counts[i];row.append(label,number);host.append(row);});
+}
 async function loadSiteSocialLinks(){
- const host=document.querySelector('.social-links');if(!host||typeof sb==='undefined')return;
+ const host=document.querySelector('.social-links');if(!host)return;decorateSocialLinks(host);if(typeof sb==='undefined')return;
  const {data,error}=await sb.from('site_social_links').select('platform,url');
  if(error||!host.isConnected)return;
  host.replaceChildren();
@@ -10,6 +33,7 @@ async function loadSiteSocialLinks(){
   if(!item||!/^https:\/\/[^\s]+$/i.test(item.url))continue;
   const a=document.createElement('a');a.href=item.url;a.textContent=platform;a.target='_blank';a.rel='noopener noreferrer';host.append(a);
  }
+ decorateSocialLinks(host);
  if(!host.children.length)host.textContent='Próximamente publicaremos nuestras redes sociales.';
 }
 async function initSocialAdmin(){
@@ -18,6 +42,7 @@ async function initSocialAdmin(){
  const section=document.createElement('section');section.className='admin-panel';section.id='social-admin-panel';
  section.innerHTML='<div class="admin-panel-heading"><div><span class="admin-kicker">CONFIGURACIÓN</span><h2>Redes sociales</h2><p>Pega manualmente los enlaces. Deja un campo vacío para ocultar esa red en la web.</p></div></div><form id="social-admin-form"><div class="admin-fields" id="social-admin-fields"></div><div class="admin-form-actions"><button class="gradient-btn" type="submit">Guardar redes sociales</button></div><p id="social-admin-message" role="status" aria-live="polite"></p></form>';
  dashboard.append(section);
+ const stats=document.createElement('div');stats.className='social-stats-panel';stats.innerHTML='<h3>Estadísticas de redes sociales</h3><p>Clics registrados desde la web, no seguidores ni visitas confirmadas.</p><div class="social-click-stats" aria-live="polite"></div><button type="button" class="gradient-btn">Actualizar estadísticas</button>';section.append(stats);stats.querySelector('button').onclick=()=>loadSocialStats(section);loadSocialStats(section);
  const fields=section.querySelector('#social-admin-fields');
  for(const platform of SOCIAL_PLATFORMS){
   const wrap=document.createElement('div');wrap.className='admin-field';
