@@ -304,7 +304,7 @@
   }
 
   async function maybeCelebrateBoxBadge(){
-    if(boxToastKey||boxBusy||!loggedIn()||!validClient())return;
+    if(boxToastKey||boxBusy||!loggedIn()||!validClient()||document.visibilityState==='hidden')return;
     const badge=boxData.find(record=>boxBadges[record?.key]&&
       !record.celebrated_at&&!boxAnnounced.has(record.key));
     if(!badge)return;
