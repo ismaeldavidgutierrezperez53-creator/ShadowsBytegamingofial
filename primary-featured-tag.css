@@ -1,0 +1,18 @@
+/* 👑 Etiqueta principal junto al nombre y selector dentro de la vitrina. */
+.sb-primary-tag-inline{display:inline-flex;align-items:center;vertical-align:middle;gap:.2rem;margin-inline-start:.4rem;max-width:100%;line-height:1.3}
+.sb-primary-tag-inline::before{content:"👑";font-size:.85em;line-height:1}
+.sb-primary-tag-inline .sb-exclusive-tag,.sb-primary-badge{font-size:.76rem!important;margin:0;white-space:normal;max-width:100%;text-align:left;vertical-align:middle}
+.public-member-body>h1 .sb-primary-tag-inline,.profile-identity-copy h2 .sb-primary-tag-inline{font-size:.8em}
+.feed-author .sb-primary-tag-inline,.social-comment>a .sb-primary-tag-inline,.member-gallery-comment>a .sb-primary-tag-inline{font-weight:normal}
+.sb-primary-tag-picker{display:grid;gap:.55rem;padding:.85rem;border-radius:14px;border:1px solid rgba(238,198,105,.48);background:linear-gradient(130deg,rgba(90,56,133,.22),rgba(53,45,74,.22));min-width:0}
+.sb-primary-tag-picker h4{margin:0;color:#ffdf9f}
+.sb-primary-explainer,.sb-primary-status,.sb-primary-none{margin:0;line-height:1.45;font-size:.9rem}
+.sb-primary-status[data-error="true"]{color:#ffb6b6}
+.sb-primary-options{display:grid;gap:.5rem}
+.sb-primary-option{display:flex;gap:.65rem;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:.55rem .7rem;border:1px solid rgba(178,141,214,.3);border-radius:12px;background:rgba(61,38,89,.18)}
+.sb-primary-option.is-active{border-color:#f4d38a;background:rgba(165,109,30,.14)}
+.sb-primary-option-label{display:flex;min-width:0;flex-wrap:wrap;align-items:center}
+.sb-primary-options button,.sb-primary-actions button{min-height:38px}
+.sb-primary-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+@media(max-width:550px){.sb-primary-option{align-items:flex-start;flex-direction:column}.sb-primary-option button{width:100%}.sb-primary-tag-inline{margin-left:.25rem}.sb-primary-tag-inline .sb-exclusive-tag{font-size:.72rem!important}}
+@media(prefers-reduced-motion:reduce){.sb-primary-tag-inline .sb-exclusive-tag,.sb-primary-tag-picker .sb-exclusive-tag{animation:none!important;transition:none!important}}
