@@ -66,3 +66,132 @@
  #admin-surprise-boxes .sb-box-members__detail-head>button{width:100%}
  #admin-surprise-boxes .sb-box-members__table{min-width:685px}
 }
+
+
+/* Ranking de cajas abiertas: podio y puestos del 4 al 10 */
+#admin-surprise-boxes .sb-box-members__ranking{
+ display:grid;gap:12px;min-width:0;padding:clamp(12px,2vw,19px);
+ border:1px solid #80639e;border-radius:16px;
+ background:linear-gradient(135deg,#261a36,#191525);
+}
+#admin-surprise-boxes .sb-box-members__ranking h4{
+ margin:0;color:#f2e1ff;font-size:clamp(19px,2.5vw,23px);
+}
+#admin-surprise-boxes .sb-box-members__rank-help{
+ margin:0;color:#cebfdd;font-size:13px;line-height:1.5;
+}
+#admin-surprise-boxes .sb-box-members__rank-status{
+ margin:0;color:#d5c8e6;font-size:13px;line-height:1.45;
+}
+#admin-surprise-boxes .sb-box-members__rank-status[data-type=success]{color:#b2efd5}
+#admin-surprise-boxes .sb-box-members__rank-status[data-type=error]{color:#ffc3cb}
+#admin-surprise-boxes .sb-box-members__rank-list{
+ display:grid;gap:9px;min-width:0;margin:0;padding:0;list-style:none;
+}
+#admin-surprise-boxes .sb-box-members__rank-row{min-width:0;margin:0}
+#admin-surprise-boxes .sb-box-members__rank-button{
+ width:100%;min-width:0;display:grid;
+ grid-template-columns:46px minmax(0,1fr) auto;
+ grid-template-rows:auto 8px;
+ align-items:center;gap:11px 14px;
+ text-align:left;padding:12px;
+ border:1px solid #56456d;border-radius:13px;background:#2b213b;color:#f7efff;
+ cursor:pointer;
+}
+#admin-surprise-boxes .sb-box-members__rank-button:hover,
+#admin-surprise-boxes .sb-box-members__rank-button:focus-visible{
+ background:#38264f;border-color:#b799e4;
+}
+#admin-surprise-boxes .sb-box-members__rank-row--1 .sb-box-members__rank-button{
+ border-color:#bfa04d;background:linear-gradient(120deg,#4f3827,#322235);
+}
+#admin-surprise-boxes .sb-box-members__rank-row--2 .sb-box-members__rank-button{
+ border-color:#9dabc0;background:linear-gradient(120deg,#303944,#30273e);
+}
+#admin-surprise-boxes .sb-box-members__rank-row--3 .sb-box-members__rank-button{
+ border-color:#ba8060;background:linear-gradient(120deg,#452f29,#30243a);
+}
+#admin-surprise-boxes .sb-box-members__rank-icon{
+ grid-column:1;grid-row:1;
+ display:flex;align-items:center;justify-content:center;
+ width:46px;height:46px;border-radius:12px;
+ background:#362748;font-size:25px;font-weight:700;color:#e7ccff;
+}
+#admin-surprise-boxes .sb-box-members__rank-identity{
+ grid-column:2;grid-row:1;display:grid;gap:4px;min-width:0;
+}
+#admin-surprise-boxes .sb-box-members__rank-identity strong{
+ font-size:15px;font-weight:700;overflow-wrap:anywhere;
+}
+#admin-surprise-boxes .sb-box-members__rank-identity small{
+ color:#cdbbdb;font-size:12px;overflow-wrap:anywhere;
+}
+#admin-surprise-boxes .sb-box-members__rank-count{
+ grid-column:3;grid-row:1;display:grid;gap:4px;text-align:right;
+}
+#admin-surprise-boxes .sb-box-members__rank-count strong{
+ color:#b6ffe0;font-size:15px;white-space:nowrap;
+}
+#admin-surprise-boxes .sb-box-members__rank-count small{
+ color:#c9bbd9;font-size:12px;white-space:nowrap;
+}
+#admin-surprise-boxes .sb-box-members__rank-progress{
+ grid-row:2;grid-column:2/-1;display:block;overflow:hidden;
+ width:100%;height:8px;border:1px solid #57436c;border-radius:99px;background:#1b132b;
+}
+#admin-surprise-boxes .sb-box-members__rank-fill{
+ height:100%;display:block;border-radius:99px;min-width:2px;
+ background:linear-gradient(90deg,#7b6cda,#67dfc4);
+}
+#admin-surprise-boxes .sb-box-members__rank-row--1 .sb-box-members__rank-fill{
+ background:linear-gradient(90deg,#d1a545,#ffe6a2);
+}
+#admin-surprise-boxes .sb-box-members__rank-row--2 .sb-box-members__rank-fill{
+ background:linear-gradient(90deg,#839cad,#e4e9fc);
+}
+#admin-surprise-boxes .sb-box-members__rank-row--3 .sb-box-members__rank-fill{
+ background:linear-gradient(90deg,#aa654a,#e1b08b);
+}
+#admin-surprise-boxes .sb-box-members__rank-empty{
+ margin:0;padding:19px 14px;text-align:center;
+ border:1px dashed #6e5888;border-radius:12px;
+ background:#22192e;color:#d8cbdf;line-height:1.5;
+}
+@media(min-width:840px){
+ #admin-surprise-boxes .sb-box-members__rank-list:has(.sb-box-members__rank-row--1){
+  grid-template-columns:repeat(3,minmax(0,1fr));
+ }
+ #admin-surprise-boxes .sb-box-members__rank-row:nth-child(-n+3) .sb-box-members__rank-button{
+  grid-template-columns:1fr;grid-template-rows:auto auto auto 8px;
+  justify-items:center;text-align:center;align-content:center;min-height:162px;
+ }
+ #admin-surprise-boxes .sb-box-members__rank-row:nth-child(-n+3) .sb-box-members__rank-icon{
+  grid-column:1;grid-row:1;
+ }
+ #admin-surprise-boxes .sb-box-members__rank-row:nth-child(-n+3) .sb-box-members__rank-identity{
+  grid-column:1;grid-row:2;text-align:center;
+ }
+ #admin-surprise-boxes .sb-box-members__rank-row:nth-child(-n+3) .sb-box-members__rank-count{
+  grid-column:1;grid-row:3;text-align:center;
+ }
+ #admin-surprise-boxes .sb-box-members__rank-row:nth-child(-n+3) .sb-box-members__rank-progress{
+  grid-column:1;grid-row:4;
+ }
+ #admin-surprise-boxes .sb-box-members__rank-row:nth-child(n+4){
+  grid-column:1/-1;
+ }
+ #admin-surprise-boxes .sb-box-members__rank-empty{grid-column:1/-1}
+}
+@media(max-width:490px){
+ #admin-surprise-boxes .sb-box-members__ranking{padding:10px}
+ #admin-surprise-boxes .sb-box-members__rank-button{
+  grid-template-columns:39px minmax(0,1fr) auto;gap:8px;padding:9px;
+ }
+ #admin-surprise-boxes .sb-box-members__rank-icon{width:39px;height:39px;font-size:21px}
+ #admin-surprise-boxes .sb-box-members__rank-identity strong,
+ #admin-surprise-boxes .sb-box-members__rank-count strong{font-size:13px}
+ #admin-surprise-boxes .sb-box-members__rank-count small{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){
+ #admin-surprise-boxes .sb-box-members__rank-button{scroll-behavior:auto}
+}
