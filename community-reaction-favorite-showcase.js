@@ -72,7 +72,7 @@
     publicLink.href='#/cuenta';
     buttons.append(reload,publicLink);
     panel.append(intro,status,selectedTitle,selectedBox,availableTitle,availableBox,buttons);
-    return {panel,status,selectedBox,availableBox,reload,selectedTitle,availableTitle};
+    return {panel,status,selectedBox,availableBox,reload,selectedTitle,availableTitle,publicLink};
   }
 
   function mountOwn(route){
@@ -187,6 +187,7 @@
           throw [catRes,ownedRes,selectedRes].find(r=>r.error).error;
         if(!active()||ticket!==seq || !(await sameSession(uid)))return;
         ownerId=uid;
+        ui.publicLink.href='#/perfil?id='+encodeURIComponent(uid);
         catalog=new Map((catRes.data||[]).map(item=>[item.badge_key,item]));
         unlocked=(ownedRes.data||[]).map(item=>item.badge_key).filter(k=>catalog.has(k));
         const valid=new Set(unlocked);
