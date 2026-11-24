@@ -511,7 +511,7 @@ async function sbUnlockedTagNames(notices){
 
 async function loadNotificationPreview(userId){
  const root=document.getElementById('notification-preview');if(!root||!userId)return;
- const {data,error}=await sb.from('member_notifications').select('id,recipient_id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,competition_id,competition_medal_place,auto_tag_id,info_reaction,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
+ const {data,error}=await sb.from('member_notifications').select('id,recipient_id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,competition_id,competition_medal_place,auto_tag_id,info_reaction,anime_review_id,anime_comment_id,is_read,created_at').eq('recipient_id',userId).order('created_at',{ascending:false}).limit(8);
  if(!root.isConnected)return;root.replaceChildren();
  if(error){root.textContent='No se pudieron cargar las notificaciones.';return;}
  if(!data?.length){root.textContent='Todavía no tienes notificaciones de la comunidad.';}
@@ -546,6 +546,8 @@ async function loadNotificationPreview(userId){
     return prize?'🏆 ¡Ganaste '+prize.badge+' en '+formatSeason(n.season_month)+'! +'+prize.points+' puntos.':'🏆 ¡Has recibido un premio de temporada!';
    })():n.kind==='poll_reminder'?'⏰ Recuerda votar: '+(pollNames.get(n.poll_id)||'Encuesta abierta')+' · Gana 15 puntos.':n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa ahora'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo: '+(giftNames.get(n.gift_id)||'recompensa')+'.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?(photo?' dio Me gusta a tu fotografía.':' dio Me gusta a tu publicación.'):(photo?' comentó tu fotografía.':' comentó tu publicación.'));
   if(n.kind==='info_reaction')message.textContent=infoReactionNotificationMessage(n,names.get(n.actor_id)||'Un miembro');
+  if(n.kind==='anime_review_comment')message.textContent='🌸 '+(names.get(n.actor_id)||'Un miembro')+' comentó tu reseña de Anime.';
+  if(n.kind==='anime_review_reply')message.textContent='↩️ '+(names.get(n.actor_id)||'Un miembro')+' respondió a tu comentario en Anime.';
   if(n.kind==='exclusive_tag_unlock')message.textContent='🏅 ¡Etiqueta desbloqueada! '+(unlockedTagNames.get(n.auto_tag_id)||'Nuevo premio exclusivo')+'.';
   if(competitionNotificationText(n))message.textContent=competitionNotificationText(n);
   const date=document.createElement('small');date.textContent=new Date(n.created_at).toLocaleString('es-ES');item.append(message,date);
@@ -553,6 +555,10 @@ async function loadNotificationPreview(userId){
   if(['tournament_full','tournament_match','tournament_finished'].includes(n.kind)&&n.tournament_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏆 Ver torneo';go.className='notification-jump';item.append(go);}
   if(n.kind.startsWith('competition_')){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent=n.kind==='competition_mission_reminder'?'🎯 Ver misiones':'🏆 Ver competición';go.className='notification-jump';item.append(go);}
   if(n.kind==='news_reply'&&n.news_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='📰 Ver respuesta';go.className='notification-jump';item.append(go);}
+  if(['anime_review_comment','anime_review_reply'].includes(n.kind)){
+   const go=document.createElement('a');go.href=notificationDestination(n);
+   go.textContent='🌸 Ver conversación';go.className='notification-jump';item.append(go);
+  }
    if(n.kind==='mention'&&(n.post_id||n.news_id)){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🏷️ Ver mención';go.className='notification-jump';item.append(go);}
   if(n.game_id){const go=document.createElement('a');go.href='#/perfil?id='+encodeURIComponent(userId)+'&game='+encodeURIComponent(n.game_id);go.textContent='🎮 Ver biblioteca';go.className='notification-jump';item.append(go);}
   if((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id){const go=document.createElement('a');go.href=notificationDestination(n);go.textContent='🗳️ Votar ahora';go.className='notification-jump';item.append(go)}
@@ -804,7 +810,7 @@ function sbNotificationCategoryField(kind,newsId){
  if(['poll_season_prize','poll_museum_prize','gift','exclusive_tag_unlock'].includes(kind))return 'alert_rewards_enabled';
  if(kind==='follow')return 'alert_followers_enabled';
  if(kind==='news_reply'||(kind==='mention'&&newsId))return 'alert_news_enabled';
- if(['like','comment','mention','info_reaction','game_like','game_comment','game_reply'].includes(kind))return 'alert_community_enabled';
+ if(['like','comment','mention','info_reaction','game_like','game_comment','game_reply','anime_review_comment','anime_review_reply'].includes(kind))return 'alert_community_enabled';
  return null;
 }
 
@@ -816,7 +822,7 @@ function showRealtimeNotificationToast(n){
  if(toastNotificationIds.size>100){const first=toastNotificationIds.values().next().value;toastNotificationIds.delete(first);}
  let stack=document.getElementById('sb-notification-toast-stack');
  if(!stack){stack=document.createElement('div');stack.id='sb-notification-toast-stack';stack.className='sb-notification-toast-stack';stack.setAttribute('aria-live','polite');stack.setAttribute('aria-relevant','additions');document.body.append(stack);}
- const labels={info_reaction:'💜 Alguien reaccionó a tu Info',exclusive_tag_unlock:'🏅 ¡Nueva etiqueta exclusiva desbloqueada!',mention:'🏷️ Te han mencionado',news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!',tournament_full:'🎟️ ¡Torneo completo! Las cuatro plazas están ocupadas',tournament_match:'⚔️ ¡Tienes un nuevo enfrentamiento asignado!',tournament_finished:'🏆 ¡Torneo finalizado! Consulta tus premios',competition_published:'📢 Nuevo reto o torneo publicado',competition_start:'⏰ Tu competición comienza pronto',competition_mission_reminder:'🎯 Misión especial pendiente',competition_medal:'🏅 ¡Has ganado una medalla!',moderation_warning:'⚠️ Has recibido una advertencia',moderation_suspend:'⏳ Tu cuenta ha sido suspendida',moderation_ban:'🚫 Se ha registrado una expulsión',moderation_lift:'✅ Se ha levantado una restricción'};
+ const labels={anime_review_comment:'🌸 Alguien comentó tu reseña de Anime',anime_review_reply:'↩️ Alguien respondió a tu comentario de Anime',info_reaction:'💜 Alguien reaccionó a tu Info',exclusive_tag_unlock:'🏅 ¡Nueva etiqueta exclusiva desbloqueada!',mention:'🏷️ Te han mencionado',news_reply:'💬 Alguien respondió a tu comentario en Noticias',game_like:'❤️ A alguien le gustó tu videojuego',game_comment:'💬 Nuevo comentario en tu biblioteca',game_reply:'↩️ Respondieron a tu comentario',like:'❤️ Nuevo Me gusta',comment:'💬 Nuevo comentario',follow:'👥 Tienes un nuevo seguidor',gift:'🎁 Has recibido un regalo',profile_view:'👁️ Alguien ha visitado tu perfil',poll:'📊 ¡Nueva encuesta para votar!',poll_reminder:'⏰ ¡Aún puedes votar y ganar 15 puntos!',poll_season_prize:'🏆 ¡Felicidades! Ganaste un premio de temporada',poll_trophy_like:'❤️ Alguien dio Me gusta a tu trofeo',poll_museum_prize:'🏛️ ¡Ganaste un premio mensual de museo!',tournament_full:'🎟️ ¡Torneo completo! Las cuatro plazas están ocupadas',tournament_match:'⚔️ ¡Tienes un nuevo enfrentamiento asignado!',tournament_finished:'🏆 ¡Torneo finalizado! Consulta tus premios',competition_published:'📢 Nuevo reto o torneo publicado',competition_start:'⏰ Tu competición comienza pronto',competition_mission_reminder:'🎯 Misión especial pendiente',competition_medal:'🏅 ¡Has ganado una medalla!',moderation_warning:'⚠️ Has recibido una advertencia',moderation_suspend:'⏳ Tu cuenta ha sido suspendida',moderation_ban:'🚫 Se ha registrado una expulsión',moderation_lift:'✅ Se ha levantado una restricción'};
  const toast=document.createElement('div');toast.className='sb-notification-toast';toast.setAttribute('role','status');
  const message=document.createElement('strong');message.textContent=labels[n.kind]||'🔔 Nueva notificación';
  // Mostrar el nombre del nuevo seguidor sin retrasar la aparición del aviso.
@@ -840,6 +846,7 @@ function showRealtimeNotificationToast(n){
   ? '#/perfil?id='+encodeURIComponent(n.actor_id)
   : (n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'||n.kind==='news_reply'||(n.kind==='mention'&&(n.news_id||n.post_id))||n.kind==='poll_season_prize'||n.kind==='poll_museum_prize'||n.kind==='poll_trophy_like'||((n.kind==='poll'||n.kind==='poll_reminder')&&n.poll_id))?notificationDestination(n):'#/notificaciones';
  if(n.kind==='exclusive_tag_unlock')open.href='#/cuenta?focus=unlock-tags';
+ if(['anime_review_comment','anime_review_reply'].includes(n.kind))open.href=notificationDestination(n);
  open.textContent=n.kind?.startsWith('competition_')?(n.kind==='competition_mission_reminder'?'🎯 Ver misiones':'🏆 Ver competición'):n.kind==='follow'?'👤 Ver perfil':n.kind==='tournament_full'||n.kind==='tournament_match'||n.kind==='tournament_finished'?'🏆 Ver torneo':n.kind==='poll_season_prize'?'🏆 Ver premio':n.kind==='poll_museum_prize'?'🏛️ Ver ranking':n.kind==='poll_trophy_like'?'❤️ Ver trofeo':(n.kind==='poll'||n.kind==='poll_reminder')?'🗳️ Votar ahora':'Ver aviso';
  const close=document.createElement('button');close.type='button';close.className='outline-btn mini';close.textContent='Cerrar';
  let timer;const dismiss=()=>{clearTimeout(timer);toast.remove();};close.onclick=dismiss;open.onclick=dismiss;
@@ -3097,6 +3104,8 @@ function infoReactionNotificationMessage(n,actorName){
  return emoji+' '+String(actorName||'Un miembro')+' reaccionó a tu Info.';
 }
 function notificationDestination(n){
+ if(n.kind==='anime_review_comment'||n.kind==='anime_review_reply')
+  return '#/anime-gaming'+(n.anime_review_id?'?review='+encodeURIComponent(n.anime_review_id):'');
  if(n.kind==='info_reaction')return '#/perfil?id='+encodeURIComponent(n.recipient_id||'');
  if(n.kind==='exclusive_tag_unlock')return '#/cuenta?focus=unlock-tags';
  if(n.kind?.startsWith('competition_'))return n.kind==='competition_mission_reminder'?'#/comunidad?legends=missions':n.kind==='competition_medal'?'#/comunidad?legends=champions':n.competition_id?'#/comunidad?competition='+encodeURIComponent(n.competition_id):'#/comunidad';
@@ -3121,7 +3130,7 @@ async function loadMemberNotifications(){
  if(!root.isConnected)return;root.replaceChildren();
  if(!user){const link=document.createElement('a');link.href='#/auth';link.className='gradient-btn mini';link.textContent='Inicia sesión para ver tus notificaciones';root.append(link);return;}
  const [communityResult,reportsResult,messagesResult,appealsResult]=await Promise.all([
-  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,competition_id,competition_medal_place,auto_tag_id,info_reaction,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
+  sb.from('member_notifications').select('id,actor_id,kind,post_id,gift_id,game_id,poll_id,season_month,trophy_month,museum_month,news_id,news_comment_id,tournament_id,tournament_match_id,tournament_title,match_stage,match_no,competition_id,competition_medal_place,auto_tag_id,info_reaction,anime_review_id,anime_comment_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_report_notifications').select('id,status,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100),
   sb.from('member_direct_messages').select('id,sender_id,created_at,is_read').eq('recipient_id',user.id).eq('is_read',false).order('created_at',{ascending:false}).limit(100),
   sb.from('member_appeal_notifications').select('id,kind,appeal_id,created_at,is_read,dismissed_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100)
@@ -3161,6 +3170,12 @@ async function loadMemberNotifications(){
   ...messages.map(n=>({...n,category:'messages',title:'Mensaje privado de '+(names.get(n.sender_id)||'un miembro'),href:'#/mensajes?id='+encodeURIComponent(n.sender_id),table:null}))
  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
  for(const item of items){
+  if(['anime_review_comment','anime_review_reply'].includes(item.kind) && item.table==='member_notifications'){
+   item.title=item.kind==='anime_review_comment'
+     ?'🌸 '+(names.get(item.actor_id)||'Un miembro')+' comentó tu reseña de Anime.'
+     :'↩️ '+(names.get(item.actor_id)||'Un miembro')+' respondió a tu comentario en Anime.';
+   item.category='community';item.href=notificationDestination(item);
+  }
   if(item.kind==='info_reaction' && item.table==='member_notifications'){
    item.title=infoReactionNotificationMessage(item,names.get(item.actor_id)||'Un miembro');
   }
