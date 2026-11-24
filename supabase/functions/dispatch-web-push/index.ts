@@ -215,6 +215,8 @@ async function dispatch(type:string,id:string,extra:Record<string,unknown>={}):P
       ? {title:'👑 Te han asignado una apelación',body:'Tienes una apelación asignada para revisar en el panel de moderación.',path:'#/admin?focus=appeals'}
       : notice.kind==='assigned_reminder'
       ? {title:'⏰ Tienes una apelación asignada pendiente',body:'Tu apelación asignada lleva más de 24 horas sin resolverse. Revisa tu bandeja.',path:'#/admin?focus=appeals'}
+      : notice.kind==='in_review'
+      ? {title:'🔎 Tu apelación está en revisión',body:'El equipo de moderación ha comenzado a revisar tu solicitud. Consulta el seguimiento.',path:memberPath}
       : notice.kind==='message_to_staff'
       ? {title:'💬 Mensaje de apelación',body:'Un miembro ha enviado un nuevo mensaje a moderación.',path:'#/admin?focus=appeals'}
       : notice.kind==='message_to_member'
@@ -357,7 +359,7 @@ Deno.serve(async(req:Request)=>{
       const isAppealTest=body.type==='test_appeal';
       const isInfoReactionTest=body.type==='test_info_reaction';
       const decision=body.decision;
-      if(isAppealTest && !['accepted','rejected'].includes(decision))
+      if(isAppealTest && !['accepted','rejected','in_review'].includes(decision))
         return reply({error:'Invalid test decision'},400);
       // Las pruebas solo se envían a la suscripción autenticada del propio usuario.
       // Nunca crean sanciones, apelaciones ni notificaciones persistentes.
@@ -376,7 +378,7 @@ Deno.serve(async(req:Request)=>{
         }
         : isAppealTest
         ? {
-          title:decision==='accepted'?'🧪 SIMULACIÓN: apelación aceptada':'🧪 SIMULACIÓN: apelación rechazada',
+          title:decision==='in_review'?'🧪 SIMULACIÓN: apelación en revisión':decision==='accepted'?'🧪 SIMULACIÓN: apelación aceptada':'🧪 SIMULACIÓN: apelación rechazada',
           body:'Esto es solo una prueba. No hay ninguna decisión real sobre tu cuenta.',
           path:'#/cuenta?focus=appeals',
           tag:'push-appeal-demo-'+decision+'-'+crypto.randomUUID()
