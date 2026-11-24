@@ -130,6 +130,15 @@
     #sb-progress-settings legend { font-weight:700; }
     #sb-progress-settings input[type=color] { width:100%; height:32px; }
     #sb-progress-settings label { display:block; margin-top:6px; }
+    #sb-anime-scroll-progress { height:var(--sb-progress-height,4px)!important; }
+    #sb-anime-scroll-progress.sb-progress-bottom #sb-anime-scroll-progress-percentage { top:auto; bottom:calc(100% + 5px); }
+    #sb-anime-scroll-progress.sb-progress-no-percent #sb-anime-scroll-progress-percentage { display:none; }
+    #sb-anime-scroll-progress-fill { background:var(--sb-progress-gradient,linear-gradient(90deg,var(--sb-progress-a),var(--sb-progress-b))) !important; }
+    #sb-anime-scroll-progress[data-style="gaming"]:not(.is-complete) #sb-anime-scroll-progress-fill { background:repeating-linear-gradient(115deg,var(--sb-progress-a) 0 12px,var(--sb-progress-b) 12px 24px) !important; }
+    #sb-progress-settings select { width:100%; }
+    #sb-progress-preview { margin:12px 0; background:#30233e; border-radius:8px; overflow:hidden; }
+    #sb-progress-preview span { display:block; width:70%; border-radius:8px; }
+    #sb-progress-preview-caption { display:block; text-align:right; }
   `;
   document.head.appendChild(style);
 
@@ -172,15 +181,36 @@
   }
 
   const prefKey = 'sb-scroll-progress-prefs-v1';
-  const defaults = { enabled:true, mode:'auto', a:'#9254ff', b:'#00d9ff' };
+  const defaults = { enabled:true, mode:'auto', a:'#9254ff', b:'#00d9ff', style:'anime', thickness:'thin', position:'top', showPercent:true };
   let prefs = {...defaults};
   try {
     const saved = JSON.parse(localStorage.getItem(prefKey)||'{}') || {};
     if(typeof saved.enabled === 'boolean') prefs.enabled = saved.enabled;
+    if(typeof saved.showPercent === 'boolean') prefs.showPercent=saved.showPercent;
+    for(const [k,values] of Object.entries({style:['anime','gaming','rainbow','fire'],thickness:['thin','medium','thick'],position:['top','bottom']})) if(values.includes(saved[k])) prefs[k]=saved[k];
     if(['auto','custom'].includes(saved.mode)) prefs.mode = saved.mode;
     for(const k of ['a','b']) if(/^#[0-9a-f]{6}$/i.test(saved[k])) prefs[k]=saved[k];
   } catch (_) {}
   track.classList.toggle('sb-progress-disabled', !prefs.enabled);
+  const heights={thin:4,medium:7,thick:11};
+  function palette(progress){
+    const hue=270-progress*130;
+    if(prefs.mode==='custom')return [prefs.a,prefs.b];
+    if(prefs.style==='gaming')return ['#00a5ff','#65ff64'];
+    if(prefs.style==='fire')return ['#ff3131','#ffd34d'];
+    if(prefs.style==='rainbow')return ['#ff467d','#a855f7'];
+    return ['hsl('+hue+' 90% 62%)','hsl('+(hue-35)+' 95% 57%)'];
+  }
+  function gradient(colors){
+    return prefs.style==='rainbow'&&prefs.mode==='auto'?'linear-gradient(90deg,#ff467d,#ffbe45,#57e97c,#00d9ff,#a855f7)':'linear-gradient(90deg,'+colors.join(',')+')';
+  }
+  function applyAppearance(){
+    track.dataset.style=prefs.style;
+    track.classList.toggle('sb-progress-bottom',prefs.position==='bottom');
+    track.classList.toggle('sb-progress-no-percent',!prefs.showPercent);
+    track.style.setProperty('--sb-progress-height',heights[prefs.thickness]+'px');
+  }
+  applyAppearance();
   let previous = null;
   let scheduled = false;
   function burst(percent) {
@@ -195,7 +225,7 @@
       spark.setAttribute('aria-hidden','true');
       spark.style.left=(percent===100 ? 8+i*84/(count-1) : 50)+'%';
       spark.style.setProperty('--dx',((i%2?1:-1)*(8+i%5*7))+'px');
-      spark.style.setProperty('--dy',(12+i%6*7)+'px');
+      spark.style.setProperty('--dy',((prefs.position==='bottom'?-1:1)*(12+i%6*7))+'px');
       spark.style.setProperty('--spark-color',percent===100?'#fff1a0':'#7df9ff');
       track.append(spark);
       setTimeout(()=>spark.remove(),800);
@@ -205,9 +235,15 @@
     scheduled = false;
     // Situar la barra debajo de la cabecera fija, también en móvil.
     const header = document.querySelector('.topbar');
-    if (header) {
-      const bottom = header.getBoundingClientRect().bottom;
-      track.style.top = Math.max(0, Math.round(bottom)) + 'px';
+    if(prefs.position==='bottom'){
+      track.style.top='auto';
+      const nav=document.querySelector('.sb-mobile-nav, .sb-mobile-bottom-nav, .mobile-bottom-nav');
+      const rect=nav?.getBoundingClientRect();
+      const offset=rect&&rect.height>0&&rect.bottom>=window.innerHeight-2&&rect.top<window.innerHeight ? Math.max(0,window.innerHeight-rect.top):0;
+      track.style.bottom='max('+Math.round(offset)+'px, env(safe-area-inset-bottom, 0px))';
+    } else {
+      track.style.bottom='auto';
+      track.style.top=Math.max(0,Math.round(header?.getBoundingClientRect().bottom||0))+'px';
     }
     const documentHeight = Math.max(
       document.documentElement.scrollHeight,
@@ -218,9 +254,10 @@
     const progress = scrollable > 0 ? Math.max(0, Math.min(1, current / scrollable)) : 0;
     fill.style.transform = 'scaleX(' + progress + ')';
     const percent = scrollable > 0 && scrollable - current <= 1 ? 100 : Math.min(99, Math.floor(progress * 100));
-    const hue = 270 - progress * 130;
-    track.style.setProperty('--sb-progress-a', prefs.mode==='custom'?prefs.a:'hsl(' + hue + ' 90% 62%)');
-    track.style.setProperty('--sb-progress-b', prefs.mode==='custom'?prefs.b:'hsl(' + (hue - 35) + ' 95% 57%)');
+    const colors=palette(progress);
+    track.style.setProperty('--sb-progress-a',colors[0]);
+    track.style.setProperty('--sb-progress-b',colors[1]);
+    track.style.setProperty('--sb-progress-gradient',gradient(colors));
     percentage.textContent = percent + ' %';
     track.setAttribute('aria-valuenow', String(percent));
     track.classList.toggle('is-complete', percent === 100);
@@ -239,11 +276,19 @@
   if(customizerPanel && !document.getElementById('sb-progress-settings')) {
     const settings=document.createElement('fieldset');
     settings.id='sb-progress-settings';
-    settings.innerHTML='<legend>Barra de progreso</legend><label for="sb-progress-enabled">Mostrar barra</label><select id="sb-progress-enabled"><option value="on">Activada</option><option value="off">Desactivada</option></select><label for="sb-progress-mode">Colores de la barra</label><select id="sb-progress-mode"><option value="auto">Automático según progreso</option><option value="custom">Personalizado</option></select><label for="sb-progress-color-a">Color inicial</label><input id="sb-progress-color-a" type="color"><label for="sb-progress-color-b">Color final</label><input id="sb-progress-color-b" type="color"><button type="button" id="sb-progress-reset">Restablecer barra</button><small>Preferencias guardadas en este dispositivo.</small>';
+    settings.innerHTML='<legend>Barra de progreso</legend><label for="sb-progress-enabled">Mostrar barra</label><select id="sb-progress-enabled"><option value="on">Activada</option><option value="off">Desactivada</option></select><label for="sb-progress-mode">Colores de la barra</label><select id="sb-progress-mode"><option value="auto">Automático según progreso</option><option value="custom">Personalizado</option></select><label for="sb-progress-color-a">Color inicial</label><input id="sb-progress-color-a" type="color"><label for="sb-progress-color-b">Color final</label><input id="sb-progress-color-b" type="color"><label for="sb-progress-style">Estilo de barra</label><select id="sb-progress-style"><option value="anime">Anime</option><option value="gaming">Gaming</option><option value="rainbow">Arcoíris</option><option value="fire">Fuego</option></select><label for="sb-progress-thickness">Grosor</label><select id="sb-progress-thickness"><option value="thin">Fino</option><option value="medium">Mediano</option><option value="thick">Grueso</option></select><label for="sb-progress-position">Posición</label><select id="sb-progress-position"><option value="top">Arriba</option><option value="bottom">Abajo</option></select><label for="sb-progress-percent">Mostrar porcentaje</label><select id="sb-progress-percent"><option value="on">Sí</option><option value="off">No</option></select><div id="sb-progress-preview" aria-hidden="true"><span></span></div><small id="sb-progress-preview-caption">70 % · Vista previa</small><button type="button" id="sb-progress-reset">Restablecer barra</button><small>Preferencias guardadas en este dispositivo.</small>';
     const q=id=>settings.querySelector('#sb-progress-'+id);
     function syncControls(){
       q('enabled').value=prefs.enabled?'on':'off';
       q('mode').value=prefs.mode;
+      for(const k of ['style','thickness','position']) q(k).value=prefs[k];
+      q('percent').value=prefs.showPercent?'on':'off';
+      const colors=palette(.7);
+      const preview=q('preview').firstElementChild;
+      preview.style.height=heights[prefs.thickness]+'px';
+      preview.style.background=prefs.style==='gaming'?'repeating-linear-gradient(115deg,'+colors[0]+' 0 12px,'+colors[1]+' 12px 24px)':gradient(colors);
+      q('preview').hidden=!prefs.enabled;
+      q('preview-caption').textContent=prefs.enabled?(prefs.showPercent?'70 % · Vista previa':'Vista previa'):'Barra oculta';
       q('color-a').value=prefs.a;
       q('color-b').value=prefs.b;
       q('color-a').disabled=q('color-b').disabled=prefs.mode!=='custom';
@@ -251,11 +296,13 @@
     function savePrefs(){
       track.classList.toggle('sb-progress-disabled',!prefs.enabled);
       try{localStorage.setItem(prefKey,JSON.stringify(prefs));}catch(_){}
-      syncControls(); scheduleUpdate();
+      applyAppearance(); syncControls(); scheduleUpdate();
     }
     q('enabled').addEventListener('change',()=>{prefs.enabled=q('enabled').value==='on';savePrefs()});
     q('mode').addEventListener('change',()=>{prefs.mode=q('mode').value;savePrefs()});
     for(const k of ['a','b']) q('color-'+k).addEventListener('input',()=>{prefs[k]=q('color-'+k).value;savePrefs()});
+    for(const k of ['style','thickness','position']) q(k).addEventListener('change',()=>{prefs[k]=q(k).value;savePrefs()});
+    q('percent').addEventListener('change',()=>{prefs.showPercent=q('percent').value==='on';savePrefs()});
     q('reset').addEventListener('click',()=>{prefs={...defaults};savePrefs()});
     syncControls();
     const reset=[...customizerPanel.querySelectorAll('button')].find(b=>b.textContent==='Restablecer diseño');
