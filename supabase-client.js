@@ -585,6 +585,7 @@ async function loadNotificationPreview(userId){
      appeal.kind==='overdue'?'⏰ Apelación sin revisar desde hace más de 24 horas':
      appeal.kind==='message_to_staff'?'💬 Nuevo mensaje de un miembro en una apelación':
      appeal.kind==='message_to_member'?'💬 Respuesta del equipo de moderación':
+     appeal.kind==='in_review'?'🔎 Tu apelación está en revisión':
      appeal.kind==='accepted'?'✅ Tu apelación ha sido aceptada':'⚖️ Tu apelación ha sido rechazada';
    const time=document.createElement('small');time.textContent=new Date(appeal.created_at).toLocaleString('es-ES');
    const link=document.createElement('a');link.href=['submitted','overdue','message_to_staff','assigned','assigned_reminder'].includes(appeal.kind)?'#/admin?focus=appeals':'#/cuenta?focus=appeals&appeal='+encodeURIComponent(appeal.appeal_id);
@@ -3076,7 +3077,7 @@ async function loadMemberNotifications(){
  return prize?'🏆 ¡Felicidades! '+prize.badge+' · +'+prize.points+' puntos · '+formatSeason(n.season_month):'🏆 Premio de temporada de encuestas';
  })():n.kind==='poll_reminder'?'⏰ Aún puedes votar: '+(pollNames.get(n.poll_id)||'Encuesta abierta')+' · +15 puntos.':n.kind==='poll'?'📊 Nueva encuesta: '+(pollNames.get(n.poll_id)||'Participa con tu voto'):(names.get(n.actor_id)||'Un miembro')+(n.kind==='profile_view'?' visitó tu perfil.':n.kind==='game_like'?' dio Me gusta a un juego de tu biblioteca.':n.kind==='game_comment'?' comentó un juego de tu biblioteca.':n.kind==='game_reply'?' respondió a tu comentario de un videojuego.':n.kind==='gift'?' te envió un regalo.':n.kind==='follow'?' empezó a seguirte.':n.kind==='like'?' dio Me gusta a tu publicación.':' comentó tu publicación.'),href:notificationDestination(n),table:'member_notifications'})),
   ...reports.map(n=>({...n,category:'reports',title:'Tu denuncia fue '+(n.status==='reviewed'?'revisada.':'descartada.'),href:'#/cuenta',table:'member_report_notifications'})),
-  ...appealAlerts.map(n=>({...n,category:'appeals',title:n.kind==='submitted'?'⚖️ Nueva apelación para revisar':n.kind==='assigned'?'👑 Te han asignado una apelación':n.kind==='assigned_reminder'?'⏰ Tu apelación asignada lleva más de 24 horas pendiente':n.kind==='overdue'?'⏰ Apelación pendiente más de 24 horas':n.kind==='message_to_staff'?'💬 Un miembro ha respondido a una apelación':n.kind==='message_to_member'?'💬 Tienes una respuesta de moderación':n.kind==='accepted'?'✅ Tu apelación ha sido aceptada':'⚖️ Tu apelación ha sido rechazada',href:['submitted','overdue','message_to_staff','assigned','assigned_reminder'].includes(n.kind)?'#/admin?focus=appeals':'#/cuenta?focus=appeals&appeal='+encodeURIComponent(n.appeal_id),table:'member_appeal_notifications'})),
+  ...appealAlerts.map(n=>({...n,category:'appeals',title:n.kind==='submitted'?'⚖️ Nueva apelación para revisar':n.kind==='assigned'?'👑 Te han asignado una apelación':n.kind==='assigned_reminder'?'⏰ Tu apelación asignada lleva más de 24 horas pendiente':n.kind==='overdue'?'⏰ Apelación pendiente más de 24 horas':n.kind==='message_to_staff'?'💬 Un miembro ha respondido a una apelación':n.kind==='message_to_member'?'💬 Tienes una respuesta de moderación':n.kind==='in_review'?'🔎 Tu apelación está en revisión':n.kind==='accepted'?'✅ Tu apelación ha sido aceptada':'⚖️ Tu apelación ha sido rechazada',href:['submitted','overdue','message_to_staff','assigned','assigned_reminder'].includes(n.kind)?'#/admin?focus=appeals':'#/cuenta?focus=appeals&appeal='+encodeURIComponent(n.appeal_id),table:'member_appeal_notifications'})),
   ...messages.map(n=>({...n,category:'messages',title:'Mensaje privado de '+(names.get(n.sender_id)||'un miembro'),href:'#/mensajes?id='+encodeURIComponent(n.sender_id),table:null}))
  ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
  for(const item of items){
@@ -3104,7 +3105,7 @@ async function loadMemberNotifications(){
    'tournament_match','competition_start','competition_medal','poll_season_prize','poll_museum_prize'
  ]);
  const automaticImportant=n=>importantKinds.has(n.kind)
-  ||(n.category==='appeals'&&['assigned','assigned_reminder','overdue','accepted','rejected','message_to_member'].includes(n.kind));
+  ||(n.category==='appeals'&&['assigned','assigned_reminder','overdue','in_review','accepted','rejected','message_to_member'].includes(n.kind));
  const syncMark=n=>{
   const value=marks.get(n.table+':'+n.id);
   n.is_pinned=Boolean(value?.is_pinned);
