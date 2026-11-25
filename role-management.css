@@ -73,3 +73,23 @@
 .sb-staff-actions input[type="datetime-local"] { min-height:42px; max-width:100%; box-sizing:border-box; border-radius:10px; padding:8px; color:inherit; background:rgba(20,15,45,.92); border:1px solid rgba(192,166,255,.5); color-scheme:dark; }
 .sb-staff-actions [hidden] { display:none!important; }
 @media(max-width:650px){.sb-staff-actions input[type="datetime-local"]{width:100%}}
+
+/* Staff team dashboard */
+.sb-team-panel { margin:16px 0; }
+.sb-team-presence { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.sb-team-hint { opacity:.8; font-size:.9rem; }
+.sb-team-member { align-items:flex-start; gap:12px; flex-wrap:wrap; }
+.sb-team-individual { display:grid; gap:5px; flex:1 1 200px; min-width:0; font-size:.9rem; }
+.sb-team-section,.sb-team-permissions { border:1px solid rgba(192,166,255,.3); border-radius:12px; padding:12px; margin-top:12px; }
+.sb-team-permissions { flex:1 1 100%; min-width:0; }
+.sb-team-section>summary,.sb-team-permissions>summary { cursor:pointer; font-weight:600; padding:4px 0; }
+.sb-team-section .sb-staff-row { margin-top:8px; flex-wrap:wrap; }
+.sb-team-permission-options,.sb-team-renew-form { display:grid; gap:10px; margin:12px 0; }
+.sb-team-permission-options label { display:flex; gap:8px; align-items:center; }
+.sb-team-renew-form textarea,.sb-team-renew-form select { width:100%; box-sizing:border-box; background:rgba(20,15,45,.92); color:inherit; border:1px solid rgba(192,166,255,.5); border-radius:10px; padding:10px; min-height:42px; }
+.sb-team-renew-form textarea { resize:vertical; min-height:80px; }
+.sb-team-countdown { color:#f7ca70; font-variant-numeric:tabular-nums; font-weight:600; }
+.sb-team-warning { color:#f7ca70; overflow-wrap:anywhere; }
+.sb-team-presence-state { font-size:.85rem; }
+.sb-team-panel .sb-staff-member { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:650px){.sb-team-panel .sb-staff-row{align-items:stretch}.sb-team-individual,.sb-team-permissions{flex-basis:100%}.sb-team-section .sb-staff-actions button{width:100%}}
