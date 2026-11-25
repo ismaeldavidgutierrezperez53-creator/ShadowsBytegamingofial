@@ -42,6 +42,17 @@
       </div>
       <p id="sb-staff-status" role="status" aria-live="polite"></p>
       <div id="sb-staff-list" class="sb-staff-list">Cargando miembros…</div>
+      <details id="sb-staff-history" class="sb-staff-history">
+        <summary>📋 Historial administrativo de cargos</summary>
+        <p>Consulta quién concedió o retiró permisos y cuándo. Solo administradores.</p>
+        <div class="sb-staff-history-actions">
+          <button type="button" id="sb-history-refresh" class="admin-secondary">🔄 Actualizar historial</button>
+          <button type="button" id="sb-history-prev" class="admin-secondary" disabled>Anterior</button>
+          <button type="button" id="sb-history-next" class="admin-secondary" disabled>Siguiente</button>
+        </div>
+        <p id="sb-history-status" role="status" aria-live="polite"></p>
+        <div id="sb-history-list" class="sb-staff-list"></div>
+      </details>
     `;
     const welcome = dashboard.querySelector(".admin-welcome");
     if (welcome) welcome.after(panel);
@@ -49,8 +60,58 @@
     panel.querySelector("#sb-staff-search").addEventListener("input", drawMembers);
     panel.querySelector("#sb-staff-refresh").addEventListener("click", loadRoles);
     loadRoles();
+    const history = panel.querySelector("#sb-staff-history");
+    history.addEventListener("toggle", () => { if (history.open) loadHistory(history, 0); });
+    history.querySelector("#sb-history-refresh").addEventListener("click", () => loadHistory(history, 0));
+    history.querySelector("#sb-history-prev").addEventListener("click", () => loadHistory(history, Math.max(0, Number(history.dataset.page || 0) - 1)));
+    history.querySelector("#sb-history-next").addEventListener("click", () => loadHistory(history, Number(history.dataset.page || 0) + 1));
     const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("focus");
     if (focus === "staff") requestAnimationFrame(() => panel.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }
+  async function loadHistory(panel, page) {
+    if (!panel?.isConnected || !panel.open) return;
+    const list = panel.querySelector("#sb-history-list");
+    const status = panel.querySelector("#sb-history-status");
+    const prev = panel.querySelector("#sb-history-prev");
+    const next = panel.querySelector("#sb-history-next");
+    const token = String(Number(panel.dataset.request || 0) + 1);
+    panel.dataset.request = token;
+    prev.disabled = next.disabled = true;
+    list.replaceChildren();
+    status.textContent = "Consultando historial…";
+    try {
+      const { data, error } = await sb.functions.invoke("manage-site-roles", {
+        body: { action: "history", page }
+      });
+      if (!panel.isConnected || panel.dataset.request !== token) return;
+      if (error || data?.error || !Array.isArray(data?.records)) {
+        throw new Error(data?.error || error?.message || "Respuesta no válida");
+      }
+      panel.dataset.page = String(page);
+      prev.disabled = page === 0;
+      next.disabled = !data.has_more;
+      status.textContent = data.records.length
+        ? "Página " + (page + 1) + " · " + data.records.length + " cambios · Más recientes primero"
+        : "No hay cambios registrados en esta página.";
+      for (const event of data.records) {
+        const row = element("article", "sb-staff-row sb-history-row");
+        const person = element("div", "sb-staff-member");
+        person.append(element("strong", "", event.target_name || "Cuenta no disponible"));
+        person.append(element("small", "", "Realizado por: " + (event.actor_name || "Cuenta no disponible")));
+        const when = new Date(event.changed_at);
+        person.append(element("small", "", Number.isNaN(when.getTime()) ? "Fecha no disponible" :
+          when.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })));
+        const change = element("div", "sb-history-change");
+        change.append(element("span", "", names[event.old_role] || "Cargo desconocido"));
+        change.append(element("span", "sb-history-arrow", "→"));
+        change.append(element("strong", "", names[event.new_role] || "Cargo desconocido"));
+        row.append(person, change);
+        list.append(row);
+      }
+    } catch (err) {
+      if (!panel.isConnected || panel.dataset.request !== token) return;
+      status.textContent = "No se pudo cargar el historial: " + err.message + ". Pulsa Actualizar historial.";
+    }
   }
   async function loadRoles() {
     const root = document.getElementById("sb-staff-list");
@@ -126,6 +187,8 @@
             setStatus("✅ Cargo actualizado: " + person + " → " + names[newRole] +
               sessionNote + auditNote, data.audit_recorded === false);
             drawMembers();
+            const history = document.getElementById("sb-staff-history");
+            if (history?.open) loadHistory(history, 0);
           } catch (err) {
             setStatus("No se pudo cambiar el cargo: " + err.message, true);
             selector.disabled = false;
