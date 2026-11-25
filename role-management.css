@@ -60,3 +60,12 @@
 .sb-history-ranking { margin:10px 0 14px; }
 .sb-history-ranking .sb-staff-row { margin-top:8px; }
 #sb-history-export-status { font-size:.9rem; overflow-wrap:anywhere; }
+
+/* Monthly activity and security review. */
+.sb-history-monthly { display:grid; gap:12px; padding:12px 0; }
+.sb-history-month { display:grid; grid-template-columns:minmax(72px,90px) minmax(0,1fr); align-items:center; gap:6px 10px; }
+.sb-history-month small { grid-column:2; }
+.sb-history-bar { height:12px; border-radius:20px; overflow:hidden; background:rgba(164,141,255,.16); }
+.sb-history-bar span { display:block; height:100%; background:linear-gradient(90deg,#8663dd,#b796ff); border-radius:inherit; }
+.sb-history-review-flag { font-size:.85rem; color:#ffd184; overflow-wrap:anywhere; }
+#sb-history-review { margin:10px 0; font-size:.9rem; }
