@@ -47,3 +47,16 @@
   .sb-staff-history-actions button { flex: 1 1 auto; }
   .sb-history-change { width: 100%; }
 }
+
+/* Filtros, estadísticas y avisos de cargos. */
+.sb-role-alert { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:16px; padding:12px; border:1px solid rgba(164,141,255,.35); border-radius:12px; }
+.sb-history-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr)); align-items:end; gap:10px; margin:14px 0; }
+.sb-history-filters label { display:grid; gap:5px; font-size:.9rem; min-width:0; }
+.sb-history-filters input,.sb-history-filters select { box-sizing:border-box; min-width:0; width:100%; min-height:42px; padding:8px; border:1px solid rgba(192,166,255,.5); border-radius:10px; color:inherit; background:rgba(20,15,45,.92); color-scheme:dark; }
+.sb-history-filters button,.sb-role-alert button { min-height:42px; }
+.sb-history-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,115px),1fr)); gap:8px; margin:14px 0; }
+.sb-history-stat { display:grid; gap:4px; padding:12px; border-radius:12px; border:1px solid rgba(164,141,255,.28); background:rgba(54,33,94,.22); }
+.sb-history-stat strong { font-size:1.4rem; }
+.sb-history-ranking { margin:10px 0 14px; }
+.sb-history-ranking .sb-staff-row { margin-top:8px; }
+#sb-history-export-status { font-size:.9rem; overflow-wrap:anywhere; }
