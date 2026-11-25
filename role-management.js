@@ -58,9 +58,12 @@
           <button class="admin-secondary" type="reset">Limpiar filtros</button>
         </form>
         <div id="sb-history-stats" class="sb-history-stats"></div>
+        <p id="sb-history-review" role="status"></p>
+        <details class="sb-history-ranking"><summary>📈 Actividad mensual</summary><div id="sb-history-monthly" class="sb-history-monthly"></div></details>
         <details class="sb-history-ranking"><summary>📊 Actividad de administradores</summary><div id="sb-history-ranking"></div></details>
         <div class="sb-staff-history-actions">
           <button type="button" id="sb-history-export" class="admin-secondary">📥 Descargar CSV</button>
+          <button type="button" id="sb-history-pdf" class="admin-secondary">📄 Guardar informe PDF</button>
           <button type="button" id="sb-history-refresh" class="admin-secondary">🔄 Actualizar historial</button>
           <button type="button" id="sb-history-prev" class="admin-secondary" disabled>Anterior</button>
           <button type="button" id="sb-history-next" class="admin-secondary" disabled>Siguiente</button>
@@ -81,6 +84,7 @@
     history.querySelector("#sb-history-filters").addEventListener("submit", event => { event.preventDefault(); loadHistory(history, 0); });
     history.querySelector("#sb-history-filters").addEventListener("reset", () => setTimeout(() => loadHistory(history, 0), 0));
     history.querySelector("#sb-history-export").addEventListener("click", () => exportHistory(history));
+    history.querySelector("#sb-history-pdf").addEventListener("click", () => printHistory(history));
     startRoleAlerts(panel);
     history.querySelector("#sb-history-refresh").addEventListener("click", () => loadHistory(history, 0));
     history.querySelector("#sb-history-prev").addEventListener("click", () => loadHistory(history, Math.max(0, Number(history.dataset.page || 0) - 1)));
@@ -107,6 +111,22 @@
       tile.append(element("strong", "", String(value ?? 0)), element("small", "", label));
       stats.append(tile);
     }
+    const monthly = panel.querySelector("#sb-history-monthly");
+    monthly.replaceChildren();
+    const series = data.monthly || [];
+    const maximum = Math.max(1, ...series.map(m => Number(m.total)));
+    for (const month of series) {
+      const line = element("div", "sb-history-month");
+      line.append(element("strong", "", month.month_key));
+      const bar = element("div", "sb-history-bar");
+      const fill = element("span", "");
+      fill.style.width = Math.min(100, 100 * Number(month.total) / maximum) + "%";
+      bar.append(fill);
+      line.append(bar, element("small", "", month.total + " cambios · " + month.grants + " ascensos · " + month.revocations + " descensos"));
+      monthly.append(line);
+    }
+    if (!series.length) monthly.append(element("p", "", "Sin actividad en las fechas seleccionadas."));
+    panel.querySelector("#sb-history-review").textContent = "⚠️ Cambios que requieren revisión: " + (data.review_count || 0) + ". Una alerta no demuestra un uso indebido.";
     const leaders = data.ranking || [];
     if (!leaders.length) ranking.append(element("p", "", "No hay actividad en los filtros seleccionados."));
     for (const actor of leaders) {
@@ -130,8 +150,8 @@
         if (/^[\s\u0000-\u001f]*[=+@-]/.test(v) || /^[\t\r\n]/.test(v)) v = "'" + v;
         return '"' + v.replace(/"/g, '""') + '"';
       };
-      const rows = [["Fecha UTC","Miembro","Administrador","Cargo anterior","Cargo nuevo"],
-        ...data.records.map(r => [r.changed_at,r.target_name,r.actor_name,names[r.old_role] || r.old_role,names[r.new_role] || r.new_role])];
+      const rows = [["Fecha UTC","Miembro","Administrador","Cargo anterior","Cargo nuevo","Motivo","Revisión"],
+        ...data.records.map(r => [r.changed_at,r.target_name,r.actor_name,names[r.old_role] || r.old_role,names[r.new_role] || r.new_role,r.reason || "",r.review_flag || ""])];
       const blob = new Blob(["\uFEFF" + rows.map(row => row.map(cell).join(";")).join("\r\n")], { type:"text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -142,6 +162,44 @@
       status.textContent = "CSV preparado: " + data.records.length + " registros. Contiene información administrativa.";
     } catch (err) { status.textContent = err.message; }
     finally { button.disabled = false; }
+  }
+  async function printHistory(panel) {
+    // Open synchronously from the click to avoid popup blocking.
+    const win = window.open("", "_blank");
+    const status = panel.querySelector("#sb-history-export-status");
+    if (!win) { status.textContent = "Permite ventanas emergentes para guardar el informe."; return; }
+    try {
+      win.opener = null;
+      win.document.title = "SB V2 · Informe administrativo";
+      win.document.body.textContent = "Preparando informe…";
+      const { data, error } = await sb.functions.invoke("manage-site-roles", { body: { action:"history_export", ...historyFilters(panel) } });
+      if (win.closed) return;
+      if (error || !Array.isArray(data?.records)) throw new Error("No se pudo obtener el informe");
+      if (data.export_truncated) throw new Error("Reduce el intervalo a un máximo de 5000 registros.");
+      const d = win.document;
+      d.body.replaceChildren();
+      const style = d.createElement("style");
+      style.textContent = "body{font:12px Arial,sans-serif;color:#111;margin:24px}h1{font-size:22px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #bbb;padding:6px;text-align:left;overflow-wrap:anywhere}thead{display:table-header-group}tr{break-inside:avoid}button{margin:12px 0}@media print{button{display:none}body{margin:0}}@page{size:landscape;margin:12mm}";
+      d.head.append(style);
+      const add = (parent, tag, value) => { const el = d.createElement(tag); el.textContent = value; parent.append(el); return el; };
+      add(d.body,"h1","Shadows Byte Gaming Official V2 · Informe administrativo");
+      add(d.body,"p","Confidencial · " + new Date().toLocaleString("es-ES") + " · " + data.records.length + " cambios");
+      add(d.body,"p","Ascensos: " + (data.stats?.grants ?? 0) + " · Descensos: " + (data.stats?.revocations ?? 0) + " · Revisar: " + (data.review_count ?? 0));
+      const print = add(d.body,"button","Imprimir / Guardar como PDF");
+      print.addEventListener("click",()=>win.print());
+      const table=d.createElement("table"), head=d.createElement("thead"), body=d.createElement("tbody"), header=d.createElement("tr");
+      for (const title of ["Fecha","Miembro","Responsable","Cargo anterior","Cargo nuevo","Motivo","Revisión"]) add(header,"th",title);
+      head.append(header);table.append(head,body);d.body.append(table);
+      for(const r of data.records) {
+        const tr=d.createElement("tr");
+        for(const value of [new Date(r.changed_at).toLocaleString("es-ES"),r.target_name,r.actor_name,names[r.old_role]||r.old_role,names[r.new_role]||r.new_role,r.reason||"No registrado",r.review_flag||"—"]) add(tr,"td",String(value??""));
+        body.append(tr);
+      }
+      status.textContent = "Informe preparado. En la nueva ventana elige Imprimir / Guardar como PDF.";
+    } catch(err) {
+      if (!win.closed) win.document.body.textContent = err.message;
+      status.textContent = err.message;
+    }
   }
   async function startRoleAlerts(panel) {
     const status = panel.querySelector("#sb-role-alert-text");
@@ -211,6 +269,8 @@
         const person = element("div", "sb-staff-member");
         person.append(element("strong", "", event.target_name || "Cuenta no disponible"));
         person.append(element("small", "", "Realizado por: " + (event.actor_name || "Cuenta no disponible")));
+        person.append(element("small", "", "Motivo: " + (event.reason || "No registrado (histórico)")));
+        if (event.review_flag) person.append(element("span", "sb-history-review-flag", "⚠️ Revisar: " + event.review_flag));
         const when = new Date(event.changed_at);
         person.append(element("small", "", Number.isNaN(when.getTime()) ? "Fecha no disponible" :
           when.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" })));
@@ -282,12 +342,22 @@
           const person = member.display_name || member.username || "este miembro";
           if (newRole === member.role) return;
           if (!confirm("¿Cambiar el cargo de " + person + " a " + names[newRole] + "?")) return;
+          const reason = prompt("Indica el motivo del cambio (5–500 caracteres). No incluyas datos sensibles.");
+          if (reason === null) return;
+          if (reason.trim().length < 5 || reason.trim().length > 500) {
+            setStatus("Indica un motivo de entre 5 y 500 caracteres.", true); return;
+          }
+          let confirmation = "";
+          if (newRole === "admin") {
+            confirmation = prompt("Este cargo concede permisos administrativos. Escribe CONCEDER ADMIN para confirmar.") || "";
+            if (confirmation !== "CONCEDER ADMIN") { setStatus("Concesión cancelada.", true); return; }
+          }
           save.disabled = true;
           selector.disabled = true;
           setStatus("Guardando el nuevo cargo de " + person + "…");
           try {
             const { data, error } = await sb.functions.invoke("manage-site-roles", {
-              body: { action: "set", target_id: member.id, role: newRole }
+              body: { action: "set", target_id: member.id, role: newRole, reason: reason.trim(), confirmation }
             });
             if (error || data?.error || !data?.ok) throw new Error(data?.error || error?.message || "Cambio no confirmado");
             member.role = newRole;
@@ -298,7 +368,7 @@
               ? " Aviso: no se pudo registrar la auditoría; revisa el historial."
               : "";
             setStatus("✅ Cargo actualizado: " + person + " → " + names[newRole] +
-              sessionNote + auditNote, data.audit_recorded === false);
+              sessionNote + auditNote + (data.notice_recorded === false ? " Aviso de cargo no registrado." : ""), data.audit_recorded === false || data.notice_recorded === false);
             drawMembers();
             const history = document.getElementById("sb-staff-history");
             if (history?.open) loadHistory(history, 0);
