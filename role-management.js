@@ -273,6 +273,8 @@
         const data=await act("dashboard",{heartbeat:!document.hidden});
         if(!panel.isConnected||serial!==lastRequest)return;
         if(background&&current){
+          const changed = JSON.stringify(current.permissions)!==JSON.stringify(data.permissions) || current.role!==data.role || current.can_manage!==data.can_manage || current.can_configure!==data.can_configure;
+          if(changed){render(data);return;}
           const byId=new Map(data.team.map(m=>[m.id,m]));
           panel.querySelectorAll("[data-team-presence]").forEach(node=>{const m=byId.get(node.dataset.teamPresence);node.textContent=m?presenceText(m.presence):"Cargo no vigente";});
         }else render(data);
