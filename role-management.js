@@ -8,6 +8,8 @@
   };
   const allowed = ["member", "moderator", "admin"];
   let cache = [];
+  let canManage = false;
+  const localDateTime = value => { const d = new Date(value); return Number.isFinite(d.getTime()) ? new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16) : ""; };
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -106,7 +108,7 @@
     stats.replaceChildren();
     ranking.replaceChildren();
     const s = data.stats || {};
-    for (const [label, value] of [["Cambios",s.total],["Ascensos",s.grants],["Descensos",s.revocations],["Otros ajustes",s.other],["Administradores activos",s.admins]]) {
+    for (const [label, value] of [["Cambios",s.total],["Ascensos",s.grants],["Descensos",s.revocations],["Otros ajustes",s.other],["Administradores activos",s.admins],["Cargos caducados",data.expired_count]]) {
       const tile = element("div", "sb-history-stat");
       tile.append(element("strong", "", String(value ?? 0)), element("small", "", label));
       stats.append(tile);
@@ -268,8 +270,11 @@
         const row = element("article", "sb-staff-row sb-history-row");
         const person = element("div", "sb-staff-member");
         person.append(element("strong", "", event.target_name || "Cuenta no disponible"));
-        person.append(element("small", "", "Realizado por: " + (event.actor_name || "Cuenta no disponible")));
+        person.append(element("small", "", "Realizado por: " + (event.automatic ? "Sistema automático" : (event.actor_name || "Cuenta no disponible"))));
         person.append(element("small", "", "Motivo: " + (event.reason || "No registrado (histórico)")));
+        if (event.automatic) person.append(element("span", "sb-history-review-flag", "⏳ Caducidad automática"));
+        if (event.old_expires_at) person.append(element("small", "", "Vencimiento anterior: " + new Date(event.old_expires_at).toLocaleString("es-ES")));
+        if (event.new_expires_at) person.append(element("small", "", "Nuevo vencimiento: " + new Date(event.new_expires_at).toLocaleString("es-ES")));
         if (event.review_flag) person.append(element("span", "sb-history-review-flag", "⚠️ Revisar: " + event.review_flag));
         const when = new Date(event.changed_at);
         person.append(element("small", "", Number.isNaN(when.getTime()) ? "Fecha no disponible" :
@@ -298,6 +303,7 @@
       return;
     }
     cache = data.members;
+    canManage = data.can_manage === true;
     setStatus("Cargos cargados. Los cambios quedan registrados en Supabase.");
     drawMembers();
   }
@@ -321,26 +327,57 @@
       summary.append(element("strong", "", member.display_name || member.username || "Miembro"));
       if (member.username) summary.append(element("small", "", "@" + member.username));
       summary.append(element("span", "sb-staff-current", names[member.role] || names.member));
+      if (member.expires_at) {
+        const expires = new Date(member.expires_at);
+        summary.append(element("small", "", (expires.getTime() <= Date.now() ? "⏳ Caducado; retirada en proceso: " : "⏳ Vence: ") + expires.toLocaleString("es-ES")));
+      } else if (member.role !== "member") summary.append(element("small", "", "Cargo permanente"));
       row.append(summary);
 
       const actions = element("div", "sb-staff-actions");
       const selector = document.createElement("select");
       selector.setAttribute("aria-label", "Cargo de " + (member.display_name || member.username || "miembro"));
-      if (member.role === "owner") {
+      if (!canManage) {
+        actions.append(element("span", "", "Solo administradores permanentes pueden cambiar cargos"));
+      } else if (member.role === "owner") {
         selector.add(new Option("Administrador principal — protegido", "owner"));
         selector.disabled = true;
         actions.append(selector);
       } else {
         for (const role of allowed) selector.add(new Option(names[role], role));
         selector.value = member.role;
-        const save = element("button", "admin-secondary", "Guardar cargo");
+        const duration = document.createElement("select");
+        duration.setAttribute("aria-label", "Duración del cargo");
+        for (const [value,label] of [["permanent","Permanente"],["24h","24 horas"],["7d","7 días"],["15d","15 días"],["30d","30 días"],["custom","Fecha personalizada"]]) duration.add(new Option(label,value));
+        duration.value = member.expires_at ? "custom" : "permanent";
+        const custom = document.createElement("input");
+        custom.type = "datetime-local";
+        custom.setAttribute("aria-label","Fecha y hora local de caducidad");
+        custom.value = member.expires_at ? localDateTime(member.expires_at) : "";
+        custom.min = localDateTime(Date.now()+60000);
+        const save = element("button", "admin-secondary", member.role === "member" ? "Guardar cargo" : "Guardar / renovar cargo");
         save.type = "button";
         save.disabled = true;
-        selector.addEventListener("change", () => { save.disabled = selector.value === member.role; });
+        function syncDuration() {
+          const enabled = selector.value !== "member";
+          duration.hidden = !enabled;
+          custom.hidden = !enabled || duration.value !== "custom";
+          save.disabled = selector.value === member.role && (!enabled || (duration.value === (member.expires_at ? "custom" : "permanent") && (duration.value !== "custom" || custom.value === localDateTime(member.expires_at))));
+        }
+        selector.addEventListener("change", syncDuration);
+        duration.addEventListener("change", syncDuration);
+        custom.addEventListener("input", syncDuration);
+        syncDuration();
         save.addEventListener("click", async () => {
           const newRole = selector.value;
           const person = member.display_name || member.username || "este miembro";
-          if (newRole === member.role) return;
+          if (newRole === "member" && newRole === member.role) return;
+          const chosenDuration = newRole === "member" ? "permanent" : duration.value;
+          let expiry = null;
+          if (chosenDuration === "custom") {
+            const time = new Date(custom.value);
+            if (!custom.value || !Number.isFinite(time.getTime()) || time.getTime() <= Date.now()) { setStatus("Selecciona una fecha futura.",true); return; }
+            expiry = time.toISOString();
+          }
           if (!confirm("¿Cambiar el cargo de " + person + " a " + names[newRole] + "?")) return;
           const reason = prompt("Indica el motivo del cambio (5–500 caracteres). No incluyas datos sensibles.");
           if (reason === null) return;
@@ -357,10 +394,11 @@
           setStatus("Guardando el nuevo cargo de " + person + "…");
           try {
             const { data, error } = await sb.functions.invoke("manage-site-roles", {
-              body: { action: "set", target_id: member.id, role: newRole, reason: reason.trim(), confirmation }
+              body: { action: "set", target_id: member.id, role: newRole, reason: reason.trim(), confirmation, duration: chosenDuration, expires_at: expiry }
             });
             if (error || data?.error || !data?.ok) throw new Error(data?.error || error?.message || "Cambio no confirmado");
             member.role = newRole;
+            member.expires_at = data.expires_at || null;
             const sessionNote = newRole === "member"
               ? ". Permisos retirados en el servidor. La interfaz se actualizará al renovar la sesión."
               : ". El miembro deberá actualizar su sesión para ver sus permisos.";
@@ -378,7 +416,7 @@
             save.disabled = false;
           }
         });
-        actions.append(selector, save);
+        actions.append(selector, duration, custom, save);
       }
       row.append(actions);
       list.append(row);
