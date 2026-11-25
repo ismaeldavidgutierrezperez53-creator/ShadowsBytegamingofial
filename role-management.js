@@ -152,8 +152,8 @@
         if (/^[\s\u0000-\u001f]*[=+@-]/.test(v) || /^[\t\r\n]/.test(v)) v = "'" + v;
         return '"' + v.replace(/"/g, '""') + '"';
       };
-      const rows = [["Fecha UTC","Miembro","Administrador","Cargo anterior","Cargo nuevo","Motivo","Revisión"],
-        ...data.records.map(r => [r.changed_at,r.target_name,r.actor_name,names[r.old_role] || r.old_role,names[r.new_role] || r.new_role,r.reason || "",r.review_flag || ""])];
+      const rows = [["Fecha UTC","Miembro","Administrador","Cargo anterior","Cargo nuevo","Motivo","Revisión","Caducidad anterior","Nueva caducidad","Automático"],
+        ...data.records.map(r => [r.changed_at,r.target_name,r.automatic ? "Sistema automático" : r.actor_name,names[r.old_role] || r.old_role,names[r.new_role] || r.new_role,r.reason || "",r.review_flag || "",r.old_expires_at || "",r.new_expires_at || "",r.automatic ? "Sí" : "No"])];
       const blob = new Blob(["\uFEFF" + rows.map(row => row.map(cell).join(";")).join("\r\n")], { type:"text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -190,11 +190,11 @@
       const print = add(d.body,"button","Imprimir / Guardar como PDF");
       print.addEventListener("click",()=>win.print());
       const table=d.createElement("table"), head=d.createElement("thead"), body=d.createElement("tbody"), header=d.createElement("tr");
-      for (const title of ["Fecha","Miembro","Responsable","Cargo anterior","Cargo nuevo","Motivo","Revisión"]) add(header,"th",title);
+      for (const title of ["Fecha","Miembro","Responsable","Cargo anterior","Cargo nuevo","Motivo","Revisión","Caducidad"]) add(header,"th",title);
       head.append(header);table.append(head,body);d.body.append(table);
       for(const r of data.records) {
         const tr=d.createElement("tr");
-        for(const value of [new Date(r.changed_at).toLocaleString("es-ES"),r.target_name,r.actor_name,names[r.old_role]||r.old_role,names[r.new_role]||r.new_role,r.reason||"No registrado",r.review_flag||"—"]) add(tr,"td",String(value??""));
+        for(const value of [new Date(r.changed_at).toLocaleString("es-ES"),r.target_name,r.actor_name,names[r.old_role]||r.old_role,names[r.new_role]||r.new_role,r.reason||"No registrado",r.review_flag||"—",r.new_expires_at || r.old_expires_at || "—"]) add(tr,"td",String(value??""));
         body.append(tr);
       }
       status.textContent = "Informe preparado. En la nueva ventana elige Imprimir / Guardar como PDF.";
