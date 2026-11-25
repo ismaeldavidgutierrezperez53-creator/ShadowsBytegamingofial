@@ -34,3 +34,16 @@
   .sb-staff-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
   .sb-moderator-dashboard .admin-panel-heading { flex-wrap: wrap; }
 }
+
+/* Historial de cargos: tarjetas accesibles y adaptables. */
+.sb-staff-history { margin-top: 18px; padding: 14px; border: 1px solid rgba(164,141,255,.28); border-radius: 14px; }
+.sb-staff-history summary { font-weight: 750; cursor: pointer; padding: 7px 0; }
+.sb-staff-history-actions, .sb-history-change { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.sb-staff-history-actions button { min-height: 42px; }
+.sb-history-change { font-size: .9rem; overflow-wrap: anywhere; }
+.sb-history-arrow { opacity: .75; }
+#sb-history-status { min-height: 24px; font-size: .9rem; }
+@media(max-width:650px) {
+  .sb-staff-history-actions button { flex: 1 1 auto; }
+  .sb-history-change { width: 100%; }
+}
