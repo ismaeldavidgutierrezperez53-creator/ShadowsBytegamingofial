@@ -89,6 +89,7 @@
     history.querySelector("#sb-history-pdf").addEventListener("click", () => printHistory(history));
     startRoleAlerts(panel);
     mountTeamPanel(dashboard);
+    mountWorkspace(dashboard);
     history.querySelector("#sb-history-refresh").addEventListener("click", () => loadHistory(history, 0));
     history.querySelector("#sb-history-prev").addEventListener("click", () => loadHistory(history, Math.max(0, Number(history.dataset.page || 0) - 1)));
     history.querySelector("#sb-history-next").addEventListener("click", () => loadHistory(history, Number(history.dataset.page || 0) + 1));
@@ -303,6 +304,161 @@
     const heartbeat=setInterval(()=>{
       if(!panel.isConnected){clearInterval(heartbeat);return;}refresh(true);
     },45000);
+  }
+  function mountWorkspace(dashboard) {
+    if(!dashboard||dashboard.querySelector("#sb-workspace"))return;
+    const panel=element("section","admin-panel sb-workspace");
+    panel.id="sb-workspace";
+    panel.innerHTML=`
+      <div class="admin-panel-heading"><div><span class="admin-kicker">EQUIPO · TRABAJO INTERNO</span><h2>📋 Centro de trabajo administrativo</h2><p>Espacio privado para integrantes con cargo vigente. No introduzcas contraseñas ni datos personales sensibles.</p></div><button type="button" id="sb-work-refresh" class="admin-secondary">🔄 Actualizar</button></div>
+      <p id="sb-work-status" role="status" aria-live="polite">Consultando espacio…</p>
+      <div id="sb-work-week" class="sb-history-stats"></div>
+      <div id="sb-work-content"></div>
+    `;
+    const team=dashboard.querySelector("#sb-team-panel");
+    if(team)team.after(panel);else dashboard.prepend(panel);
+    const q=id=>panel.querySelector("#"+id);
+    const status=q("sb-work-status"),content=q("sb-work-content");
+    const sections=[["task","📋 Tareas asignadas"],["shift","🗓️ Agenda de turnos"],["goal","🎯 Objetivos mensuales"],["badge","🏆 Insignias internas"],["chat","💬 Chat privado del equipo"],["note","📝 Notas internas"],["announcement","📢 Anuncios privados"]];
+    const metrics={reports:"Denuncias revisadas",appeals:"Apelaciones revisadas",tasks:"Tareas completadas"};
+    const stateLabels={open:"Pendiente",in_progress:"En curso",done:"Completada"};
+    let data=null, busy=false, serial=0;
+    const act=async(action,payload={})=>{
+      const {data,error}=await sb.functions.invoke("manage-site-roles",{body:{action:"workspace",workspace_action:action,workspace_body:payload}});
+      if(error||!data?.ok){
+        let msg=data?.error||error?.message||"No se pudo procesar la acción";
+        try{if(error?.context?.json){const r=await error.context.json();msg=r.error||msg;}}catch{}
+        throw new Error(msg);
+      }
+      return data;
+    };
+    const dateText=v=>v?new Date(v).toLocaleString("es-ES"):"";
+    const field=(tag,label,type,required=false)=>{
+      const wrap=element("label","sb-work-field");wrap.append(element("span","",label));
+      const input=document.createElement(tag);
+      if(type)input.type=type;input.required=required;wrap.append(input);return {wrap,input};
+    };
+    function makeForm(kind) {
+      const form=element("form","sb-work-form");
+      const fields={};
+      const add=(key,tag,label,type,required)=>{
+        const f=field(tag,label,type,required);fields[key]=f.input;form.append(f.wrap);return f.input;
+      };
+      if(kind!=="chat"){const title=add("title","input","Título","text",true);title.minLength=3;title.maxLength=120;}
+      if(["task","shift","goal","badge"].includes(kind)){
+        const sel=add("assignee_id","select","Integrante",null,true);
+        sel.add(new Option("Selecciona integrante",""));
+        for(const m of data.team||[])sel.add(new Option(m.name+" · "+(names[m.role]||m.role),m.id));
+      }
+      if(kind==="shift")add("starts_at","input","Inicio (hora local)","datetime-local",true);
+      if(["task","shift"].includes(kind))add("ends_at","input",kind==="task"?"Fecha límite (opcional)":"Fin (hora local)","datetime-local",kind==="shift");
+      if(kind==="goal"){
+        const m=add("month","input","Mes","month",true);
+        const now=new Date();m.value=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+        const select=add("metric","select","Indicador",null,true);
+        for(const [key,label] of Object.entries(metrics))select.add(new Option(label,key));
+        const n=add("target_count","input","Meta","number",true);n.min=1;n.max=1000;n.value=5;
+      }
+      const body=add("body","textarea",kind==="chat"?"Mensaje":kind==="note"?"Nota":"Descripción",null,["chat","note","announcement"].includes(kind));
+      body.maxLength=2000;body.rows=kind==="chat"?2:3;
+      if(kind==="goal")form.append(element("small","sb-team-hint","Objetivos de revisión y tareas, no cuotas de sanciones. La calidad prevalece sobre la cantidad."));
+      const btn=element("button","admin-secondary",kind==="chat"?"Enviar mensaje":"Guardar");btn.type="submit";form.append(btn);
+      form.addEventListener("submit",async event=>{
+        event.preventDefault();btn.disabled=true;
+        try{
+          const payload={kind};
+          for(const [key,input] of Object.entries(fields)){
+            const v=input.value.trim();
+            if(["starts_at","ends_at"].includes(key)){if(v)payload[key]=new Date(v).toISOString();}
+            else payload[key]=key==="target_count"?Number(v):v;
+          }
+          await act("create",payload);form.reset();await refresh();status.textContent="✅ Guardado en el espacio privado.";
+        }catch(err){status.textContent=err.message;}finally{btn.disabled=false;}
+      });
+      return form;
+    }
+    function render(next){
+      const open=new Set(Array.from(content.querySelectorAll("details[data-kind][open]")).map(x=>x.dataset.kind));
+      const drafts={};
+      for(const section of content.querySelectorAll("details[data-kind]")){
+        const form=section.querySelector("form");
+        if(form)drafts[section.dataset.kind]=Array.from(form.querySelectorAll("input,textarea,select")).map(x=>x.value);
+      }
+      const first=!data;data=next;
+      const week=q("sb-work-week");week.replaceChildren();
+      const weekly=data.weekly||{};
+      const heading=element("div","sb-work-week-heading","📈 Informe de la semana actual · "+(data.can_manage?"Equipo":"Mi actividad"));
+      heading.append(element("small","",weekly.from?"Desde "+dateText(weekly.from):""));week.append(heading);
+      for(const [label,value] of [["Denuncias revisadas",weekly.reports],["Apelaciones revisadas",weekly.appeals],["Acciones de moderación",weekly.moderation],["Tareas completadas",weekly.tasks]]){
+        const tile=element("div","sb-history-stat");tile.append(element("strong","",String(value??0)),element("small","",label));week.append(tile);
+      }
+      content.replaceChildren();
+      for(const [kind,label] of sections){
+        const section=element("details","sb-team-section sb-work-section");
+        section.dataset.kind=kind;section.open=first?["task","announcement"].includes(kind):open.has(kind);
+        const rows=(data.items||[]).filter(x=>x.kind===kind);
+        if(kind==="shift")rows.sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at));
+        if(kind==="chat")rows.reverse();
+        section.append(element("summary","",label+" ("+rows.length+")"));
+        const list=element("div",kind==="chat"?"sb-work-chat":"sb-work-items");
+        if(!rows.length)list.append(element("p","sb-team-hint","Todavía no hay contenido."));
+        for(const item of rows){
+          const row=element("article","sb-work-item");
+          row.append(element("strong","",kind==="chat"?item.author_name:item.title));
+          if(kind!=="chat")row.append(element("small","","Creado por "+item.author_name));
+          if(item.assignee_id)row.append(element("small","","Asignado a "+item.assignee_name));
+          if(item.body)row.append(element("p","sb-work-body",item.body));
+          if(kind==="task")row.append(element("span","sb-work-state",stateLabels[item.status]||item.status));
+          if(item.starts_at)row.append(element("small","","Inicio: "+dateText(item.starts_at)));
+          if(item.ends_at)row.append(element("small","",(kind==="shift"?"Fin: ":"Fecha límite: ")+dateText(item.ends_at)));
+          if(kind==="goal"){
+            row.append(element("small","",String(item.month_key).slice(0,7)+" · "+(metrics[item.metric]||item.metric)));
+            const progress=document.createElement("progress");progress.max=item.target_count;progress.value=Math.min(item.progress||0,item.target_count);
+            progress.setAttribute("aria-label","Progreso del objetivo");row.append(progress,element("span","",(item.progress||0)+" / "+item.target_count));
+          }
+          if(["chat","note","announcement","badge"].includes(kind))row.append(element("small","",dateText(item.created_at)));
+          const controls=element("div","sb-staff-actions");
+          const change=(newStatus,label)=>{
+            const btn=element("button","admin-secondary",label);btn.type="button";
+            btn.addEventListener("click",async()=>{
+              if(newStatus==="cancelled"&&!confirm("¿Archivar este elemento?"))return;
+              btn.disabled=true;
+              try{await act("status",{id:item.id,status:newStatus});await refresh();status.textContent="✅ Cambio guardado.";}
+              catch(err){status.textContent=err.message;}finally{btn.disabled=false;}
+            });controls.append(btn);
+          };
+          if(kind==="task"&&(data.can_manage||item.assignee_id===data.viewer_id)){
+            for(const [value,label] of [["open","Pendiente"],["in_progress","En curso"],["done","Completar"]])if(item.status!==value)change(value,label);
+          }
+          if(data.can_manage||(["chat","note"].includes(kind)&&item.author_id===data.viewer_id))change("cancelled",kind==="task"?"Cancelar":"Archivar");
+          if(controls.childNodes.length)row.append(controls);
+          list.append(row);
+        }
+        section.append(list);
+        if(data.can_manage||["chat","note"].includes(kind)){
+          const form=makeForm(kind);section.append(form);
+          if(drafts[kind])Array.from(form.querySelectorAll("input,textarea,select")).forEach((x,i)=>{if(drafts[kind][i]!==undefined)x.value=drafts[kind][i];});
+        }
+        content.append(section);
+      }
+    }
+    async function refresh(background=false){
+      if(!panel.isConnected||busy)return;
+      if(background&&(document.hidden||panel.contains(document.activeElement)))return;
+      const token=++serial;busy=true;
+      try{
+        const next=await act("dashboard");
+        if(!panel.isConnected||token!==serial)return;
+        if(!background||!data||JSON.stringify(next)!==JSON.stringify(data))render(next);
+        status.textContent="Actualizado · "+new Date().toLocaleTimeString("es-ES");
+      }catch(err){
+        if(!panel.isConnected)return;
+        content.replaceChildren();q("sb-work-week").replaceChildren();data=null;status.textContent=err.message;
+      }finally{busy=false;}
+    }
+    q("sb-work-refresh").addEventListener("click",()=>refresh());
+    refresh();
+    const timer=setInterval(()=>{if(!panel.isConnected){clearInterval(timer);return;}refresh(true);},20000);
   }
   function historyFilters(panel) {
     return {
@@ -670,6 +826,7 @@
     if (typeof adminInitReportAlerts === "function") adminInitReportAlerts();
     window.SBMemberModeration?.mountPanel();
     mountTeamPanel(root.querySelector(".sb-moderator-dashboard"));
+    mountWorkspace(root.querySelector(".sb-moderator-dashboard"));
   }
   window.SBRoleManagement = { mountAdminPanel, renderModeratorPanel };
 })();
