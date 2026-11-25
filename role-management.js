@@ -117,8 +117,14 @@
             });
             if (error || data?.error || !data?.ok) throw new Error(data?.error || error?.message || "Cambio no confirmado");
             member.role = newRole;
+            const sessionNote = newRole === "member"
+              ? ". Permisos retirados en el servidor. La interfaz se actualizará al renovar la sesión."
+              : ". El miembro deberá actualizar su sesión para ver sus permisos.";
+            const auditNote = data.audit_recorded === false
+              ? " Aviso: no se pudo registrar la auditoría; revisa el historial."
+              : "";
             setStatus("✅ Cargo actualizado: " + person + " → " + names[newRole] +
-              ". El miembro deberá actualizar su sesión para ver los nuevos permisos.");
+              sessionNote + auditNote, data.audit_recorded === false);
             drawMembers();
           } catch (err) {
             setStatus("No se pudo cambiar el cargo: " + err.message, true);
