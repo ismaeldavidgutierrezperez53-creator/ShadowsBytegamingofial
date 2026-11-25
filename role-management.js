@@ -88,11 +88,219 @@
     history.querySelector("#sb-history-export").addEventListener("click", () => exportHistory(history));
     history.querySelector("#sb-history-pdf").addEventListener("click", () => printHistory(history));
     startRoleAlerts(panel);
+    mountTeamPanel(dashboard);
     history.querySelector("#sb-history-refresh").addEventListener("click", () => loadHistory(history, 0));
     history.querySelector("#sb-history-prev").addEventListener("click", () => loadHistory(history, Math.max(0, Number(history.dataset.page || 0) - 1)));
     history.querySelector("#sb-history-next").addEventListener("click", () => loadHistory(history, Number(history.dataset.page || 0) + 1));
     const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("focus");
     if (focus === "staff") requestAnimationFrame(() => panel.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }
+  function mountTeamPanel(dashboard) {
+    if (!dashboard || dashboard.querySelector("#sb-team-panel")) return;
+    const panel = element("section","admin-panel sb-team-panel");
+    panel.id = "sb-team-panel";
+    panel.innerHTML = `
+      <div class="admin-panel-heading">
+        <div><span class="admin-kicker">EQUIPO · ORGANIZACIÓN</span><h2>👑 Panel del equipo administrativo</h2>
+        <p>Actividad, vencimientos, solicitudes y avisos exclusivos del equipo.</p></div>
+        <button type="button" class="admin-secondary" id="sb-team-refresh">🔄 Actualizar equipo</button>
+      </div>
+      <p id="sb-team-status" role="status" aria-live="polite">Cargando equipo…</p>
+      <label class="sb-team-presence"><input type="checkbox" id="sb-team-share" disabled> Compartir mi actividad reciente en este panel con el equipo</label>
+      <p class="sb-team-hint">La presencia es voluntaria y no indica conexión general a la web. Se considera actividad reciente durante dos minutos.</p>
+      <div id="sb-team-summary" class="sb-history-stats"></div>
+      <div id="sb-team-members" class="sb-staff-list"></div>
+      <details class="sb-team-section"><summary>📅 Calendario de vencimientos</summary><div id="sb-team-calendar"></div></details>
+      <details class="sb-team-section" open><summary>📝 Solicitudes de renovación</summary><div id="sb-team-renewals"></div></details>
+      <details class="sb-team-section"><summary>🔔 Centro de avisos del equipo</summary><div id="sb-team-alerts"></div></details>
+    `;
+    const welcome = dashboard.querySelector(".admin-welcome");
+    if (welcome) welcome.after(panel); else dashboard.prepend(panel);
+    const q = id => panel.querySelector("#"+id);
+    const status = q("sb-team-status");
+    const share = q("sb-team-share");
+    let current = null, busy = false, closed = false;
+    let lastRequest = 0;
+    const act = async (action, payload={}) => {
+      const {data,error} = await sb.functions.invoke("manage-site-roles",{body:{action:"team",team_action:action,team_body:payload}});
+      if (error || !data?.ok) {
+        let msg = data?.error || error?.message || "No se pudo realizar la acción";
+        if (error?.context && typeof error.context.json === "function") {
+          try { const response = await error.context.json(); msg = response.error || msg; } catch {}
+        }
+        throw new Error(msg);
+      }
+      return data;
+    };
+    const card = (container, label, value) => {
+      const tile = element("div","sb-history-stat");
+      tile.append(element("strong","",String(value)),element("small","",label));
+      container.append(tile);
+    };
+    const countdownText = expiry => {
+      const ms = Date.parse(expiry)-Date.now();
+      if (ms <= 0) return "Caducado";
+      const min = Math.ceil(ms/60000);
+      const days = Math.floor(min/1440), hours=Math.floor((min%1440)/60);
+      return (days ? days+" d " : "") + hours+" h "+min%60+" min";
+    };
+    function expiryNode(expiry) {
+      const node = element("span","sb-team-countdown",countdownText(expiry));
+      node.dataset.expiry = expiry;
+      return node;
+    }
+    function presenceText(value) {
+      return value==="recent" ? "🟢 Actividad reciente" : value==="inactive" ? "⚪ Sin actividad reciente" : "🔒 Presencia no compartida";
+    }
+    function render(data) {
+      current=data;
+      share.checked=!!data.share_presence;
+      share.disabled=false;
+      const summary=q("sb-team-summary"), members=q("sb-team-members"), calendar=q("sb-team-calendar"), renewals=q("sb-team-renewals"), alerts=q("sb-team-alerts");
+      for (const node of [summary,members,calendar,renewals,alerts]) node.replaceChildren();
+      const team=data.team||[], requests=data.requests||[], notices=data.alerts||[];
+      card(summary,"Integrantes vigentes",team.length);
+      card(summary,"Actividad reciente compartida",team.filter(x=>x.presence==="recent").length);
+      card(summary,"Vencimientos visibles",team.filter(x=>x.expires_at).length);
+      card(summary,"Solicitudes pendientes",requests.filter(x=>x.status==="pending").length);
+      for (const m of team) {
+        const row=element("article","sb-staff-row sb-team-member");
+        const info=element("div","sb-staff-member");
+        info.append(element("strong","",m.name),element("small","",names[m.role]||m.role));
+        const presence=element("span","sb-team-presence-state",presenceText(m.presence));
+        presence.dataset.teamPresence=m.id; info.append(presence);
+        if (m.expiry_visible) {
+          if (m.expires_at) info.append(element("small","","Vence: "+new Date(m.expires_at).toLocaleString("es-ES")),expiryNode(m.expires_at));
+          else info.append(element("small","","Cargo permanente"));
+        }
+        row.append(info);
+        if (m.moderation!==null && m.moderation!==undefined) {
+          const stats=element("div","sb-team-individual");
+          stats.append(element("small","","Actividad de los últimos 30 días"),element("span","",m.moderation+" acciones de moderación"),element("span","",m.reports+" denuncias revisadas"),element("span","",m.appeals+" apelaciones revisadas"));
+          row.append(stats);
+        }
+        if (data.can_configure && m.role!=="owner" && m.permissions) {
+          const settings=element("details","sb-team-permissions");
+          settings.append(element("summary","","🛡️ Permisos personalizados del panel"));
+          const controls=element("div","sb-team-permission-options");
+          const fields=[["view_team_stats","Ver estadísticas del equipo"],["view_team_calendar","Ver calendario del equipo"],["view_team_alerts","Ver avisos de todo el equipo"],["request_renewal","Solicitar renovación propia"]];
+          const inputs={};
+          for (const [key,label] of fields) {
+            const field=element("label","");
+            const input=document.createElement("input"); input.type="checkbox";input.checked=!!m.permissions[key];
+            inputs[key]=input;field.append(input,document.createTextNode(" "+label));controls.append(field);
+          }
+          const save=element("button","admin-secondary","Guardar permisos del panel");save.type="button";
+          save.addEventListener("click",async()=>{
+            save.disabled=true;
+            try {
+              await act("permissions",{target_id:m.id,...Object.fromEntries(fields.map(([key])=>[key,inputs[key].checked]))});
+              await refresh(false);status.textContent="✅ Permisos del panel guardados.";
+            } catch(err){status.textContent=err.message;} finally{save.disabled=false;}
+          });
+          controls.append(save,element("small","sb-team-hint","Solo afectan a este nuevo panel, no amplían los permisos del cargo."));
+          settings.append(controls);row.append(settings);
+        }
+        members.append(row);
+      }
+      const expiring=team.filter(x=>x.expires_at).sort((x,y)=>Date.parse(x.expires_at)-Date.parse(y.expires_at));
+      calendar.append(element("p","sb-team-hint",data.permissions?.view_team_calendar ? "Agenda de cargos temporales vigentes." : "Solo se muestra tu propio vencimiento."));
+      if (!expiring.length) calendar.append(element("p","","No hay vencimientos visibles."));
+      let group="";
+      for (const m of expiring) {
+        const when=new Date(m.expires_at);
+        const month=when.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+        if(month!==group){calendar.append(element("h3","",month));group=month;}
+        const item=element("div","sb-staff-row");
+        item.append(element("strong","",when.toLocaleString("es-ES")),element("span","",m.name+" · "+(names[m.role]||m.role)),expiryNode(m.expires_at));calendar.append(item);
+      }
+      if(data.expires_at && data.permissions?.request_renewal && !requests.some(r=>r.user_id===data.viewer_id&&r.status==="pending")){
+        const form=element("form","sb-team-renew-form");
+        const select=document.createElement("select");select.setAttribute("aria-label","Días adicionales de renovación");
+        for(const n of [7,15,30])select.add(new Option("+"+n+" días",String(n)));
+        const reason=document.createElement("textarea");reason.required=true;reason.minLength=5;reason.maxLength=500;reason.placeholder="Motivo de la renovación (5–500 caracteres)";reason.setAttribute("aria-label","Motivo de la renovación");
+        const send=element("button","admin-secondary","Solicitar renovación");send.type="submit";
+        form.append(select,reason,send);
+        form.addEventListener("submit",async ev=>{
+          ev.preventDefault();send.disabled=true;
+          try{await act("request",{days:Number(select.value),reason:reason.value.trim()});await refresh(false);status.textContent="✅ Solicitud enviada al equipo permanente.";}
+          catch(err){status.textContent=err.message;}finally{send.disabled=false;}
+        });
+        renewals.append(form);
+      }
+      const labels={pending:"Pendiente",approved:"Aprobada",rejected:"Rechazada",obsolete:"Caducada o sustituida"};
+      if(!requests.length)renewals.append(element("p","","No hay solicitudes de renovación."));
+      for(const req of requests){
+        const row=element("div","sb-staff-row"), info=element("div","sb-staff-member");
+        info.append(element("strong","",req.name+" · +"+req.extra_days+" días"),element("small","",labels[req.status]||req.status),element("small","",req.reason),element("small","","Vencimiento original: "+new Date(req.original_expiry).toLocaleString("es-ES")));
+        row.append(info);
+        if(data.can_manage&&req.status==="pending"&&req.user_id!==data.viewer_id){
+          const controls=element("div","sb-staff-actions");
+          for(const [decision,label] of [["approve","Aprobar"],["reject","Rechazar"]]){
+            const btn=element("button","admin-secondary",label);btn.type="button";
+            btn.addEventListener("click",async()=>{
+              if(!confirm(label+" solicitud de "+req.name+"?"))return;
+              let confirmation="";
+              if(decision==="approve"&&req.requested_role==="admin"){
+                confirmation=prompt("Escribe CONCEDER ADMIN para confirmar la renovación administrativa.")||"";
+                if(confirmation!=="CONCEDER ADMIN")return;
+              }
+              for(const b of controls.querySelectorAll("button"))b.disabled=true;
+              try{await act("resolve",{request_id:req.id,decision,confirmation});await refresh(false);if(document.getElementById("sb-staff-list"))loadRoles();status.textContent="✅ Solicitud resuelta.";}
+              catch(err){status.textContent=err.message;}finally{for(const b of controls.querySelectorAll("button"))b.disabled=false;}
+            });controls.append(btn);
+          }row.append(controls);
+        }renewals.append(row);
+      }
+      const soon=expiring.filter(m=>Date.parse(m.expires_at)-Date.now()<=86400000);
+      for(const m of soon)alerts.append(element("p","sb-team-warning","⏳ "+m.name+" vence en "+countdownText(m.expires_at)));
+      const pending=requests.filter(r=>r.status==="pending").length;
+      if(pending)alerts.append(element("p","sb-team-warning","📝 "+pending+" solicitudes de renovación pendientes."));
+      for(const notice of notices){
+        const row=element("div","sb-staff-row");
+        row.append(element("strong","",notice.target_name),element("span","",(notice.automatic?"Caducidad automática · ":"")+(names[notice.old_role]||notice.old_role)+" → "+(names[notice.new_role]||notice.new_role)),element("small","",new Date(notice.changed_at).toLocaleString("es-ES")));alerts.append(row);
+      }
+      if(!notices.length&&!soon.length&&!pending)alerts.append(element("p","","No hay avisos disponibles."));
+      status.textContent="Equipo actualizado · "+new Date().toLocaleTimeString("es-ES");
+    }
+    async function refresh(background) {
+      if(!panel.isConnected||closed)return;
+      if(background && (busy||document.hidden))return;
+      const serial=++lastRequest;
+      busy=true;
+      if(!background)status.textContent="Consultando equipo…";
+      try{
+        const data=await act("dashboard",{heartbeat:!document.hidden});
+        if(!panel.isConnected||serial!==lastRequest)return;
+        if(background&&current){
+          const byId=new Map(data.team.map(m=>[m.id,m]));
+          panel.querySelectorAll("[data-team-presence]").forEach(node=>{const m=byId.get(node.dataset.teamPresence);node.textContent=m?presenceText(m.presence):"Cargo no vigente";});
+        }else render(data);
+      }catch(err){
+        if(serial!==lastRequest||!panel.isConnected)return;
+        status.textContent=err.message;
+        if(background){
+          current=null;share.disabled=true;
+          for(const id of ["sb-team-summary","sb-team-members","sb-team-calendar","sb-team-renewals","sb-team-alerts"])q(id).replaceChildren();
+        }
+      }finally{if(serial===lastRequest)busy=false;}
+    }
+    q("sb-team-refresh").addEventListener("click",()=>refresh(false));
+    share.addEventListener("change",async()=>{
+      share.disabled=true;
+      try{await act("presence",{enabled:share.checked});await refresh(false);}
+      catch(err){status.textContent=err.message;share.checked=!!current?.share_presence;}finally{share.disabled=false;}
+    });
+    refresh(false);
+    const timer=setInterval(()=>{
+      if(!panel.isConnected){closed=true;clearInterval(timer);return;}
+      if(!document.hidden){
+        panel.querySelectorAll("[data-expiry]").forEach(node=>node.textContent=countdownText(node.dataset.expiry));
+      }
+    },1000);
+    const heartbeat=setInterval(()=>{
+      if(!panel.isConnected){clearInterval(heartbeat);return;}refresh(true);
+    },45000);
   }
   function historyFilters(panel) {
     return {
@@ -459,6 +667,7 @@
     if (typeof adminLoadReports === "function") adminLoadReports();
     if (typeof adminInitReportAlerts === "function") adminInitReportAlerts();
     window.SBMemberModeration?.mountPanel();
+    mountTeamPanel(root.querySelector(".sb-moderator-dashboard"));
   }
   window.SBRoleManagement = { mountAdminPanel, renderModeratorPanel };
 })();
