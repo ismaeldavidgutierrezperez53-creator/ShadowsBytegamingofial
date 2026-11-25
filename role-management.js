@@ -42,15 +42,31 @@
       </div>
       <p id="sb-staff-status" role="status" aria-live="polite"></p>
       <div id="sb-staff-list" class="sb-staff-list">Cargando miembros…</div>
+      <div class="sb-role-alert" aria-live="polite">
+        <span id="sb-role-alert-text">🔔 Consultando avisos de cargos…</span>
+        <button type="button" id="sb-role-alert-read" class="admin-secondary" disabled>Marcar revisados</button>
+      </div>
       <details id="sb-staff-history" class="sb-staff-history">
         <summary>📋 Historial administrativo de cargos</summary>
         <p>Consulta quién concedió o retiró permisos y cuándo. Solo administradores.</p>
+        <form id="sb-history-filters" class="sb-history-filters">
+          <label>Buscar miembro<input id="sb-history-search" type="search" maxlength="120" placeholder="Nombre o usuario"></label>
+          <label>Cargo anterior o nuevo<select id="sb-history-role"><option value="">Todos</option><option value="member">Miembro</option><option value="moderator">Moderador</option><option value="admin">Administrador</option><option value="owner">Administrador principal</option></select></label>
+          <label>Desde (Madrid)<input id="sb-history-from" type="date"></label>
+          <label>Hasta (Madrid)<input id="sb-history-to" type="date"></label>
+          <button class="admin-secondary" type="submit">🔍 Aplicar filtros</button>
+          <button class="admin-secondary" type="reset">Limpiar filtros</button>
+        </form>
+        <div id="sb-history-stats" class="sb-history-stats"></div>
+        <details class="sb-history-ranking"><summary>📊 Actividad de administradores</summary><div id="sb-history-ranking"></div></details>
         <div class="sb-staff-history-actions">
+          <button type="button" id="sb-history-export" class="admin-secondary">📥 Descargar CSV</button>
           <button type="button" id="sb-history-refresh" class="admin-secondary">🔄 Actualizar historial</button>
           <button type="button" id="sb-history-prev" class="admin-secondary" disabled>Anterior</button>
           <button type="button" id="sb-history-next" class="admin-secondary" disabled>Siguiente</button>
         </div>
         <p id="sb-history-status" role="status" aria-live="polite"></p>
+        <p id="sb-history-export-status" role="status" aria-live="polite"></p>
         <div id="sb-history-list" class="sb-staff-list"></div>
       </details>
     `;
@@ -62,11 +78,105 @@
     loadRoles();
     const history = panel.querySelector("#sb-staff-history");
     history.addEventListener("toggle", () => { if (history.open) loadHistory(history, 0); });
+    history.querySelector("#sb-history-filters").addEventListener("submit", event => { event.preventDefault(); loadHistory(history, 0); });
+    history.querySelector("#sb-history-filters").addEventListener("reset", () => setTimeout(() => loadHistory(history, 0), 0));
+    history.querySelector("#sb-history-export").addEventListener("click", () => exportHistory(history));
+    startRoleAlerts(panel);
     history.querySelector("#sb-history-refresh").addEventListener("click", () => loadHistory(history, 0));
     history.querySelector("#sb-history-prev").addEventListener("click", () => loadHistory(history, Math.max(0, Number(history.dataset.page || 0) - 1)));
     history.querySelector("#sb-history-next").addEventListener("click", () => loadHistory(history, Number(history.dataset.page || 0) + 1));
     const focus = new URLSearchParams(location.hash.split("?")[1] || "").get("focus");
     if (focus === "staff") requestAnimationFrame(() => panel.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }
+  function historyFilters(panel) {
+    return {
+      search: panel.querySelector("#sb-history-search").value.trim(),
+      filter_role: panel.querySelector("#sb-history-role").value,
+      from: panel.querySelector("#sb-history-from").value,
+      to: panel.querySelector("#sb-history-to").value
+    };
+  }
+  function renderHistoryStats(panel, data) {
+    const stats = panel.querySelector("#sb-history-stats");
+    const ranking = panel.querySelector("#sb-history-ranking");
+    stats.replaceChildren();
+    ranking.replaceChildren();
+    const s = data.stats || {};
+    for (const [label, value] of [["Cambios",s.total],["Ascensos",s.grants],["Descensos",s.revocations],["Otros ajustes",s.other],["Administradores activos",s.admins]]) {
+      const tile = element("div", "sb-history-stat");
+      tile.append(element("strong", "", String(value ?? 0)), element("small", "", label));
+      stats.append(tile);
+    }
+    const leaders = data.ranking || [];
+    if (!leaders.length) ranking.append(element("p", "", "No hay actividad en los filtros seleccionados."));
+    for (const actor of leaders) {
+      const row = element("div", "sb-staff-row");
+      row.append(element("strong", "", actor.actor_name), element("span", "", actor.total + " cambios · " + actor.grants + " ascensos · " + actor.revocations + " descensos"));
+      ranking.append(row);
+    }
+  }
+  async function exportHistory(panel) {
+    const button = panel.querySelector("#sb-history-export");
+    const status = panel.querySelector("#sb-history-export-status");
+    button.disabled = true;
+    status.textContent = "Preparando CSV…";
+    try {
+      const { data, error } = await sb.functions.invoke("manage-site-roles", { body: { action: "history_export", ...historyFilters(panel) } });
+      if (!panel.isConnected) return;
+      if (error || data?.error || !Array.isArray(data?.records)) throw new Error(data?.error || error?.message || "No se pudo exportar");
+      if (data.export_truncated) throw new Error("Hay más de 5000 registros. Reduce el intervalo de fechas antes de exportar.");
+      const cell = value => {
+        let v = String(value ?? "");
+        if (/^[\s\u0000-\u001f]*[=+@-]/.test(v) || /^[\t\r\n]/.test(v)) v = "'" + v;
+        return '"' + v.replace(/"/g, '""') + '"';
+      };
+      const rows = [["Fecha UTC","Miembro","Administrador","Cargo anterior","Cargo nuevo"],
+        ...data.records.map(r => [r.changed_at,r.target_name,r.actor_name,names[r.old_role] || r.old_role,names[r.new_role] || r.new_role])];
+      const blob = new Blob(["\uFEFF" + rows.map(row => row.map(cell).join(";")).join("\r\n")], { type:"text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "SB-V2-historial-cargos-" + new Date().toISOString().slice(0,10) + ".csv";
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status.textContent = "CSV preparado: " + data.records.length + " registros. Contiene información administrativa.";
+    } catch (err) { status.textContent = err.message; }
+    finally { button.disabled = false; }
+  }
+  async function startRoleAlerts(panel) {
+    const status = panel.querySelector("#sb-role-alert-text");
+    const mark = panel.querySelector("#sb-role-alert-read");
+    let key = null, seen = "0", latest = "0", busy = false;
+    try {
+      const { data } = await sb.auth.getUser();
+      if (!data?.user || !panel.isConnected) { status.textContent = "🔔 Avisos no disponibles"; return; }
+      key = "sb-role-alert-seen:" + data.user.id;
+      try { seen = localStorage.getItem(key) || "0"; } catch {}
+      if (!/^\d{1,19}$/.test(seen)) seen = "0";
+    } catch { status.textContent = "🔔 Avisos no disponibles"; return; }
+    async function check() {
+      if (!panel.isConnected || busy || document.hidden) return;
+      busy = true;
+      try {
+        const { data,error } = await sb.functions.invoke("manage-site-roles", { body:{ action:"history_alerts", after_id:seen } });
+        if (!panel.isConnected) return;
+        if (error || !data || data.error) throw new Error("Sin acceso o conexión");
+        latest = String(data.latest_id || seen);
+        status.textContent = data.unread > 0 ? "🔔 " + data.unread + " cambios de cargo sin revisar en este dispositivo" : "🔔 No hay cambios de cargo nuevos";
+        mark.disabled = !(data.unread > 0);
+      } catch {
+        status.textContent = "🔔 Avisos no disponibles. Revisa tu sesión o conexión.";
+        mark.disabled = true;
+      } finally { busy = false; }
+    }
+    mark.addEventListener("click", () => {
+      seen = latest;
+      try { localStorage.setItem(key, seen); } catch {}
+      mark.disabled = true;
+      check();
+    });
+    await check();
+    const timer = setInterval(() => { if (!panel.isConnected) clearInterval(timer); else check(); }, 30000);
   }
   async function loadHistory(panel, page) {
     if (!panel?.isConnected || !panel.open) return;
@@ -78,20 +188,23 @@
     panel.dataset.request = token;
     prev.disabled = next.disabled = true;
     list.replaceChildren();
+    panel.querySelector("#sb-history-stats").replaceChildren();
+    panel.querySelector("#sb-history-ranking").replaceChildren();
     status.textContent = "Consultando historial…";
     try {
       const { data, error } = await sb.functions.invoke("manage-site-roles", {
-        body: { action: "history", page }
+        body: { action: "history", page, ...historyFilters(panel) }
       });
       if (!panel.isConnected || panel.dataset.request !== token) return;
       if (error || data?.error || !Array.isArray(data?.records)) {
         throw new Error(data?.error || error?.message || "Respuesta no válida");
       }
+      renderHistoryStats(panel, data);
       panel.dataset.page = String(page);
       prev.disabled = page === 0;
       next.disabled = !data.has_more;
       status.textContent = data.records.length
-        ? "Página " + (page + 1) + " · " + data.records.length + " cambios · Más recientes primero"
+        ? "Página " + (page + 1) + " · " + data.records.length + " de " + (data.stats?.total ?? data.records.length) + " cambios · Más recientes primero"
         : "No hay cambios registrados en esta página.";
       for (const event of data.records) {
         const row = element("article", "sb-staff-row sb-history-row");
