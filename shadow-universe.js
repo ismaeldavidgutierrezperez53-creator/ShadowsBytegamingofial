@@ -41,6 +41,7 @@ async function mount(){
   if(xpResult.error||xpResult.data===null||!Number.isFinite(Number(xpResult.data))){stats.append(el('p','No se pudo consultar tu XP.'))}
   else{const xp=Math.max(0,Number(xpResult.data));const i=rankRules.reduce((idx,r,j)=>xp>=r[0]?j:idx,0);const next=rankRules[i+1];stats.append(el('h3','Rango '+rankRules[i][1]),el('p','Nivel '+(Math.floor(Math.sqrt(xp/100))+1)+' · '+xp+' XP de comunidad'));if(next){const bar=el('progress');bar.max=next[0]-rankRules[i][0];bar.value=xp-rankRules[i][0];bar.style.width='100%';stats.append(bar,el('p','Próximo rango: '+next[1]+' · faltan '+(next[0]-xp)+' XP'));}}
   const mission=el('a','📜 Misiones, recompensas y niveles','outline-btn mini');mission.href='#/logros';stats.append(mission);root.append(stats);
+  const pets=panel();root.append(pets);if(window.SBPets){window.SBPets.mount(pets,user)}else{pets.append(el('p','Actualiza la aplicación para acceder a las mascotas.'))}
   const wars=panel();root.append(wars);if(window.SBGuildWars){window.SBGuildWars.mount(wars,user)}else{wars.append(el('p','Actualiza la aplicación para acceder a las guerras de gremios.'))}
   const dungeons=panel();root.append(dungeons);if(window.SBDungeons){window.SBDungeons.mount(dungeons,user)}else{dungeons.append(el('p','Actualiza la aplicación para acceder a las mazmorras.'))}
   const arcade=panel();root.append(arcade);if(window.SBArcade){window.SBArcade.mount(arcade,user)}else{arcade.append(el('p','Actualiza la aplicación para acceder a Shadow Arcade.'))}
