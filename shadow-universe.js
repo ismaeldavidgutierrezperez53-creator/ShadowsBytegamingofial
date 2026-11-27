@@ -41,15 +41,16 @@ async function mount(){
   if(xpResult.error||xpResult.data===null||!Number.isFinite(Number(xpResult.data))){stats.append(el('p','No se pudo consultar tu XP.'))}
   else{const xp=Math.max(0,Number(xpResult.data));const i=rankRules.reduce((idx,r,j)=>xp>=r[0]?j:idx,0);const next=rankRules[i+1];stats.append(el('h3','Rango '+rankRules[i][1]),el('p','Nivel '+(Math.floor(Math.sqrt(xp/100))+1)+' · '+xp+' XP de comunidad'));if(next){const bar=el('progress');bar.max=next[0]-rankRules[i][0];bar.value=xp-rankRules[i][0];bar.style.width='100%';stats.append(bar,el('p','Próximo rango: '+next[1]+' · faltan '+(next[0]-xp)+' XP'));}}
   const mission=el('a','📜 Misiones, recompensas y niveles','outline-btn mini');mission.href='#/logros';stats.append(mission);root.append(stats);
-  const pvp=panel();root.append(pvp);if(window.SBPvP){window.SBPvP.mount(pvp,user)}else{pvp.append(el('p','Actualiza la aplicación para acceder a la arena PvP.'))}
-  const gear=panel();root.append(gear);if(window.SBGear){window.SBGear.mount(gear,user)}else{gear.append(el('p','Actualiza la aplicación para acceder al equipamiento.'))}
-  const skills=panel();root.append(skills);if(window.SBSkills){window.SBSkills.mount(skills,user)}else{skills.append(el('p','Actualiza la aplicación para acceder a las habilidades.'))}
-  const pets=panel();root.append(pets);if(window.SBPets){window.SBPets.mount(pets,user)}else{pets.append(el('p','Actualiza la aplicación para acceder a las mascotas.'))}
-  const wars=panel();root.append(wars);if(window.SBGuildWars){window.SBGuildWars.mount(wars,user)}else{wars.append(el('p','Actualiza la aplicación para acceder a las guerras de gremios.'))}
-  const dungeons=panel();root.append(dungeons);if(window.SBDungeons){window.SBDungeons.mount(dungeons,user)}else{dungeons.append(el('p','Actualiza la aplicación para acceder a las mazmorras.'))}
-  const arcade=panel();root.append(arcade);if(window.SBArcade){window.SBArcade.mount(arcade,user)}else{arcade.append(el('p','Actualiza la aplicación para acceder a Shadow Arcade.'))}
-  const bosses=panel();root.append(bosses);if(window.SBWorldBosses){window.SBWorldBosses.mount(bosses,user)}else{bosses.append(el('p','Actualiza la aplicación para acceder a jefes mundiales.'))}
-  const cards=panel();root.append(cards);if(window.SBShadowCards){window.SBShadowCards.mount(cards,user)}else{cards.append(el('p','El álbum no se pudo cargar. Actualiza la aplicación.'))}
+  const world=panel();world.id='sb-shadow-world-map';root.append(world);if(window.SBWorldMap){window.SBWorldMap.mount(world,user)}else{world.append(el('p','Actualiza la aplicación para acceder al mapa.'))}
+  const pvp=panel();pvp.id='sb-shadow-pvp';root.append(pvp);if(window.SBPvP){window.SBPvP.mount(pvp,user)}else{pvp.append(el('p','Actualiza la aplicación para acceder a la arena PvP.'))}
+  const gear=panel();gear.id='sb-shadow-gear';root.append(gear);if(window.SBGear){window.SBGear.mount(gear,user)}else{gear.append(el('p','Actualiza la aplicación para acceder al equipamiento.'))}
+  const skills=panel();skills.id='sb-shadow-skills';root.append(skills);if(window.SBSkills){window.SBSkills.mount(skills,user)}else{skills.append(el('p','Actualiza la aplicación para acceder a las habilidades.'))}
+  const pets=panel();pets.id='sb-shadow-pets';root.append(pets);if(window.SBPets){window.SBPets.mount(pets,user)}else{pets.append(el('p','Actualiza la aplicación para acceder a las mascotas.'))}
+  const wars=panel();wars.id='sb-shadow-wars';root.append(wars);if(window.SBGuildWars){window.SBGuildWars.mount(wars,user)}else{wars.append(el('p','Actualiza la aplicación para acceder a las guerras de gremios.'))}
+  const dungeons=panel();dungeons.id='sb-shadow-dungeons';root.append(dungeons);if(window.SBDungeons){window.SBDungeons.mount(dungeons,user)}else{dungeons.append(el('p','Actualiza la aplicación para acceder a las mazmorras.'))}
+  const arcade=panel();arcade.id='sb-shadow-arcade';root.append(arcade);if(window.SBArcade){window.SBArcade.mount(arcade,user)}else{arcade.append(el('p','Actualiza la aplicación para acceder a Shadow Arcade.'))}
+  const bosses=panel();bosses.id='sb-shadow-bosses';root.append(bosses);if(window.SBWorldBosses){window.SBWorldBosses.mount(bosses,user)}else{bosses.append(el('p','Actualiza la aplicación para acceder a jefes mundiales.'))}
+  const cards=panel();cards.id='sb-shadow-cards';root.append(cards);if(window.SBShadowCards){window.SBShadowCards.mount(cards,user)}else{cards.append(el('p','El álbum no se pudo cargar. Actualiza la aplicación.'))}
   const ownResult=await sb.from('sb_shadow_guilds').select('id,owner_id,name,description,shield').eq('owner_id',user.id).maybeSingle();const own=checked(ownResult);if(!root.isConnected)return;
   const editor=panel();editor.append(el('h2',own?'🛡️ Administrar mi gremio':'🛡️ Crear un gremio'));
   const form=el('form');const name=el('input');name.id='sb-shadow-name';name.required=true;name.minLength=3;name.maxLength=40;name.value=own?.name||'';name.placeholder='Nombre del gremio';name.style.cssText='display:block;width:100%;margin:8px 0';
