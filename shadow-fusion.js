@@ -1,0 +1,34 @@
+/* Shadow Universe 4.0 — creature fusion laboratory */
+window.SBFusion=(()=>{
+'use strict';
+const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
+const btn=(label,fn)=>{const b=el('button',label);b.className='outline-btn mini';b.type='button';b.onclick=fn;return b};
+const check=r=>{if(r.error)throw r.error;return r.data};
+const errors={'Account restricted':'Tu cuenta no puede participar.','Requirements insufficient':'Requisitos de XP, ascensión o santuario pendientes.','Parents required':'Necesitas las criaturas originales entrenadas.','Not enough essence':'No tienes suficientes esencias.','Not enough crystals':'No tienes suficientes cristales.','Maximum level':'Nivel máximo alcanzado.'};
+async function mount(host,user){
+if(!host?.isConnected)return;
+host.replaceChildren(el('h2','🧬 Laboratorio de fusión'),el('p','Combina mascotas con al menos 80 XP de mascota y soldados con al menos 60 XP de soldado. Las criaturas originales se conservan. Usa esencias y cristales para crear híbridos y evolucionarlos al nivel 3. Equipa uno junto a tus compañeros habituales; su poder se fija al empezar nuevas mazmorras individuales y dimensiones.'));
+const status=el('p','Cargando laboratorio…');status.setAttribute('role','status');status.setAttribute('aria-live','polite');const info=el('section'),list=el('div');list.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));gap:10px';host.append(status,info,list);
+let catalog=[],owned=[],pets=[],soldiers=[],pc=[],sc=[],xp=0,tier=0,sanctuary=0,essence=0,crystals=0,busy=false,loading=false;
+const report=e=>{status.textContent=errors[e.message]||e.message||'Error de conexión'};
+async function load(message){if(loading||!host.isConnected)return;loading=true;try{
+const [a,b,c,d,e,f,g,h,i,j,k]=await Promise.all([sb.from('sb_fusion_catalog').select('*').order('min_xp'),sb.from('sb_member_fusions').select('*').eq('user_id',user.id),sb.from('sb_member_pets').select('species_id,pet_xp').eq('user_id',user.id),sb.from('sb_shadow_army').select('soldier_id,soldier_xp').eq('user_id',user.id),sb.from('sb_pet_catalog').select('id,name'),sb.from('sb_shadow_soldiers').select('id,name'),sb.rpc('community_member_xp',{target_member:user.id}),sb.from('sb_ascension_trials').select('tier').eq('user_id',user.id).eq('status','won'),sb.from('sb_castles').select('sanctuary').eq('user_id',user.id).maybeSingle(),sb.from('sb_craft_inventory').select('quantity').eq('user_id',user.id).eq('material_id','essence').maybeSingle(),sb.from('sb_dimension_wallet').select('crystals').eq('user_id',user.id).maybeSingle()]);
+if(!host.isConnected)return;catalog=check(a)||[];owned=check(b)||[];pets=check(c)||[];soldiers=check(d)||[];pc=check(e)||[];sc=check(f)||[];xp=Number(check(g)||0);tier=Math.max(0,...(check(h)||[]).map(x=>x.tier));sanctuary=Number(check(i)?.sanctuary||0);essence=Number(check(j)?.quantity||0);crystals=Number(check(k)?.crystals||0);draw();status.textContent=message||''}catch(e){report(e)}finally{loading=false}}
+async function act(c,r,action){if(busy||loading)return;const lv=r?.level||1;if(['fuse','upgrade'].includes(action)&&!confirm((action==='fuse'?'Crear '+c.name:'Mejorar '+c.name)+' por '+(action==='fuse'?c.essence_cost:3*lv)+' esencias y '+(action==='fuse'?c.crystal_cost:lv)+' cristales? Las criaturas originales se conservan.'))return;busy=true;try{check(await sb.rpc('sb_fusion_manage',{target_fusion:c.id,action,expected_level:r?.level??null}));await load('Laboratorio actualizado.');host.dispatchEvent(new CustomEvent('sb-fusion-changed',{bubbles:true}));}catch(e){report(e)}finally{busy=false}}
+function draw(){
+const active=owned.find(x=>x.equipped),ac=catalog.find(x=>x.id===active?.fusion_id);
+info.replaceChildren(el('h3','Mi colección híbrida'),el('p','🔮 '+essence+' esencias · 💠 '+crystals+' cristales · Santuario '+sanctuary+'/5'),el('p',xp+' XP · Ascensión '+tier+' · '+owned.length+'/'+catalog.length+' criaturas'),el('p',ac?'Equipada: '+(active.level===3?ac.evolution_name:ac.name):'Sin híbrido equipado'));
+if(owned.length)info.append(el('p','🎖️ Alquimista de sombras'));if(owned.some(x=>x.level===3))info.append(el('p','🧬 Maestro de la fusión'));if(catalog.length&&owned.length===catalog.length)info.append(el('p','👑 Guardián de los híbridos'));
+info.append(btn('🏰 Ir al santuario del castillo',()=>document.getElementById('sb-shadow-castle')?.scrollIntoView({behavior:'smooth'})));
+list.replaceChildren();
+for(const c of catalog){const r=owned.find(x=>x.fusion_id===c.id),lv=r?.level||1,locked=xp<c.min_xp||tier<c.min_ascension||sanctuary<c.min_sanctuary,parents=[...[c.pet_a,c.pet_b].filter(Boolean).map(id=>({name:pc.find(x=>x.id===id)?.name||id,value:pets.find(x=>x.species_id===id)?.pet_xp||0,required:80})),...[c.soldier_a,c.soldier_b].filter(Boolean).map(id=>({name:sc.find(x=>x.id===id)?.name||id,value:soldiers.find(x=>x.soldier_id===id)?.soldier_xp||0,required:60}))],ready=parents.every(p=>p.value>=p.required),color=c.rarity==='supreme'?'#fbbf24':'#c084fc',card=el('article');card.style.cssText='padding:14px;border:1px solid '+color+';border-radius:14px;background:#211633;color:white;overflow-wrap:anywhere';
+const icon=el('div',c.symbol);icon.style.cssText='font-size:42px;text-align:center';card.append(icon,el('h3',lv===3?c.evolution_name:c.name),el('p',(c.rarity==='supreme'?'Suprema':'Mítica')+' · Nivel '+lv+'/3'+(r?.equipped?' · Equipada':'')),el('p','Requisitos: '+c.min_xp+' XP · Ascensión '+c.min_ascension+' · Santuario '+c.min_sanctuary),el('p',c.power_name+' · '+(c.damage+5*(lv-1))+' daño · '+(c.defense+(lv===3?1:0))+' defensa'+(c.heal?' · +'+c.heal+' PV':'')));
+for(const p of parents)card.append(el('p',(p.value>=p.required?'✓ ':'🔒 ')+p.name+' · '+Math.min(p.value,p.required)+'/'+p.required+' XP'));
+card.append(el('small','Evolución final: '+c.evolution_name));
+if(!r){const b=btn('Fusionar · '+c.essence_cost+' 🔮 / '+c.crystal_cost+' 💠',()=>act(c,null,'fuse'));b.disabled=locked||!ready||essence<c.essence_cost||crystals<c.crystal_cost;card.append(b)}
+else{const b=btn(lv===3?'Nivel máximo':'Evolucionar · '+3*lv+' 🔮 / '+lv+' 💠',()=>act(c,r,'upgrade'));b.disabled=lv===3||locked||essence<3*lv||crystals<lv;const equip=btn(r.equipped?'Desequipar':'Equipar',()=>act(c,r,r.equipped?'unequip':'equip'));equip.disabled=!r.equipped&&locked;card.append(b,equip)}list.append(card)}
+}
+host.append(btn('↻ Actualizar laboratorio',()=>load()));host.parentElement?.addEventListener('sb-craft-inventory-changed',()=>{if(host.isConnected)load()});host.parentElement?.addEventListener('sb-dimension-won',()=>{if(host.isConnected)load()});await load();
+}
+return {mount};
+})();
