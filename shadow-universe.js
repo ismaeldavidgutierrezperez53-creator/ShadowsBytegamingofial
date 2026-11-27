@@ -8,11 +8,36 @@ const panel=()=>{const n=el('section',undefined,'profile-panel');n.style.cssText
 const checked=r=>{if(r.error)throw r.error;return r.data};
 const ranks={member:'Miembro',veteran:'Veterano',captain:'Capitán'};
 async function names(ids){if(!ids.length)return {};const r=await sb.from('profiles').select('id,display_name,username').in('id',[...new Set(ids)]);return Object.fromEntries((r.data||[]).map(p=>[p.id,p.display_name||p.username||'Miembro']));}
+function addMember(card,g,user){
+ const area=panel();card.append(area);area.append(el('h4','➕ Añadir miembro al clan'),el('p','Busca un perfil público por nombre o usuario. El nuevo miembro podrá abandonar el clan cuando quiera.'));
+ const form=el('form');const input=el('input');input.type='search';input.required=true;input.minLength=2;input.maxLength=60;input.placeholder='Nombre o usuario';input.setAttribute('aria-label','Buscar miembro');input.style.cssText='width:100%;margin:8px 0';const search=el('button','Buscar','gradient-btn mini');search.type='submit';form.append(input,search);
+ const status=el('p');status.setAttribute('role','status');const results=el('div');area.append(form,status,results);input.focus();
+ let busy=false;
+ form.onsubmit=async e=>{e.preventDefault();if(busy)return;const term=input.value.trim();if(term.length<2){status.textContent='Escribe al menos dos caracteres.';return;}busy=true;search.disabled=true;results.replaceChildren();status.textContent='Buscando…';
+ try{
+  const pattern='%'+term.replace(/[\\%_]/g,c=>'\\'+c)+'%';
+  const found=await Promise.all(['display_name','username'].map(col=>sb.from('profiles').select('id,display_name,username').eq('is_public',true).neq('id',user.id).ilike(col,pattern).limit(30)));
+  const profiles=[...new Map(found.flatMap(r=>checked(r)||[]).map(p=>[p.id,p])).values()];
+  if(!area.isConnected)return;
+  const existing=profiles.length?checked(await sb.from('sb_shadow_guild_members').select('user_id').eq('guild_id',g.id).in('user_id',profiles.map(p=>p.id))):[];
+  const joined=new Set((existing||[]).map(m=>m.user_id));const available=profiles.filter(p=>!joined.has(p.id));
+  status.textContent=available.length?'Selecciona a quien quieras añadir.':'No hay usuarios disponibles que coincidan.';
+  for(const p of available){
+   const row=el('div');row.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:8px 0;border-bottom:1px solid #ffffff22';const label=p.display_name||p.username||'Miembro';row.append(el('span',label+(p.username&&p.username!==label?' (@'+p.username+')':'')));
+   const add=button('➕ Añadir',async()=>{if(busy||!confirm('¿Añadir a '+label+' al clan '+g.name+'?'))return;busy=true;search.disabled=true;add.disabled=true;status.textContent='Añadiendo miembro…';
+    try{checked(await sb.from('sb_shadow_guild_members').insert({guild_id:g.id,user_id:p.id}).select('user_id').single());row.remove();status.textContent=label+' se ha añadido al clan.';card.dispatchEvent(new Event('sb-clan-members-changed'));}
+    catch(err){status.textContent=err.code==='23505'?'Este usuario ya pertenece al clan.':(err.message||'No se pudo añadir al miembro.');if(err.code==='23505')row.remove();else add.disabled=false;}
+    finally{busy=false;search.disabled=false;}
+   });row.append(add);results.append(row);
+  }
+ }catch(err){status.textContent=err.message||'No se pudo buscar miembros.';}finally{busy=false;search.disabled=false;}
+ };
+}
 async function manage(card,g,user){
  const area=panel();card.append(area);area.append(el('h4','👥 Gestionar miembros'));
  const status=el('p');status.setAttribute('role','status');const list=el('div');area.append(status,list);
  async function load(){try{status.textContent='Cargando…';const members=checked(await sb.from('sb_shadow_guild_members').select('user_id,guild_rank').eq('guild_id',g.id).limit(100))||[];const labels=await names(members.map(m=>m.user_id));if(!area.isConnected)return;list.replaceChildren();status.textContent=members.length+' miembros (máximo 100 visibles).';for(const m of members){const row=el('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0';const label=el('span',labels[m.user_id]||'Miembro '+m.user_id.slice(0,8));const select=el('select');select.setAttribute('aria-label','Rango de '+label.textContent);for(const [key,title] of Object.entries(ranks)){const opt=el('option',title);opt.value=key;select.append(opt)}select.value=m.guild_rank;select.onchange=async()=>{select.disabled=true;try{checked(await sb.from('sb_shadow_guild_members').update({guild_rank:select.value}).eq('guild_id',g.id).eq('user_id',m.user_id).select('user_id').single());status.textContent='Rango actualizado.'}catch(e){status.textContent=e.message;select.value=m.guild_rank}finally{select.disabled=false}};const remove=button('Expulsar',async()=>{if(!confirm('¿Expulsar a este miembro? Podrá volver a solicitar acceso uniéndose de nuevo.'))return;remove.disabled=true;try{checked(await sb.from('sb_shadow_guild_members').delete().eq('guild_id',g.id).eq('user_id',m.user_id).select('user_id').single());await load()}catch(e){status.textContent=e.message;remove.disabled=false}});row.append(label,select,remove);list.append(row)}}catch(e){status.textContent=e.message}}
- area.append(button('Actualizar miembros',load));await load();
+ card.addEventListener('sb-clan-members-changed',load); area.append(button('Actualizar miembros',load));await load();
 }
 function chat(card,g,user){
  const area=panel();card.append(area);area.append(el('h4','💬 Chat privado de gremio'));
@@ -84,7 +109,7 @@ async function mount(){
   const all=own&&!guilds.some(g=>g.id===own.id)?[own,...guilds]:guilds;
   function draw(){list.replaceChildren();const query=filter.value.trim().toLowerCase();const matches=all.filter(g=>(g.name+' '+g.description).toLowerCase().includes(query));if(!matches.length)list.append(el('p','No hay gremios que coincidan.'));for(const g of matches){const card=panel();const isOwner=g.owner_id===user.id;const isMember=joined.has(g.id);card.append(el('h3',(g.shield||'🛡️')+' '+g.name),el('p',g.description||'Sin descripción'),el('p',isOwner?'👑 Líder':isMember?'✅ '+(ranks[memberships.find(m=>m.guild_id===g.id)?.guild_rank]||'Miembro'):'Gremio abierto'));
     if(!isOwner){const msg=el('p');msg.setAttribute('role','status');const action=button(isMember?'Salir del gremio':'Unirme al gremio',async()=>{action.disabled=true;msg.textContent='Guardando…';try{if(isMember){const r=await sb.from('sb_shadow_guild_members').delete().eq('guild_id',g.id).eq('user_id',user.id).select('guild_id').single();checked(r)}else{checked(await sb.from('sb_shadow_guild_members').insert({guild_id:g.id}).select('guild_id').single())}await mount()}catch(err){msg.textContent=err.message||'No se pudo cambiar la afiliación.';action.disabled=false}});card.append(action,msg)}
-    if(isOwner||isMember){const open=button('💬 Abrir chat',()=>{open.disabled=true;chat(card,g,user)});card.append(open)}if(isOwner){const open=button('👥 Gestionar miembros',()=>{open.disabled=true;manage(card,g,user)});card.append(open)}
+    if(isOwner||isMember){const open=button('💬 Abrir chat',()=>{open.disabled=true;chat(card,g,user)});card.append(open)}if(isOwner){const invite=button('➕ Añadir miembro',()=>{invite.disabled=true;addMember(card,g,user)});const open=button('👥 Gestionar miembros',()=>{open.disabled=true;manage(card,g,user)});card.append(invite,open)}
     list.append(card);
   }}filter.oninput=draw;draw();
  }catch(err){if(root.isConnected){root.replaceChildren(el('p','No se pudo cargar Shadow Universe: '+(err.message||'Error de conexión')),button('Reintentar',mount))}}
