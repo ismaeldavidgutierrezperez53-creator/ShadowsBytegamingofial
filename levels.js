@@ -104,14 +104,14 @@ async function renderStreakRanking(){
  }host.replaceChildren(list);
 }
 
-const COMMUNITY_MISSIONS={daily_post:{name:'📝 Publica en la comunidad',period:'Diaria'},daily_comments:{name:'💬 Escribe 2 comentarios',period:'Diaria'},weekly_votes:{name:'📊 Vota en 3 encuestas',period:'Semanal'},weekly_favorites:{name:'❤️ Guarda 5 favoritos',period:'Semanal'}};
+const COMMUNITY_MISSIONS={daily_post:{name:'📝 Publica en la comunidad',period:'Diaria'},daily_comments:{name:'💬 Escribe 2 comentarios',period:'Diaria'},weekly_votes:{name:'📊 Vota en 3 encuestas',period:'Semanal'},weekly_favorites:{name:'❤️ Guarda 5 favoritos',period:'Semanal'},monthly_posts:{name:'📝 Publica 10 veces',period:'Mensual'},monthly_comments:{name:'💬 Escribe 20 comentarios',period:'Mensual'}};
 async function renderCommunityMissions(){
  const host=document.getElementById('community-missions');if(!host)return;
  const {data:{user},error:authError}=await sb.auth.getUser();if(!host.isConnected)return;
  if(authError||!user){host.textContent='Inicia sesión para ver tus misiones.';return}
  const {data,error}=await sb.rpc('community_mission_status');if(!host.isConnected)return;
  if(error){host.textContent='No se pudieron cargar las misiones: '+error.message;return}
- host.replaceChildren();const intro=document.createElement('p');intro.textContent='Completa las actividades y reclama XP adicionales. Las misiones diarias se reinician a las 00:00 UTC; las semanales, los lunes a las 00:00 UTC.';host.append(intro);
+ host.replaceChildren();const intro=document.createElement('p');intro.textContent='Completa las actividades y reclama XP adicionales. Las misiones diarias se reinician a las 00:00 UTC; las semanales, los lunes a las 00:00 UTC; las mensuales, el primer día del mes a las 00:00 UTC.';host.append(intro);
  for(const mission of data||[]){
   const definition=COMMUNITY_MISSIONS[mission.mission_key];if(!definition)continue;
   const panel=document.createElement('article');panel.className='profile-panel';panel.style.cssText='margin:12px 0;padding:14px;border:1px solid #ffffff2a;border-radius:12px';
@@ -164,7 +164,7 @@ async function renderRewardInventory(){
  makeSection('🏅 Medallas conseguidas',earned,'Todavía no has desbloqueado medallas.');
  const chestNames={bronze:'🎁 Cofre de bronce',gold:'👑 Cofre dorado'};
  makeSection('📦 Cofres abiertos'+((chests.data||[]).length===100?' · últimos 100':''),(chests.data||[]).map(c=>(chestNames[c.chest_key]||'Cofre')+' · +'+c.xp+' XP · Semana del '+c.week_start),'Todavía no has abierto cofres.');
- const missionNames={daily_post:'📝 Publicación diaria',daily_comments:'💬 Comentarios diarios',weekly_votes:'📊 Votos semanales',weekly_favorites:'❤️ Favoritos semanales'};
+ const missionNames={daily_post:'📝 Publicación diaria',daily_comments:'💬 Comentarios diarios',weekly_votes:'📊 Votos semanales',weekly_favorites:'❤️ Favoritos semanales',monthly_posts:'📝 Publicaciones mensuales',monthly_comments:'💬 Comentarios mensuales'};
  makeSection('🎯 Misiones reclamadas'+((missions.data||[]).length===100?' · últimas 100':''),(missions.data||[]).map(m=>(missionNames[m.mission_key]||'Misión')+' · +'+m.xp+' XP · '+m.period_start),'Todavía no has reclamado misiones.');
  const dailyList=(daily.data||[]).map(d=>'🎁 '+d.claimed_on+' · +'+(Number(d.xp)+Number(d.bonus_xp||0))+' XP'+(d.bonus_xp?' (incluye bonus de racha)':''));
  makeSection('📅 Recompensas diarias'+(dailyList.length===100?' · últimas 100':''),dailyList,'Todavía no has reclamado recompensas diarias.');
