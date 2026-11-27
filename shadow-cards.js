@@ -24,14 +24,15 @@ async function mount(host,user){
  const packs=[];for(let offset=0;;offset+=500){const page=check(await sb.from('sb_shadow_card_packs').select('pack_day,card_1,card_2,card_3').eq('user_id',user.id).order('pack_day',{ascending:false}).range(offset,offset+499))||[];packs.push(...page);if(page.length<500)break;}
  if(!host.isConnected)return;
  const byId=Object.fromEntries(catalog.map(c=>[c.id,c]));const counts={};let lastPack=null;
- const rebuild=()=>{for(const id of Object.keys(counts))delete counts[id];for(const p of packs)for(const id of [p.card_1,p.card_2,p.card_3])counts[id]=(counts[id]||0)+1};
- rebuild();shell.replaceChildren();
+ const applyInventory=rows=>{for(const id of Object.keys(counts))delete counts[id];for(const row of rows)counts[row.card_id]=Number(row.quantity)||0};
+ const rebuild=async()=>applyInventory(check(await sb.from('sb_card_inventory').select('card_id,quantity').eq('user_id',user.id))||[]);
+ await rebuild();shell.replaceChildren();
  const openSection=el('section');openSection.style.cssText='padding:16px;border-radius:14px;background:linear-gradient(130deg,#3b1c60,#171027);border:1px solid #c084fc88;margin:12px 0';
  const packIcon=el('div','🎴');packIcon.style.cssText='font-size:56px;text-align:center';
- const availability=el('p');const open=button('Abrir sobre gratis',async()=>{open.disabled=true;msg.textContent='Abriendo sobre…';try{const result=check(await sb.rpc('sb_shadow_open_daily_cards'));if(!result?.pack)throw new Error('No se recibió el sobre.');const p=result.pack;const previous=packs.findIndex(x=>x.pack_day===p.pack_day);if(previous<0)packs.unshift(p);else packs[previous]=p;lastPack=p;rebuild();render();msg.textContent=result.opened?'🎉 ¡Has conseguido tres cartas!':'Este sobre ya se abrió hoy. Mostramos tus cartas.';}catch(e){msg.textContent='No se pudo abrir: '+(e.message||'Error de conexión');open.disabled=false}});
+ const availability=el('p');const open=button('Abrir sobre gratis',async()=>{open.disabled=true;msg.textContent='Abriendo sobre…';try{const result=check(await sb.rpc('sb_shadow_open_daily_cards'));if(!result?.pack)throw new Error('No se recibió el sobre.');const p=result.pack;const previous=packs.findIndex(x=>x.pack_day===p.pack_day);if(previous<0)packs.unshift(p);else packs[previous]=p;lastPack=p;await rebuild();render();tradeHost.dispatchEvent(new Event('sb-card-pack-opened'));msg.textContent=result.opened?'🎉 ¡Has conseguido tres cartas!':'Este sobre ya se abrió hoy. Mostramos tus cartas.';}catch(e){msg.textContent='No se pudo abrir: '+(e.message||'Error de conexión');open.disabled=false}});
  const odds=el('details');odds.append(el('summary','Probabilidades por carta'));for(const [label,,prob] of Object.values(rarities))odds.append(el('p',label+' · '+prob));odds.append(el('small','Cada una de las tres cartas se sortea de forma independiente. Pueden salir duplicados.'));
  openSection.append(packIcon,el('h3','Sobre diario · 3 cartas'),availability,open,odds);
- const revealed=el('section');const stats=el('section');const badges=el('section');const album=el('section');const history=el('section');shell.append(openSection,msg,revealed,stats,badges,album,history);
+ const revealed=el('section');const stats=el('section');const badges=el('section');const album=el('section');const history=el('section');const tradeHost=el('section');shell.append(openSection,msg,revealed,stats,badges,album,tradeHost,history);
  const controls=el('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center';
  const search=el('input');search.type='search';search.placeholder='Buscar personaje o anime';search.setAttribute('aria-label','Buscar carta');search.style.maxWidth='100%';
  const rarity=el('select');rarity.setAttribute('aria-label','Rareza');const all=el('option','Todas las rarezas');all.value='all';rarity.append(all);for(const [key,[label]] of Object.entries(rarities)){const opt=el('option',label);opt.value=key;rarity.append(opt)}
@@ -46,7 +47,7 @@ async function mount(host,user){
  badges.replaceChildren(el('h3','🏆 Insignias de colección'));const achievements=[['🌱 Primer coleccionista',unique>=1],['⭐ Explorador otaku',unique>=5],['💎 Maestro coleccionista',unique>=10],['👑 Álbum completo',catalog.length>0&&unique===catalog.length],['🔥 Cazador mítico',catalog.some(c=>c.rarity==='mythic'&&counts[c.id]>0)]];for(const [label,done] of achievements)badges.append(el('p',(done?'✅ ':'🔒 ')+label));
  history.replaceChildren(el('h3','📜 Historial de sobres'));for(const pack of packs.slice(0,10))history.append(el('p',pack.pack_day+' · '+[pack.card_1,pack.card_2,pack.card_3].map(id=>byId[id]?.name||id).join(' · ')));if(!packs.length)history.append(el('p','Todavía no has abierto sobres.'));renderAlbum();
  }
- msg.textContent='';render();
+ msg.textContent='';render();if(window.SBCardTrades)window.SBCardTrades.mount(tradeHost,user,rows=>{applyInventory(rows);render()});else tradeHost.append(el('p','Actualiza la aplicación para acceder a los intercambios.'));
  }catch(e){msg.textContent='No se pudo cargar el álbum: '+(e.message||'Error de conexión');shell.append(button('Reintentar',()=>mount(host,user)))}
 }
 return {mount};
