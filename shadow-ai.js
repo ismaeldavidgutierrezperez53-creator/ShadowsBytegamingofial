@@ -4,7 +4,7 @@ window.SBShadowAI=(()=>{
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const btn=(text,fn)=>{const b=el('button',text,'outline-btn mini');b.type='button';b.onclick=fn;return b;};
 const normal=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ');
-const validRoutes=new Set(['/shadow-city','/shadow-arena','/shadow-academy','/comunidad','/shadow-universe','/anime','/manga','/gaming','/cuenta','/tienda']);
+const validRoutes=new Set(['/shadow-home','/shadow-city','/shadow-arena','/shadow-academy','/comunidad','/shadow-universe','/anime','/manga','/gaming','/cuenta','/tienda']);
 async function mount(){
  const root=document.getElementById('sb-shadow-ai');if(!root)return;root.replaceChildren();
  const status=el('p','Cargando asistente…');status.setAttribute('role','status');root.append(status);
@@ -22,14 +22,14 @@ async function mount(){
  function guide(question){
  const text=normal(question);const words=new Set(text.split(/\s+/));
  const ranked=(guides||[]).map(g=>({g,score:g.keywords.split(',').reduce((s,k)=>s+((words.has(normal(k))||words.has(normal(k)+'s')||words.has(normal(k)+'es'))?1:0),0)+(text.includes(normal(g.title))?5:0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
- if(!ranked.length){add('Shadow AI · Guía interna','No tengo una respuesta específica. Pregúntame sobre Anime, Manga, Gaming, Shadow City, Arena, Academy, Universe, Reels o tu cuenta.');return;}
+ if(!ranked.length){add('Shadow AI · Guía interna','No tengo una respuesta específica. Pregúntame sobre Anime, Manga, Gaming, Shadow Home, City, Arena, Academy, Universe, Reels o tu cuenta.');return;}
  for(const {g} of ranked.slice(0,2))add('Shadow AI · Guía interna',g.title+'\n'+g.answer,g.route);
  }
  async function ask(question){if(busy||!question.trim())return;busy=true;submit.disabled=true;input.value='';add('Tú',question);try{
  if(enabled&&consent.checked){consent.checked=false;status.textContent='Consultando IA generativa…';const {data,error}=await sb.functions.invoke('shadow-ai',{body:{question,consent:true}});if(error||!data?.answer){add('Shadow AI','La IA generativa no está disponible o has alcanzado el límite. Te muestro la guía interna.');guide(question);}else add('Shadow AI · Generativa',data.answer);}
  else guide(question);
  }catch(e){add('Shadow AI','No se pudo completar la consulta.');guide(question);}finally{busy=false;submit.disabled=false;status.textContent='Listo para tu siguiente pregunta.';}}
- for(const text of ['Recomiéndame anime','Recomiéndame manga','Recomiéndame videojuegos','Shadow City','Shadow Arena','Shadow Academy','Shadow Universe','Historias y Reels'])quick.append(btn(text,()=>{input.value=text;input.focus();}));
+ for(const text of ['Recomiéndame anime','Recomiéndame manga','Recomiéndame videojuegos','Shadow Home','Shadow City','Shadow Arena','Shadow Academy','Shadow Universe','Historias y Reels'])quick.append(btn(text,()=>{input.value=text;input.focus();}));
  form.append(info,label,input,submit);form.onsubmit=e=>{e.preventDefault();ask(input.value.trim());};
  root.append(quick,chat,form,btn('Limpiar conversación',()=>{if(!busy){chat.replaceChildren();add('Shadow AI','¡Hola! ¿En qué puedo ayudarte?');}}));
  add('Shadow AI','¡Hola! Soy el asistente de SB V2. Puedo orientarte sobre anime, manga, videojuegos y las funciones de la comunidad.');
