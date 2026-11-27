@@ -1,0 +1,39 @@
+/* Shadow Universe 4.0 — parallel dimensions and weekly portals */
+window.SBDimensions=(()=>{
+'use strict';
+const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
+const btn=(label,fn)=>{const b=el('button',label);b.className='outline-btn mini';b.type='button';b.onclick=fn;return b};
+const check=r=>{if(r.error)throw r.error;return r.data};
+const colors={mirror:'#67e8f9',inferno:'#fb7185',void:'#c084fc',eternity:'#fbbf24'};
+const errors={'Portal locked':'Todavía no cumples los requisitos del portal.','Account restricted':'Tu cuenta no puede participar.','Run unavailable':'La expedición ya no está disponible.','No power charges':'No quedan cargas de poder.'};
+function week(){const d=new Date();d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10)}
+function bar(label,hp,max,color){const w=el('div'),p=el('progress');p.max=max;p.value=hp;p.style.cssText='width:100%;height:16px;accent-color:'+color;p.setAttribute('aria-label',label);w.append(el('p',label+' · '+hp+'/'+max+' PV'),p);return w}
+async function mount(host,user){
+if(!host?.isConnected)return;
+host.replaceChildren(el('h2','🌌 Dimensiones paralelas · Shadow Universe 4.0'),el('p','Cruza cuatro portales hacia mundos con reglas propias. Una expedición por dimensión y semana UTC. Las victorias otorgan XP, fragmentos de forja y cristales dimensionales. El equipo, la clase, mascota y ascensión se fijan al atravesar el portal.'));
+const status=el('p','Cargando dimensiones…');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+const info=el('section'),list=el('div'),detail=el('section'),history=el('details');list.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));gap:10px';detail.style.cssText='padding:14px;margin:12px 0;border:1px solid #a855f777;border-radius:14px';host.append(status,info,list,detail,history);
+let catalog=[],records=[],xp=0,ascension=0,crystals=0,selected=null,busy=false,loading=false;
+const record=id=>records.find(r=>r.dimension_id===id&&r.week_start===week());
+const locked=c=>xp<c.min_xp||ascension<c.min_ascension;
+const report=e=>{status.textContent=errors[e.message]||e.message||'Error de conexión'};
+async function load(message){if(loading||!host.isConnected)return;loading=true;try{const [a,b,c,d,e]=await Promise.all([sb.from('sb_dimension_catalog').select('*').order('min_xp'),sb.from('sb_dimension_runs').select('*').eq('user_id',user.id).order('week_start',{ascending:false}).limit(100),sb.rpc('community_member_xp',{target_member:user.id}),sb.from('sb_ascension_trials').select('tier').eq('user_id',user.id).eq('status','won'),sb.from('sb_dimension_wallet').select('crystals').eq('user_id',user.id).maybeSingle()]);
+if(!host.isConnected)return;catalog=check(a)||[];records=check(b)||[];xp=Number(check(c)||0);ascension=Math.max(0,...(check(d)||[]).map(x=>x.tier));crystals=Number(check(e)?.crystals||0);if(selected===null)selected=catalog[0]?.id;draw();status.textContent=message||''}catch(e){report(e)}finally{loading=false}}
+async function act(c,r,action){if(busy||loading)return;if(action==='start'&&!confirm('¿Atravesar '+c.name+'? Consumirás su expedición de esta semana.'))return;busy=true;try{const data=check(await (action==='start'?sb.rpc('sb_dimension_start',{target_dimension:c.id}):sb.rpc('sb_dimension_turn',{target_run:r.id,expected_version:r.version,action})));records=records.filter(x=>x.id!==data.id);records.unshift(data);if(data.status==='won')await load('¡Dimensión conquistada! Recompensas concedidas.');else{draw();status.textContent=''}}catch(e){report(e)}finally{busy=false}}
+function draw(){
+const victories=records.filter(r=>r.status==='won'),visited=new Set(victories.map(r=>r.dimension_id));
+info.replaceChildren(el('h3','✦ Nexo dimensional'),el('p','💠 '+crystals+' cristales · '+xp+' XP · Ascensión '+ascension+'/3'),el('p',catalog.filter(c=>!locked(c)).length+'/'+catalog.length+' portales accesibles · '+visited.size+' mundos conquistados en las últimas 100 expediciones.'));
+if(victories.length)info.append(el('p','🎖️ Viajero dimensional'));if(catalog.length&&visited.size===catalog.length)info.append(el('p','👑 Conquistador del multiverso'));
+list.replaceChildren();
+for(const c of catalog){const r=record(c.id),card=el('article');card.style.cssText='padding:14px;border:1px solid '+colors[c.id]+';border-radius:14px;background:radial-gradient(ellipse at top,#382449,#151122);color:#fff;overflow-wrap:anywhere';const icon=el('div',c.symbol);icon.style.cssText='font-size:42px;text-align:center';card.append(icon,el('h3',c.name),el('p',c.min_xp+' XP · Ascensión '+c.min_ascension),el('p',r?.status==='won'?'✅ Conquistada esta semana':r?.status==='lost'?'Expedición terminada':r?'⚔️ En curso':locked(c)?'🔒 Portal cerrado':'🟢 Portal disponible'),btn('Ver portal',()=>{selected=c.id;draw()}));list.append(card)}
+detail.replaceChildren();const c=catalog.find(x=>x.id===selected);if(c){const r=record(c.id);detail.append(el('h3',c.symbol+' '+c.name),el('p',c.description),el('p','Jefe: '+c.boss+' · Recompensa: '+c.reward_xp+' XP, '+c.reward_shards+' fragmentos y '+c.reward_crystals+' cristales.'));
+if(!r){const b=btn(locked(c)?'Portal bloqueado':'Atravesar portal',()=>act(c,null,'start'));b.disabled=locked(c);detail.append(b)}
+else if(r.status!=='active'){detail.append(el('p',r.status==='won'?'🏆 Victoria: +'+r.xp+' XP · +'+r.shards+' fragmentos · +'+r.crystals+' cristales.':'Expedición fallida. El portal se reinicia el lunes UTC.'))}
+else{detail.append(bar('Tu vida',r.player_hp,100,'#22c55e'),bar(c.boss,r.boss_hp,c.boss_hp,'#ef4444'),el('p','Turno '+r.version+'/25 · Poderes '+r.power_left+'/2'),el('p',r.last_event));const power=btn('🔮 Poder ('+(65+r.attack+r.magic-(c.hazard==='void'?10:0))+' daño)',()=>act(c,r,'power'));power.disabled=!r.power_left;detail.append(btn('⚔️ Atacar ('+(35+r.attack-(c.hazard==='fog'?5:0))+' daño)',()=>act(c,r,'attack')),btn('🛡️ Defender (+'+(20+r.heal-(c.hazard==='eternity'?8:0))+' PV)',()=>act(c,r,'guard')),power)}
+}
+const open=history.open;history.replaceChildren(el('summary','📜 Diario dimensional'));history.open=open;for(const r of records.slice(0,20))history.append(el('p',r.week_start+' · '+(catalog.find(c=>c.id===r.dimension_id)?.name||r.dimension_id)+' · '+({won:'Victoria',lost:'Derrota',active:'En curso'}[r.status])+' · +'+r.xp+' XP · +'+r.crystals+' cristales'));if(!records.length)history.append(el('p','Todavía no has atravesado portales.'));
+}
+host.append(btn('↻ Actualizar dimensiones',()=>load()));await load();
+}
+return {mount};
+})();
