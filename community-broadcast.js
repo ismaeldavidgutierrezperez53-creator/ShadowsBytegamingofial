@@ -1,0 +1,50 @@
+/* SB V2 — broadcast channels: staff publications, member subscriptions. */
+window.SBBroadcast=(()=>{
+'use strict';
+const types={official:'📢 Oficial',anime:'🌸 Anime',manga:'📚 Manga y Manhwa',gaming:'🎮 Gaming',community:'👥 Comunidad'};
+const emojis=['❤️','🔥','😂','😍','😮','👏'];
+const el=(t,s,c)=>{const n=document.createElement(t);if(s!==undefined)n.textContent=s;if(c)n.className=c;return n};
+const button=(s,f)=>{const b=el('button',s,'outline-btn mini');b.type='button';b.onclick=f;return b};
+const check=r=>{if(r.error)throw r.error;return r.data};
+const panel=()=>{const n=el('section');n.style.cssText='padding:14px;margin:12px 0;border:1px solid #a855f766;border-radius:14px;overflow-wrap:anywhere';return n};
+const field=(title,input)=>{const l=el('label',title);input.style.cssText='display:block;width:100%;margin:6px 0';l.append(input);return l};
+async function mount(){
+ const root=document.getElementById('sb-broadcast-channels');if(!root)return;
+ root.replaceChildren(el('h2','📢 Canales de difusión'),el('p','Sigue tus canales favoritos para recibir sus publicaciones exclusivas aquí.'));
+ const status=el('p','Cargando canales…');status.setAttribute('role','status');root.append(status);
+ try{
+ const user=check(await sb.auth.getSession()).session?.user;if(!root.isConnected)return;
+ if(!user){const a=el('a','Iniciar sesión','gradient-btn mini');a.href='#/auth';root.append(a);status.textContent='Inicia sesión para seguir canales.';return}
+ const role=check(await sb.from('site_staff_roles').select('role').eq('user_id',user.id).maybeSingle())?.role;
+ const staff=['owner','admin','moderator'].includes(role),admin=['owner','admin'].includes(role);
+ const toolbar=el('div');toolbar.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
+ const search=el('input');search.type='search';search.placeholder='Buscar canal';search.setAttribute('aria-label','Buscar canal');
+ const filter=el('select');filter.setAttribute('aria-label','Filtrar canales');for(const [v,t] of [['all','Todos'],['following','Siguiendo'],...Object.entries(types)]){const opt=el('option',t);opt.value=v;filter.append(opt)}
+ toolbar.append(search,filter,button('Actualizar',load));root.append(toolbar);
+ const adminArea=el('div'),list=el('div'),detail=panel();detail.hidden=true;root.append(adminArea,list,detail);
+ let channels=[],following=new Set(),current=null,revision=0;
+ async function load(){try{status.textContent='Cargando…';const [a,b]=await Promise.all([sb.from('sb_broadcast_channels').select('id,name,description,category').order('name').limit(100),sb.from('sb_broadcast_subscribers').select('channel_id').eq('user_id',user.id)]);if(!root.isConnected)return;channels=check(a)||[];following=new Set((check(b)||[]).map(x=>x.channel_id));draw();status.textContent=channels.length+' canales · '+following.size+' seguidos';if(current){const c=channels.find(x=>x.id===current);if(c)await open(c);else{detail.hidden=true;current=null}}}catch(e){status.textContent='No se pudieron cargar los canales: '+e.message}}
+ function formChannel(c=null){adminArea.replaceChildren();const box=panel();box.append(el('h3',c?'Editar canal':'Crear canal'));const form=el('form'),name=el('input'),desc=el('textarea'),category=el('select');name.required=true;name.minLength=3;name.maxLength=60;name.value=c?.name||'';desc.maxLength=300;desc.value=c?.description||'';for(const [v,t] of Object.entries(types)){const opt=el('option',t);opt.value=v;category.append(opt)}category.value=c?.category||'community';const save=el('button','Guardar canal','gradient-btn mini');save.type='submit';const msg=el('p');msg.setAttribute('role','status');form.append(field('Nombre',name),field('Descripción',desc),field('Categoría',category),save,button('Cancelar',()=>adminArea.replaceChildren()),msg);box.append(form);adminArea.append(box);form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{const payload={name:name.value.trim(),description:desc.value.trim(),category:category.value};if(c)check(await sb.from('sb_broadcast_channels').update(payload).eq('id',c.id).select('id').single());else check(await sb.from('sb_broadcast_channels').insert(payload));adminArea.replaceChildren();await load()}catch(e){msg.textContent=e.message;save.disabled=false}}}
+ if(admin)toolbar.append(button('➕ Crear canal',()=>formChannel()));
+ function draw(){list.replaceChildren();const q=search.value.trim().toLowerCase();const found=channels.filter(c=>(c.name+' '+c.description).toLowerCase().includes(q)&&(filter.value==='all'||filter.value==='following'&&following.has(c.id)||filter.value===c.category));for(const c of found){const box=panel();box.append(el('small',types[c.category]),el('h3',c.name),el('p',c.description),el('p',following.has(c.id)?'✅ Siguiendo':'No sigues este canal'));const follow=button(following.has(c.id)?'Dejar de seguir':'Seguir canal',async()=>{follow.disabled=true;try{if(following.has(c.id))check(await sb.from('sb_broadcast_subscribers').delete().eq('channel_id',c.id).eq('user_id',user.id).select('channel_id').single());else check(await sb.from('sb_broadcast_subscribers').insert({channel_id:c.id}));await load()}catch(e){status.textContent=e.message;follow.disabled=false}});box.append(follow,button('Abrir canal',()=>{open(c);detail.scrollIntoView({block:'nearest'})}));if(admin)box.append(button('Editar',()=>formChannel(c)));list.append(box)}if(!found.length)list.append(el('p','No hay canales que coincidan.'))}
+ search.oninput=filter.onchange=draw;
+ async function open(c){
+ current=c.id;const rev=++revision;detail.hidden=false;detail.replaceChildren(el('h3',types[c.category]+' · '+c.name),button('Cerrar canal',()=>{current=null;revision++;detail.hidden=true;detail.replaceChildren()}));
+ if(!staff&&!following.has(c.id)){detail.append(el('p','Sigue este canal para ver las publicaciones.'));return}
+ const feedback=el('p','Cargando publicaciones…');feedback.setAttribute('role','status');detail.append(feedback);
+ try{
+ if(staff){const count=await sb.from('sb_broadcast_subscribers').select('*',{count:'exact',head:true}).eq('channel_id',c.id);if(rev!==revision)return;detail.append(el('p',count.error?'No se pudo consultar el número de seguidores':(count.count||0)+' seguidores'));
+ const form=el('form'),body=el('textarea');body.required=true;body.maxLength=3000;body.rows=4;body.placeholder='Escribe un comunicado…';const publish=el('button','Publicar comunicado','gradient-btn mini');publish.type='submit';form.append(field('Nueva publicación',body),publish);detail.append(form);form.onsubmit=async e=>{e.preventDefault();publish.disabled=true;try{check(await sb.from('sb_broadcast_posts').insert({channel_id:c.id,body:body.value.trim()}));await open(c)}catch(e){feedback.textContent=e.message;publish.disabled=false}}}
+ const posts=check(await sb.from('sb_broadcast_posts').select('id,body,created_at').eq('channel_id',c.id).order('created_at',{ascending:false}).limit(50))||[];if(rev!==revision||!root.isConnected)return;feedback.textContent=posts.length?'Últimas '+posts.length+' publicaciones.':'Todavía no hay publicaciones.';
+ for(const p of posts){const card=panel();const body=el('p',p.body);body.style.whiteSpace='pre-wrap';card.append(el('small',new Date(p.created_at).toLocaleString('es-ES')),body);const msg=el('p');msg.setAttribute('role','status');const actions=el('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:6px';const read=button('👁️ Marcar como visto',async()=>{read.disabled=true;try{const r=await sb.from('sb_broadcast_views').insert({post_id:p.id});if(r.error&&r.error.code!=='23505')throw r.error;await initReaction()}catch(e){msg.textContent=e.message;read.disabled=false}});actions.append(read);const reactionBar=el('div');reactionBar.style.cssText='display:flex;flex-wrap:wrap;gap:6px';let selected=null;
+ async function initReaction(){const mine=check(await sb.from('sb_broadcast_views').select('reaction').eq('post_id',p.id).eq('user_id',user.id).maybeSingle());if(!mine)return;selected=mine.reaction;read.textContent='✓ Visto';read.disabled=true;reactionBar.replaceChildren();for(const emoji of emojis){const b=button(emoji,async()=>{b.disabled=true;try{const next=selected===emoji?null:emoji;check(await sb.from('sb_broadcast_views').update({reaction:next}).eq('post_id',p.id).eq('user_id',user.id).select('post_id').single());await initReaction();msg.textContent=next?'Reacción enviada '+next:'Reacción retirada'}catch(e){msg.textContent=e.message;b.disabled=false}});b.setAttribute('aria-label','Reaccionar '+emoji);b.setAttribute('aria-pressed',String(selected===emoji));reactionBar.append(b)}}
+ card.append(actions,reactionBar,msg);detail.append(card);initReaction().catch(e=>{msg.textContent=e.message});
+ if(staff){actions.append(button('📊 Estadísticas',async()=>{try{const results=await Promise.all([sb.from('sb_broadcast_views').select('*',{count:'exact',head:true}).eq('post_id',p.id),...emojis.map(emoji=>sb.from('sb_broadcast_views').select('*',{count:'exact',head:true}).eq('post_id',p.id).eq('reaction',emoji))]);for(const r of results)check(r);msg.textContent=(results[0].count||0)+' visualizaciones · '+emojis.map((emoji,i)=>emoji+' '+(results[i+1].count||0)).join(' · ')}catch(e){msg.textContent=e.message}}),button('Editar',()=>{const input=el('textarea');input.value=p.body;input.maxLength=3000;input.style.width='100%';const save=button('Guardar',async()=>{save.disabled=true;try{check(await sb.from('sb_broadcast_posts').update({body:input.value.trim()}).eq('id',p.id).select('id').single());await open(c)}catch(e){msg.textContent=e.message;save.disabled=false}});body.replaceWith(input);card.append(save)}),button('Eliminar',async()=>{if(!confirm('¿Eliminar este comunicado?'))return;try{check(await sb.from('sb_broadcast_posts').delete().eq('id',p.id).select('id').single());await open(c)}catch(e){msg.textContent=e.message}}))}
+ }
+ }catch(e){if(rev===revision)feedback.textContent='No se pudo abrir el canal: '+e.message}
+ }
+ await load();
+ }catch(e){status.textContent='No se pudieron iniciar los canales: '+e.message;root.append(button('Reintentar',mount))}
+}
+return {mount};
+})();
