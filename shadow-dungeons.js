@@ -39,11 +39,12 @@ async function mount(host,user){
  function render(r,d,rev){
  if(rev!==revision||!host.isConnected)return;
  battle.replaceChildren(el('h3','⚔️ '+d.name),btn('Cerrar expedición',()=>{revision++;battle.hidden=true}),el('p',r.last_event));
- if(r.status!=='active'){battle.append(el('h2',r.status==='won'?'🏆 ¡Mazmorra conquistada!':'💀 Expedición terminada'),el('p',r.status==='won'?'+'+r.xp+' XP concedidos automáticamente.':'Sin recompensa. Puedes intentarlo mañana.'),btn('Volver a las puertas',()=>{revision++;battle.hidden=true;refresh()}));return}
+ if(r.status!=='active'){battle.append(el('h2',r.status==='won'?'🏆 ¡Mazmorra conquistada!':'💀 Expedición terminada'),el('p',r.status==='won'?'+'+r.xp+' XP concedidos automáticamente. Consulta el botín y los fragmentos en Armas y equipamiento (actualiza el inventario).':'Sin recompensa. Puedes intentarlo mañana.'),btn('Volver a las puertas',()=>{revision++;battle.hidden=true;refresh()}));return}
  battle.append(el('p','Sala '+r.room+'/3 · Turno '+r.turn_no+'/25'),hpbar('Tu vida',r.player_hp,100,'#22c55e'),hpbar(d.enemy_names[r.room-1],r.enemy_hp,d.enemy_hp[r.room-1],'#ef4444'),el('p','Poderes restantes: '+r.power_left+'/2'));
  if(r.pet_bonus>0)battle.append(el('p','🐾 Compañero: '+(r.companion_name||'Mascota')+' · +'+r.pet_bonus+' daño por ataque.'));
+ if(r.gear_attack||r.gear_defense)battle.append(el('p','🗡️ Equipo: +'+(r.gear_attack||0)+' ataque · 🛡️ '+(r.gear_defense||0)+' reducción de daño.'));
  const actions=el('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px';const feedback=el('p');feedback.setAttribute('role','status');let sending=false;
- const bonus=Number(r.pet_bonus||0),skillNames={bolt:'⚡ Rayo de sombras ('+(45+bonus)+' daño)',heal:'💚 Luz restauradora (+30 PV)',shield:'🛡️ Escudo espectral ('+(20+bonus)+' daño y bloqueo)',storm:'🌩️ Tormenta abisal ('+(70+bonus)+' daño)',renew:'✨ Renacer celestial (+45 PV)',fortress:'🏰 Fortaleza del monarca ('+(35+bonus)+' daño y bloqueo)'};
+ const bonus=Number(r.pet_bonus||0)+Number(r.gear_attack||0),skillNames={bolt:'⚡ Rayo de sombras ('+(45+bonus)+' daño)',heal:'💚 Luz restauradora (+30 PV)',shield:'🛡️ Escudo espectral ('+(20+bonus)+' daño y bloqueo)',storm:'🌩️ Tormenta abisal ('+(70+bonus)+' daño)',renew:'✨ Renacer celestial (+45 PV)',fortress:'🏰 Fortaleza del monarca ('+(35+bonus)+' daño y bloqueo)'};
  const moves=[['attack','⚔️ Atacar ('+(30+bonus)+' daño)'],['guard','🛡️ Defender (+12 PV, daño reducido)'],['power','🔮 Poder ('+(55+bonus)+' daño)']];
  for(const id of r.equipped_skills||[])if(skillNames[id])moves.push(['skill:'+id,skillNames[id]+((r.used_skills||[]).includes(id)?' · Usada':'')]);
  if((r.equipped_skills||[]).length)battle.append(el('p','🔮 Habilidades: '+(r.equipped_skills.length-(r.used_skills||[]).length)+' disponibles.'));
