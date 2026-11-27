@@ -36,7 +36,7 @@ card.append(el('p','+'+r.craft_xp+' XP de artesanía'));const b=btn(owned?'✓ Y
 if(!list.children.length)list.append(el('p','No hay recetas en este filtro.'));
 history.replaceChildren(el('summary','📜 Historial de fabricación'));for(const l of logs)history.append(el('p',new Date(l.created_at).toLocaleString('es-ES')+' · '+(recipes.find(r=>r.id===l.recipe_id)?.name||l.recipe_id)+' · +'+l.craft_xp+' XP'));if(!logs.length)history.append(el('p','Todavía no has fabricado objetos.'));
 }
-host.append(btn('↻ Actualizar taller',()=>load()));host.parentElement?.addEventListener('sb-world-explored',()=>{if(host.isConnected)load()});await load();
+host.append(btn('↻ Actualizar taller',()=>load()));host.parentElement?.addEventListener('sb-world-explored',()=>{if(host.isConnected)load()});host.parentElement?.addEventListener('sb-craft-inventory-changed',()=>{if(host.isConnected)load()});await load();
 }
 return {mount};
 })();
