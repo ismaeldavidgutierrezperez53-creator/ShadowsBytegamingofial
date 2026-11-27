@@ -41,6 +41,7 @@ async function mount(){
   if(xpResult.error||xpResult.data===null||!Number.isFinite(Number(xpResult.data))){stats.append(el('p','No se pudo consultar tu XP.'))}
   else{const xp=Math.max(0,Number(xpResult.data));const i=rankRules.reduce((idx,r,j)=>xp>=r[0]?j:idx,0);const next=rankRules[i+1];stats.append(el('h3','Rango '+rankRules[i][1]),el('p','Nivel '+(Math.floor(Math.sqrt(xp/100))+1)+' · '+xp+' XP de comunidad'));if(next){const bar=el('progress');bar.max=next[0]-rankRules[i][0];bar.value=xp-rankRules[i][0];bar.style.width='100%';stats.append(bar,el('p','Próximo rango: '+next[1]+' · faltan '+(next[0]-xp)+' XP'));}}
   const mission=el('a','📜 Misiones, recompensas y niveles','outline-btn mini');mission.href='#/logros';stats.append(mission);root.append(stats);
+  const cards=panel();root.append(cards);if(window.SBShadowCards){window.SBShadowCards.mount(cards,user)}else{cards.append(el('p','El álbum no se pudo cargar. Actualiza la aplicación.'))}
   const ownResult=await sb.from('sb_shadow_guilds').select('id,owner_id,name,description,shield').eq('owner_id',user.id).maybeSingle();const own=checked(ownResult);if(!root.isConnected)return;
   const editor=panel();editor.append(el('h2',own?'🛡️ Administrar mi gremio':'🛡️ Crear un gremio'));
   const form=el('form');const name=el('input');name.id='sb-shadow-name';name.required=true;name.minLength=3;name.maxLength=40;name.value=own?.name||'';name.placeholder='Nombre del gremio';name.style.cssText='display:block;width:100%;margin:8px 0';
