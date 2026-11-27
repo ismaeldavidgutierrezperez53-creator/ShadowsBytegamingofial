@@ -67,9 +67,9 @@ async function mount(){
  function syncControls(){for(const b of [clear,saveChat,renameChat,deleteChat,...historyList.querySelectorAll('button')])b.disabled=busy||historyBusy;saveChat.hidden=!!activeId;renameChat.hidden=deleteChat.hidden=!activeId;submit.disabled=busy||historyBusy;historyNote.textContent=activeId?'Chat guardado · últimos 40 mensajes.':'Chat temporal · no se guarda en Supabase.';}
  async function listChats(){const {data,error}=await sb.from('sb_ai_conversations').select('id,title').eq('user_id',session.user.id).order('updated_at',{ascending:false}).limit(100);if(error){historyNote.textContent='No se pudo cargar el historial.';return;}historyList.replaceChildren();for(const row of data||[]){const b=el('button',row.title);b.type='button';b.setAttribute('aria-pressed',String(row.id===activeId));b.onclick=()=>openChat(row.id);historyList.append(b);}if(!data?.length)historyList.append(el('p','No tienes conversaciones guardadas.','sai-note'));syncControls();}
  function renderChat(){chat.replaceChildren();add('Shadow AI',welcome,null,false);for(const m of messages)add(m.who,m.text,m.route,false);updateCount();}
- function newChat(){activeId=null;activeTitle='';messages=[];revision=null;input.value='';consent.checked=false;renderChat();syncControls();for(const b of historyList.querySelectorAll('button'))b.setAttribute('aria-pressed','false');input.focus();}
+ function newChat(){activeId=null;activeTitle='';messages=[];revision=null;input.value='';consent.checked=false;memory.checked=false;renderChat();syncControls();for(const b of historyList.querySelectorAll('button'))b.setAttribute('aria-pressed','false');input.focus();}
  async function withHistory(fn){if(busy||historyBusy)return;historyBusy=true;syncControls();try{await fn();}catch(_){status.textContent='No se pudo completar el cambio de historial. Inténtalo de nuevo.';}finally{historyBusy=false;syncControls();}}
- async function openChat(id){await withHistory(async()=>{const {data,error}=await sb.from('sb_ai_conversations').select('id,title,messages,updated_at').eq('id',id).eq('user_id',session.user.id).single();if(error||!data)throw error||Error('No disponible');activeId=data.id;activeTitle=data.title;revision=data.updated_at;messages=(Array.isArray(data.messages)?data.messages:[]).filter(m=>m&&typeof m.who==='string'&&typeof m.text==='string').slice(-40).map(m=>({who:m.who.slice(0,50),text:m.text.slice(0,5000),route:validRoutes.has(m.route)?m.route:null}));input.value='';consent.checked=false;renderChat();await listChats();});}
+ async function openChat(id){await withHistory(async()=>{const {data,error}=await sb.from('sb_ai_conversations').select('id,title,messages,updated_at').eq('id',id).eq('user_id',session.user.id).single();if(error||!data)throw error||Error('No disponible');activeId=data.id;activeTitle=data.title;revision=data.updated_at;messages=(Array.isArray(data.messages)?data.messages:[]).filter(m=>m&&typeof m.who==='string'&&typeof m.text==='string').slice(-40).map(m=>({who:m.who.slice(0,50),text:m.text.slice(0,5000),route:validRoutes.has(m.route)?m.route:null}));input.value='';consent.checked=false;memory.checked=false;renderChat();await listChats();});}
  async function persist(){if(!activeId)return;const old=revision;const now=new Date().toISOString();const {data,error}=await sb.from('sb_ai_conversations').update({messages,updated_at:now}).eq('id',activeId).eq('user_id',session.user.id).eq('updated_at',old).select('updated_at').maybeSingle();if(error||!data)throw error||Error('Conflicto de versión');revision=data.updated_at;}
  saveChat.onclick=()=>withHistory(async()=>{if(!confirm('¿Guardar esta conversación en tu cuenta de SB V2? Evita incluir datos personales.'))return;const title=(messages.find(m=>m.who==='Tú')?.text||'Nueva conversación').trim().slice(0,100)||'Nueva conversación';const {data,error}=await sb.from('sb_ai_conversations').insert({user_id:session.user.id,title,messages}).select('id,title,updated_at').single();if(error)throw error;activeId=data.id;activeTitle=data.title;revision=data.updated_at;await listChats();status.textContent='Conversación guardada.';});
  renameChat.onclick=()=>withHistory(async()=>{if(!activeId)return;const title=prompt('Nuevo nombre de la conversación:',activeTitle)?.trim().slice(0,100);if(!title)return;const {data,error}=await sb.from('sb_ai_conversations').update({title}).eq('id',activeId).eq('user_id',session.user.id).select('id').maybeSingle();if(error||!data)throw error||Error('No disponible');activeTitle=title;await listChats();});
@@ -81,8 +81,33 @@ async function mount(){
  if(!ranked.length){add('Shadow AI · Guía interna','No tengo una respuesta específica. Pregúntame sobre Anime, Manga, Gaming, Shadow Home, City, Arena, Academy, Universe, Reels o tu cuenta.');return;}
  for(const {g} of ranked.slice(0,2))add('Shadow AI · Guía interna',g.title+'\n'+g.answer,g.route);
  }
+ async function streamAnswer(data){
+  if(typeof data?.answer==='string'&&data.answer.trim()){add('Shadow AI · Generativa',data.answer);return true;}
+  if(!data?.body?.getReader)return false;
+  const card=el('article',null,'sai-message'),output=el('p','…');card.append(el('strong','Shadow AI · Generativa'),output);chat.append(card);
+  const reader=data.body.getReader(),decoder=new TextDecoder();let pending='',answer='',finished=false,incomplete=false;
+  try{
+   while(!finished){
+    const {done,value}=await reader.read();if(done)break;
+    pending+=decoder.decode(value,{stream:true});
+    let i;
+    while((i=pending.indexOf('\n'))>=0){
+     const line=pending.slice(0,i).trimEnd();pending=pending.slice(i+1);
+     if(!line.startsWith('data:'))continue;
+     let event;try{event=JSON.parse(line.slice(5))}catch(_){continue;}
+     if(event.error){incomplete=true;finished=true;break;}
+     if(typeof event.delta==='string'){answer=(answer+event.delta).slice(0,5000);output.textContent=answer;chat.scrollTop=chat.scrollHeight;}
+     if(event.done){incomplete=!!event.incomplete;finished=true;break;}
+    }
+    if(pending.length>1000000)throw Error('Invalid stream');
+   }
+  }catch(_){incomplete=true;}finally{try{await reader.cancel();}catch(_){}card.remove();}
+  if(!answer.trim())return false;
+  add(incomplete||!finished?'Shadow AI · Respuesta incompleta':'Shadow AI · Generativa',answer);
+  return true;
+ }
  async function ask(question){if(busy||historyBusy||!question.trim())return;const context=memory.checked?messages.filter(m=>m.who==='Tú'||m.who==='Shadow AI · Generativa'||m.who==='Shadow AI · Guía interna').slice(-8).map(m=>({role:m.who==='Tú'?'user':'assistant',content:m.text.slice(0,1200)})):[];busy=true;syncControls();submit.disabled=true;refresh.disabled=true;clear.disabled=true;submit.textContent='Consultando…';input.value='';updateCount();add('Tú',question);try{
- if(enabled&&consent.checked){consent.checked=false;status.textContent='Consultando IA generativa…';const {data,error}=await sb.functions.invoke('shadow-ai',{body:{question,consent:true,history:context}});if(error||!data?.answer){add('Shadow AI','La IA generativa no está disponible o has alcanzado el límite. Te muestro la guía interna.');guide(question);}else add('Shadow AI · Generativa',data.answer);}
+ if(enabled&&consent.checked){consent.checked=false;status.textContent='Consultando IA generativa…';const {data,error}=await sb.functions.invoke('shadow-ai',{body:{question,consent:true,history:context,stream:true}});if(error||!await streamAnswer(data)){add('Shadow AI','La IA generativa no está disponible o has alcanzado el límite. Te muestro la guía interna.');guide(question);}}
  else guide(question);
  }catch(e){add('Shadow AI','No se pudo completar la consulta.');guide(question);}finally{let saved=true;try{await persist();}catch(_){saved=false;}busy=false;refresh.disabled=checking;submit.textContent='Enviar ➜';syncControls();status.textContent=saved?'Listo para tu siguiente pregunta.':'No se pudo guardar el chat (posible cambio en otro dispositivo). Conserva esta pantalla y copia lo necesario antes de salir.';input.focus();}}
  for(const [icon,text] of [['🎬','Recomiéndame anime'],['📚','Recomiéndame manga'],['🎮','Recomiéndame videojuegos'],['🏠','Shadow Home'],['🌆','Shadow City'],['⚔️','Shadow Arena'],['🎓','Shadow Academy'],['🌌','Shadow Universe'],['📱','Historias y Reels']]){const b=el('button',icon+' '+text);b.type='button';b.onclick=()=>{input.value=text;updateCount();input.focus();};quick.append(b);}
