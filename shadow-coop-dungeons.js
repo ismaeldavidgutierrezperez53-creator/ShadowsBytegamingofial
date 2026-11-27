@@ -61,7 +61,7 @@ async function mount(host,user){
  }
  async function drawRank(){try{const rows=check(await sb.rpc('sb_coop_ranking'))||[];const wasOpen=rank.open;rank.replaceChildren(el('summary','🏆 Mejores equipos · clasificación anónima'));rank.open=wasOpen;const ol=el('ol');for(const x of rows)ol.append(el('li',x.dungeon_name+' · '+x.team_size+' cazadores · '+x.rounds+' rondas'));rank.append(rows.length?ol:el('p','Aún no hay victorias registradas.'))}catch(e){rank.replaceChildren(el('summary','🏆 Clasificación'),el('p',friendly(e)))}}
  host.append(btn('↻ Actualizar cooperativo',()=>load()));await load();
- const timer=setInterval(()=>{if(!host.isConnected){clearInterval(timer);return}if(!busy&&!loading&&!document.hidden)load(undefined,!active)},8000);
+ const timer=setInterval(()=>{if(!host.isConnected){clearInterval(timer);return}if(active&&!busy&&!loading&&!document.hidden&&!host.contains(document.activeElement))load(undefined,false)},8000);
 }
 return {mount};
 })();
