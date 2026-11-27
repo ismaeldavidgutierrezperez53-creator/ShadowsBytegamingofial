@@ -2,7 +2,7 @@
 window.SBVisibility=(()=>{
  const keys=['news','anime_gaming','community','shop','moderation','reports','shop_admin','roles'];
  const labels=['Noticias','Anime y Gaming','Comunidad','Tienda de recompensas','Panel de moderación','Gestionar denuncias','Administrar tienda','Gestionar roles'];
- const routes={'/noticias':'news','/anime':'anime_gaming','/manga':'anime_gaming','/manhwa':'anime_gaming','/gaming':'anime_gaming','/anime-gaming':'anime_gaming','/calendario':'anime_gaming','/waifu-husbando':'anime_gaming','/pokedex':'anime_gaming','/one-piece':'anime_gaming','/comunidad':'community','/shadow-universe':'community','/shadow-city':'community','/shadow-arena':'community','/canales':'community','/tienda':'shop'};
+ const routes={'/noticias':'news','/anime':'anime_gaming','/manga':'anime_gaming','/manhwa':'anime_gaming','/gaming':'anime_gaming','/anime-gaming':'anime_gaming','/calendario':'anime_gaming','/waifu-husbando':'anime_gaming','/pokedex':'anime_gaming','/one-piece':'anime_gaming','/comunidad':'community','/shadow-universe':'community','/shadow-city':'community','/shadow-arena':'community','/shadow-academy':'community','/canales':'community','/tienda':'shop'};
  let row=null,role='guest',rows=[],generation=0;
  async function refresh(){
   const n=++generation;
