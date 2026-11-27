@@ -41,8 +41,9 @@ async function mount(host,user){
  battle.replaceChildren(el('h3','⚔️ '+d.name),btn('Cerrar expedición',()=>{revision++;battle.hidden=true}),el('p',r.last_event));
  if(r.status!=='active'){battle.append(el('h2',r.status==='won'?'🏆 ¡Mazmorra conquistada!':'💀 Expedición terminada'),el('p',r.status==='won'?'+'+r.xp+' XP concedidos automáticamente.':'Sin recompensa. Puedes intentarlo mañana.'),btn('Volver a las puertas',()=>{revision++;battle.hidden=true;refresh()}));return}
  battle.append(el('p','Sala '+r.room+'/3 · Turno '+r.turn_no+'/25'),hpbar('Tu vida',r.player_hp,100,'#22c55e'),hpbar(d.enemy_names[r.room-1],r.enemy_hp,d.enemy_hp[r.room-1],'#ef4444'),el('p','Poderes restantes: '+r.power_left+'/2'));
+ if(r.pet_bonus>0)battle.append(el('p','🐾 Compañero: '+(r.companion_name||'Mascota')+' · +'+r.pet_bonus+' daño por ataque.'));
  const actions=el('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px';const feedback=el('p');feedback.setAttribute('role','status');let sending=false;
- for(const [move,title] of [['attack','⚔️ Atacar (30 daño)'],['guard','🛡️ Defender (+12 PV, daño reducido)'],['power','🔮 Poder (55 daño)']]){
+ for(const [move,title] of [['attack','⚔️ Atacar ('+(30+Number(r.pet_bonus||0))+' daño)'],['guard','🛡️ Defender (+12 PV, daño reducido)'],['power','🔮 Poder ('+(55+Number(r.pet_bonus||0))+' daño)']]){
  const b=btn(title,async()=>{if(sending||rev!==revision)return;sending=true;for(const n of actions.children)n.disabled=true;try{const result=check(await sb.rpc('sb_dungeon_turn',{run_key:r.id,expected_turn:r.turn_no,move}));if(rev!==revision||!host.isConnected)return;todayRuns[d.id]=result;draw();render(result,d,rev);if(result.status!=='active')refresh()}catch(e){if(rev!==revision)return;feedback.textContent=friendly(e);for(const n of actions.children)n.disabled=n.dataset.move==='power'&&r.power_left===0;sending=false}});b.dataset.move=move;b.disabled=move==='power'&&r.power_left===0;actions.append(b);
  }
  battle.append(actions,feedback);
