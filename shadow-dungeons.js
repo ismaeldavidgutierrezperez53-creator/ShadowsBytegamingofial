@@ -30,7 +30,7 @@ async function mount(host,user){
  }
  function draw(){
  list.replaceChildren();
- for(const d of catalogs){const r=todayRuns[d.id],locked=xp<d.min_xp&&!r;const [symbol,color]=styles[d.id]||['⚔️','#c084fc'];const box=panel();box.style.cssText+=';background:linear-gradient(145deg,#21132f,#15111e);border-color:'+color;
+ for(const d of catalogs){const r=todayRuns[d.id],locked=xp<d.min_xp&&!r;const [symbol,color]=styles[d.id]||['⚔️','#c084fc'];const box=panel();box.id='sb-dungeon-door-'+d.id;box.style.cssText+=';background:linear-gradient(145deg,#21132f,#15111e);border-color:'+color;
  const icon=el('div',symbol);icon.style.cssText='font-size:40px;text-align:center';box.append(icon,el('h3',d.name),el('p','Rango '+d.rank_required+' · +'+d.reward_xp+' XP'),el('p',d.description),el('p',locked?'🔒 Requiere '+fmt(d.min_xp)+' XP':r?.status==='won'?'✅ Conquistada hoy':r?.status==='lost'?'❌ Expedición terminada':r?'⚔️ En curso':'🟢 Puerta disponible'));
  const action=btn(locked?'Bloqueada':r?.status==='active'?'Continuar':r?'Ver resultado':'Entrar en mazmorra',()=>start(d));action.disabled=locked;box.append(action);list.append(box);
  }
