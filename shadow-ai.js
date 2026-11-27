@@ -21,7 +21,7 @@ async function mount(){
  let busy=false,enabled=false;
  function guide(question){
  const text=normal(question);const words=new Set(text.split(/\s+/));
- const ranked=(guides||[]).map(g=>({g,score:g.keywords.split(',').reduce((s,k)=>s+(words.has(normal(k))?1:0),0)+(text.includes(normal(g.title))?5:0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+ const ranked=(guides||[]).map(g=>({g,score:g.keywords.split(',').reduce((s,k)=>s+((words.has(normal(k))||words.has(normal(k)+'s')||words.has(normal(k)+'es'))?1:0),0)+(text.includes(normal(g.title))?5:0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
  if(!ranked.length){add('Shadow AI · Guía interna','No tengo una respuesta específica. Pregúntame sobre Anime, Manga, Gaming, Shadow City, Arena, Academy, Universe, Reels o tu cuenta.');return;}
  for(const {g} of ranked.slice(0,2))add('Shadow AI · Guía interna',g.title+'\n'+g.answer,g.route);
  }
